@@ -189,6 +189,49 @@ fn a_crash_leaves_copies_that_restore_modified_and_titled() {
     assert!(s.execute("file.recovery.restore", &json!({"file": format!("{mine}/Poster-1")})).is_err(), "an open document's copy");
 }
 
+/// A copy an earlier version left (its document entry named `.vectorcraft`, before the project took
+/// the name VansonCraft) is offered, restored and then removed; its area is not tidied away with
+/// it, nor are other such copies discarded unseen.
+#[test]
+fn copies_left_before_the_rename_are_offered_and_restored() {
+    let (mut s, store) = session();
+    s.doc_mut().unwrap().path = Some("/art/Poster.svg".into());
+    s.execute("file.recovery.save", &json!({})).unwrap();
+    let nodes = s.doc().unwrap().doc.node_count();
+    let crashed = s.recovery.own_area().unwrap().to_string();
+    drop(s);
+    // As an earlier version wrote it.
+    let file = format!("{crashed}/Poster-1");
+    let bytes = store.read(&format!("{file}.vansoncraft")).unwrap();
+    store.remove(&format!("{file}.vansoncraft")).unwrap();
+    store.write(&format!("{file}.vectorcraft"), &bytes).unwrap();
+
+    let mut s = relaunch(&store);
+    assert_eq!(offered(&mut s), ["Poster.svg"], "listing finds it and leaves the area alone");
+    assert!(store.list().unwrap().contains(&format!("{file}.vectorcraft")));
+    let r = s.execute("file.recovery.restore", &json!({})).unwrap();
+    assert_eq!(r["restored"][0]["title"], "Poster [Recovered]");
+    assert_eq!(s.doc().unwrap().doc.node_count(), nodes);
+    // It moved into this session's area under today's name; nothing of it is left under the old one.
+    let names = store.list().unwrap();
+    assert!(!names.iter().any(|n| n.ends_with(".vectorcraft")), "{names:?}");
+    let mine = s.recovery.own_area().unwrap().to_string();
+    assert!(names.contains(&format!("{mine}/Poster-1.vansoncraft")), "{names:?}");
+
+    // Discarding an old copy removes it.
+    let (mut s, store) = session();
+    s.execute("file.recovery.save", &json!({})).unwrap();
+    let crashed = s.recovery.own_area().unwrap().to_string();
+    let copy = format!("{crashed}/{}", copies(store.as_ref())[0]);
+    drop(s);
+    let bytes = store.read(&format!("{copy}.vansoncraft")).unwrap();
+    store.remove(&format!("{copy}.vansoncraft")).unwrap();
+    store.write(&format!("{copy}.vectorcraft"), &bytes).unwrap();
+    let mut s = relaunch(&store);
+    s.execute("file.recovery.discard", &json!({"file": copy})).unwrap();
+    assert!(!store.list().unwrap().iter().any(|n| n.ends_with(".vectorcraft")));
+}
+
 /// A threaded frame whose first paragraph continues from the frame before is restored without
 /// that paragraph's first-line indent.
 #[test]

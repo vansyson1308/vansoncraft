@@ -135,7 +135,8 @@ impl BrushLibrary {
 }
 
 impl LibraryFile for BrushLibrary {
-    const EXTS: &'static [&'static str] = &[BRUSHES_EXT];
+    // Libraries saved before the project took the name VansonCraft are listed too.
+    const EXTS: &'static [&'static str] = &[BRUSHES_EXT, vansoncraft_format::FORMER_EXTENSION];
     fn read(bytes: &[u8], stem: &str) -> std::result::Result<Self, String> {
         let doc = vansoncraft_format::load(bytes).map_err(|e| e.to_string())?;
         BrushLibrary::from_document(&doc, &[], stem.to_string())

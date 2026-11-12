@@ -167,7 +167,7 @@ fn rich_document_roundtrips() {
     let bytes = save(&d, true);
     assert!(sniff(&bytes));
     let v: Value = serde_json::from_slice(&bytes).unwrap();
-    assert_eq!(v["format"], "vansoncraft");
+    assert_eq!(v["format"], vansoncraft_format::FORMAT_NAME);
     assert_eq!(v["version"], vansoncraft_format::VERSION);
 }
 
@@ -209,7 +209,7 @@ fn rejects_newer_versions_and_other_formats() {
     v["version"] = json!(vansoncraft_format::VERSION);
     v["format"] = json!("other");
     assert!(matches!(load(&serde_json::to_vec(&v).unwrap()), Err(vansoncraft_format::FormatError::NotVansoncraft(_))));
-    v["format"] = json!("vansoncraft");
+    v["format"] = json!(vansoncraft_format::FORMAT_NAME);
     v["images"] = json!({"x": {"mime": "image/png", "data": "not base64!"}});
     assert!(matches!(load(&serde_json::to_vec(&v).unwrap()), Err(vansoncraft_format::FormatError::BadImage(_))));
 }

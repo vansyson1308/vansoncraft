@@ -24,7 +24,10 @@ use crate::{VansoncraftApp, menus, widgets};
 pub const PRESETS: &[&str] = &["VansonCraft Defaults", "Classic Defaults"];
 pub const CUSTOM: &str = "Custom";
 /// Set names earlier versions saved: (old name, current name).
-pub const LEGACY_PRESETS: &[(&str, &str)] = &[("Illustrator Defaults", "Classic Defaults")]; // brand-ok: legacy preference value
+pub const LEGACY_PRESETS: &[(&str, &str)] = &[
+    ("Illustrator Defaults", "Classic Defaults"),     // brand-ok: legacy preference value
+    ("VectorCraft Defaults", "VansonCraft Defaults"), // brand-ok: the set's name before the rename
+];
 
 /// The current name of a shortcut set: names earlier versions saved map to today's.
 pub fn set_name(name: &str) -> &str {

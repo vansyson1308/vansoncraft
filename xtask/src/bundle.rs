@@ -67,7 +67,7 @@ mod tests {
         }
         let read = |p: &str| std::fs::read_to_string(crate::root().join(p)).unwrap();
         let plist = read("packaging/macos/Info.plist.in");
-        assert!(plist.contains("<array><string>vansoncraft</string><string>drawcraft</string></array>"), "native format extensions");
+        assert!(plist.contains("<array><string>vansoncraft</string></array>"), "native format extension");
         assert!(read("packaging/linux/io.github.vansyson1308.vansoncraft.desktop").contains("Categories=Graphics;2DGraphics;VectorGraphics;"));
         assert!(read("packaging/linux/io.github.vansyson1308.vansoncraft.metainfo.xml.in").contains("<category>VectorGraphics</category>"));
     }

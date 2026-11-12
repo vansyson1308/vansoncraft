@@ -2104,7 +2104,7 @@ digits	Malayalam	Malayalam
 	Select All Bound Objects	Alle gekoppelde objecten selecteren
 	Multiple objects	Meerdere objecten
 	Graphics: {adapter}	Grafisch: {adapter}
-	MIT OR Apache-2.0. Fonts: Source Sans 3, Inter, JetBrains Mono (OFL). Icons: Lucide (ISC) + VansonCraft.	MIT OR Apache-2.0. Lettertypen: Source Sans 3, Inter, JetBrains Mono (OFL). Pictogrammen: Lucide (ISC) + VansonCraft.
+	MIT OR Apache-2.0. Fonts: Source Sans 3, Inter, JetBrains Mono (OFL). Icons: Lucide (ISC) + VectorCraft.	MIT OR Apache-2.0. Lettertypen: Source Sans 3, Inter, JetBrains Mono (OFL). Pictogrammen: Lucide (ISC) + VectorCraft.
 	Based on VectorCraft by the ArtCraft team.	Gebaseerd op VectorCraft van het ArtCraft-team.
 	MIT OR Apache-2.0. Fonts: Source Sans 3, Inter, JetBrains Mono, Noto Sans SC (OFL). Icons: Lucide (ISC) + VansonCraft.	MIT OR Apache-2.0. Lettertypen: Source Sans 3, Inter, JetBrains Mono, Noto Sans SC (OFL). Pictogrammen: Lucide (ISC) + VansonCraft.
 	Version {version} — open-source vector illustration in pure Rust.	Versie {version} — open-source vectorillustratie in pure Rust.

@@ -73,12 +73,19 @@ fn files_saved_before_the_rename_open_and_save_under_the_new_name() {
     assert!(text.contains("\"generator\": \"VansonCraft "), "the app that wrote it: {}", &text[..120]);
     let r = open(&mut s, "/art/old.vectorcraft", &bytes);
     assert_eq!(r["format"], "vansoncraft");
-    let st = s.active().unwrap();
-    assert!(st.converted, "saving again asks for a new name");
-    // A header naming the app VectorCraft (files saved before the rename) reads the same.
-    let older = text.replacen("\"generator\": \"VansonCraft ", "\"generator\": \"VectorCraft ", 1);
-    open(&mut s, "/art/older.vectorcraft", older.as_bytes());
-    assert_eq!(s.doc().unwrap().doc.node_count(), 2);
+    // Opened from its file, it is converted: Save asks for a `.vansoncraft` name and leaves the old
+    // file as it is.
+    let dir = tmp_dir("former");
+    let old = dir.join("logo.vectorcraft");
+    std::fs::write(&old, &bytes).unwrap();
+    s.execute("document.open", &json!({"path": old.to_string_lossy()})).unwrap();
+    assert!(s.active().unwrap().converted);
+    assert_eq!(s.doc().unwrap().title(), "logo [Converted]");
+    let r = s.execute("document.save", &json!({})).unwrap();
+    assert_eq!((r["name"].as_str(), r.get("path")), (Some("logo.vansoncraft"), None));
+    assert_eq!(std::fs::read(&old).unwrap(), bytes);
+    let _ = std::fs::remove_dir_all(&dir);
+    // (A `generator` naming the app VectorCraft is covered by the format's Twist tests.)
 }
 
 #[test]

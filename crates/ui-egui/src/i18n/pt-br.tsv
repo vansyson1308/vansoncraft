@@ -15,7 +15,7 @@
 # pincel, amostra, prancheta ...), following common desktop-software conventions (commands
 # in the infinitive, menus as nouns); no proprietary localisation resource, string table or product
 # UI was consulted or copied; add entries the same way. Product and technology names (VansonCraft,
-# ArtCraft, SVG, OpenType, CMYK, Lab ...) stay in Latin letters; the trailing "…" of dialog
+# SVG, OpenType, CMYK, Lab ...) stay in Latin letters; the trailing "…" of dialog
 # commands is kept.
 #
 # Coverage: the whole interface (every menu string and every `tl!` literal, `complete_menus`,
@@ -4995,7 +4995,7 @@ axis	Both	Ambos
 @plural	Packaged {n} file {note} in {folder}|Packaged {n} files {note} in {folder}	{n} arquivo empacotado em {folder} {note}|{n} arquivos empacotados em {folder} {note}
 	Page information	Informações da página
 	Paragraph Style	Estilo de Parágrafo
-	MIT OR Apache-2.0. Fonts: Source Sans 3, Inter, JetBrains Mono (OFL). Icons: Lucide (ISC) + VansonCraft.	MIT OR Apache-2.0. Fontes: Source Sans 3, Inter, JetBrains Mono (OFL). Ícones: Lucide (ISC) + VansonCraft.
+	MIT OR Apache-2.0. Fonts: Source Sans 3, Inter, JetBrains Mono (OFL). Icons: Lucide (ISC) + VectorCraft.	MIT OR Apache-2.0. Fontes: Source Sans 3, Inter, JetBrains Mono (OFL). Ícones: Lucide (ISC) + VectorCraft.
 	Based on VectorCraft by the ArtCraft team.	Baseado no VectorCraft, da equipe ArtCraft.
 	Perspective grid presets	Predefinidos de grade de perspectiva
 	Phone 390×844	Celular 390×844

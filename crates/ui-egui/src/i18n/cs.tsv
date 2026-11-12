@@ -2290,7 +2290,7 @@ digits	Malayalam	Malajálamské
 
 # Dialogs
 	Graphics: {adapter}	Grafika: {adapter}
-	MIT OR Apache-2.0. Fonts: Source Sans 3, Inter, JetBrains Mono (OFL). Icons: Lucide (ISC) + VansonCraft.	MIT OR Apache-2.0. Písma: Source Sans 3, Inter, JetBrains Mono (OFL). Ikony: Lucide (ISC) + VansonCraft.
+	MIT OR Apache-2.0. Fonts: Source Sans 3, Inter, JetBrains Mono (OFL). Icons: Lucide (ISC) + VectorCraft.	MIT OR Apache-2.0. Písma: Source Sans 3, Inter, JetBrains Mono (OFL). Ikony: Lucide (ISC) + VectorCraft.
 	Based on VectorCraft by the ArtCraft team.	Založeno na VectorCraftu od týmu ArtCraft.
 	MIT OR Apache-2.0. Fonts: Source Sans 3, Inter, JetBrains Mono, Noto Sans SC (OFL). Icons: Lucide (ISC) + VansonCraft.	MIT OR Apache-2.0. Písma: Source Sans 3, Inter, JetBrains Mono, Noto Sans SC (OFL). Ikony: Lucide (ISC) + VansonCraft.
 	Version {version} — open-source vector illustration in pure Rust.	Verze {version} — open-source vektorová ilustrace v čistém Rustu.

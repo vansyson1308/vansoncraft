@@ -3860,7 +3860,7 @@ file-filter	Templates	テンプレート
 @plural	Packaged {n} file {note} in {folder}|Packaged {n} files {note} in {folder}	{folder} に {n} 個のファイルをパッケージしました{note}
 	Page information	ページ情報
 	Paragraph Style	段落スタイル
-	MIT OR Apache-2.0. Fonts: Source Sans 3, Inter, JetBrains Mono (OFL). Icons: Lucide (ISC) + VansonCraft.	MIT OR Apache-2.0。フォント：Source Sans 3、Inter、JetBrains Mono (OFL)。アイコン：Lucide (ISC) + VansonCraft。
+	MIT OR Apache-2.0. Fonts: Source Sans 3, Inter, JetBrains Mono (OFL). Icons: Lucide (ISC) + VectorCraft.	MIT OR Apache-2.0。フォント：Source Sans 3、Inter、JetBrains Mono (OFL)。アイコン：Lucide (ISC) + VectorCraft。
 	Based on VectorCraft by the ArtCraft team.	ArtCraft チームの VectorCraft をもとにしています。
 	Perspective grid presets	遠近グリッドプリセット
 	Phone 390×844	スマートフォン 390×844

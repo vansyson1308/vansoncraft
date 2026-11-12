@@ -32,7 +32,7 @@
 <br>
 
 <p align="center">
-  <img src="docs/images/shot-1-neon.png" alt="VansonCraft editing the Neon Drive poster: the title is selected, the Appearance panel shows the settings of its live Outer Glow, and the Properties panel shows its character settings" width="100%">
+  <img src="docs/images/shot-1-neon.png" alt="VansonCraft editing the Neon Drive poster: the title is selected, the Appearance panel lists its live Outer Glow, and the Properties panel shows its character settings" width="100%">
   <br><sub><b>Neon Drive</b>: a Pathfinder-cut sun, live Outer Glow on the type and grid, and clipping masks · <code>examples/neon-drive.vansoncraft</code></sub>
 </p>
 

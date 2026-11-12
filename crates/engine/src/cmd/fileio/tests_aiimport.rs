@@ -1520,7 +1520,7 @@ fn outlines_notes(r: &Value) -> Vec<String> {
 
 /// The notes the PDF part of [`half_outlined_ai`] reads with: its glyph of U+FFFD, kept as outlines.
 fn pdf_part_outlines_notes() -> [String; 2] {
-    [format!("text in Vector Craft Test Unnamed {}", vansoncraft_pdf::UNNAMED_CHARACTERS_NOTE), vansoncraft_pdf::OUTLINED_TEXT_NOTE.into()]
+    [format!("text in Vanson Craft Test Unnamed {}", vansoncraft_pdf::UNNAMED_CHARACTERS_NOTE), vansoncraft_pdf::OUTLINED_TEXT_NOTE.into()]
 }
 
 /// The note on text objects that hold the page's type without some of its characters, for `n` of

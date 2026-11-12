@@ -282,6 +282,9 @@ fn main() -> std::process::ExitCode {
     system_fonts::install();
     #[cfg(target_os = "macos")]
     mac_fonts::install();
+    // Before anything reads the settings folder: the one of the project's previous name, copied
+    // the first time.
+    prefs_dir::adopt_earlier_profile();
     // VansonCraft's own Fonts folder, which text.addFontFiles copies fonts into.
     prefs_dir::install_fonts();
     // The log file lives in the settings directory, next to the preferences; opened after the

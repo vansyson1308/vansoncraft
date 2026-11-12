@@ -42,7 +42,10 @@ const BUILTIN_CMYK: [&str; 2] = [GENERIC_CMYK, DEVICE_CMYK];
 
 /// Names earlier versions gave built-in profiles: (old name, current name). Settings, documents
 /// and commands that still use an old name get the current profile.
-pub const LEGACY_NAMES: &[(&str, &str)] = &[("Adobe RGB (1998) compatible", WIDE_GAMUT_RGB)]; // brand-ok: legacy alias
+pub const LEGACY_NAMES: &[(&str, &str)] = &[
+    ("Adobe RGB (1998) compatible", WIDE_GAMUT_RGB),        // brand-ok: legacy alias
+    ("VectorCraft Generic CMYK (SWOP-like)", GENERIC_CMYK), // brand-ok: the name before the project took the name VansonCraft
+];
 
 /// ΔE2000 above which a colour counts as out of the CMYK gamut (the gamut warning).
 pub const GAMUT_THRESHOLD: f32 = 2.0;

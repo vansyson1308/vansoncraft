@@ -18,7 +18,7 @@
 
 Every non-code asset in this repository (icons, images, fonts, example art, colour profiles, presets) is listed here with its author, source and licence. `cargo xtask assets` (part of `cargo xtask ci`) fails if an asset file is missing from this table.
 
-**Policy (mandatory):** VansonCraft contains **no Adobe iconography, images, artwork, presets, swatch/brush/symbol/pattern libraries or ICC profiles**. Every asset is either original work by VansonCraft or VectorCraft contributors, or third-party material under an open licence (OSI open source, public domain / CC0, or Creative Commons that allows redistribution), and it is attributed below. Screenshots of Adobe software are never committed. The one exception is the ArtCraft name, wordmark and logos in `docs/brand/`: ArtCraft trademarks, not open source, usable only under [`docs/brand/LICENSE-brand.txt`](docs/brand/LICENSE-brand.txt).
+**Policy (mandatory):** VansonCraft contains **no Adobe iconography, images, artwork, presets, swatch/brush/symbol/pattern libraries or ICC profiles**. Every asset is either original work by VansonCraft or VectorCraft contributors, or third-party material under an open licence (OSI open source, public domain / CC0, or Creative Commons that allows redistribution), and it is attributed below. Screenshots of Adobe software are never committed. No asset here is a trademark of another project: the ArtCraft marks VansonCraft carried as a fork were removed when it became independent (see `NOTICE`).
 
 Generated-in-code art is original and has no file to list. This covers the default swatches, brushes, symbols, patterns, graphic styles, image-trace presets and the vector tool cursors (`crates/ui-egui/src/cursors.rs`).
 
@@ -277,7 +277,7 @@ Generated-in-code art is original and has no file to list. This covers the defau
 | `assets/icons/external-link.svg` | Lucide Icons and Contributors | https://lucide.dev (lucide-static v1.49.0; header kept in file) | ISC; derived from Feather, also MIT (`assets/icons/LICENSE-lucide.txt`) | Help → app page link |
 | `assets/icons/git-branch.svg` | Lucide Icons and Contributors | https://lucide.dev (lucide-static v1.49.0; header kept in file) | ISC (`assets/icons/LICENSE-lucide.txt`) | Help → GitHub link |
 | `assets/icons/globe.svg` | Lucide Icons and Contributors | https://lucide.dev (lucide-static v1.49.0; header kept in file) | ISC (`assets/icons/LICENSE-lucide.txt`) | Help → website link |
-| `assets/icons/message-circle.svg` | Lucide Icons and Contributors | https://lucide.dev (lucide-static v1.49.0; header kept in file) | ISC (`assets/icons/LICENSE-lucide.txt`) | Discord button and Help → Discord link |
+| `assets/icons/message-circle.svg` | Lucide Icons and Contributors | https://lucide.dev (lucide-static v1.49.0; header kept in file) | ISC (`assets/icons/LICENSE-lucide.txt`) | Script Console panel |
 | `assets/icons/lock-open.svg` | Lucide Icons and Contributors | https://lucide.dev (lucide-static v1.49.0; header kept in file) | ISC (`assets/icons/LICENSE-lucide.txt`) |  |
 | `assets/icons/lock.svg` | Lucide Icons and Contributors | https://lucide.dev (lucide-static v1.49.0; header kept in file) | ISC; derived from Feather, also MIT (`assets/icons/LICENSE-lucide.txt`) |  |
 | `assets/icons/map.svg` | Lucide Icons and Contributors | https://lucide.dev (lucide-static v1.49.0; header kept in file) | ISC (`assets/icons/LICENSE-lucide.txt`) |  |
@@ -337,9 +337,9 @@ Generated-in-code art is original and has no file to list. This covers the defau
 | `assets/icons/waves.svg` | Lucide Icons and Contributors | https://lucide.dev (lucide-static v1.49.0; header kept in file) | ISC (`assets/icons/LICENSE-lucide.txt`) |  |
 | `assets/icons/x.svg` | Lucide Icons and Contributors | https://lucide.dev (lucide-static v1.49.0; header kept in file) | ISC; derived from Feather, also MIT (`assets/icons/LICENSE-lucide.txt`) |  |
 | `assets/icons/zoom-in.svg` | Lucide Icons and Contributors | https://lucide.dev (lucide-static v1.49.0; header kept in file) | ISC; derived from Feather, also MIT (`assets/icons/LICENSE-lucide.txt`) |  |
-| `docs/images/dusk-poster.png` | VectorCraft contributors | Rendered by VectorCraft from `examples/dusk-poster.vansoncraft` | MIT OR Apache-2.0 |  |
-| `examples/dusk-poster.vansoncraft` | VectorCraft contributors | Original artwork built through the VectorCraft command API | MIT OR Apache-2.0 |  |
-| `examples/dusk-poster.svg` | VectorCraft contributors | SVG export of the above | MIT OR Apache-2.0 |  |
+| `docs/images/dusk-poster.png` | VectorCraft contributors | Rendered by VansonCraft (2026-11-12) from `examples/dusk-poster.vansoncraft` | MIT OR Apache-2.0 |  |
+| `examples/dusk-poster.vansoncraft` | VectorCraft contributors | Original artwork built through the VectorCraft command API; its "Made in" line names VansonCraft since 2026-11-12 | MIT OR Apache-2.0 |  |
+| `examples/dusk-poster.svg` | VectorCraft contributors | SVG export of the above, by VansonCraft (2026-11-12) | MIT OR Apache-2.0 |  |
 | `examples/speed/vase-compositions.vansoncraft` | vansyson1308 (VansonCraft) | Original artwork (three compositions of a vase of flowers) built through the VansonCraft MCP server | MIT OR Apache-2.0 |  |
 | `examples/speed/vase-A.svg` | vansyson1308 (VansonCraft) | SVG export of composition A of `examples/speed/vase-compositions.vansoncraft` | MIT OR Apache-2.0 |  |
 | `examples/speed/vase-B.svg` | vansyson1308 (VansonCraft) | SVG export of composition B of the above | MIT OR Apache-2.0 |  |
@@ -364,23 +364,23 @@ Generated-in-code art is original and has no file to list. This covers the defau
 | `examples/speed/mass-study.png` | vansyson1308 (VansonCraft) | PNG export of the mass study | MIT OR Apache-2.0 |  |
 | `examples/speed/line-study-construction.png` | vansyson1308 (VansonCraft) | Render of the line study with its construction layer shown (`render_preview {showTemplates}`) | MIT OR Apache-2.0 |  |
 | `examples/speed/README.md` | vansyson1308 (VansonCraft) | Description of the Speed examples | MIT OR Apache-2.0 |  |
-| `docs/images/shot-1-neon.png` | VectorCraft contributors | Screenshot of VectorCraft itself (VectorCraft/Lucide UI icons only), editing `examples/neon-drive.vansoncraft` | MIT OR Apache-2.0 |  |
-| `docs/images/shot-2-ribbons.png` | VectorCraft contributors | Screenshot of VectorCraft itself, editing `examples/ribbons.vansoncraft` | MIT OR Apache-2.0 |  |
-| `docs/images/shot-3-sheet.png` | VectorCraft contributors | Screenshot of VectorCraft itself, editing `examples/feature-sheet.vansoncraft` | MIT OR Apache-2.0 |  |
-| `docs/images/shot-4-bezier.png` | VectorCraft contributors | Screenshot of VectorCraft itself, editing `examples/feature-sheet.vansoncraft` | MIT OR Apache-2.0 |  |
-| `docs/images/shot-5-perspective.png` | VectorCraft contributors | Screenshot of VectorCraft itself, editing `examples/perspective-city.vansoncraft` | MIT OR Apache-2.0 |  |
-| `docs/images/shot-6-revolve.png` | VectorCraft contributors | Screenshot of VectorCraft itself, editing `examples/still-life.vansoncraft` | MIT OR Apache-2.0 |  |
-| `docs/images/shot-7-dimensions.png` | VectorCraft contributors | Screenshot of VectorCraft itself, editing `examples/bracket-drawing.vansoncraft` | MIT OR Apache-2.0 |  |
+| `docs/images/shot-1-neon.png` | vansyson1308 (VansonCraft) | Screenshot of VansonCraft itself (VansonCraft/Lucide UI icons only), taken 2026-11-12, editing `examples/neon-drive.vansoncraft` | MIT OR Apache-2.0 |  |
+| `docs/images/shot-2-ribbons.png` | vansyson1308 (VansonCraft) | Screenshot of VansonCraft itself, taken 2026-11-12, editing `examples/ribbons.vansoncraft` | MIT OR Apache-2.0 |  |
+| `docs/images/shot-3-sheet.png` | vansyson1308 (VansonCraft) | Screenshot of VansonCraft itself, taken 2026-11-12, editing `examples/feature-sheet.vansoncraft` | MIT OR Apache-2.0 |  |
+| `docs/images/shot-4-bezier.png` | vansyson1308 (VansonCraft) | Screenshot of VansonCraft itself, taken 2026-11-12, editing `examples/feature-sheet.vansoncraft` | MIT OR Apache-2.0 |  |
+| `docs/images/shot-5-perspective.png` | vansyson1308 (VansonCraft) | Screenshot of VansonCraft itself, taken 2026-11-12, editing `examples/perspective-city.vansoncraft` | MIT OR Apache-2.0 |  |
+| `docs/images/shot-6-revolve.png` | vansyson1308 (VansonCraft) | Screenshot of VansonCraft itself, taken 2026-11-12, editing `examples/still-life.vansoncraft` | MIT OR Apache-2.0 |  |
+| `docs/images/shot-7-dimensions.png` | vansyson1308 (VansonCraft) | Screenshot of VansonCraft itself, taken 2026-11-12, editing `examples/bracket-drawing.vansoncraft` | MIT OR Apache-2.0 |  |
 | `docs/images/art-still-life.png` | VectorCraft contributors | Rendered by VectorCraft from `examples/still-life.vansoncraft` | MIT OR Apache-2.0 |  |
 | `examples/still-life.vansoncraft` | VectorCraft contributors | Original artwork built through the VectorCraft command API | MIT OR Apache-2.0 |  |
 | `examples/bracket-drawing.vansoncraft` | VectorCraft contributors | Original drawing built through the VectorCraft command API | MIT OR Apache-2.0 |  |
-| `docs/images/art-neon-drive.png` | VectorCraft contributors | Rendered by VectorCraft from `examples/neon-drive.vansoncraft` | MIT OR Apache-2.0 |  |
+| `docs/images/art-neon-drive.png` | VectorCraft contributors | Rendered by VansonCraft (2026-11-12) from `examples/neon-drive.vansoncraft` | MIT OR Apache-2.0 |  |
 | `docs/images/art-ribbons.png` | VectorCraft contributors | Rendered by VectorCraft from `examples/ribbons.vansoncraft` | MIT OR Apache-2.0 |  |
 | `docs/images/art-pathfinder.png` | VectorCraft contributors | Rendered by VectorCraft from `examples/feature-sheet.vansoncraft` (artboard 1) | MIT OR Apache-2.0 |  |
 | `docs/images/art-mesh.png` | VectorCraft contributors | Rendered by VectorCraft from `examples/feature-sheet.vansoncraft` (artboard 2) | MIT OR Apache-2.0 |  |
 | `docs/images/art-repeat.png` | VectorCraft contributors | Rendered by VectorCraft from `examples/feature-sheet.vansoncraft` (artboard 3) | MIT OR Apache-2.0 |  |
 | `docs/images/art-envelope.png` | VectorCraft contributors | Rendered by VectorCraft from `examples/feature-sheet.vansoncraft` (artboard 4) | MIT OR Apache-2.0 |  |
-| `examples/neon-drive.vansoncraft` | VectorCraft contributors | Original artwork built through the VectorCraft command API | MIT OR Apache-2.0 |  |
+| `examples/neon-drive.vansoncraft` | VectorCraft contributors | Original artwork built through the VectorCraft command API; its "made with" line names VansonCraft since 2026-11-12 | MIT OR Apache-2.0 |  |
 | `examples/ribbons.vansoncraft` | VectorCraft contributors | Original artwork built through the VectorCraft command API | MIT OR Apache-2.0 |  |
 | `examples/feature-sheet.vansoncraft` | VectorCraft contributors | Original artwork built through the VectorCraft command API | MIT OR Apache-2.0 |  |
 | `examples/perspective-city.vansoncraft` | VectorCraft contributors | Original artwork built through the VectorCraft command API | MIT OR Apache-2.0 |  |

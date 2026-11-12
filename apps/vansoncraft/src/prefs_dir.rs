@@ -7,7 +7,7 @@ use std::path::PathBuf;
 #[path = "profile.rs"]
 mod profile;
 
-pub use profile::Profile;
+pub use profile::{Profile, adopt_earlier_profile};
 
 /// The settings file `ui.json` of `profile`: in a folder named after it in ~/Library/Application
 /// Support (macOS) or %APPDATA% (Windows), or its lower-case name in $XDG_CONFIG_HOME or ~/.config

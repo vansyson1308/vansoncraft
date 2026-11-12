@@ -1,6 +1,6 @@
 //! The Twist effect's angle in saved documents. A positive angle turns clockwise on the page in
-//! VansonCraft 0.21.0 and later; earlier releases turned it counterclockwise. Documents of version
-//! 2 ([`TWIST_CLOCKWISE_SINCE`]) turn clockwise. Version 1 documents written before 0.21.0 have
+//! VectorCraft 0.21.0 (the project's name then) and later; earlier releases turned it
+//! counterclockwise. Documents of version 2 ([`TWIST_CLOCKWISE_SINCE`]) turn clockwise. Version 1 documents written before 0.21.0 have
 //! their Twist angles negated when they open, so they draw as they were saved
 //! ([`Document::migrate_twist_angles`], [`written_clockwise`]), and a save for an earlier app
 //! negates them back ([`Document::store_legacy_twist_angles`]). Graphic style library files

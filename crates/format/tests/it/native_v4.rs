@@ -53,7 +53,7 @@ fn small_files_stay_plain_json_and_older_versions_inline() {
     let v3 = save_with(&big, &SaveOptions { version: 3, ..SaveOptions::default() }).unwrap();
     assert!(!has_tail(&v3), "version 3 keeps everything in the JSON");
     let v: Value = serde_json::from_slice(&v3).unwrap();
-    assert_eq!((v["format"].as_str(), v["version"].as_u64()), (Some("vansoncraft"), Some(3)));
+    assert_eq!((v["format"].as_str(), v["version"].as_u64()), (Some(vansoncraft_format::FORMAT_NAME), Some(3)));
     assert_eq!(load(&v3).unwrap().images["big"].bytes, big.images["big"].bytes);
 }
 

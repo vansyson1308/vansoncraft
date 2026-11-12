@@ -20,5 +20,7 @@ fn built_in_presets() {
         assert!(x.settings.standard.is_pdfx() && x.settings.check().is_ok(), "{name}");
     }
     assert_eq!(builtin_preset("default").unwrap().name, DEFAULT_PRESET);
+    // The default's name from before the project took the name VansonCraft.
+    assert_eq!(builtin_preset("VectorCraft Default").unwrap().name, DEFAULT_PRESET);
     assert!(builtin_preset("Nope").is_none());
 }

@@ -33,7 +33,8 @@
 //! The document has a version of its own (`document.version`, [`vansoncraft_doc::FORMAT_VERSION`]),
 //! which readers do not check. A version 2 document's Twist effects turn clockwise for a positive
 //! angle. A version 1 document's Twist angles are negated when it opens, unless the file is of
-//! [`VERSION`] and its `generator` is VansonCraft 0.21.0 or later, which turned them clockwise
+//! [`VERSION`] and its `generator` is VectorCraft 0.21.0 or later (the project's name then;
+//! VansonCraft continues its numbering), which turned them clockwise
 //! already; [`save_with`] writes a version 1 document with them negated back for an older file
 //! version ([`vansoncraft_doc::twist`]).
 #![forbid(unsafe_code)]
@@ -561,7 +562,7 @@ fn load_file_within(bytes: &[u8], max_nodes: usize, max_values: usize) -> Result
         Err(e) => return Err(read_error(e)),
     };
     let info = FileInfo { version: f.version, legacy: f.format == LEGACY_EXTENSION, pdf_compatible };
-    // A version 1 document saved before VansonCraft 0.21.0, or for an app before it (an older file
+    // A version 1 document saved before VectorCraft 0.21.0, or for an app before it (an older file
     // version): its Twist angles turned the other way. The app that wrote it is read from the JSON
     // before the data after it is taken; the walk's depth is bounded by the JSON reader's nesting
     // limit.
@@ -983,15 +984,17 @@ mod tests {
         assert!(load_info(v1.as_bytes()).unwrap().1.is_old());
     }
 
-    /// A file is native when its top-level `format` member names VansonCraft, read as JSON reads
-    /// it; the word elsewhere in the head does not count.
+    /// A file is native when its top-level `format` member names the shared format
+    /// ([`FORMAT_NAME`]), read as JSON reads it; the word elsewhere in the head does not count.
     #[test]
     fn sniff_reads_the_format_member() {
-        // `vansoncraft` with its second `c` written as a JSON escape.
+        // `vectorcraft` with its second `c` written as a JSON escape.
         let escaped = [br#"{"format":"vector\"#.as_slice(), br#"u0063raft","version":4,"document":{}}"#].concat();
         assert!(sniff(&escaped));
-        assert!(!sniff(br#"{"format":"other","generator":"vansoncraft"}"#));
-        assert!(!sniff(br#"{"names":["vansoncraft"],"format":"svg"}"#));
+        assert!(!sniff(br#"{"format":"other","generator":"vectorcraft"}"#));
+        assert!(!sniff(br#"{"names":["vectorcraft"],"format":"svg"}"#));
+        // VansonCraft's own name is not a format name: files say the shared one.
+        assert!(!sniff(br#"{"format":"vansoncraft","version":4,"document":{}}"#));
     }
 
     /// Every layout VansonCraft has written puts `format` first: the version 1 and 2 files from
@@ -1129,7 +1132,7 @@ mod tests {
         let doc = v["document"].to_string();
         let file = |format: &str, version: u32| format!(r#"{{"format":"{format}","version":{version},"document":{doc}}}"#);
         assert_eq!(message(&file("svg", 4)).as_deref(), Some("not a VansonCraft file: format is `svg`"));
-        assert_eq!(message(&file("vansoncraft", 9)).as_deref(), Some("file version 9 is newer than this VansonCraft supports (4)"));
+        assert_eq!(message(&file(FORMAT_NAME, 9)).as_deref(), Some("file version 9 is newer than this VansonCraft supports (4)"));
         // A document that does not read is reported first, as before.
         assert!(
             message(r#"{"format":"vectorcraft","version":9,"document":7}"#).is_some_and(|m| m.starts_with("not a VansonCraft file: invalid type"))
@@ -1313,7 +1316,7 @@ mod tests {
         assert!(why.contains("more than 100 values before its type"), "{why}");
     }
 
-    /// A version 1 document written before VansonCraft 0.21.0 (or by an app the file does not
+    /// A version 1 document written before VectorCraft 0.21.0 (or by an app the file does not
     /// name) has its Twist angles negated when it opens; one written by 0.21.0 or later, and a
     /// later document, keep them. Each opens as the current version. A save for an older file
     /// version negates them back.
@@ -1347,22 +1350,23 @@ mod tests {
             let d = load(&serde_json::to_vec(&v).unwrap()).unwrap();
             (d.version, angle(&d))
         };
-        for g in [Some("VansonCraft 0.20.0"), Some("VansonCraft 0.9.12"), Some("DrawCraft 0.1.0"), Some("VansonCraft"), None] {
+        // Releases up to 0.24.1 named the app VectorCraft; VansonCraft continues their numbering.
+        for g in [Some("VectorCraft 0.20.0"), Some("VectorCraft 0.9.12"), Some("DrawCraft 0.1.0"), Some("VectorCraft"), Some("VansonCraft"), None] {
             assert_eq!(opened(g), (now, Some(-30.0)), "{g:?}");
         }
-        for g in ["VansonCraft 0.21.0", "VansonCraft 0.21.3", "VansonCraft 1.0.0"] {
+        for g in ["VectorCraft 0.21.0", "VectorCraft 0.21.3", "VectorCraft 0.24.1", "VansonCraft 0.24.1", "VansonCraft 1.0.0"] {
             assert_eq!(opened(Some(g)), (now, Some(30.0)), "{g}");
         }
         // A file may repeat `generator`: the first one names the app.
         let mut v: serde_json::Value = serde_json::from_slice(&current).unwrap();
         v["document"]["version"] = 1.into();
-        v["generator"] = "VansonCraft 0.21.0".into();
+        v["generator"] = "VectorCraft 0.21.0".into();
         let text = serde_json::to_string(&v).unwrap();
-        let first = r#""generator":"VansonCraft 0.21.0""#;
+        let first = r#""generator":"VectorCraft 0.21.0""#;
         let twice = text.replacen(first, &format!(r#"{first},"generator":"DrawCraft 0.1.0""#), 1);
         assert_ne!(twice, text);
         assert_eq!(angle(&load(twice.as_bytes()).unwrap()), Some(30.0));
-        v["generator"] = "VansonCraft 0.20.0".into();
+        v["generator"] = "VectorCraft 0.20.0".into();
         let old = load(&serde_json::to_vec(&v).unwrap()).unwrap();
         let again = load(&save(&old, false)).unwrap();
         assert_eq!((again.version, angle(&again)), (now, Some(-30.0)), "saved again, it is the current version");

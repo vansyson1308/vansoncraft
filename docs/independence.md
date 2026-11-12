@@ -30,16 +30,28 @@ Everything saved before the rename still opens, and each path has a test:
 | Saved before | Still read | Test |
 |---|---|---|
 | `.vectorcraft` and `.drawcraft` files | open as native documents; Save then asks for a `.vansoncraft` name | `engine` `nativefile::files_saved_before_the_rename_open_and_save_under_the_new_name` |
-| the header `"format": "vectorcraft"` | kept: it is the name of the shared document format that the `craft-vectorcraft-format` envelope defines and reads (`vansoncraft_format::FORMAT_NAME`), so files also open in other apps that read the format | as above |
-| `"generator": "VectorCraft 0.21+"` | Twist effects keep their direction | `doc` `twist::tests::releases_from_0_21_turned_twist_clockwise` |
+| the header `"format": "vectorcraft"` | kept: it is the name of the shared document format that the `craft-vectorcraft-format` envelope defines and reads (`vansoncraft_format::FORMAT_NAME`), so files also open in other apps that read the format | `format` `sniff_reads_the_format_member`, `native_v3`, `native_v4` |
+| `"generator": "VectorCraft 0.21+"` | Twist effects keep their direction (version numbers carry on from 0.24.1) | `format` twist tests, `doc` `twist::tests::releases_from_0_21_turned_twist_clockwise` |
 | SVG editing data in `urn:vectorcraft:editing`, mask options in `data-vectorcraft-mask` | restored | `svg` `editing_data_written_before_the_rename_is_read`, `mask_options_written_before_the_rename_are_read` |
 | EPS data in `%VectorCraft_BeginData` sections | restored | `eps` `data_sections_written_before_the_rename_come_back` |
 | PDF editing data `vectorcraft-editing.vectorcraft` | restored | `pdf` `the_name_from_before_the_rename_is_read` |
 | preferences exported as `vectorcraft-preferences` | imported | `engine` `prefs_file::exported_preferences_import_unchanged` |
-| the `VectorCraft` (and `DrawCraft`) settings folder | read once when VansonCraft has none yet; nothing is written there | `profile::tests::unset_override_keeps_platform_paths_and_legacy_migration` |
+| the VectorCraft settings folder | copied whole into VansonCraft's the first time VansonCraft starts without one (settings, libraries, fonts, presets, plug-ins and their grants, Data Recovery); the old folder is left as it is. A DrawCraft `ui.json` is still read once | `profile::tests::the_earlier_settings_folder_is_copied_once_and_kept` |
+| Data Recovery copies named `.vectorcraft` | offered, restored and discarded; their area is never tidied away with them | `engine` `recovery::copies_left_before_the_rename_are_offered_and_restored` |
+| brush and symbol libraries named `.vectorcraft` | listed | (the library scans take both extensions) |
+| the disabled plug-ins list and the launch marker (`vectorcraft-…` formats) | read, so a plug-in disabled after a crash stays disabled | `plugins` `a_disabled_list_from_before_the_rename_still_reads`, `only_a_marker_of_this_version_names_an_item` |
+| the built-in names `VectorCraft Generic CMYK (SWOP-like)`, `VectorCraft Default` (PDF preset), `VectorCraft Defaults` (shortcut set) | resolve to today's | `color` `legacy_profile_name_resolves`, `pdf` presets test, the shortcut-set migration test |
+| a portable copy (`VectorCraft.portable`, `VectorCraftData`) | its data folder is copied into `VansonCraftData` the first time | `profile::tests::a_portable_copy_from_before_the_rename_keeps_its_settings` |
+| templates in `Documents/VectorCraft Templates` | used until a `VansonCraft Templates` folder exists | — |
 
-`.vectorcraft` files are not associated with VansonCraft in Finder, Explorer or file managers (they
-belong to whatever app the desktop gives them); File ▸ Open reads them.
+`.vectorcraft` and `.drawcraft` files are not associated with VansonCraft in Finder, Explorer or
+file managers (they belong to whatever app the desktop gives them); File ▸ Open reads them.
+Templates keep the `.vctemplate` extension VectorCraft also declares, so with both apps installed
+the desktop picks one for them.
+
+Not carried over on purpose: the environment variables (`VECTORCRAFT_*` became `VANSONCRAFT_*`),
+the control channel's and MCP's names (`vansoncraft://` resources, the `vansoncraft` server), and the
+command format id (`vansoncraft`; `vectorcraft` still resolves to it as an extension).
 
 ## What it still uses from elsewhere, and why
 
@@ -55,7 +67,10 @@ belong to whatever app the desktop gives them); File ▸ Open reads them.
 packages use `io.github.vansyson1308.vansoncraft`, so on macOS and in Flatpak the updater does not
 recognise the install: its prompt says it cannot update this installation type and asks for a
 manual download. On Windows and for AppImages and loose copies it finds the install by its file
-name. A fix belongs in `craft-update` (an app-defined bundle id).
+name. The menu entry `craft-update` writes beside an AppImage is likewise named
+`ai.storyteller.vansoncraft.desktop`, with that `StartupWMClass`, which does not match the window's
+app id (`io.github.vansyson1308.vansoncraft`), so the dock may show the AppImage apart from its
+entry. A fix belongs in `craft-update` (an app-defined bundle id).
 
 ## Left for the maintainer
 
@@ -63,8 +78,9 @@ name. A fix belongs in `craft-update` (an app-defined bundle id).
    fork (Support › "Detach fork"), or the code can be pushed to a new repository.
 2. **Releases:** there are none yet; [`docs/releasing.md`](releasing.md) lists what the first one
    needs (a release workflow, optional signing certificates).
-3. **Screenshots** in `docs/images/` were taken again from VansonCraft; the art renders there are
-   the examples' own.
+3. **Screenshots** in `docs/images/` were taken again from VansonCraft on 2026-11-12 (the
+   Neon Drive and Dusk examples now say "made with/in VansonCraft", and their renders were made
+   again). Example files keep the `generator` they were saved with.
 
 ## Revision history
 

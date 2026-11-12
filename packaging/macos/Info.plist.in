@@ -148,7 +148,8 @@
     </dict>
   </array>
 
-  <!-- VansonCraft's own format (brand-ok: .drawcraft is its first name's extension). -->
+  <!-- VansonCraft's own format. Files under the project's earlier names open too, but stay with
+       whatever app the system gives them. -->
   <key>UTExportedTypeDeclarations</key>
   <array>
     <dict>
@@ -166,7 +167,7 @@
       <key>UTTypeTagSpecification</key>
       <dict>
         <key>public.filename-extension</key>
-        <array><string>vansoncraft</string><string>drawcraft</string></array> <!-- brand-ok: the first name's extension -->
+        <array><string>vansoncraft</string></array>
         <key>public.mime-type</key>
         <array><string>application/x-vansoncraft</string></array>
       </dict>

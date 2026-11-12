@@ -1306,7 +1306,7 @@ antiAlias	Sharp	शार्प
 	Difference	डिफ़रेंस
 	Differences from [Default]:	[Default] से अंतर:
 	Differences from {preset}:	{preset} से अंतर:
-	Differences from VansonCraft Default:	वेक्टर क्रेफ्ट डिफ़ॉल्ट से मतभेद:
+	Differences from VansonCraft Default:	VansonCraft डिफ़ॉल्ट से मतभेद:
 	Diffuse	डिफ़्यूज़
 	Diffuse Glow	डिफ़्यूज़ ग्लो
 	Diffuse Glow…	डिफ़्यूज़ ग्लो…
@@ -1514,7 +1514,7 @@ antiAlias	Sharp	शार्प
 	Dynamic Symbol	डायनामिक सिंबल
 	e.g. 1-3, 5	उदाहरण के लिए 1-3, 5
 	Each Design Represents:	प्रत्येक डिजाइन का प्रतिनिधित्व करता है:
-	Each entry of the file is matched to a VansonCraft tool, command or panel. Check the matches and answer what is left.	फ़ाइल का प्रत्येक प्रविष्टि एक वेक्टर क्रेफ्ट टूल, कमांड या पैनल से मेल खाती है। मैचों की जाँच करें और जवाब दें कि क्या छोड़ दिया गया है।
+	Each entry of the file is matched to a VansonCraft tool, command or panel. Check the matches and answer what is left.	फ़ाइल का प्रत्येक प्रविष्टि एक VansonCraft टूल, कमांड या पैनल से मेल खाती है। मैचों की जाँच करें और जवाब दें कि क्या छोड़ दिया गया है।
 	Each page prints as one image, at the document's raster effects resolution.	हर पेज डॉक्यूमेंट के रास्टर इफ़ेक्ट्स रिज़ॉल्यूशन पर एक इमेज के रूप में प्रिंट होता है।
 	Each run may take up to {minutes} minutes and do {times} times the work other plug-ins may. It runs in the background, and you can cancel it.	हर रन में {minutes} मिनट तक लग सकते हैं और अन्य प्लग-इन से {times} गुना काम हो सकता है। यह बैकग्राउंड में चलता है और आप इसे रद्द कर सकते हैं।
 	Earth Tones	पृथ्वी टोन
@@ -2301,7 +2301,7 @@ antiAlias	Sharp	शार्प
 	In Tangent Handles	टैंगेंट हैंडल में
 	In the File	फ़ाइल में
 	In the selected objects	सिलेक्टेड ऑब्जेक्ट्स में
-	In VansonCraft	वेक्टर क्रेफ्ट में
+	In VansonCraft	VansonCraft में
 	In:	इनपुट:
 	Inches	इंच
 	Include Action Steps	एक्शन चरण शामिल करें
@@ -3311,7 +3311,7 @@ antiAlias	Sharp	शार्प
 	Paragraph:	पैराग्राफ़:
 	Parametric Shape	पैरामीट्रिक आकार
 	Parametric Shape Tool	पैरामीट्रिक आकार टूल
-	MIT OR Apache-2.0. Fonts: Source Sans 3, Inter, JetBrains Mono (OFL). Icons: Lucide (ISC) + VansonCraft.	MIT OR Apache-2.0. Fonts: Source Sans 3, Inter, JetBrains Mono (OFL). प्रतीक: Lucide (ISC) + VansonCraft.
+	MIT OR Apache-2.0. Fonts: Source Sans 3, Inter, JetBrains Mono (OFL). Icons: Lucide (ISC) + VectorCraft.	MIT OR Apache-2.0. Fonts: Source Sans 3, Inter, JetBrains Mono (OFL). प्रतीक: Lucide (ISC) + VectorCraft.
 	Based on VectorCraft by the ArtCraft team.	ArtCraft टीम के VectorCraft पर आधारित।
 	MIT OR Apache-2.0. Fonts: Source Sans 3, Inter, JetBrains Mono, Noto Sans SC (OFL). Icons: Lucide (ISC) + VansonCraft.	MIT OR Apache-2.0। फ़ॉन्ट: Source Sans 3, Inter, JetBrains Mono, Noto Sans SC (OFL)। आइकन: Lucide (ISC) + VansonCraft।
 	Password	पासवर्ड
@@ -4719,7 +4719,7 @@ antiAlias	Sharp	शार्प
 	Star Tool	स्टार टूल
 	Start arrowhead	आरंभिक तीरहेड
 	Start at:	शुरू करें:
-	Start from VansonCraft Defaults	वेक्टर क्रेफ्ट डिफ़ॉल्ट से शुरू
+	Start from VansonCraft Defaults	VansonCraft डिफ़ॉल्ट से शुरू
 	Start Global Edit	ग्लोबल एडिट
 	Start Length	प्रारंभ लंबाई
 	Start Percent	शुरू करें प्रतिशत
@@ -5290,12 +5290,12 @@ antiAlias	Sharp	शार्प
 	VansonCraft Defaults	VansonCraft डिफ़ॉल्ट
 	VansonCraft didn't quit normally last time. These documents had unsaved changes:	पिछली बार VansonCraft सामान्य तरीके से बंद नहीं हुआ था। इन डॉक्यूमेंट्स में बिना सेव किए बदलाव थे:
 	VansonCraft documents: one locked object, updated when the file changes.	VansonCraft डॉक्यूमेंट्स: एक लॉक्ड ऑब्जेक्ट, जो फ़ाइल बदलने पर अपडेट होता है।
-	VansonCraft Generic CMYK (SWOP-like)	वेक्टर क्रेफ्ट जेनेरिक CMYK (SWOP-like)
+	VansonCraft Generic CMYK (SWOP-like)	VansonCraft जेनेरिक CMYK (SWOP-like)
 	VansonCraft Help…	VansonCraft मदद…
 	VansonCraft on GitHub	GitHub पर VansonCraft
 	VansonCraft read this script without running it.	VansonCraft ने इस स्क्रिप्ट को रन किए बिना पढ़ा।
-	VansonCraft Swatches (.vcswatches)	वेक्टर क्रेफ्ट Swatches (.vcswatches)
-	VansonCraft Updates	वेक्टर क्रेफ्ट अपडेट
+	VansonCraft Swatches (.vcswatches)	VansonCraft Swatches (.vcswatches)
+	VansonCraft Updates	VansonCraft अपडेट
 	Vectors	वेक्टर
 	Version	संस्करण
 	Version {version} — open-source vector illustration in pure Rust.	संस्करण {version} — पूरी तरह Rust में बना ओपन-सोर्स वेक्टर इलस्ट्रेशन ऐप।
@@ -6501,7 +6501,7 @@ antiAlias	Sharp	शार्प
 @msg	features lists at most {max} tags	अधिकांश {max} टैग पर सूची
 @msg	features must be a list of tags	features: विशेषताएं टैग की एक सूची होना चाहिए
 @msg	fidelity must be 0..100	fidelity: निष्ठा 0..100 होना चाहिए
-@msg	file version {0} is newer than this VansonCraft supports ({VERSION})	फ़ाइल संस्करण {0} इस वेक्टर क्रेफ्ट समर्थन ({VERSION}) की तुलना में नया है।
+@msg	file version {0} is newer than this VansonCraft supports ({VERSION})	फ़ाइल संस्करण {0} इस VansonCraft समर्थन ({VERSION}) की तुलना में नया है।
 @msg	files must be {name, dataBase64}	files: फ़ाइलों को {name, dataBase64} होना चाहिए
 @msg	finish editing the pattern first	पहले पैटर्न को संपादित करना
 @msg	First measured segment no longer exists	पहले मापा खंड अब मौजूद नहीं है
@@ -6776,7 +6776,7 @@ antiAlias	Sharp	शार्प
 @msg	Live Paint: select paths or compound paths	लाइव पेंट: पाथ या यौगिक पाथ सिलेक्ट करें
 @msg	Live Paint: these paths are too degenerate to paint	लाइव पेंट: इन पाथ को पेंट करने के लिए बहुत अलग किया जाता है
 @msg	loading profiles from disk isn't available in the browser	डिस्क से लोडिंग प्रोफ़ाइल ब्राउज़र में उपलब्ध नहीं है
-@msg	Loading VansonCraft…	वेक्टर क्रेफ्ट लोड हो रहा है ...
+@msg	Loading VansonCraft…	VansonCraft लोड हो रहा है ...
 @msg	Lock Workspace is not available in VansonCraft	लॉक वर्कस्पेस VansonCraft में उपलब्ध नहीं है
 @msg	Make Guides: select paths	गाइड बनाना: पाथ सिलेक्ट करें
 @msg	manifest is {_1} bytes (limit {MAX_MANIFEST_BYTES})	प्रकटन {_1} बाइट्स (limit {MAX_MANIFEST_BYTES})
@@ -7172,7 +7172,7 @@ antiAlias	Sharp	शार्प
 @msg	not a stored or deflated central record	नहीं एक संग्रहित या deflated केंद्रीय रिकॉर्ड
 @msg	not a valid plug-in module: {0}	एक वैध प्लग-इन मॉड्यूल नहीं: {0}
 @msg	not a valid SVGZ file: {e}	एक मान्य SVGZ फ़ाइल नहीं: {e}
-@msg	not a VansonCraft file: {0}	एक वेक्टर क्रेफ्ट फ़ाइल नहीं: {0}
+@msg	not a VansonCraft file: {0}	एक VansonCraft फ़ाइल नहीं: {0}
 @msg	not a VansonCraft shortcut set (missing `overrides`)	एक VansonCraft शॉर्टकट सेट नहीं है ( `overrides`)
 @msg	not a WebAssembly binary (missing \0asm header)	नहीं एक WebAssembly द्विआधारी (missing \0asm header)
 @msg	not a Word document: its compound file has no WordDocument stream	एक वर्ड डॉक्यूमेंट नहीं: इसकी यौगिक फ़ाइल में WordDocument स्ट्रीम नहीं है
@@ -7641,7 +7641,7 @@ antiAlias	Sharp	शार्प
 @msg	the action set file holds more than 1,000 actions	एक्शन सेट फ़ाइल 1,000 से अधिक कार्यों को रखती है
 @msg	the action set file is larger than 8 MiB	एक्शन सेट फ़ाइल 8 MiB से बड़ा है
 @msg	`{ID}`: the reference would be larger than {MAX_BYTES} bytes	`{ID}`: संदर्भ {MAX_BYTES} बाइट से बड़ा होगा
-@msg	the action set file needs a later version of VansonCraft	एक्शन सेट फ़ाइल को वेक्टर क्रेफ्ट के बाद के संस्करण की आवश्यकता होती है
+@msg	the action set file needs a later version of VansonCraft	एक्शन सेट फ़ाइल को VansonCraft के बाद के संस्करण की आवश्यकता होती है
 @msg	the action set ids are not a list	कार्रवाई सेट ids एक सूची नहीं हैं
 @msg	the action sets changed; nothing was deleted	कार्रवाई सेट बदल गया; कुछ भी नहीं हटा दिया गया था
 @msg	the action stopped playing: its document is no longer active	कार्रवाई बंद खेल: इसका डॉक्यूमेंट अब सक्रिय नहीं है
@@ -7663,7 +7663,7 @@ antiAlias	Sharp	शार्प
 @msg	the Color Picker is not open	रंग पिकर खुला नहीं है
 @msg	the compound shape is too complex to expand	मिश्रित आकार का विस्तार करने के लिए बहुत जटिल है
 @msg	the compressed file unpacks to more than {_1} MB	संकुचित फ़ाइल {_1} MB से अधिक के लिए अनपैक
-@msg	the compressed file unpacks to more than VansonCraft reads ({_1} MB of document, {_2} MB per image)	संकुचित फ़ाइल unpacks से अधिक वेक्टर क्रेफ्ट reads ({_1} MB of document, {_2} MB per image)
+@msg	the compressed file unpacks to more than VansonCraft reads ({_1} MB of document, {_2} MB per image)	संकुचित फ़ाइल unpacks से अधिक VansonCraft reads ({_1} MB of document, {_2} MB per image)
 @msg	the container of the listed objects is gone	सूचीबद्ध ऑब्जेक्ट्स का कंटेनर चला गया है
 @msg	the copy `{user_id}` can't be read as a library	प्रतिलिपि `{user_id}` को लाइब्रेरी के रूप में नहीं पढ़ा जा सकता है।
 @msg	the copy would leave the canvas	प्रतिलिपि कैनवास को छोड़ देगी
@@ -7749,7 +7749,7 @@ antiAlias	Sharp	शार्प
 @msg	the job would print more than {MAX_PAGES} pages	इस जॉब में {MAX_PAGES} से अधिक पेज प्रिंट होंगे
 @msg	the JPEG 2000 file can't be read	JPEG 2000 फ़ाइल पढ़ा नहीं जा सकता
 @msg	the JPEG 2000 file has an unsupported color space or JPX content	JPEG 2000 फ़ाइल में एक unसमर्थित रंग स्थान या JPX सामग्री है
-@msg	The last start of VansonCraft ended on {name} before its window appeared, so it started on {summary}. To try that graphics processor again, change Preferences › Performance › Graphics Processor or start with WGPU_BACKEND set	वेक्टर क्रेफ्ट की अंतिम शुरुआत अपनी विंडो दिखाई देने से पहले {name} पर समाप्त हुई, इसलिए यह {summary} पर शुरू हुआ। उस ग्राफिक्स प्रोसेसर को फिर से आज़माने के लिए, वरीयताओं को बदलें › प्रदर्शन › ग्राफिक्स प्रोसेसर या WGPU_BACKEND सेट के साथ शुरू होता है।
+@msg	The last start of VansonCraft ended on {name} before its window appeared, so it started on {summary}. To try that graphics processor again, change Preferences › Performance › Graphics Processor or start with WGPU_BACKEND set	VansonCraft की अंतिम शुरुआत अपनी विंडो दिखाई देने से पहले {name} पर समाप्त हुई, इसलिए यह {summary} पर शुरू हुआ। उस ग्राफिक्स प्रोसेसर को फिर से आज़माने के लिए, वरीयताओं को बदलें › प्रदर्शन › ग्राफिक्स प्रोसेसर या WGPU_BACKEND सेट के साथ शुरू होता है।
 @msg	The last start of VansonCraft ended while it listed the graphics processors, so it started on {summary} with OpenGL alone. To try the other graphics backends again, change Preferences › Performance › Graphics Processor or start with WGPU_BACKEND set	जब यह ग्राफिक्स प्रोसेसर को सूचीबद्ध करता है, तो यह केवल ओपनजीएल के साथ {summary} पर शुरू हुआ। फिर से अन्य ग्राफिक्स बैकेंड की कोशिश करने के लिए, वरीयताओं को बदलें › प्रदर्शन › ग्राफिक्स प्रोसेसर या WGPU_BACKEND सेट के साथ शुरू होता है।
 @msg	the layer has no objects to clip by	लेयर में क्लिप करने के लिए कोई ऑब्जेक्ट नहीं है
 @msg	the layer or group is locked	लेयर या समूह को बंद कर दिया जाता है
@@ -8124,9 +8124,9 @@ antiAlias	Sharp	शार्प
 @msg	vc_alloc returned 0 (out of memory)	vc_alloc 0 लौटे (मेमोरी से बाहर)
 @msg	vc_alloc returned a block outside memory	vc_alloc स्मृति के बाहर एक ब्लॉक लौटा
 @msg	vc_run returned error code {packed}	vc_run त्रुटि कोड लौटा {packed}
-@msg	VansonCraft doesn't search other apps' or the system's folders: {path}	वेक्टर क्रेफ्ट अन्य एप्लिकेशन या सिस्टम के फ़ोल्डर्स की खोज नहीं करता है: {path}
-@msg	VansonCraft doesn't search the Shared or Public folder in Users: {path}	वेक्टर क्रेफ्ट उपयोगकर्ताओं में साझा या सार्वजनिक फ़ोल्डर की खोज नहीं करता है: {path}
-@msg	VansonCraft failed to start: {e}	वेक्टर क्रेफ्ट शुरू करने में विफल रहा: {e}
+@msg	VansonCraft doesn't search other apps' or the system's folders: {path}	VansonCraft अन्य एप्लिकेशन या सिस्टम के फ़ोल्डर्स की खोज नहीं करता है: {path}
+@msg	VansonCraft doesn't search the Shared or Public folder in Users: {path}	VansonCraft उपयोगकर्ताओं में साझा या सार्वजनिक फ़ोल्डर की खोज नहीं करता है: {path}
+@msg	VansonCraft failed to start: {e}	VansonCraft शुरू करने में विफल रहा: {e}
 @msg	VansonCraft's Fonts folder isn't set here: the desktop app and vansoncraft-cli set it	VansonCraft के फ़ॉन्ट फ़ोल्डर यहां सेट नहीं है: डेस्कटॉप ऐप और VansonCraft-क्लाई ने इसे सेट किया
 @msg	version {0} files can't be compressed: only version {COMPRESSED_SINCE} and later open compressed files	संस्करण {0} की फ़ाइलें संपीड़ित नहीं हो सकतीं: केवल संस्करण {COMPRESSED_SINCE} और बाद के संस्करण संपीड़ित फ़ाइलें खोलते हैं
 @msg	videoRulerPixelAspectRatio must be a number from 0.1 to 10	videoRulerPixelAspectRatio को 0.1 से 10 के बीच संख्या होना चाहिए
@@ -8286,7 +8286,7 @@ file-filter	Preferences	प्रेफ़रेंसेज़
 file-filter	SVG Compressed	SVG संपीड़ित
 file-filter	Swatch libraries	स्वॉच लाइब्रेरीज़
 file-filter	Templates	टेम्पलेट्स
-file-filter	VansonCraft Template	वेक्टर क्राफ्ट टेम्पलेट
+file-filter	VansonCraft Template	VansonCraft टेम्पलेट
 font-script	Japanese	जापानी
 font-technology	Variable	चर
 gradient-kind	Radial	रेडियल

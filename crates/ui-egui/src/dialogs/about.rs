@@ -64,7 +64,8 @@ fn about_tab(app: &mut VansoncraftApp, ui: &mut egui::Ui) {
     crate::community::links(app, ui);
     ui.add_space(12.0);
     ui.label(
-        egui::RichText::new(tl!("MIT OR Apache-2.0. Fonts: Source Sans 3, Inter, JetBrains Mono (OFL). Icons: Lucide (ISC) + VansonCraft."))
+        // The app's own icons were drawn by VectorCraft's contributors (ASSETS.md).
+        egui::RichText::new(tl!("MIT OR Apache-2.0. Fonts: Source Sans 3, Inter, JetBrains Mono (OFL). Icons: Lucide (ISC) + VectorCraft.")) // brand-ok
             .size(11.0),
     );
     // The licence asks for the copyright notice; the upstream project's brand terms allow this plain

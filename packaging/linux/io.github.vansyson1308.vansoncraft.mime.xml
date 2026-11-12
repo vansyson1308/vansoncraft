@@ -7,7 +7,6 @@
     <comment>VansonCraft document</comment>
     <icon name="io.github.vansyson1308.vansoncraft"/>
     <glob pattern="*.vansoncraft"/>
-    <glob pattern="*.drawcraft"/> <!-- brand-ok: files saved under the project's first name -->
   </mime-type>
   <mime-type type="application/x-vansoncraft-template">
     <comment>VansonCraft template</comment>

@@ -103,9 +103,14 @@ pub fn builtin_presets() -> Vec<PdfPreset> {
     ]
 }
 
-/// The built-in preset `name` names (any case; `default` is the app default).
+/// The name the default preset had before the project took the name VansonCraft: recorded
+/// actions, scripts and remembered export settings may still name it.
+pub const FORMER_DEFAULT_PRESET: &str = "VectorCraft Default"; // brand-ok: the name before the rename
+
+/// The built-in preset `name` names (any case; `default` is the app default, and
+/// [`FORMER_DEFAULT_PRESET`] names it too).
 pub fn builtin_preset(name: &str) -> Option<PdfPreset> {
     let name = name.trim();
-    let name = if name.eq_ignore_ascii_case("default") { DEFAULT_PRESET } else { name };
+    let name = if name.eq_ignore_ascii_case("default") || name.eq_ignore_ascii_case(FORMER_DEFAULT_PRESET) { DEFAULT_PRESET } else { name };
     builtin_presets().into_iter().find(|p| p.name.eq_ignore_ascii_case(name))
 }

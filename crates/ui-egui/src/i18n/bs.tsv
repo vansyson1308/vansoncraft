@@ -2257,7 +2257,7 @@ digits	Malayalam	Malajalam
 	Select All Bound Objects	Odaberi sve vezane objekte
 	Multiple objects	Više objekata
 	Graphics: {adapter}	Grafika: {adapter}
-	MIT OR Apache-2.0. Fonts: Source Sans 3, Inter, JetBrains Mono (OFL). Icons: Lucide (ISC) + VansonCraft.	MIT OR Apache-2.0. Fontovi: Source Sans 3, Inter, JetBrains Mono (OFL). Ikone: Lucide (ISC) + VansonCraft.
+	MIT OR Apache-2.0. Fonts: Source Sans 3, Inter, JetBrains Mono (OFL). Icons: Lucide (ISC) + VectorCraft.	MIT OR Apache-2.0. Fontovi: Source Sans 3, Inter, JetBrains Mono (OFL). Ikone: Lucide (ISC) + VectorCraft.
 	Based on VectorCraft by the ArtCraft team.	Zasnovano na VectorCraftu tima ArtCraft.
 	MIT OR Apache-2.0. Fonts: Source Sans 3, Inter, JetBrains Mono, Noto Sans SC (OFL). Icons: Lucide (ISC) + VansonCraft.	MIT OR Apache-2.0. Fontovi: Source Sans 3, Inter, JetBrains Mono, Noto Sans SC (OFL). Ikone: Lucide (ISC) + VansonCraft.
 	Version {version} — open-source vector illustration in pure Rust.	Verzija {version} — vektorska ilustracija otvorenog koda u čistom Rustu.

@@ -20,6 +20,11 @@ fn shortcut_overrides_from_an_earlier_version_load() {
         "test.unknown": "Cmd+Alt+Shift+F9",
         "view.grid": "Cmd+Period",
     });
+    // The set's name from before the project took the name VansonCraft reads as today's.
+    let mut before = raw.clone();
+    before["shortcut_set"] = json!("VectorCraft Defaults");
+    let ui = decode_saved_prefs(&serde_json::to_vec(&before).unwrap()).unwrap().sanitized();
+    assert_eq!(ui.shortcut_set, "VansonCraft Defaults");
     raw["shortcut_set"] = json!(shortcut_editor::LEGACY_PRESETS[0].0);
     let ui = decode_saved_prefs(&serde_json::to_vec(&raw).unwrap()).unwrap().sanitized();
     assert_eq!(ui.shortcut_set, shortcut_editor::LEGACY_PRESETS[0].1);
@@ -354,7 +359,6 @@ fn the_macos_bundle_opens_every_readable_format() {
 /// declares.
 const LINUX_TYPES: &[(&str, &str)] = &[
     ("vansoncraft", "application/x-vansoncraft"),
-    ("drawcraft", "application/x-vansoncraft"),
     ("svg", "image/svg+xml"),
     ("svgz", "image/svg+xml-compressed"),
     ("pdf", "application/pdf"),

@@ -113,6 +113,11 @@ fn the_name_from_before_the_rename_is_read() {
         old[at..at + former.len()].copy_from_slice(former.as_bytes());
     }
     assert!(old.windows(former.len()).any(|w| w == former.as_bytes()));
+    // Today's name is nowhere in the file, in ASCII or UTF-16, so only the former name can match.
+    let utf16: Vec<u8> = EDITING_FILE.encode_utf16().flat_map(u16::to_be_bytes).collect();
+    for name in [EDITING_FILE.as_bytes(), utf16.as_slice()] {
+        assert!(!old.windows(name.len()).any(|w| w == name), "{}", String::from_utf8_lossy(name));
+    }
     let e = editing(&old).unwrap();
     assert_eq!((e.data.as_slice(), e.intact), (&b"former"[..], true));
 }

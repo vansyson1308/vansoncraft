@@ -252,7 +252,7 @@ fn saves_down_to_older_versions() {
         assert_eq!(text.contains("\"p\":["), version == 2);
     }
     let v3 = json_of(&save(&d, false));
-    assert_eq!((v3["format"].as_str(), v3["version"].as_u64()), (Some("vansoncraft"), Some(VERSION as u64)));
+    assert_eq!((v3["format"].as_str(), v3["version"].as_u64()), (Some(vansoncraft_format::FORMAT_NAME), Some(VERSION as u64)));
     assert_eq!(v3["document"]["color_profiles"], json!({"cmyk": "Coated"}));
     assert!(v3["document"]["unknown"].get("colorProfiles").is_none());
     // Out of range, and compression older apps can't read.

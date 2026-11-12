@@ -584,9 +584,10 @@ pub const OPEN_EXTS: &[&str] = &[
 /// type (shared-mime-info's) also covers `.epsf`, so file managers offer VansonCraft for it.
 /// The packaging declares no type for HP-GL plot files either.
 pub const UNASSOCIATED_EXTS: &[&str] = &[
-    // The native files of before the rename open, but stay associated with whatever app the
+    // The native files of before the renames open, but stay associated with whatever app the
     // desktop gives them.
     "vectorcraft", // brand-ok: files saved before the rename
+    "drawcraft",   // brand-ok: files saved under the first name
     "psd",
     "pdd",
     "psb",

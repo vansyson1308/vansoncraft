@@ -200,6 +200,9 @@ fn main() -> ExitCode {
     system_fonts::install();
     #[cfg(target_os = "macos")]
     mac_fonts::install();
+    // Before anything reads the settings folder: the one of the project's previous name, copied
+    // the first time.
+    prefs_dir::adopt_earlier_profile();
     prefs_dir::install_fonts();
     let mut args: Vec<String> = std::env::args().skip(1).collect();
     // Before any subcommand attaches the plug-in folder.

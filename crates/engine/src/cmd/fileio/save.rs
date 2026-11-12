@@ -120,13 +120,21 @@ fn stamp_doc_dates(d: &mut Document, at: i64) {
     d.metadata.modified = Some(at);
 }
 
+/// The default templates folder's name before the project took the name VansonCraft.
+const FORMER_TEMPLATES_FOLDER: &str = "VectorCraft Templates"; // brand-ok: the folder before the rename
+
 /// The Templates folder: the `templatesFolder` preference, else `VansonCraft Templates` in the
-/// user's documents folder (none where there is no home folder, as on the web).
+/// user's documents folder (none where there is no home folder, as on the web). Until a
+/// "VansonCraft Templates" folder exists, one from before the rename is used where there is one.
 pub fn templates_folder(prefs: &Prefs) -> Option<String> {
     if !prefs.templates_folder.is_empty() {
         return Some(prefs.templates_folder.clone());
     }
-    Some(documents_folder()?.join("VansonCraft Templates").to_string_lossy().to_string())
+    let docs = documents_folder()?;
+    let (today, earlier) = (docs.join("VansonCraft Templates"), docs.join(FORMER_TEMPLATES_FOLDER));
+    // Templates saved before the project took the name VansonCraft stay where they are.
+    let folder = if !today.exists() && earlier.is_dir() { earlier } else { today };
+    Some(folder.to_string_lossy().to_string())
 }
 
 /// The Templates folder for a file dialog to start in (#703): made when it's missing; where it

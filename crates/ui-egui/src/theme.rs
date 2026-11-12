@@ -37,15 +37,15 @@ impl Brightness {
     }
 }
 
-/// User Interface › Accent Color: the one colour for what is on, chosen or focused. Coral, the
-/// default, is the app icon's.
+/// User Interface › Accent Color: the one colour for what is on, chosen or focused. Amber, the
+/// default, is the app icon's handle colour.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Accent {
-    #[default]
     Coral,
     Blue,
     Violet,
     Green,
+    #[default]
     Amber,
     Pink,
 }
@@ -172,9 +172,9 @@ pub struct Tokens {
 impl Tokens {
     pub fn for_brightness(b: Brightness) -> Self {
         let hex = |s: u32| Color32::from_rgb((s >> 16) as u8, (s >> 8) as u8, s as u8);
-        // The Craft look: cool slate greys, flat faces with soft corners, and one accent (the app
-        // icon's coral) for what is on, chosen or focused. The four brightness levels share the
-        // style and differ only in their greys.
+        // Cool slate greys, flat faces with soft corners, and one accent for what is on, chosen or
+        // focused (the chosen one, through `with_accent`; amber, the app icon's handle colour, by
+        // default). The four brightness levels share the style and differ only in their greys.
         let base = Tokens {
             dark: true,
             app_bar: hex(0x0b0d12),

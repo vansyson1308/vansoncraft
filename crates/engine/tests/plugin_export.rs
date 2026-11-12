@@ -102,7 +102,7 @@ fn the_exporter_is_given_the_native_file_s_json() {
     saved_members.remove("pdfCompatible");
     assert_eq!(doc, saved_json, "the native document JSON without optional save members");
     assert!(!given.contains(&b'\n'), "without indentation");
-    assert_eq!((&doc["format"], &doc["version"]), (&json!("vansoncraft"), &json!(vansoncraft_format::VERSION)));
+    assert_eq!((&doc["format"], &doc["version"]), (&json!(vansoncraft_format::FORMAT_NAME), &json!(vansoncraft_format::VERSION)));
     let images = doc["images"].as_object().unwrap();
     let image = images.values().next().unwrap();
     assert_eq!(images.len(), 1);

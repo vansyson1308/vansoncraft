@@ -39,8 +39,8 @@ const MARK: f32 = 18.0;
 /// Height of the workspace switcher.
 const WIDGET_H: f32 = 22.0;
 
-/// The application bar: brand mark, Home, menus, then Discord, search and the workspace switcher
-/// at the right. With [`VansoncraftApp::custom_titlebar`] it is also the window's title bar
+/// The application bar: brand mark, Home, menus, then Explore tutorials, search and the workspace
+/// switcher at the right. With [`VansoncraftApp::custom_titlebar`] it is also the window's title bar
 /// ([`titlebar`]): the caption buttons take the right end and the rest of the bar drags the window.
 /// On macOS, under the system's transparent title bar, its empty space drags and zooms the window
 /// too ([`titlebar::drag_area`]). With the system title bar (Windows and Linux, `system_title_bar`) the OS draws its own icon and
@@ -72,9 +72,8 @@ pub fn app_bar(app: &mut VansoncraftApp, ui: &mut Ui) {
             // With the macOS menu bar the menus are at the top of the screen instead.
             let menus_end = if app.services.native_menu.is_some() { ui.cursor().min.x } else { menus::menu_bar(app, ui) };
             // The right-side group fills the space after the menus from the right; when it runs
-            // short, Discord goes first (it is also under Help), then Explore tutorials (also
-            // Window › Learn), then the search icon (the palette stays under its shortcut), then
-            // the workspace switcher narrows.
+            // short, Explore tutorials goes first (also Window › Learn), then the search icon (the
+            // palette stays under its shortcut), then the workspace switcher narrows.
             let full = ui.max_rect();
             let right_edge = if custom { full.right() - titlebar::WIDTH - 10.0 } else { full.right() };
             let right = egui::Rect::from_min_max(egui::pos2(menus_end + 8.0, full.top()), egui::pos2(right_edge, full.bottom()));

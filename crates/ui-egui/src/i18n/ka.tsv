@@ -2019,7 +2019,7 @@ digits	Malayalam	მალაიალამური
 	Select All Bound Objects	ყველა დაკავშირებული ობიექტის მონიშვნა
 	Multiple objects	რამდენიმე ობიექტი
 	Graphics: {adapter}	გრაფიკა: {adapter}
-	MIT OR Apache-2.0. Fonts: Source Sans 3, Inter, JetBrains Mono (OFL). Icons: Lucide (ISC) + VansonCraft.	MIT OR Apache-2.0. შრიფტები: Source Sans 3, Inter, JetBrains Mono (OFL). ხატულები: Lucide (ISC) + VansonCraft.
+	MIT OR Apache-2.0. Fonts: Source Sans 3, Inter, JetBrains Mono (OFL). Icons: Lucide (ISC) + VectorCraft.	MIT OR Apache-2.0. შრიფტები: Source Sans 3, Inter, JetBrains Mono (OFL). ხატულები: Lucide (ISC) + VectorCraft.
 	Based on VectorCraft by the ArtCraft team.	ეფუძნება ArtCraft-ის გუნდის VectorCraft-ს.
 	Version {version} — open-source vector illustration in pure Rust.	ვერსია {version} — ღია კოდის ვექტორული ილუსტრაცია სუფთა Rust-ზე.
 	Align to Page	გვერდზე სწორება

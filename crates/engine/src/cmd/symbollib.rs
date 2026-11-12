@@ -133,7 +133,8 @@ impl SymbolLibrary {
 }
 
 impl LibraryFile for SymbolLibrary {
-    const EXTS: &[&str] = &[SYMBOLS_EXT];
+    // Libraries saved before the project took the name VansonCraft are listed too.
+    const EXTS: &[&str] = &[SYMBOLS_EXT, vansoncraft_format::FORMER_EXTENSION];
     fn read(bytes: &[u8], stem: &str) -> std::result::Result<Self, String> {
         let doc = vansoncraft_format::load(bytes).map_err(|e| e.to_string())?;
         SymbolLibrary::from_document(&doc, &[], stem.to_string())

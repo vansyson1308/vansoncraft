@@ -20,9 +20,12 @@ use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
 /// Files in the install folder that switch on portable mode (either one; contents are ignored).
-pub const PORTABLE_MARKERS: [&str; 2] = ["portable.txt", "VansonCraft.portable"];
+pub const PORTABLE_MARKERS: [&str; 3] = ["portable.txt", "VansonCraft.portable", "VectorCraft.portable"]; // brand-ok: a copy set up before the rename
 /// The settings folder created in the install folder in portable mode.
 pub const PORTABLE_DATA_DIR: &str = "VansonCraftData";
+/// The portable settings folder of a copy set up before the project took the name VansonCraft:
+/// copied into [`PORTABLE_DATA_DIR`] the first time, in place of the user's profile.
+pub const FORMER_PORTABLE_DATA_DIR: &str = "VectorCraftData"; // brand-ok: a copy set up before the rename
 
 /// Whose settings folder: VansonCraft's own, or one whose settings are read once, when VansonCraft
 /// has none yet, because the project had another name then.
@@ -146,6 +149,8 @@ fn portable_dir_in(install_dir: &Path, previous: Option<&Path>) -> Result<Option
             data.display()
         ));
     }
+    let earlier = install_dir.join(FORMER_PORTABLE_DATA_DIR);
+    let previous = if earlier.is_dir() { Some(earlier.as_path()) } else { previous };
     if first_start && let Some(previous) = previous.filter(|p| p.is_dir()) {
         match copy_dir(previous, &data) {
             Ok(()) => log::info!("portable mode: copied the settings from {} to {}", previous.display(), data.display()),
@@ -153,6 +158,34 @@ fn portable_dir_in(install_dir: &Path, previous: Option<&Path>) -> Result<Option
         }
     }
     Ok(Some(data))
+}
+
+/// The first time VansonCraft starts with no settings folder of its own while the project's
+/// previous name (VectorCraft) has one: copy that folder into VansonCraft's, so the settings,
+/// libraries, fonts, presets, plug-ins and Data Recovery copies kept there come along. The old
+/// folder is left as it is (VectorCraft itself may still use it). Never for an isolated profile
+/// (`VANSONCRAFT_CONFIG_DIR`), a portable copy, or a run without preferences.
+pub fn adopt_earlier_profile() {
+    if std::env::var_os("VANSONCRAFT_NO_PREFS").is_some() {
+        return;
+    }
+    let dir = |profile| prefs_path(profile).and_then(|p| p.parent().map(Path::to_path_buf));
+    let (Some(current), Some(former)) = (dir(Profile::Current), dir(Profile::Former)) else { return };
+    if let Err(why) = adopt_from(&former, &current) {
+        log::warn!("{why}");
+    }
+}
+
+/// [`adopt_earlier_profile`] for the folders `former` and `current`: nothing when `current`
+/// exists or `former` doesn't.
+fn adopt_from(former: &Path, current: &Path) -> Result<(), String> {
+    if current.exists() || !former.is_dir() {
+        return Ok(());
+    }
+    private_dir(current).map_err(|e| format!("can't make {} to copy the earlier settings into: {e}", current.display()))?;
+    copy_dir(former, current).map_err(|e| format!("the settings in {} were only partly copied to {}: {e}", former.display(), current.display()))?;
+    log::info!("copied the settings from {} to {}", former.display(), current.display());
+    Ok(())
 }
 
 /// Create `dir` and prove a file can be written in it (a folder can exist yet be read-only).
@@ -404,6 +437,21 @@ mod tests {
     }
 
     #[test]
+    fn a_portable_copy_from_before_the_rename_keeps_its_settings() {
+        // Set up as VectorCraft: its marker and data folder beside the executable.
+        let exe = temp("portable-former");
+        std::fs::write(exe.join("VectorCraft.portable"), b"").unwrap();
+        std::fs::create_dir_all(exe.join(FORMER_PORTABLE_DATA_DIR)).unwrap();
+        std::fs::write(exe.join(FORMER_PORTABLE_DATA_DIR).join("ui.json"), b"{\"theme\":\"light\"}").unwrap();
+        let profile = temp("portable-former-profile");
+        std::fs::write(profile.join("ui.json"), b"{\"theme\":\"dark\"}").unwrap();
+        let data = portable_dir_in(&exe, Some(&profile)).unwrap().unwrap();
+        assert_eq!(data, exe.join(PORTABLE_DATA_DIR));
+        assert_eq!(std::fs::read(data.join("ui.json")).unwrap(), b"{\"theme\":\"light\"}", "the portable copy's own settings, not the profile's");
+        assert!(exe.join(FORMER_PORTABLE_DATA_DIR).join("ui.json").is_file(), "left as it was");
+    }
+
+    #[test]
     fn the_first_start_copies_the_user_profile_into_the_data_folder_once() {
         let exe = temp("upgrade");
         std::fs::write(exe.join("portable.txt"), b"").unwrap();
@@ -471,5 +519,23 @@ mod tests {
         assert_eq!(std::fs::metadata(to.join("recovery")).unwrap().permissions().mode() & 0o777, 0o700);
         let _ = std::fs::remove_dir_all(&from);
         let _ = std::fs::remove_dir_all(&to);
+    }
+
+    #[test]
+    fn the_earlier_settings_folder_is_copied_once_and_kept() {
+        let root = temp("adopt");
+        let (former, current) = (root.join("VectorCraft"), root.join("VansonCraft"));
+        std::fs::create_dir_all(former.join("Swatches")).unwrap();
+        std::fs::write(former.join("ui.json"), b"{}").unwrap();
+        std::fs::write(former.join("Swatches/Mine.ase"), b"ase").unwrap();
+        // No earlier folder, or a folder of its own already: nothing happens.
+        adopt_from(&root.join("missing"), &current).unwrap();
+        assert!(!current.exists());
+        adopt_from(&former, &current).unwrap();
+        assert_eq!(std::fs::read(current.join("Swatches/Mine.ase")).unwrap(), b"ase");
+        assert!(former.join("ui.json").is_file(), "the earlier folder stays as it was");
+        std::fs::write(current.join("ui.json"), b"{\"mine\": true}").unwrap();
+        adopt_from(&former, &current).unwrap();
+        assert_eq!(std::fs::read(current.join("ui.json")).unwrap(), b"{\"mine\": true}", "copied only the first time");
     }
 }
