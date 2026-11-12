@@ -7,7 +7,7 @@ character: the point for line, charcoal for line and mass, chalk on toned paper 
 the half tone, pen for clear darks without half tones (SP-XX-5..15).
 
 **Vector equivalents (ours).**
-| Medium (Speed) | VectorCraft means |
+| Medium (Speed) | VansonCraft means |
 |---|---|
 | Pencil, silverpoint | thin strokes, slight width variation (width profiles), no fill |
 | Pen and ink | strokes with width profiles; two-value design; hatching (`study.hatch`) |
@@ -15,7 +15,7 @@ the half tone, pen for clear darks without half tones (SP-XX-5..15).
 | Chalk on toned paper | a mid-tone artboard ground; light and dark shapes that never touch |
 | Etching | stroke-weight tiers; parallel and crossed hatching |
 
-**With VectorCraft.** Keep to the means the brief asks for. A "line study" uses strokes only; a
+**With VansonCraft.** Keep to the means the brief asks for. A "line study" uses strokes only; a
 "mass study" uses filled shapes in a few values. Texture: hatching and repeated vector marks, with
 counts kept bounded (`study.hatch` refuses more than `maxLines`).
 

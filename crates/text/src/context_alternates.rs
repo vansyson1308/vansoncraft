@@ -7,7 +7,7 @@
 //! <https://helpx.adobe.com/illustrator/desktop/design-with-text/special-characters-glyphs/replace-characters-with-alternate-glyphs.html>
 
 use kurbo::Point;
-use vectorcraft_doc::{CharStyle, TextObject};
+use vansoncraft_doc::{CharStyle, TextObject};
 
 use crate::{FontDb, GlyphAlternate, OtFeatures, edit, layout};
 

@@ -2,8 +2,8 @@
 //! (redefine, break link, delete, rename), Select All Unused, Sort by Name and Select > Same.
 
 use serde_json::{Value, json};
-use vectorcraft_color::{BlendMode, Color, Paint};
-use vectorcraft_doc::{GraphicStyle, Knockout, Node, Shared};
+use vansoncraft_color::{BlendMode, Color, Paint};
+use vansoncraft_doc::{GraphicStyle, Knockout, Node, Shared};
 
 use crate::*;
 
@@ -66,7 +66,7 @@ fn styles_carry_opacity_and_blend_through_a_save() {
 
     // Native round trip: the style's transparency, its id and the objects' links survive.
     let doc = s.doc().unwrap().doc.clone();
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&doc, false)).unwrap();
+    let back = vansoncraft_format::load(&vansoncraft_format::save(&doc, false)).unwrap();
     assert_eq!(back.graphic_styles, doc.graphic_styles);
     assert_eq!(back.node(b).unwrap().extras().graphic_style, Some(g.id));
     // Styles and objects from files without links still load (and get an id when first linked).
@@ -232,7 +232,7 @@ fn applying_a_style_shares_one_appearance() {
     }
     assert!(!Shared::ptr_eq(&copies.node(b).unwrap().appearance, &copies.node(c).unwrap().appearance));
     for pretty in [false, true] {
-        assert_eq!(vectorcraft_format::save(&doc, pretty), vectorcraft_format::save(&copies, pretty));
+        assert_eq!(vansoncraft_format::save(&doc, pretty), vansoncraft_format::save(&copies, pretty));
     }
 
     // Editing one object leaves the others and the style as they were.

@@ -1,11 +1,11 @@
 //! Opening PSD and PSB files with their layers as layers (`document.open`'s `layers` and
 //! `hiddenLayers`): names, visibility, opacity, blend modes, groups, layer masks, clipped layers
-//! and blend modes VectorCraft lacks merged, 16-bit and PSB files, VectorCraft's own PSD export
+//! and blend modes VansonCraft lacks merged, 16-bit and PSB files, VansonCraft's own PSD export
 //! read back, and damaged files read without a panic.
 
 use serde_json::{Value, json};
-use vectorcraft_color::BlendMode;
-use vectorcraft_doc::{Node, NodeKind};
+use vansoncraft_color::BlendMode;
+use vansoncraft_doc::{Node, NodeKind};
 
 use super::*;
 
@@ -254,7 +254,7 @@ const HIDDEN_1: &str = "1 layer was left out (hidden layers and the layers clipp
 
 fn open(f: &[u8], p: Value) -> (Session, Value) {
     let mut s = Session::new();
-    let r = s.execute("document.open", &merge(json!({"name": "layers.psd", "dataBase64": vectorcraft_format::base64_encode(f)}), p)).unwrap();
+    let r = s.execute("document.open", &merge(json!({"name": "layers.psd", "dataBase64": vansoncraft_format::base64_encode(f)}), p)).unwrap();
     (s, r)
 }
 
@@ -445,7 +445,7 @@ fn clipped_layers_merge_into_the_layer_below() {
     }
 }
 
-/// A masked base merged with its clipped layers, then with a layer in a mode VectorCraft lacks,
+/// A masked base merged with its clipped layers, then with a layer in a mode VansonCraft lacks,
 /// still hides what its mask hides.
 #[test]
 fn a_merged_base_keeps_its_mask_in_a_later_merge() {
@@ -463,7 +463,7 @@ fn a_merged_base_keeps_its_mask_in_a_later_merge() {
 }
 
 #[test]
-fn layers_in_modes_vectorcraft_lacks_merge_with_the_layers_below() {
+fn layers_in_modes_vansoncraft_lacks_merge_with_the_layers_below() {
     let dodge = L { blend: b"lddg", ..layer("Dodge", [0, 0, 2, 2], [100, 100, 100, 255]) };
     let hidden = L { hidden: true, ..layer("Hidden", [0, 0, 8, 8], [0, 0, 0, 255]) };
     let layers = [layer("Bottom", [0, 0, 8, 8], [100, 50, 0, 255]), hidden, dodge, layer("Top", [6, 6, 8, 8], [0, 0, 0, 255])];
@@ -500,7 +500,7 @@ fn a_merge_past_the_memory_allowed_leaves_the_layer_normal() {
     let (doc, warnings) = psdlayers::import(&f, false, 128, cms).unwrap().unwrap();
     let got: Vec<(&str, BlendMode)> = doc.layers.iter().map(|l| (name(l), l.blend)).collect();
     assert_eq!(got, [("Bottom", BlendMode::Normal), ("Dodge", BlendMode::Normal)]);
-    assert_eq!(warnings, ["1 layer in blend modes VectorCraft doesn't have came in as Normal: the merge needs more memory than allowed"]);
+    assert_eq!(warnings, ["1 layer in blend modes VansonCraft doesn't have came in as Normal: the merge needs more memory than allowed"]);
     // With room for it, the merge is made.
     let (doc, _) = psdlayers::import(&f, false, 1 << 20, cms).unwrap().unwrap();
     assert_eq!(doc.layers.iter().map(|l| name(l)).collect::<Vec<_>>(), ["Bottom + Dodge"]);
@@ -514,7 +514,7 @@ fn a_merge_past_the_memory_allowed_leaves_the_layer_normal() {
     let f = file(4, 4, &layers, 8, false, false);
     let (doc, warnings) = psdlayers::import(&f, false, 300, cms).unwrap().unwrap();
     assert_eq!(doc.layers.iter().map(|l| name(l)).collect::<Vec<_>>(), ["Bottom", "Corner", "Dodge"]);
-    assert_eq!(warnings, ["1 layer in blend modes VectorCraft doesn't have came in as Normal: the merge needs more memory than allowed"]);
+    assert_eq!(warnings, ["1 layer in blend modes VansonCraft doesn't have came in as Normal: the merge needs more memory than allowed"]);
     let (doc, _) = psdlayers::import(&f, false, 1 << 20, cms).unwrap().unwrap();
     assert_eq!(doc.layers.iter().map(|l| name(l)).collect::<Vec<_>>(), ["Bottom + Corner + Dodge"]);
     // A group below whose layers each fit, but whose canvas (4 × 4 with both 1 × 1 layers held, 288
@@ -531,7 +531,7 @@ fn a_merge_past_the_memory_allowed_leaves_the_layer_normal() {
     let got: Vec<(&str, BlendMode)> = doc.layers.iter().map(|l| (name(l), l.blend)).collect();
     assert_eq!(got, [("Pair", BlendMode::Normal), ("Dodge", BlendMode::Normal)]);
     assert_eq!(doc.layers[0].children().unwrap().iter().map(|c| name(c)).collect::<Vec<_>>(), ["Left", "Right"]);
-    assert_eq!(warnings, ["1 layer in blend modes VectorCraft doesn't have came in as Normal: the merge needs more memory than allowed"]);
+    assert_eq!(warnings, ["1 layer in blend modes VansonCraft doesn't have came in as Normal: the merge needs more memory than allowed"]);
     let (doc, _) = psdlayers::import(&f, false, 1 << 20, cms).unwrap().unwrap();
     assert_eq!(doc.layers.iter().map(|l| name(l)).collect::<Vec<_>>(), ["Pair + Dodge"]);
     // A layer below whose pixels fit (128 bytes) but whose canvas (16 bytes a pixel, 256) doesn't
@@ -541,7 +541,7 @@ fn a_merge_past_the_memory_allowed_leaves_the_layer_normal() {
     let (doc, warnings) = psdlayers::import(&f, false, 200, cms).unwrap().unwrap();
     let got: Vec<(&str, BlendMode)> = doc.layers.iter().map(|l| (name(l), l.blend)).collect();
     assert_eq!(got, [("Big", BlendMode::Normal), ("Dodge", BlendMode::Normal)]);
-    assert_eq!(warnings, ["1 layer in blend modes VectorCraft doesn't have came in as Normal: the merge needs more memory than allowed"]);
+    assert_eq!(warnings, ["1 layer in blend modes VansonCraft doesn't have came in as Normal: the merge needs more memory than allowed"]);
     // A clipped layer whose merge doesn't fit (the base's canvas and its transparency, 20 bytes a
     // pixel, beside the clipped layer's canvas, 16: 576 bytes, past 300) comes in unclipped.
     let layers = [layer("Base", [0, 0, 4, 4], [255, 0, 0, 255]), L { clipped: true, ..layer("Clipped", [0, 0, 4, 4], [0, 0, 255, 255]) }];
@@ -574,13 +574,13 @@ fn a_merge_that_cant_be_made_counts_only_itself() {
     assert_eq!(
         warnings,
         [
-            "layers in blend modes VectorCraft doesn't have (Linear Dodge) were merged with the layers below them",
-            "1 layer in blend modes VectorCraft doesn't have came in as Normal: the merge needs more memory than allowed",
+            "layers in blend modes VansonCraft doesn't have (Linear Dodge) were merged with the layers below them",
+            "1 layer in blend modes VansonCraft doesn't have came in as Normal: the merge needs more memory than allowed",
         ]
     );
 }
 
-/// Layers in modes VectorCraft lacks, one after another, merge onto the canvas the first merge made
+/// Layers in modes VansonCraft lacks, one after another, merge onto the canvas the first merge made
 /// without copying it: 300 of them over a 64 × 64 canvas (64 KiB) open within an allowance that a
 /// copy for each would pass. Merges that need a copy of that canvas each, past the allowance, open
 /// the merged image instead.
@@ -736,13 +736,13 @@ fn layers_clipped_to_an_adjustment_layer_show_over_the_canvas() {
     assert!(r["warnings"].to_string().contains("1 adjustment layer was not applied"), "{r}");
 }
 
-/// Each blend mode VectorCraft lacks merges with the layer below by its formula, from the public
+/// Each blend mode VansonCraft lacks merges with the layer below by its formula, from the public
 /// descriptions: <https://helpx.adobe.com/photoshop/desktop/repair-retouch/adjust-light-tone/blending-mode-descriptions.html>
 /// (Vivid Light, Pin Light, Hard Mix, Darker and Lighter Color) and
 /// <https://en.wikipedia.org/wiki/Blend_modes> (Linear Burn, Linear Dodge, Linear Light, Subtract,
 /// Divide). Color Dodge, Color Burn and Difference keep their mode.
 #[test]
-fn every_mode_vectorcraft_lacks_merges_by_its_formula() {
+fn every_mode_vansoncraft_lacks_merges_by_its_formula() {
     let b = [200u8, 100, 30];
     let s = [60u8, 180, 128];
     let burn = |b: f64, c: f64| if c <= 0.0 { if b >= 1.0 { 1.0 } else { 0.0 } } else { 1.0 - ((1.0 - b) / c).min(1.0) };
@@ -841,7 +841,7 @@ fn solid_color_fills_read_every_color_model() {
     assert_eq!(warnings, ["3 fill layers were not drawn (a gradient or pattern fill, a color that can't be read, or a shape that stores no pixels)"]);
 }
 
-/// VectorCraft's own PSD export opens with the layers it wrote: groups as layers of sublayers,
+/// VansonCraft's own PSD export opens with the layers it wrote: groups as layers of sublayers,
 /// hidden ones hidden, with their opacity and blend mode.
 #[test]
 fn psd_exports_open_with_their_layers() {
@@ -863,7 +863,7 @@ fn psd_exports_open_with_their_layers() {
         (json!({"maxEditability": true}), vec![("Layer 1", true), ("Blue", true)]),
     ] {
         let r = s.execute("document.export", &merge(json!({"format": "psd"}), options.clone())).unwrap();
-        let f = vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap();
+        let f = vansoncraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap();
         let (back, r) = open(&f, json!({"hiddenLayers": true}));
         let d = &back.doc().unwrap().doc;
         let got: Vec<(&str, bool)> = d.layers.iter().map(|l| (name(l), l.visible)).collect();
@@ -919,11 +919,11 @@ fn files_without_layers_or_with_damaged_layers_open_as_their_merged_image() {
     deep.push(layer("x", [0, 0, 1, 1], [0, 0, 0, 255]));
     deep.extend((0..40).map(|_| group("g", b"norm")));
     let (s, r) = open(&file(2, 2, &deep, 8, false, false), json!({}));
-    assert_eq!(r["warnings"], json!([vectorcraft_doc::depth::merged_note()]), "{r}");
+    assert_eq!(r["warnings"], json!([vansoncraft_doc::depth::merged_note()]), "{r}");
     fn depth(n: &Node) -> usize {
         1 + n.children().map_or(0, |c| c.iter().map(|c| depth(c)).max().unwrap_or(0))
     }
-    assert!(s.doc().unwrap().doc.layers.iter().map(|l| depth(l)).max().unwrap() <= vectorcraft_doc::MAX_DEPTH);
+    assert!(s.doc().unwrap().doc.layers.iter().map(|l| depth(l)).max().unwrap() <= vansoncraft_doc::MAX_DEPTH);
 }
 
 /// A record whose layer mask or name is cut short opens the merged image with a warning, rather
@@ -984,7 +984,7 @@ fn damaged_layers_never_panic() {
     assert!(e.as_deref().is_some_and(|e| e.contains("take more memory to read than allowed")), "{e:?}");
 }
 
-/// A layer in a mode VectorCraft lacks above a pass-through group merges with the group's layers
+/// A layer in a mode VansonCraft lacks above a pass-through group merges with the group's layers
 /// blending onto what is below the group, as they do without the merge.
 #[test]
 fn merges_keep_pass_through_groups_blending_with_what_is_below() {

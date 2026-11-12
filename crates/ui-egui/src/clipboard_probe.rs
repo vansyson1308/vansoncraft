@@ -7,7 +7,7 @@
 use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender, TryRecvError};
 use std::time::{Duration, Instant};
 
-use vectorcraft_engine::cmd::clipboard::PASTE_ORDER;
+use vansoncraft_engine::cmd::clipboard::PASTE_ORDER;
 
 use crate::sysclip::ClipboardProbeFactory;
 
@@ -15,12 +15,12 @@ use crate::sysclip::ClipboardProbeFactory;
 const PROBE_INTERVAL: Duration = Duration::from_millis(250);
 
 /// How long dropping the probe (when the app quits) waits for the worker to let go of its clipboard
-/// handle (VectorCraft's own bound). arboard's X11 reads wait up to 4 s for each text format they
+/// handle (VansonCraft's own bound). arboard's X11 reads wait up to 4 s for each text format they
 /// ask for; when a look is still waiting after this bound, the app quits without waiting longer,
 /// and what it copied may not reach the clipboard manager.
 const STOP_WAIT: Duration = Duration::from_secs(5);
 
-/// The background clipboard check ([`crate::VectorcraftApp`]'s `clipboard_probe`).
+/// The background clipboard check ([`crate::VansoncraftApp`]'s `clipboard_probe`).
 pub(crate) struct Probe {
     /// Tells the worker whether Paste depends on the system clipboard; dropped to stop it.
     wants: Option<Sender<bool>>,
@@ -40,7 +40,7 @@ impl Probe {
         let (wants, wanted_rx) = std::sync::mpsc::channel();
         let (tx, verdicts) = std::sync::mpsc::channel();
         std::thread::Builder::new()
-            .name("vectorcraft-clip".into())
+            .name("vansoncraft-clip".into())
             .spawn(move || {
                 let mut clipboard = make();
                 let (mut wanted, mut sent) = (false, None);

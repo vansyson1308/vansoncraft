@@ -10,8 +10,8 @@ mod tests;
 use std::collections::BTreeSet;
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{LockedArtboards, Node, NodeId, NodeKind};
-use vectorcraft_geom::Point;
+use vansoncraft_doc::{LockedArtboards, Node, NodeId, NodeKind};
+use vansoncraft_geom::Point;
 
 use super::super::links::{Status, statuses};
 use super::super::select::{is_selectable, on_artboard, selectable};
@@ -73,7 +73,7 @@ fn by_artboards(s: &mut Session, p: &Value) -> Result<Value> {
             match relation {
                 "inside" => n.geometric_bounds_with(&symbols).is_some_and(|b| {
                     rects.iter().any(|r| {
-                        vectorcraft_doc::artboard_holds(*r, Point::new(b.x0, b.y0)) && vectorcraft_doc::artboard_holds(*r, Point::new(b.x1, b.y1))
+                        vansoncraft_doc::artboard_holds(*r, Point::new(b.x0, b.y0)) && vansoncraft_doc::artboard_holds(*r, Point::new(b.x1, b.y1))
                     })
                 }),
                 "outside" => !rects.iter().any(|r| on_artboard(n, &symbols, *r)),
@@ -130,7 +130,7 @@ pub(crate) fn link_status_of_objects(st: &DocState) -> Vec<(NodeId, &'static str
 /// Why object `id` of `st` can't be selected now ([`is_selectable`]): it is outside the isolated
 /// group or layer, on a template layer, hidden (or inside something hidden), or locked (or inside
 /// something locked, or on a locked artboard); `None` when it can be. `locks` is the document's
-/// [`vectorcraft_doc::Document::locked_artboards`].
+/// [`vansoncraft_doc::Document::locked_artboards`].
 fn skip_reason(st: &DocState, locks: &LockedArtboards, id: NodeId) -> Option<&'static str> {
     let d = &st.doc;
     if is_selectable(d, st.isolation, locks, id) {

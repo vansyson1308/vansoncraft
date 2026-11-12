@@ -1,9 +1,9 @@
 # Drawing method: Harold Speed, *The Practice and Science of Drawing* (1913)
 
-Working notes for agents drawing in VectorCraft, taken from a full reading of the book (Project
+Working notes for agents drawing in VansonCraft, taken from a full reading of the book (Project
 Gutenberg #14264). Each topic separates what Speed says (principle ids such as `SP-VIII-6` point to
-the reading ledger in `docs/speed/`), how to do it with VectorCraft's tools, and where it stops
-applying. Read only the topic you need: `vectorcraft://method/{topic}`.
+the reading ledger in `docs/speed/`), how to do it with VansonCraft's tools, and where it stops
+applying. Read only the topic you need: `vansoncraft://method/{topic}`.
 
 | Topic | Read it when |
 |---|---|

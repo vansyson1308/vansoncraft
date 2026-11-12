@@ -8,8 +8,8 @@
 use std::f64::consts::PI;
 
 use serde_json::{Value, json};
-use vectorcraft_doc::NodeId;
-use vectorcraft_geom::{ParamCurve, Point, SubPath};
+use vansoncraft_doc::NodeId;
+use vansoncraft_geom::{ParamCurve, Point, SubPath};
 
 use super::geometry::{PathItem, paths_in};
 use super::{num, r3, targets, whole};
@@ -72,7 +72,7 @@ impl Tally {
 }
 
 /// The turn (radians, signed) from direction `u` to direction `v`.
-fn turn(u: vectorcraft_geom::Vec2, v: vectorcraft_geom::Vec2) -> f64 {
+fn turn(u: vansoncraft_geom::Vec2, v: vansoncraft_geom::Vec2) -> f64 {
     u.cross(v).atan2(u.dot(v))
 }
 
@@ -81,8 +81,8 @@ struct Seg {
     length: f64,
     /// Turning inside the segment: (signed turn, length of the chord after it).
     turns: Vec<(f64, f64)>,
-    first: vectorcraft_geom::Vec2,
-    last: vectorcraft_geom::Vec2,
+    first: vansoncraft_geom::Vec2,
+    last: vansoncraft_geom::Vec2,
     line: bool,
 }
 
@@ -93,7 +93,7 @@ fn segments(sp: &SubPath, t: &mut Tally) -> Vec<Seg> {
         let c = sp.segment(i);
         let line = sp.segment_is_line(i);
         let pts: Vec<Point> = if line { vec![c.p0, c.p3] } else { (0..=SAMPLES).map(|k| c.eval(k as f64 / SAMPLES as f64)).collect() };
-        let (mut length, mut turns, mut first, mut last) = (0.0, Vec::new(), None, None::<vectorcraft_geom::Vec2>);
+        let (mut length, mut turns, mut first, mut last) = (0.0, Vec::new(), None, None::<vansoncraft_geom::Vec2>);
         for w in pts.windows(2) {
             let (Some(&a), Some(&b)) = (w.first(), w.get(1)) else { continue };
             let len = a.distance(b);
@@ -274,13 +274,13 @@ pub(super) fn lines(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 /// An alignment to look for: the axis, the edge's name and where that edge is on a box.
-type Edge = (&'static str, &'static str, fn(&vectorcraft_geom::Rect) -> f64);
+type Edge = (&'static str, &'static str, fn(&vansoncraft_geom::Rect) -> f64);
 
 /// One object's measured box.
 struct Measured {
     id: NodeId,
     name: Option<String>,
-    b: vectorcraft_geom::Rect,
+    b: vansoncraft_geom::Rect,
 }
 
 /// `study.proportions`.

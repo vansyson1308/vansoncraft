@@ -8,7 +8,7 @@ in academic studies, SP-XIX-1). Reduce the subject to a few simple masses, then 
 (SP-XIX-4). Every touch must mean something: no filler (SP-XIX-9). In the final stage re-kindle the
 first impression so detail does not bury it (SP-XIX-6).
 
-**With VectorCraft.**
+**With VansonCraft.**
 1. *Intent.* Write one sentence: the subject, the one impression it must give, and line study or
    mass study. With a reference, a mass study from it suits; without one, construct with lines
    (SP-V-8). Choose the artboard (`file.new`, or `artboard.new` for variants).

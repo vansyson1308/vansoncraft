@@ -7,10 +7,10 @@
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 
-use vectorcraft_doc::Document;
-use vectorcraft_engine::file_access::ScopeHandle;
-use vectorcraft_geom::Affine;
-use vectorcraft_render::{RenderOptions, Rendered, Renderer};
+use vansoncraft_doc::Document;
+use vansoncraft_engine::file_access::ScopeHandle;
+use vansoncraft_geom::Affine;
+use vansoncraft_render::{RenderOptions, Rendered, Renderer};
 
 use crate::CacheKey;
 
@@ -25,8 +25,8 @@ pub struct Job {
     /// them, as it would on that thread.
     pub scope: ScopeHandle,
     /// The document's deferred live-effect plug-in stages and first-view budget: the render runs
-    /// inside their view ([`vectorcraft_plugins::deferred::Deferrals::view`]).
-    pub effects: vectorcraft_plugins::deferred::Deferrals,
+    /// inside their view ([`vansoncraft_plugins::deferred::Deferrals::view`]).
+    pub effects: vansoncraft_plugins::deferred::Deferrals,
     /// The render may copy pixels from the worker's last frame ([`crate::canvas::render_job`]).
     /// Off: it renders the whole frame.
     pub may_copy: bool,
@@ -42,7 +42,7 @@ pub struct Done {
     pub opts: RenderOptions,
     pub img: Rendered,
     pub ms: f64,
-    /// [`vectorcraft_render::FrameStats::moved`] of the frame.
+    /// [`vansoncraft_render::FrameStats::moved`] of the frame.
     pub moved: usize,
     /// The frame holds pixels copied from the worker's last frame ([`crate::canvas::render_job`]),
     /// and `ms` is the time of the copy and of the parts rendered.
@@ -64,7 +64,7 @@ impl Worker {
         let (tx, jobs) = channel::<Job>();
         let (done_tx, rx) = channel::<Done>();
         std::thread::Builder::new()
-            .name("vectorcraft-render".into())
+            .name("vansoncraft-render".into())
             .spawn(move || {
                 let mut r = Renderer::new();
                 let mut kept = None;

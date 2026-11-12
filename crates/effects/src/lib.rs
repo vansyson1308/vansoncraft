@@ -1,4 +1,4 @@
-//! VectorCraft live effects (Illustrator's Effect menu).
+//! VansonCraft live effects (Illustrator's Effect menu).
 //!
 //! Effects live in appearance stacks as [`Effect`] `{id, params, visible}` records. This crate
 //! interprets them:
@@ -23,7 +23,7 @@
 //! - [`preview`] measures objects as they are drawn, with their geometry effects (Use Preview
 //!   Bounds).
 //! - **Plug-in effects** (`plugin.<plug-in id>`, Effect › Plug-ins) are geometry effects run by an
-//!   installed WebAssembly plug-in (`vectorcraft-plugins`); [`effect_info`] describes them like
+//!   installed WebAssembly plug-in (`vansoncraft-plugins`); [`effect_info`] describes them like
 //!   built-in ones, and an effect whose plug-in isn't installed leaves the geometry as it is.
 //! - **Colour adjustments** (Brightness/Contrast, Curves, Levels, Hue/Saturation, Shift to Color,
 //!   Temperature/Tint) recolour what an object paints with: [`adjust`] evaluates them for the
@@ -61,8 +61,8 @@ mod warp;
 mod tests;
 
 use serde_json::{Map, Value, json};
-use vectorcraft_doc::{Appearance, AppearanceItem, Effect, Node, NodeKind, StrokeLayer};
-use vectorcraft_geom::{BezPath, FillRule, PathData, Rect};
+use vansoncraft_doc::{Appearance, AppearanceItem, Effect, Node, NodeKind, StrokeLayer};
+use vansoncraft_geom::{BezPath, FillRule, PathData, Rect};
 
 pub use adjust::{
     ADJUSTMENTS, CHANNELS, ColorMap, ImageHook, adjust, adjust_in_document, color_map, curve_at, curve_points, has_adjustment, is_adjustment,
@@ -95,7 +95,7 @@ pub use solids::{
 pub use stylize::{ScribbleSetting, scribble_setting_id, scribble_settings};
 pub use svg_filter::SVG_FILTER;
 pub use trap::TRAP;
-pub use vectorcraft_three_d::Mesh;
+pub use vansoncraft_three_d::Mesh;
 pub use warp::{WARP_NET, WarpNet, WarpStyle, map_version, warp_point, warp_version};
 
 mod catalog;

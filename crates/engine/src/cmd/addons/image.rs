@@ -2,7 +2,7 @@
 //! selected images transparent in their own pixels, as one undo step. The background is the most
 //! common color along an image's edges, the average of its four corners, or colors the caller
 //! picks. It is cleared where it reaches in from an edge, or wherever it is. The work is done here,
-//! on the pixels; nothing is sent anywhere. It is a VectorCraft addition. Its submenu (Object ›
+//! on the pixels; nothing is sent anywhere. It is a VansonCraft addition. Its submenu (Object ›
 //! Plug-ins › Image Tools) and dialog are the UI's.
 
 #[cfg(test)]
@@ -14,9 +14,9 @@ use std::sync::{Arc, Weak};
 
 use image::{DynamicImage, ImageBuffer, LumaA, Rgba};
 use serde_json::{Value, json};
-use vectorcraft_color::Color;
-use vectorcraft_doc::{ImageBlob, NodeId, NodeKind};
-use vectorcraft_geom::Affine;
+use vansoncraft_color::Color;
+use vansoncraft_doc::{ImageBlob, NodeId, NodeKind};
+use vansoncraft_geom::Affine;
 
 use super::super::fileio::{MAX_RASTER_ALLOC, ppi};
 use super::super::menucmds::has_image;

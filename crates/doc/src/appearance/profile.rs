@@ -199,7 +199,7 @@ impl AngleProfile {
     /// without any samples.
     pub fn at(&self, t: f64) -> f64 {
         let v = interpolated(&self.points, t).unwrap_or(0.0);
-        if v.is_finite() { vectorcraft_geom::normalize_deg(v) } else { 0.0 }
+        if v.is_finite() { vansoncraft_geom::normalize_deg(v) } else { 0.0 }
     }
 
     /// A profile from (position, degrees) samples in order along the stroke: non-finite ones are
@@ -211,7 +211,7 @@ impl AngleProfile {
             .into_iter()
             .filter(|(t, a)| t.is_finite() && a.is_finite())
             .map(|(t, a)| {
-                let a = prev.map_or(vectorcraft_geom::normalize_deg(a), |p| p + vectorcraft_geom::normalize_deg(a - p));
+                let a = prev.map_or(vansoncraft_geom::normalize_deg(a), |p| p + vansoncraft_geom::normalize_deg(a - p));
                 prev = Some(a);
                 (t.clamp(0.0, 1.0), a)
             })
@@ -227,7 +227,7 @@ impl AngleProfile {
         let end = old.map_or(Some(0.0), |o| o.points.last().map(|p| p.1));
         let added = added.map(|a| {
             let shift = match (end, a.points.first()) {
-                (Some(end), Some(&(_, start))) => end + vectorcraft_geom::normalize_deg(start - end) - start,
+                (Some(end), Some(&(_, start))) => end + vansoncraft_geom::normalize_deg(start - end) - start,
                 _ => 0.0,
             };
             Self { points: a.points.iter().map(|&(t, v)| (t, v + shift)).collect() }

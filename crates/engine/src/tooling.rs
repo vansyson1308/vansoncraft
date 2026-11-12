@@ -1,12 +1,12 @@
 //! Hosting the active tool: pointer/key events → actions → commands.
 
 use serde_json::{Map, Value};
-use vectorcraft_doc::Selection;
-use vectorcraft_geom::Point;
-use vectorcraft_tools::distort::perspective::widget::WidgetPlace;
-use vectorcraft_tools::draw2::FEEDBACK;
-use vectorcraft_tools::shape::MAX_CORNER_RADIUS;
-use vectorcraft_tools::{Action, Cursor, ImeSurrounding, Mods, Overlay, PointerEvent, PointerKind, Tool, ToolContext, ToolKey, settings};
+use vansoncraft_doc::Selection;
+use vansoncraft_geom::Point;
+use vansoncraft_tools::distort::perspective::widget::WidgetPlace;
+use vansoncraft_tools::draw2::FEEDBACK;
+use vansoncraft_tools::shape::MAX_CORNER_RADIUS;
+use vansoncraft_tools::{Action, Cursor, ImeSurrounding, Mods, Overlay, PointerEvent, PointerKind, Tool, ToolContext, ToolKey, settings};
 
 use crate::{EngineError, Prefs, Result, Session};
 
@@ -35,7 +35,7 @@ pub struct ViewInfo {
     /// View → Show Corner Widget.
     pub corner_widgets: bool,
     /// The document window (none headless): screen-fixed widgets sit in it.
-    pub screen: Option<vectorcraft_tools::ScreenFrame>,
+    pub screen: Option<vansoncraft_tools::ScreenFrame>,
     /// The view's active artboard (an index): artboard rulers measure from it.
     pub artboard: usize,
 }
@@ -62,7 +62,7 @@ impl Default for ViewInfo {
 
 /// The RGB of a colour preference (`#rrggbb`), or `fallback` when it doesn't parse.
 fn rgb(hex: &str, fallback: [u8; 3]) -> [u8; 3] {
-    vectorcraft_color::Color::from_hex(hex).map_or(fallback, |c| {
+    vansoncraft_color::Color::from_hex(hex).map_or(fallback, |c| {
         let [r, g, b, _] = c.to_rgba8(1.0);
         [r, g, b]
     })
@@ -130,7 +130,7 @@ impl Session {
         // Choosing a perspective tool shows the document's perspective grid; Hide Grid hides it
         // again, the tool staying chosen.
         if matches!(id, "perspectiveGrid" | "perspectiveSelection")
-            && self.active().is_some_and(|d| !vectorcraft_tools::distort::perspective::PerspectiveGrid::current(&d.doc).visible)
+            && self.active().is_some_and(|d| !vansoncraft_tools::distort::perspective::PerspectiveGrid::current(&d.doc).visible)
         {
             crate::cmd::distortcmds::silent(self, |g| g.visible = true)?;
         }
@@ -170,7 +170,7 @@ impl Session {
         if let Some(selection) = text_selection {
             self.tool.set_option("textSelection", &selection);
         }
-        if vectorcraft_tools::catalog::is_selection_tool(id) {
+        if vansoncraft_tools::catalog::is_selection_tool(id) {
             self.last_selection_tool = Some(self.tool.id());
             self.select_whole_instance(id);
         }
@@ -182,7 +182,7 @@ impl Session {
     /// changes with it, so panels that cache by revision show the instance.
     fn select_whole_instance(&mut self, id: &str) {
         if id != "directSelection"
-            && vectorcraft_tools::catalog::is_selection_tool(id)
+            && vansoncraft_tools::catalog::is_selection_tool(id)
             && let Some(st) = self.active_mut()
             && st.selection.symbol_part.take().is_some()
         {
@@ -199,7 +199,7 @@ impl Session {
     /// Perspective Selection keeps Cmd+Alt drags to copy objects on their perspective plane.
     /// None for the other selection tools and the view tools.
     fn lent_tool(&self, id: &str, mods: &Mods) -> Option<&'static str> {
-        use vectorcraft_tools::catalog::{edits_anchors, is_selection_tool};
+        use vansoncraft_tools::catalog::{edits_anchors, is_selection_tool};
         if matches!(id, "hand" | "zoom" | "rotateView") {
             return None;
         }
@@ -269,7 +269,7 @@ impl Session {
     /// A fresh `id` tool with the options it keeps ([`settings`]): its last values, from this
     /// session or a saved one.
     pub(crate) fn make_tool(&self, id: &str) -> Box<dyn Tool> {
-        let mut t = vectorcraft_tools::create(id);
+        let mut t = vansoncraft_tools::create(id);
         Self::restore_tool_settings(&self.prefs, t.as_mut());
         // General › Corner Radius is the Rounded Rectangle tool's radius (#394).
         if id == ROUNDED_RECTANGLE {
@@ -332,7 +332,7 @@ impl Session {
         Self::store_tool_settings(&mut self.prefs, self.tool.as_ref());
     }
 
-    pub(crate) fn with_tool_cx<R>(&mut self, view: ViewInfo, f: impl FnOnce(&mut dyn vectorcraft_tools::Tool, &ToolContext) -> R) -> R
+    pub(crate) fn with_tool_cx<R>(&mut self, view: ViewInfo, f: impl FnOnce(&mut dyn vansoncraft_tools::Tool, &ToolContext) -> R) -> R
     where
         R: Default,
     {
@@ -380,9 +380,9 @@ impl Session {
             auto_add_delete: !self.prefs.disable_auto_add_delete,
             selection_tolerance: self.prefs.selection_tolerance,
             marquee_mode: match self.prefs.marquee_selection.as_str() {
-                "enclosed" => vectorcraft_tools::MarqueeMode::Enclosed,
-                "directional" => vectorcraft_tools::MarqueeMode::Directional,
-                _ => vectorcraft_tools::MarqueeMode::Touching,
+                "enclosed" => vansoncraft_tools::MarqueeMode::Enclosed,
+                "directional" => vansoncraft_tools::MarqueeMode::Directional,
+                _ => vansoncraft_tools::MarqueeMode::Touching,
             },
             anchor_size: self.prefs.anchor_size,
             path_only: self.prefs.object_selection_by_path_only,
@@ -398,7 +398,7 @@ impl Session {
             curvature_rubber_band: self.prefs.curvature_rubber_band,
             placeholder_text: self.prefs.placeholder_text,
             typed_lists: self.prefs.typed_lists,
-            smart_guide_color: rgb(&self.prefs.smart_guide_color, vectorcraft_tools::guides::MAGENTA),
+            smart_guide_color: rgb(&self.prefs.smart_guide_color, vansoncraft_tools::guides::MAGENTA),
             alignment_guides: self.prefs.alignment_guides,
             anchor_path_labels: self.prefs.anchor_path_labels,
             measurement_labels: self.prefs.measurement_labels,
@@ -408,7 +408,7 @@ impl Session {
             snap_to_last_location: self.prefs.snap_to_last_location,
             snapping_tolerance: self.prefs.snapping_tolerance,
             construction_angles: if self.prefs.construction_guides {
-                vectorcraft_tools::guides::construction_angles(&self.prefs.construction_angles)
+                vansoncraft_tools::guides::construction_angles(&self.prefs.construction_angles)
             } else {
                 &[]
             },
@@ -442,7 +442,7 @@ impl Session {
     }
 
     /// Tell the active tool when the history moved, or another document became active, since it
-    /// last handled a pointer event or was last told ([`vectorcraft_tools::Tool::history_moved`]).
+    /// last handled a pointer event or was last told ([`vansoncraft_tools::Tool::history_moved`]).
     /// A lent selection tool is not told.
     fn tell_tool_history_moved(&mut self) {
         if self.lender.is_some() {
@@ -695,7 +695,7 @@ impl Session {
     fn leave_draw_inside(&mut self, ev: &PointerEvent, view: ViewInfo) -> Result<()> {
         if ev.kind != PointerKind::DoubleClick
             || self.draw_mode != crate::DrawMode::Inside
-            || !vectorcraft_tools::catalog::is_selection_tool(self.tool.id())
+            || !vansoncraft_tools::catalog::is_selection_tool(self.tool.id())
         {
             return Ok(());
         }
@@ -726,7 +726,7 @@ impl Session {
     /// tool the guide is one of the view's active artboard (`view.artboard`), shown and made only
     /// where it lies within that artboard, and with the Artboard tool it is a canvas guide.
     pub fn ruler_guide(&mut self, vertical: bool, ev: &PointerEvent, on_canvas: bool, view: ViewInfo) -> Result<()> {
-        use vectorcraft_tools::rulerguide::NewGuide;
+        use vansoncraft_tools::rulerguide::NewGuide;
         let g = match self.ruler_guide.take() {
             Some(g) => Some(g),
             None => {
@@ -753,13 +753,13 @@ impl Session {
 
     /// The rulers' origin dragged out of their corner, whatever the tool, with the pointer at `p` in
     /// document space (none off the canvas): where it goes, snapped as a drawn point is
-    /// ([`vectorcraft_tools::rulerguide::OriginDrag`]), the targets gathered on the drag's first
+    /// ([`vansoncraft_tools::rulerguide::OriginDrag`]), the targets gathered on the drag's first
     /// call. It changes nothing: the caller sets the origin where the button is released
     /// (`document.setRulerOrigin`) and ends the drag ([`Session::end_ruler_origin_drag`]).
     pub fn ruler_origin_drag(&mut self, p: Option<Point>, view: ViewInfo) -> Option<Point> {
         let drag = match self.ruler_origin.take() {
             Some(d) => Some(d),
-            None => self.with_tool_cx(view, |_, cx| Some(vectorcraft_tools::rulerguide::OriginDrag::new(cx))),
+            None => self.with_tool_cx(view, |_, cx| Some(vansoncraft_tools::rulerguide::OriginDrag::new(cx))),
         };
         let Some(mut drag) = drag else { return p };
         let at = self.with_tool_cx(view, |_, cx| drag.pointer(cx, p));
@@ -789,7 +789,7 @@ impl Session {
     }
 
     /// Does the active tool build a stroke from every position the pointer passed
-    /// ([`vectorcraft_tools::Tool::wants_samples`])?
+    /// ([`vansoncraft_tools::Tool::wants_samples`])?
     pub fn tool_wants_samples(&self) -> bool {
         self.tool.wants_samples()
     }
@@ -971,7 +971,7 @@ impl Session {
 
     /// Text typed on the keyboard (a key or an IME commit) for the active tool: as
     /// [`Session::tool_text`], and Typographer's Quotes may also set a lone typed `”` as an opening
-    /// quote ([`vectorcraft_tools::ToolContext::typed_from_keyboard`]). The Glyphs panel and pastes
+    /// quote ([`vansoncraft_tools::ToolContext::typed_from_keyboard`]). The Glyphs panel and pastes
     /// use [`Session::tool_text`], so their quotes stay as inserted.
     pub fn tool_typed_text(&mut self, text: &str, view: ViewInfo) -> Result<Vec<UiRequest>> {
         self.keyboard_text = true;
@@ -1025,7 +1025,7 @@ impl Session {
         &mut self,
         before: usize,
         after: usize,
-        unit: vectorcraft_tools::SurroundingUnit,
+        unit: vansoncraft_tools::SurroundingUnit,
         view: ViewInfo,
     ) -> Result<Vec<UiRequest>> {
         let acts = self.with_tool_cx(view, |t, cx| t.ime_delete_surrounding(cx, before, after, unit));
@@ -1058,13 +1058,13 @@ impl Session {
         self.with_tool_cx(view, |t, cx| t.ime_caret(cx))
     }
 
-    /// The pointer stopped hovering for the active tool ([`vectorcraft_tools::Tool::hover_ended`]).
+    /// The pointer stopped hovering for the active tool ([`vansoncraft_tools::Tool::hover_ended`]).
     pub fn tool_hover_ended(&mut self, view: ViewInfo) {
         self.with_tool_cx(view, |t, cx| t.hover_ended(cx));
     }
 
     /// Whether the active tool's hover depends on what lies under a still pointer
-    /// ([`vectorcraft_tools::Tool::wants_rehover`]).
+    /// ([`vansoncraft_tools::Tool::wants_rehover`]).
     pub fn tool_wants_rehover(&self) -> bool {
         self.tool.wants_rehover()
     }
@@ -1092,7 +1092,7 @@ impl Session {
 
     /// With Real-time Drawing off, how far a Selection-tool move drag has carried the selection
     /// so far: the document moves on release, and the bounding box shows at this offset meanwhile.
-    pub fn deferred_move(&self) -> Option<vectorcraft_geom::Vec2> {
+    pub fn deferred_move(&self) -> Option<vansoncraft_geom::Vec2> {
         if self.tool.id() != "selection" || !self.tool.transforming() {
             return None;
         }
@@ -1105,7 +1105,7 @@ impl Session {
             return None;
         }
         let [a, b, c, d, e, f] = crate::cmd::matrix_param(&p, "matrix")?.as_coeffs();
-        (a == 1.0 && b == 0.0 && c == 0.0 && d == 1.0).then(|| vectorcraft_geom::Vec2::new(e, f))
+        (a == 1.0 && b == 0.0 && c == 0.0 && d == 1.0).then(|| vansoncraft_geom::Vec2::new(e, f))
     }
 
     /// Does the active tool take `key` ahead of the shortcuts bound to it (see `Tool::claims_key`)?
@@ -1126,7 +1126,7 @@ impl Session {
         // The Type tools draw the ports of selected type themselves.
         if !matches!(self.tool.id(), "type" | "areaType" | "typeOnPath" | "verticalType" | "verticalAreaType" | "verticalTypeOnPath") {
             let mut marks = std::mem::take(&mut self.port_marks);
-            v.extend(self.with_tool_cx(view, |_, cx| vectorcraft_tools::text::thread_ports(&mut marks, cx)));
+            v.extend(self.with_tool_cx(view, |_, cx| vansoncraft_tools::text::thread_ports(&mut marks, cx)));
             self.port_marks = marks;
         }
         if let Some(g) = self.ruler_guide.take() {
@@ -1140,7 +1140,7 @@ impl Session {
         if let Some(d) = self.active() {
             let w = self.prefs.perspective_widget;
             let place = w.show.then_some(WidgetPlace { screen: view.screen.as_ref(), corner: w.position });
-            v.splice(0..0, vectorcraft_tools::distort::perspective::grid_overlays_in(&d.doc, 1.0 / view.zoom.max(1e-9), place));
+            v.splice(0..0, vansoncraft_tools::distort::perspective::grid_overlays_in(&d.doc, 1.0 / view.zoom.max(1e-9), place));
         }
         // Global Edit: the objects edited with the selected one are highlighted; before it starts,
         // with the Selection tool, the objects it would take.
@@ -1256,7 +1256,7 @@ impl Session {
     pub fn set_tool_option_cmd(&mut self, p: &Value) -> std::result::Result<Value, String> {
         let tool = p.get("tool").and_then(Value::as_str);
         if let Some(t) = tool
-            && vectorcraft_tools::tool_info(t).is_none()
+            && vansoncraft_tools::tool_info(t).is_none()
         {
             return Err(format!("unknown tool `{t}`"));
         }
@@ -1277,7 +1277,7 @@ impl Session {
         }
         if tool.unwrap_or(self.tool_id()) == "dimension" {
             if let Some(style) = values.get("style") {
-                vectorcraft_doc::dimension::DimensionOptions::from_params(style.clone())?;
+                vansoncraft_doc::dimension::DimensionOptions::from_params(style.clone())?;
             }
             if let Some(mode) = values.get("mode")
                 && !mode.as_str().is_some_and(|m| ["linear", "angular", "radial", "radius", "diameter"].contains(&m))
@@ -1288,7 +1288,7 @@ impl Session {
         Ok(self.set_tool_options(tool, &values))
     }
 
-    /// Let the active tool finish work a command from outside it ended ([`vectorcraft_tools::Tool::after_command`]):
+    /// Let the active tool finish work a command from outside it ended ([`vansoncraft_tools::Tool::after_command`]):
     /// the Type tool and the Eyedropper clear a character range whose text is no longer selected.
     /// After `edit.undo` or `edit.redo` (`cmd`), the tool is told first, so the Type tool puts the
     /// caret where the step changed the text.
@@ -1440,7 +1440,7 @@ impl Session {
     /// With Real-time Drawing off, the selection's transform box ([`Session::transform_box`]) as the
     /// pending preview of a handle resize leaves it, measured once per preview step; `None` when no
     /// such preview is pending, or when the preview fails.
-    pub fn deferred_transform_box(&mut self) -> Option<vectorcraft_doc::OrientedBox> {
+    pub fn deferred_transform_box(&mut self) -> Option<vansoncraft_doc::OrientedBox> {
         if !self.tool.resizing() {
             return None;
         }
@@ -1500,7 +1500,7 @@ pub(crate) struct DeferredFeedback {
     cmd: String,
     params: Value,
     overlays: Vec<Overlay>,
-    transform_box: Option<vectorcraft_doc::OrientedBox>,
+    transform_box: Option<vansoncraft_doc::OrientedBox>,
 }
 
 /// The most points the outlines of [`outlines_for_selection`] are drawn for, the same number as the
@@ -1511,10 +1511,10 @@ const FEEDBACK_MAX_POINTS: usize = 100_000;
 /// The outlines of every selected object, a group's members each with their own, or the selection's
 /// bounds when the outlines' points and the objects evaluated to make them come to more than
 /// [`FEEDBACK_MAX_POINTS`].
-fn outlines_for_selection(doc: &vectorcraft_doc::Document, selection: &Selection) -> Vec<Overlay> {
+fn outlines_for_selection(doc: &vansoncraft_doc::Document, selection: &Selection) -> Vec<Overlay> {
     let nodes = selection.objects.iter().filter_map(|&id| doc.node(id));
-    let outlines = vectorcraft_render::drawn_outlines(doc, nodes, FEEDBACK_MAX_POINTS).unwrap_or_else(|| {
-        doc.bounds_of(&selection.objects, true).map(|b| vectorcraft_geom::shapes::rectangle(b).to_bezpath()).into_iter().collect()
+    let outlines = vansoncraft_render::drawn_outlines(doc, nodes, FEEDBACK_MAX_POINTS).unwrap_or_else(|| {
+        doc.bounds_of(&selection.objects, true).map(|b| vansoncraft_geom::shapes::rectangle(b).to_bezpath()).into_iter().collect()
     });
     outlines.into_iter().map(|path| Overlay::Path { path, color: FEEDBACK, width: 1.0, dashed: false }).collect()
 }

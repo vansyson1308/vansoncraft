@@ -1,8 +1,8 @@
 use super::tabs::artboard_list;
-use super::{Arc, ROTATE_VIEW_ANGLES, Sense, Stroke, Tokens, Ui, VectorcraftApp, ZOOM_STOPS, json, theme, vec2, widgets, zoom_label};
+use super::{Arc, ROTATE_VIEW_ANGLES, Sense, Stroke, Tokens, Ui, VansoncraftApp, ZOOM_STOPS, json, theme, vec2, widgets, zoom_label};
 
 /// Draw the status message, bounded readouts and artboard navigation controls.
-pub fn status_bar(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn status_bar(app: &mut VansoncraftApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let panel = egui::Panel::bottom("status_bar")
         .exact_size(24.0)
@@ -73,7 +73,7 @@ pub fn status_bar(app: &mut VectorcraftApp, ui: &mut Ui) {
                     app.status(e);
                 }
                 ui.separator();
-                let tool = vectorcraft_tools::tool_info(app.session.tool_id())
+                let tool = vansoncraft_tools::tool_info(app.session.tool_id())
                     .map(|t| {
                         // The catalog keys carry the full label ("Selection Tool"); only English drops the suffix.
                         let shown = tl!(t.label);
@@ -124,13 +124,13 @@ fn full_text_tooltip(response: egui::Response, text: impl Into<egui::WidgetText>
 
 /// The most recently measured status widths, scoped to this UI and display settings.
 pub(super) struct StatusReadoutWidths {
-    pub(super) key: (crate::i18n::Lang, vectorcraft_doc::Unit, f32),
+    pub(super) key: (crate::i18n::Lang, vansoncraft_doc::Unit, f32),
     pub(super) values: [f32; 4],
 }
 
 /// Reuse sample-string measurements until language, document units or display scale changes.
 /// Keep a single entry per UI so repeated DPI/zoom changes cannot grow the cache indefinitely.
-fn status_readout_widths(ui: &Ui, lang: crate::i18n::Lang, unit: vectorcraft_doc::Unit, t: &Tokens) -> Arc<StatusReadoutWidths> {
+fn status_readout_widths(ui: &Ui, lang: crate::i18n::Lang, unit: vansoncraft_doc::Unit, t: &Tokens) -> Arc<StatusReadoutWidths> {
     let id = ui.scope_id().with("status-readout-widths");
     let key = (lang, unit, ui.ctx().pixels_per_point());
     if let Some(cached) = ui.data(|data| data.get_temp::<Arc<StatusReadoutWidths>>(id))
@@ -159,7 +159,7 @@ fn status_readout_widths(ui: &Ui, lang: crate::i18n::Lang, unit: vectorcraft_doc
 
 /// Allocate the remaining row once, then paint each field inside its own bounded rectangle.
 /// Child UIs requested with a desired width can shrink to their contents; these rectangles cannot.
-pub(super) fn status_readouts(app: &VectorcraftApp, ui: &mut Ui, t: &Tokens) {
+pub(super) fn status_readouts(app: &VansoncraftApp, ui: &mut Ui, t: &Tokens) {
     let mono = theme::mono(10.5);
     let proportional = egui::FontId::proportional(10.5);
     let unit = app.session.general_unit();
@@ -203,7 +203,7 @@ pub(super) fn status_readouts(app: &VectorcraftApp, ui: &mut Ui, t: &Tokens) {
         // The canvas clears hover_doc when the pointer leaves. While inspecting a readout,
         // retain its last value so its tooltip can show the complete coordinate.
         let inspecting = ui.input(|i| i.pointer.hover_pos()).is_some_and(|p| coord_rect.contains(p)) && ui.rect_contains_pointer(coord_rect);
-        let point = app.hover_doc.or_else(|| inspecting.then(|| ui.data(|data| data.get_temp::<vectorcraft_geom::Point>(point_id))).flatten());
+        let point = app.hover_doc.or_else(|| inspecting.then(|| ui.data(|data| data.get_temp::<vansoncraft_geom::Point>(point_id))).flatten());
         if let Some(p) = point {
             let origin = app.ruler_origin();
             for (id, x, value) in [("X", left, p.x - origin.x), ("Y", left + axis_width, p.y - origin.y)] {

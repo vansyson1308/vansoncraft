@@ -5,8 +5,8 @@
 //! effect shares.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::Unit;
-use vectorcraft_effects::{CLASSIC_EXTRUDE, CLASSIC_REVOLVE, CLASSIC_ROTATE};
+use vansoncraft_doc::Unit;
+use vansoncraft_effects::{CLASSIC_EXTRUDE, CLASSIC_REVOLVE, CLASSIC_ROTATE};
 
 use super::revolve::{c3, choice, heading, label, light_list, light_record, number, reset_dot, selected_light, store_selected, toggle};
 use crate::state::Dialog;
@@ -98,8 +98,8 @@ fn shading_custom(ui: &mut egui::Ui, d: &mut Dialog) {
             .get("shadingCustom")
             .and_then(Value::as_str)
             .filter(|s| s.len() == 7 && s.starts_with('#'))
-            .and_then(vectorcraft_color::Color::from_hex)
-            .unwrap_or(vectorcraft_color::Color::BLACK);
+            .and_then(vansoncraft_color::Color::from_hex)
+            .unwrap_or(vansoncraft_color::Color::BLACK);
         let mut rgb = color.to_rgb_uncalibrated().map(|c| (c * 255.0).round() as u8);
         if ui.color_edit_button_srgb(&mut rgb).on_hover_text(tl!("Shading Color")).changed() {
             d.fields.insert("shadingCustom".into(), json!(format!("#{:02x}{:02x}{:02x}", rgb[0], rgb[1], rgb[2])));

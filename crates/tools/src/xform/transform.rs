@@ -11,8 +11,8 @@
 //! onto another object's anchor scales exactly onto it.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::NodeId;
-use vectorcraft_geom::{Affine, Point, Rect, Vec2};
+use vansoncraft_doc::NodeId;
+use vansoncraft_geom::{Affine, Point, Rect, Vec2};
 
 use super::target_overlays;
 use crate::bbox::rotate_for_drag;
@@ -118,7 +118,7 @@ impl TransformTool {
             return Some(*p);
         }
         // Anchors selected with Direct Selection transform alone, about their own centre.
-        vectorcraft_effects::preview::anchor_bounds_with(cx.selection, cx.doc, cx.bounds_measure())
+        vansoncraft_effects::preview::anchor_bounds_with(cx.selection, cx.doc, cx.bounds_measure())
             .map(|b| b.center())
             .or_else(|| selection_box(cx).map(|b| b.center()))
     }
@@ -133,10 +133,10 @@ impl TransformTool {
             TransformKind::Reflect => {
                 let mut v = p - o;
                 if shift {
-                    v = vectorcraft_geom::constrain_angle(v, 45.0);
+                    v = vansoncraft_geom::constrain_angle(v, 45.0);
                 }
                 let theta = if v.hypot() < 1e-9 { std::f64::consts::FRAC_PI_2 } else { v.y.atan2(v.x) };
-                (reflect_matrix(o, theta), format!("{:.1}°", vectorcraft_geom::normalize_deg(-theta.to_degrees())))
+                (reflect_matrix(o, theta), format!("{:.1}°", vansoncraft_geom::normalize_deg(-theta.to_degrees())))
             }
             TransformKind::Scale => {
                 let d0 = start - o;
@@ -343,7 +343,7 @@ impl Tool for TransformTool {
 mod tests {
     use super::*;
     use crate::testutil::*;
-    use vectorcraft_doc::Selection;
+    use vansoncraft_doc::Selection;
 
     fn ev(kind: PointerKind, x: f64, y: f64) -> PointerEvent {
         PointerEvent::new(kind, x, y)
@@ -534,14 +534,14 @@ mod tests {
     /// anchor it grabbed and the pointer lands on another object's anchor, so the scale is exact.
     #[test]
     fn scale_drag_snaps_from_an_anchor_onto_another_objects_anchor() {
-        use vectorcraft_doc::{Appearance, Node};
+        use vansoncraft_doc::{Appearance, Node};
         let (mut d, id) = doc_with_rect();
         let l = d.layers[0].id;
         let other = d.alloc_id();
         d.insert(
             Some(l),
             1,
-            Node::path(other, vectorcraft_geom::shapes::rectangle(Rect::new(300.0, 260.0, 340.0, 300.0)), Appearance::default_art()),
+            Node::path(other, vansoncraft_geom::shapes::rectangle(Rect::new(300.0, 260.0, 340.0, 300.0)), Appearance::default_art()),
         )
         .unwrap();
         let mut s = Selection::default();

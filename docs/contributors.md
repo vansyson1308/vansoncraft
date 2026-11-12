@@ -1,15 +1,19 @@
 # Contributors in the About window
 
-**About ▸ Contributors** credits everyone who contributed to VectorCraft, and **About ▸ Models** credits
-the AI models named in `Co-Authored-By` trailers.
+**About ▸ Contributors** credits the people who contributed to VansonCraft, and **About ▸ Models**
+lists AI models credited in the data (none at present).
+
+VansonCraft is based on VectorCraft by the ArtCraft team; the people who wrote VectorCraft are
+credited by its copyright notice (`LICENSE-MIT`, `NOTICE`), not in this window, which lists this
+repository's contributors: today @vansyson1308.
 
 ## Decision
 
 - Two files, both **compiled into the binary** by the UI crate's `build.rs` (nothing is read from
   disk or the network at run time; the web build has them too):
   - [`contributors/contributors.json`](../contributors/contributors.json): commit stats per GitHub
-    username. Never hand-edit. Release builds regenerate it for the release commit
-    (`.github/workflows/release.yml`, `credits` job); the copy in the repository is not updated.
+    username for this repository (`repo`, `head` and `head_date` say where they were counted).
+    The maintainer updates it from `git log` when the credits change.
   - [`contributors/people.toml`](../contributors/people.toml): the names people chose for
     themselves. **Each contributor adds only their own entry**, in their own PR.
 - Each contributor gets one line: GitHub username (always), display name (opt-in, or their synced
@@ -20,9 +24,9 @@ the AI models named in `Co-Authored-By` trailers.
   first or last commit date. The name toggle cycles **Username → Display name → Real name**; a
   missing name falls back to `@username`. Alphabetical sorting is case-insensitive and ignores the `@`.
 
-## In VectorCraft
+## In VansonCraft
 
-- The About window is `crates/ui-egui/src/dialogs/about.rs` (Help ▸ About VectorCraft). The labels are
+- The About window is `crates/ui-egui/src/dialogs/about.rs` (Help ▸ About VansonCraft). The labels are
   translated like the rest of the UI (`tl!`, `crates/ui-egui/src/i18n`); names and numbers are data.
 
 ## Credit yourself

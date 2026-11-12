@@ -44,7 +44,7 @@ impl Lines {
         if t.xf.determinant().abs() < 1e-12 {
             return None;
         }
-        let layout = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t);
+        let layout = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), t);
         if layout.on_path {
             return None;
         }
@@ -105,7 +105,7 @@ pub(super) fn plan(src: &Document, roots: &[NodeId], o: &FlattenOptions, render:
     // Geometry effects first: what is left on the art are raster effects.
     let baked = effects::bake_document(&tmp).unwrap_or(tmp);
     let art: Vec<Node> = baked.layers[0].children().into_iter().flatten().map(|a| (**a).clone()).collect();
-    let mut sc = Scratch { brushes: vectorcraft_brush::library(&baked), doc: baked.clone() };
+    let mut sc = Scratch { brushes: vansoncraft_brush::library(&baked), doc: baked.clone() };
     let plain: Vec<Node> = art.iter().map(|n| sc.plain(n)).collect();
     // Each object as its clip groups and clipping layers show it.
     let clipped: Vec<Node> = plain.iter().zip(roots).map(|(n, id)| clipped_by_ancestors(src, *id, n, None)).collect();
@@ -114,11 +114,11 @@ pub(super) fn plan(src: &Document, roots: &[NodeId], o: &FlattenOptions, render:
     let cmyk = src.color_mode == ColorMode::Cmyk;
     let mut out = Plan { flat: vec![], kept: vec![], transparent: roots.iter().zip(&see_through).filter(|(_, t)| **t).map(|(id, _)| *id).collect() };
     // Baking above stopped early when cancelled; each group is a place to stop (a plan changes nothing).
-    vectorcraft_doc::cancel::check()?;
+    vansoncraft_doc::cancel::check()?;
     let mut queue = groups(src, roots, &plain, &reaches, &see_through, o)?;
     queue.reverse();
     while let Some(g) = queue.pop() {
-        vectorcraft_doc::cancel::check()?;
+        vansoncraft_doc::cancel::check()?;
         // A group that stays inside the clip groups and clipping layers of its topmost object
         // replaces only the objects inside them, over the others, which are flattened on their own.
         let (g, under) = match inside_and_under(src, roots, &g) {
@@ -140,7 +140,7 @@ pub(super) fn plan(src: &Document, roots: &[NodeId], o: &FlattenOptions, render:
         // Art under an opacity mask, effects or a knockout group is left out: the group can't draw it
         // as those do.
         let drawn_plainly = |i: usize| {
-            own_layers(src, roots[i], top).iter().all(|a| !masked(a) && !has_effects(a) && !matches!(a.knockout, vectorcraft_doc::Knockout::On))
+            own_layers(src, roots[i], top).iter().all(|a| !masked(a) && !has_effects(a) && !matches!(a.knockout, vansoncraft_doc::Knockout::On))
         };
         let under_shown = under.iter().copied().filter(|&i| backdrop && Some(layer_state(src, roots[i])) == state && !blends(i) && drawn_plainly(i));
         let composited: Vec<usize> = under_shown.chain(g.iter().copied()).collect();
@@ -534,15 +534,15 @@ fn render_raster(doc: &Document, art: &[Node], rect: Rect, ppi: f64, clip: Optio
     );
     let xf = Affine::translate(region.origin().to_vec2()) * Affine::scale(1.0 / scale);
     let tmp = isolated_doc(doc, art.to_vec());
-    let mut r = vectorcraft_render::Renderer::new();
+    let mut r = vansoncraft_render::Renderer::new();
     let no_alpha = o.no_transparency.is_some() && clip.is_some() && !o.preserve_alpha;
     if no_alpha && doc.color_mode == ColorMode::Cmyk {
         // Drawn as inks over the paper: as screen colours, the file would separate them again,
         // and a CMYK colour comes back with other inks (K moves into C, M and Y).
-        let opts = vectorcraft_render::RenderOptions { background: Some([255; 4]), skip_templates: true, ..Default::default() };
+        let opts = vansoncraft_render::RenderOptions { background: Some([255; 4]), skip_templates: true, ..Default::default() };
         let inks = r.render_region_inks(&tmp, region, scale, &opts);
-        vectorcraft_doc::cancel::check()?;
-        let (width, height) = vectorcraft_render::region_pixels(region, scale);
+        vansoncraft_doc::cancel::check()?;
+        let (width, height) = vansoncraft_render::region_pixels(region, scale);
         // Past the size of a CMYK image: drawn in screen colours, below.
         if let Some(blob) = Inks::new(width, height, inks).and_then(|i| ImageBlob::cmyk_tiff(&i)) {
             return Ok(Raster { blob, width, height, xf, clip });
@@ -550,7 +550,7 @@ fn render_raster(doc: &Document, art: &[Node], rect: Rect, ppi: f64, clip: Optio
     }
     let mut img = r.render_region(&tmp, region, scale, !o.preserve_alpha);
     // The drawing stops early when cancelled: this image is not whole.
-    vectorcraft_doc::cancel::check()?;
+    vansoncraft_doc::cancel::check()?;
     if no_alpha {
         // Without transparency the clip alone shapes the image: it is opaque, over white (its
         // edge pixels too).
@@ -600,7 +600,7 @@ fn render_raster(doc: &Document, art: &[Node], rect: Rect, ppi: f64, clip: Optio
 /// each side and is rounded up to whole pixels).
 fn raster_scale(rect: Rect, ppi: f64) -> f64 {
     let scale = (ppi / 72.0).min((MAX_PIXELS / (rect.width() * rect.height()).max(1.0)).sqrt());
-    scale.min((f64::from(vectorcraft_render::MAX_RASTER_SIDE) - 4.0) / rect.width().max(rect.height()).max(1.0))
+    scale.min((f64::from(vansoncraft_render::MAX_RASTER_SIDE) - 4.0) / rect.width().max(rect.height()).max(1.0))
 }
 
 /// `n` at full opacity with Normal blending throughout (objects, fills and strokes).
@@ -672,13 +672,13 @@ pub(crate) fn flatten_expanded(doc: &Document, o: &FlattenOptions) -> Result<Opt
         return Ok(None);
     }
     let mut d = doc.clone();
-    apply(&mut d, &mut vectorcraft_doc::Selection::default(), plan, o)?;
+    apply(&mut d, &mut vansoncraft_doc::Selection::default(), plan, o)?;
     Ok(Some(d))
 }
 
 // ---------- apply ----------
 
-pub(super) fn apply(d: &mut Document, sel: &mut vectorcraft_doc::Selection, plan: Plan, o: &FlattenOptions) -> Result<(Vec<NodeId>, usize, usize)> {
+pub(super) fn apply(d: &mut Document, sel: &mut vansoncraft_doc::Selection, plan: Plan, o: &FlattenOptions) -> Result<(Vec<NodeId>, usize, usize)> {
     let (mut vector, mut rasterized) = (0, 0);
     let (mut ids, mut flat) = (vec![], vec![]);
     // The groups replace their objects in one pass at the end. When an object is listed twice or
@@ -752,7 +752,7 @@ pub(super) fn apply(d: &mut Document, sel: &mut vectorcraft_doc::Selection, plan
     for (layer, guide) in guides {
         d.insert(Some(layer), usize::MAX, guide)?;
     }
-    let brushes = if o.strokes_to_outlines { vectorcraft_brush::library(d) } else { vec![] };
+    let brushes = if o.strokes_to_outlines { vansoncraft_brush::library(d) } else { vec![] };
     for mut id in plan.kept {
         if o.text_to_outlines {
             id = outline_texts_under(d, id)?;

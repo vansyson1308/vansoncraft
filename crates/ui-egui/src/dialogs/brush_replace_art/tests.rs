@@ -1,11 +1,11 @@
 use egui::{Pos2, Rect, pos2, vec2};
 use serde_json::json;
-use vectorcraft_doc::NodeId;
-use vectorcraft_engine::Session;
+use vansoncraft_doc::NodeId;
+use vansoncraft_engine::Session;
 
 use super::*;
 
-fn frame(ctx: &egui::Context, app: &mut VectorcraftApp, events: Vec<egui::Event>, time: f64) -> egui::FullOutput {
+fn frame(ctx: &egui::Context, app: &mut VansoncraftApp, events: Vec<egui::Event>, time: f64) -> egui::FullOutput {
     let screen_rect = Some(Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0)));
     let input = egui::RawInput { screen_rect, time: Some(time), events, ..Default::default() };
     let mut out = ctx.run_ui(input, |ui| crate::dialogs::show(app, ui.ctx()));
@@ -13,7 +13,7 @@ fn frame(ctx: &egui::Context, app: &mut VectorcraftApp, events: Vec<egui::Event>
     out
 }
 
-fn press(ctx: &egui::Context, app: &mut VectorcraftApp, label: &str, time: f64) {
+fn press(ctx: &egui::Context, app: &mut VansoncraftApp, label: &str, time: f64) {
     frame(ctx, app, vec![], time);
     let out = frame(ctx, app, vec![], time + 0.1);
     let nodes = &out.platform_output.accesskit_update.as_ref().expect("dialog accessibility tree").nodes;
@@ -32,17 +32,17 @@ fn context() -> egui::Context {
     ctx
 }
 
-fn rect(app: &mut VectorcraftApp, x: f64, y: f64, w: f64, h: f64) -> u64 {
+fn rect(app: &mut VansoncraftApp, x: f64, y: f64, w: f64, h: f64) -> u64 {
     app.run("shape.rectangle", json!({"x": x, "y": y, "width": w, "height": h})).unwrap()["id"].as_u64().unwrap()
 }
 
-fn art_height(app: &mut VectorcraftApp, name: &str) -> f64 {
-    let art: vectorcraft_doc::Node = serde_json::from_value(app.run("brush.get", json!({"name": name})).unwrap()["art"].clone()).unwrap();
+fn art_height(app: &mut VansoncraftApp, name: &str) -> f64 {
+    let art: vansoncraft_doc::Node = serde_json::from_value(app.run("brush.get", json!({"name": name})).unwrap()["art"].clone()).unwrap();
     art.geometric_bounds().unwrap().height()
 }
 
 /// An art brush "Bar" (40 × 8 pt) painting a path, and a 40 × 20 pt rectangle: → (path, rectangle).
-fn used_brush(app: &mut VectorcraftApp) -> (NodeId, u64) {
+fn used_brush(app: &mut VansoncraftApp) -> (NodeId, u64) {
     app.run("file.new", json!({"width": 300, "height": 200})).unwrap();
     let bar = rect(app, 10.0, 10.0, 40.0, 8.0);
     app.run("brush.new", json!({"type": "art", "name": "Bar", "ids": [bar]})).unwrap();
@@ -53,7 +53,7 @@ fn used_brush(app: &mut VectorcraftApp) -> (NodeId, u64) {
 
 #[test]
 fn an_unused_brush_takes_the_art_without_asking() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 300, "height": 200})).unwrap();
     let bar = rect(&mut app, 10.0, 10.0, 40.0, 8.0);
     app.run("brush.new", json!({"type": "art", "name": "Bar", "ids": [bar]})).unwrap();
@@ -65,7 +65,7 @@ fn an_unused_brush_takes_the_art_without_asking() {
 
 #[test]
 fn apply_to_strokes_gives_the_brush_the_new_art() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     let (path, tall) = used_brush(&mut app);
     replace(&mut app, "Bar", &[tall]);
     assert!(app.ui.dialog.as_ref().is_some_and(|d| d.kind == KIND), "strokes use Bar: it asks");
@@ -81,7 +81,7 @@ fn apply_to_strokes_gives_the_brush_the_new_art() {
 
 #[test]
 fn leave_strokes_adds_a_copy_and_cancel_changes_nothing() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     let (path, tall) = used_brush(&mut app);
     let ctx = context();
     let before = app.session.active().unwrap().history.undo.len();
@@ -103,7 +103,7 @@ fn leave_strokes_adds_a_copy_and_cancel_changes_nothing() {
 /// bar, and the document and its undo history as they were.
 #[test]
 fn art_with_no_width_is_refused_before_it_asks() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     let _ = used_brush(&mut app);
     let flat = app.run("shape.line", json!({"x1": 50, "y1": 100, "x2": 50, "y2": 160})).unwrap()["id"].as_u64().unwrap();
     let st = app.session.active().unwrap();
@@ -119,7 +119,7 @@ fn art_with_no_width_is_refused_before_it_asks() {
 
 #[test]
 fn a_button_changes_no_brush_after_another_document_became_active() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     let (_, tall) = used_brush(&mut app);
     let ctx = context();
     replace(&mut app, "Bar", &[tall]);

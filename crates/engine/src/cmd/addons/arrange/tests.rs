@@ -2,8 +2,8 @@
 //! and bad params refused without a change.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::NodeId;
-use vectorcraft_geom::Rect;
+use vansoncraft_doc::NodeId;
+use vansoncraft_geom::Rect;
 
 use crate::Session;
 

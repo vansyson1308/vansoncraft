@@ -2,7 +2,7 @@
 //! strokes, duplicating and removing several items, Show All Hidden Attributes.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::Node;
+use vansoncraft_doc::Node;
 
 use crate::*;
 
@@ -156,9 +156,9 @@ fn warps_keep_the_map_their_version_names() {
     let (mut s, id) = session_with_rect();
     let version = |s: &Session| node(s, id).appearance.effects[0].params.get("version").cloned();
     run(&mut s, "effect.apply", json!({"effect": "warp.flag", "params": {"bend": 40}}));
-    assert_eq!(version(&s), Some(json!(vectorcraft_doc::live::WARP_NET)));
+    assert_eq!(version(&s), Some(json!(vansoncraft_doc::live::WARP_NET)));
     run(&mut s, "effect.setParams", json!({"index": 0, "params": {"bend": 20}, "warpStyle": "arc"}));
-    assert_eq!(version(&s), Some(json!(vectorcraft_doc::live::WARP_NET)));
+    assert_eq!(version(&s), Some(json!(vansoncraft_doc::live::WARP_NET)));
     // As a file saved before the version existed gives it.
     let doc = std::sync::Arc::make_mut(&mut s.doc_mut().unwrap().doc);
     if let Some(Value::Object(p)) = doc.node_mut(id).and_then(|n| n.appearance.effects.first_mut()).map(|e| &mut e.params) {

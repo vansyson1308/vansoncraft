@@ -1,9 +1,9 @@
 //! Edit → Edit Colors: Adjust Color Balance modes and the live preview.
 
 use serde_json::{Value, json};
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::Node;
-use vectorcraft_tools::{PointerEvent, PointerKind};
+use vansoncraft_color::{Color, Paint};
+use vansoncraft_doc::Node;
+use vansoncraft_tools::{PointerEvent, PointerKind};
 
 use crate::tooling::ViewInfo;
 use crate::*;
@@ -277,7 +277,7 @@ fn picked_mesh_points_take_the_fill_opacity_and_drag_together() {
         let NodeKind::Mesh(g) = &s.doc().unwrap().doc.node(m).unwrap().kind else { panic!("not a mesh") };
         g.points[i].p
     };
-    let pointer = |s: &mut Session, kind: PointerKind, q: vectorcraft_geom::Point, shift: bool| {
+    let pointer = |s: &mut Session, kind: PointerKind, q: vansoncraft_geom::Point, shift: bool| {
         let mut ev = PointerEvent::new(kind, q.x, q.y);
         ev.mods.shift = shift;
         s.pointer(&ev, v).unwrap();
@@ -313,8 +313,8 @@ fn picked_mesh_points_take_the_fill_opacity_and_drag_together() {
     // Direct Selection: a marquee over the top-left patch picks its four points.
     s.select_tool("directSelection", v).unwrap();
     let corner = point(&s, 0);
-    pointer(&mut s, PointerKind::Down, corner - vectorcraft_geom::Vec2::new(8.0, 8.0), false);
-    let far = point(&s, 4) + vectorcraft_geom::Vec2::new(5.0, 5.0);
+    pointer(&mut s, PointerKind::Down, corner - vansoncraft_geom::Vec2::new(8.0, 8.0), false);
+    let far = point(&s, 4) + vansoncraft_geom::Vec2::new(5.0, 5.0);
     pointer(&mut s, PointerKind::Drag, far, false);
     pointer(&mut s, PointerKind::Up, far, false);
     assert_eq!(s.doc().unwrap().selection.objects, [m], "the marquee selects the mesh");
@@ -324,7 +324,7 @@ fn picked_mesh_points_take_the_fill_opacity_and_drag_together() {
     // A drag of one picked point moves all four by the same offset, in one step.
     let before: Vec<_> = (0..9).map(|i| point(&s, i)).collect();
     let undo = s.doc().unwrap().history.undo.len();
-    let d = vectorcraft_geom::Vec2::new(4.0, 6.0);
+    let d = vansoncraft_geom::Vec2::new(4.0, 6.0);
     pointer(&mut s, PointerKind::Down, before[4], false);
     pointer(&mut s, PointerKind::Drag, before[4] + d, false);
     pointer(&mut s, PointerKind::Up, before[4] + d, false);
@@ -378,9 +378,9 @@ fn image_node(s: &mut Session) -> NodeId {
 fn image_of(s: &mut Session, px: [[u8; 4]; 4]) -> NodeId {
     let bytes = png(px);
     s.edit("Place", |d, sel| {
-        d.images.insert("pic".into(), vectorcraft_doc::ImageBlob::png(bytes));
+        d.images.insert("pic".into(), vansoncraft_doc::ImageBlob::png(bytes));
         let id = d.alloc_id();
-        let im = vectorcraft_doc::ImageObject {
+        let im = vansoncraft_doc::ImageObject {
             key: "pic".into(),
             width: 2,
             height: 2,
@@ -433,7 +433,7 @@ fn convert_to_grayscale_stores_an_image_as_grayscale() {
     let key = image_key(&s, id);
     let source = s.doc().unwrap().doc.images[&key].gray_source();
     assert!(source.is_some_and(|g| g.alpha && !g.one_bit), "a grayscale file with alpha: {source:?}");
-    let gray = |hex: &str| Color::from_hex(hex).unwrap().in_model(vectorcraft_color::cms::Model::Gray).to_rgba8(1.0)[0];
+    let gray = |hex: &str| Color::from_hex(hex).unwrap().in_model(vansoncraft_color::cms::Model::Gray).to_rgba8(1.0)[0];
     let (r_, g_, b_, w) = (gray("#ff0000"), gray("#00ff00"), gray("#0000ff"), gray("#ffffff"));
     assert_eq!(pixels(&s, id), [[r_, r_, r_, 255], [g_, g_, g_, 255], [b_, b_, b_, 255], [w, w, w, 128]]);
     s.execute("edit.undo", &json!({})).unwrap();
@@ -489,8 +489,8 @@ fn a_converted_image_is_written_to_pdf_as_gray_in_a_cmyk_document() {
     s.execute("file.documentColorMode", &json!({"mode": "cmyk"})).unwrap();
     image_of(&mut s, [[255, 0, 0, 255], [0, 255, 0, 255], [0, 0, 255, 255], [10, 200, 30, 255]]);
     s.execute("edit.colors.toGrayscale", &json!({})).unwrap();
-    let opts = vectorcraft_pdf::PdfOptions { created: Some(0), ..vectorcraft_pdf::PdfOptions::uncompressed() };
-    let pdf = String::from_utf8_lossy(&vectorcraft_pdf::export(&s.doc().unwrap().doc, &opts).unwrap()).into_owned();
+    let opts = vansoncraft_pdf::PdfOptions { created: Some(0), ..vansoncraft_pdf::PdfOptions::uncompressed() };
+    let pdf = String::from_utf8_lossy(&vansoncraft_pdf::export(&s.doc().unwrap().doc, &opts).unwrap()).into_owned();
     let image = pdf.split("/Subtype/Image").nth(1).or_else(|| pdf.split("/Subtype /Image").nth(1)).expect("an image in the PDF");
     let image = &image[..image.find("stream").unwrap_or(image.len())];
     assert!(image.contains("/DeviceGray") && !image.contains("/DeviceRGB"), "one color channel: {image}");

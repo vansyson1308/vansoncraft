@@ -9,7 +9,7 @@
 - **Three voices are kept apart:**
   - **Speed says** is the author.
   - **Our reading** is our interpretation.
-  - **For the app** is what we take from it for VectorCraft.
+  - **For the app** is what we take from it for VansonCraft.
 
 ## Reading log
 

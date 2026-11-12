@@ -1,9 +1,9 @@
 //! The geometry of a trap (Pathfinder › Trap): the thin strip where one colour is spread into the
 //! area of an adjoining colour, so a slight misregistration on press leaves no paper gap between
-//! them. See `vectorcraft_effects::trap` for which colour spreads and how the strip is painted.
+//! them. See `vansoncraft_effects::trap` for which colour spreads and how the strip is painted.
 
 use kurbo::Affine;
-use vectorcraft_geom::{FillRule, PathData};
+use vansoncraft_geom::{FillRule, PathData};
 
 use crate::boolean::{BoolOp, try_boolean, try_normalize};
 use crate::offset::{Cap, Join, outline_stroke};
@@ -67,8 +67,8 @@ pub fn trap_band(
 
 #[cfg(test)]
 mod tests {
-    use vectorcraft_geom::Rect;
-    use vectorcraft_geom::shapes::rectangle;
+    use vansoncraft_geom::Rect;
+    use vansoncraft_geom::shapes::rectangle;
 
     use super::*;
 

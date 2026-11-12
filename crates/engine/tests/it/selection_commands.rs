@@ -1,8 +1,8 @@
 //! Selection command results and validation for agent callers (#784).
 
 use serde_json::{Value, json};
-use vectorcraft_doc::NodeId;
-use vectorcraft_engine::{EngineError, Session};
+use vansoncraft_doc::NodeId;
+use vansoncraft_engine::{EngineError, Session};
 
 fn session() -> (Session, NodeId, NodeId) {
     let mut s = Session::new();

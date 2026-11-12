@@ -2,8 +2,8 @@
 //! font size or by a transform (issue #3241).
 
 use serde_json::json;
-use vectorcraft_doc::{NodeId, NodeKind};
-use vectorcraft_engine::Session;
+use vansoncraft_doc::{NodeId, NodeKind};
+use vansoncraft_engine::Session;
 
 const MM: f64 = 72.0 / 25.4;
 

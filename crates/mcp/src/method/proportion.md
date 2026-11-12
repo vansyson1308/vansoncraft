@@ -7,7 +7,7 @@ measuring, use one unit and compare only vertical and horizontal distances, and 
 as approximate (SP-VIII-2, SP-VIII-3). His 5:8 and golden-section remarks are offered as one
 observation, heavily hedged (SP-XVI-8, Appendix).
 
-**With VectorCraft.**
+**With VansonCraft.**
 - `study.proportions {ids, unit}` measures objects in units of a chosen object's height (a head, a
   vase's mouth) and lists edges and centres that line up within a tolerance (plumb and level
   lines), plus the angles between centres.

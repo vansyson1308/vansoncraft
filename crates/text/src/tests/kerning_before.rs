@@ -3,7 +3,7 @@
 //! by the value, the rest of the line follows, and the value does nothing anywhere else.
 use crate::*;
 use kurbo::Shape;
-use vectorcraft_doc::{CharStyle, Justify};
+use vansoncraft_doc::{CharStyle, Justify};
 
 fn db() -> &'static FontDb {
     FontDb::global()

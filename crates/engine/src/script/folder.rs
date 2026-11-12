@@ -8,7 +8,7 @@
 //! and names longer than [`MAX_NAME_BYTES`] are left out too, and so is a folder with no script in
 //! it.
 //!
-//! The values here are VectorCraft's own limits: [`MAX_ENTRIES`], [`MAX_SCRIPTS`], [`MAX_FOLDERS`],
+//! The values here are VansonCraft's own limits: [`MAX_ENTRIES`], [`MAX_SCRIPTS`], [`MAX_FOLDERS`],
 //! [`MAX_DEPTH`], [`MAX_NAME_BYTES`], [`MAX_LABEL_CHARS`] and [`MAX_SCAN`]. A listing that reaches
 //! one of them, or that cannot read a subfolder or an entry of a folder, keeps what it found and
 //! says so ([`Listing::truncated`]).
@@ -227,7 +227,7 @@ impl Scan<'_> {
 /// `name` as a menu shows it: control and bidirectional formatting characters written as escapes,
 /// and at most [`MAX_LABEL_CHARS`] characters.
 fn shown(name: &str) -> String {
-    vectorcraft_plugins::permissions::display_text(name, MAX_LABEL_CHARS)
+    vansoncraft_plugins::permissions::display_text(name, MAX_LABEL_CHARS)
 }
 
 /// Does Windows mark `entry` hidden or system?

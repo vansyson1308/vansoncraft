@@ -7,7 +7,7 @@ use serde::Serialize;
 use serde_json::{Value, json};
 
 use super::{pstate, selection_len, set_pstate};
-use crate::VectorcraftApp;
+use crate::VansoncraftApp;
 use crate::widgets::{self, menu_item};
 
 /// What Align aligns to. The Align To choice kept with the UI state ([`crate::UiState::align_to`])
@@ -55,19 +55,19 @@ pub fn align_params(base: Value, to: AlignTo, n_selected: usize) -> Value {
 /// bar and the Properties panel send: the key while there is one (a key object, or a key guide:
 /// #2143), else the artboard for a single selected object, else the Align To choice. Object → Align
 /// sends it too while every selected object is selected whole ([`crate::menus::invoke`]).
-pub fn with_align_to(app: &VectorcraftApp, base: Value) -> Value {
+pub fn with_align_to(app: &VansoncraftApp, base: Value) -> Value {
     align_params(base, align_to(app), objects_aligned(app))
 }
 
 /// The selected objects that Align aligns as objects: none while anchor points are selected
 /// (Direct Selection), since the points align and a single path's points must not go to the
 /// artboard as a single object does (#1636).
-fn objects_aligned(app: &VectorcraftApp) -> usize {
+fn objects_aligned(app: &VansoncraftApp) -> usize {
     if has_anchors(app) { 0 } else { selection_len(app) }
 }
 
 /// Whether anchor points are selected (Direct Selection): Align and Distribute then act on the points.
-fn has_anchors(app: &VectorcraftApp) -> bool {
+fn has_anchors(app: &VansoncraftApp) -> bool {
     app.session.active().is_some_and(|st| !st.selection.anchors.is_empty())
 }
 
@@ -144,7 +144,7 @@ pub(crate) fn button(id: &str) -> Option<Button> {
 /// Runs what a click on button `b` runs. An Align Objects button sends the `to` of
 /// [`with_align_to`]. A Distribute Objects or Distribute Spacing button sends the key while there
 /// is one, else the Align To choice, and the Distribute Spacing value while there is a key.
-pub fn run_button(app: &mut VectorcraftApp, b: Button) -> Result<Value, String> {
+pub fn run_button(app: &mut VansoncraftApp, b: Button) -> Result<Value, String> {
     let to = align_to(app).param();
     let p = match b {
         Button::Align(axis, v) => with_align_to(app, json!({axis: v})),
@@ -164,14 +164,14 @@ pub fn run_button(app: &mut VectorcraftApp, b: Button) -> Result<Value, String> 
 /// The Distribute Spacing value ([`crate::UiState::align_spacing`]) while there is a key object
 /// or a key guide (#2143), which the Distribute Objects and Distribute Spacing buttons then send;
 /// else none.
-fn spacing_sent(app: &VectorcraftApp) -> Option<f64> {
+fn spacing_sent(app: &VansoncraftApp) -> Option<f64> {
     (align_to(app) == AlignTo::Key).then_some(app.ui.align_spacing)
 }
 
 /// The six align buttons of the Control bar and the Properties panel, `size` points square.
 /// They align to what the Align panel's Align To says (the key object while there is one), as
 /// its own buttons do (#789).
-pub fn align_buttons(app: &mut VectorcraftApp, ui: &mut Ui, size: f32) {
+pub fn align_buttons(app: &mut VansoncraftApp, ui: &mut Ui, size: f32) {
     for (i, (icon, tip, axis, v)) in [
         ("align-start-vertical", "Horizontal Align Left", "horizontal", "left"),
         ("align-center-vertical", "Horizontal Align Center", "horizontal", "center"),
@@ -194,7 +194,7 @@ pub fn align_buttons(app: &mut VectorcraftApp, ui: &mut Ui, size: f32) {
 
 /// The six Distribute Objects buttons of the Control bar, `size` points square. They distribute
 /// what the Align panel's buttons do, to what its Align To says.
-pub(crate) fn distribute_buttons(app: &mut VectorcraftApp, ui: &mut Ui, size: f32) {
+pub(crate) fn distribute_buttons(app: &mut VansoncraftApp, ui: &mut Ui, size: f32) {
     for (icon, tip, axis, v) in DISTRIBUTE {
         if widgets::icon_button(ui, icon, tl!(tip), false, size).clicked() {
             run_button(app, Button::Distribute(axis, v)).ok();
@@ -203,25 +203,25 @@ pub(crate) fn distribute_buttons(app: &mut VectorcraftApp, ui: &mut Ui, size: f3
 }
 
 /// Whether the selection has a key object or a key guide.
-fn has_key(app: &VectorcraftApp) -> bool {
+fn has_key(app: &VansoncraftApp) -> bool {
     app.session.active().is_some_and(|st| st.selection.has_key())
 }
 
 /// The first selected ruler guide while objects are selected too: the one Align to Key Object
 /// makes the key when there is no other object to be it.
-fn guide_for_key(app: &VectorcraftApp) -> Option<usize> {
+fn guide_for_key(app: &VansoncraftApp) -> Option<usize> {
     let st = app.session.active().filter(|st| !st.selection.is_empty())?;
     let first = st.selection.guides.first().copied()?;
-    vectorcraft_engine::cmd::guide_indexes(&st.doc, &[first]).first().copied()
+    vansoncraft_engine::cmd::guide_indexes(&st.doc, &[first]).first().copied()
 }
 
 /// The number of selected ruler guides, which Distribute spaces with the objects (#1597).
-fn selected_guides(app: &VectorcraftApp) -> usize {
+fn selected_guides(app: &VansoncraftApp) -> usize {
     app.session.active().map_or(0, |st| st.selection.guides.len())
 }
 
 /// The topmost selected object, the last in paint order.
-fn topmost(app: &VectorcraftApp) -> Option<vectorcraft_doc::NodeId> {
+fn topmost(app: &VansoncraftApp) -> Option<vansoncraft_doc::NodeId> {
     app.session.active().and_then(|st| st.selection.in_paint_order(&st.doc).last().copied())
 }
 
@@ -229,7 +229,7 @@ fn topmost(app: &VectorcraftApp) -> Option<vectorcraft_doc::NodeId> {
 /// an object of the selection makes it the key, and Align to Key Object makes the topmost one the
 /// key, or a guide selected with a single object), else the stored Align To choice, Selection or
 /// Artboard. The Distribute Objects and Distribute Spacing buttons send it as their `to`.
-fn align_to(app: &VectorcraftApp) -> AlignTo {
+fn align_to(app: &VansoncraftApp) -> AlignTo {
     if has_key(app) { AlignTo::Key } else { app.ui.align_to }
 }
 
@@ -247,14 +247,14 @@ fn align_to_icon_name(v: AlignTo) -> (&'static str, &'static str) {
 
 /// The Align To choice that the Align panel and the Control bar show chosen: Artboard while one
 /// object is selected (the buttons then align it to the artboard), else [`align_to`].
-fn shown_align_to(app: &VectorcraftApp) -> AlignTo {
+fn shown_align_to(app: &VansoncraftApp) -> AlignTo {
     aligns_to(align_to(app), objects_aligned(app))
 }
 
 /// Whether Align To choice `v` can be chosen. Align to Key Object needs a key object or a key
 /// guide, or something to make one of: two or more selected objects, or a guide selected with
 /// objects.
-fn can_choose(app: &VectorcraftApp, v: AlignTo) -> bool {
+fn can_choose(app: &VansoncraftApp, v: AlignTo) -> bool {
     v != AlignTo::Key || selection_len(app) >= 2 || has_key(app) || guide_for_key(app).is_some()
 }
 
@@ -263,7 +263,7 @@ fn can_choose(app: &VectorcraftApp, v: AlignTo) -> bool {
 /// already; with one object, a guide selected with it becomes the key. The stored choice stays as
 /// it was, and Align To shows it again once the key is cleared. Align to Selection and Align to
 /// Artboard store the choice and let go of the key object.
-pub(crate) fn choose_align_to(app: &mut VectorcraftApp, v: AlignTo) {
+pub(crate) fn choose_align_to(app: &mut VansoncraftApp, v: AlignTo) {
     if !can_choose(app, v) {
         return;
     }
@@ -298,7 +298,7 @@ const ALIGN_TO_ARROW: f32 = 14.0;
 /// and a pick chooses it as the Align panel does ([`choose_align_to`]). Align to Key Object is off
 /// while no key object can be made. Screen readers get a combo box named "Align To:" whose value
 /// is the choice.
-pub(crate) fn align_to_menu(app: &mut VectorcraftApp, ui: &mut Ui, size: f32) {
+pub(crate) fn align_to_menu(app: &mut VansoncraftApp, ui: &mut Ui, size: f32) {
     let t = crate::theme::Tokens::get(ui.ctx());
     let shown = shown_align_to(app);
     let (icon, name) = align_to_icon_name(shown);
@@ -329,7 +329,7 @@ pub(crate) fn align_to_menu(app: &mut VectorcraftApp, ui: &mut Ui, size: f32) {
     }
 }
 
-pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn show(app: &mut VansoncraftApp, ui: &mut Ui) {
     let n = selection_len(app);
     let guides = selected_guides(app);
     let can_align = n + guides >= 1;
@@ -407,7 +407,7 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
     });
 }
 
-pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn menu(app: &mut VansoncraftApp, ui: &mut Ui) {
     let hidden: bool = pstate(ui.ctx(), "align-hide-options");
     if menu_item(ui, if hidden { tl!("Show Options") } else { tl!("Hide Options") }, true, false) {
         set_pstate(ui.ctx(), "align-hide-options", !hidden);
@@ -426,7 +426,7 @@ pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui) {
 
 /// The Align to Glyph Bounds submenu: Point Text and Area Text, each checked while Align and
 /// Distribute measure that kind of type by the ink of its glyphs.
-fn glyph_bounds_items(app: &mut VectorcraftApp, ui: &mut Ui) {
+fn glyph_bounds_items(app: &mut VansoncraftApp, ui: &mut Ui) {
     for (label, key, on) in [
         (tl!("Point Text"), "alignGlyphBoundsPoint", app.session.prefs.align_glyph_bounds_point),
         (tl!("Area Text"), "alignGlyphBoundsArea", app.session.prefs.align_glyph_bounds_area),

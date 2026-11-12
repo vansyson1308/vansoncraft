@@ -1,7 +1,7 @@
 use serde_json::json;
-use vectorcraft_doc::{LiveShape, NodeId, NodeKind};
-use vectorcraft_geom::{Affine, Rect, shapes};
-use vectorcraft_tools::addons::box3d::CustomShape;
+use vansoncraft_doc::{LiveShape, NodeId, NodeKind};
+use vansoncraft_geom::{Affine, Rect, shapes};
+use vansoncraft_tools::addons::box3d::CustomShape;
 
 use crate::Session;
 
@@ -124,9 +124,9 @@ fn addon_shapes_commands_and_format_roundtrip_preserve_paths() {
     // baked PathData/LiveShape (for a build that ignores the add-on attribute) and the stored
     // extras attribute across a save/load roundtrip.
     let doc_before = s.doc().unwrap().doc.clone();
-    let bytes = vectorcraft_format::save(&doc_before, false);
-    let doc_after = vectorcraft_format::load(&bytes).unwrap();
-    let re_saved = vectorcraft_format::save(&doc_after, false);
+    let bytes = vansoncraft_format::save(&doc_before, false);
+    let doc_after = vansoncraft_format::load(&bytes).unwrap();
+    let re_saved = vansoncraft_format::save(&doc_after, false);
     assert_eq!(bytes, re_saved);
     for id in [box_id, ell_id, rect_id, poly_id, spiral_id] {
         let a = doc_before.node(id).unwrap();

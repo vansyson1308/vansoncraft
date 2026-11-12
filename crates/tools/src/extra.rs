@@ -9,7 +9,7 @@
 //! anchors between them and the anchors that stay.
 
 use serde_json::{Value, json};
-use vectorcraft_geom::{Point, Vec2};
+use vansoncraft_geom::{Point, Vec2};
 
 use crate::distort::{BLUE, ellipse_path};
 use crate::{Action, Cursor, Mods, Overlay, PointerEvent, PointerKind, Tool, ToolContext, ToolKey};
@@ -26,7 +26,7 @@ pub fn create(id: &str) -> Option<Box<dyn Tool>> {
 
 /// Whether `id` is one of the graph tools (`columnGraph`, `pieGraph`…).
 pub fn is_graph_tool(id: &str) -> bool {
-    id.ends_with("Graph") && vectorcraft_doc::GraphKind::parse(id).is_some()
+    id.ends_with("Graph") && vansoncraft_doc::GraphKind::parse(id).is_some()
 }
 
 /// The Flare Tool Options as `shape.flare` takes them: (key, default, least, most). The diameter
@@ -300,7 +300,7 @@ impl ReshapeHit {
 /// A Reshape press: the path, the point on it, what it landed on and whether Shift was held.
 #[derive(Clone, Debug)]
 struct ReshapePress {
-    id: vectorcraft_doc::NodeId,
+    id: vansoncraft_doc::NodeId,
     at: Point,
     hit: ReshapeHit,
     shift: bool,
@@ -331,13 +331,13 @@ pub struct ReshapeTool {
     /// where that anchor lies. An anchor the tool adds before one renumbers it. A focal point
     /// whose anchor no longer lies there (another edit moved or removed it) shows nothing and
     /// moves nothing.
-    focal: Option<(vectorcraft_doc::NodeId, Vec<FocalPoint>)>,
+    focal: Option<(vansoncraft_doc::NodeId, Vec<FocalPoint>)>,
 }
 
 impl ReshapeTool {
     /// The selected path under `p` (Reshape works on selected paths only), the point on it and
     /// what the point is.
-    fn hit(cx: &ToolContext, p: Point) -> Option<(vectorcraft_doc::NodeId, Point, ReshapeHit)> {
+    fn hit(cx: &ToolContext, p: Point) -> Option<(vansoncraft_doc::NodeId, Point, ReshapeHit)> {
         let tol = cx.tol(4.0);
         Self::paths(cx).into_iter().find_map(|id| {
             let pd = cx.doc.node(id)?.path_data()?;
@@ -364,7 +364,7 @@ impl ReshapeTool {
     }
 
     /// The paths Reshape works on: the selected paths that can be edited, in selection order.
-    fn paths(cx: &ToolContext) -> Vec<vectorcraft_doc::NodeId> {
+    fn paths(cx: &ToolContext) -> Vec<vansoncraft_doc::NodeId> {
         let editable = cx.doc.editable();
         cx.selection.objects.iter().copied().filter(|&id| editable(id) && cx.doc.node(id).is_some_and(|n| n.path_data().is_some())).collect()
     }
@@ -372,7 +372,7 @@ impl ReshapeTool {
     /// The highlighted focal points of path `id` as `(subpath, anchor)`, with their positions: the
     /// anchors of the path that lie where the tool stored them. None while Reshape does not work
     /// on the path.
-    fn focal_points(&self, cx: &ToolContext, id: vectorcraft_doc::NodeId) -> Vec<((usize, usize), Point)> {
+    fn focal_points(&self, cx: &ToolContext, id: vansoncraft_doc::NodeId) -> Vec<((usize, usize), Point)> {
         let Some((fid, points)) = &self.focal else { return vec![] };
         if *fid != id || !Self::paths(cx).contains(&id) {
             return vec![];
@@ -427,7 +427,7 @@ impl Tool for ReshapeTool {
                 let Some(at) = self.press.as_ref().map(|p| p.at) else { return vec![] };
                 let mut d: Vec2 = ev.pos - at;
                 if ev.mods.shift {
-                    d = vectorcraft_geom::constrain_angle_from(d, 45.0, cx.constrain_angle);
+                    d = vansoncraft_geom::constrain_angle_from(d, 45.0, cx.constrain_angle);
                 }
                 let mut out = vec![];
                 if !self.began {
@@ -536,7 +536,7 @@ impl Tool for ShaperTool {
         !self.points.is_empty()
     }
     fn pointer(&mut self, cx: &ToolContext, ev: &PointerEvent) -> Vec<Action> {
-        use vectorcraft_geom::recognize::{Recognized, recognize};
+        use vansoncraft_geom::recognize::{Recognized, recognize};
         match ev.kind {
             PointerKind::Down => {
                 if let Some(a) = crate::shaperwidget::click(cx, ev.pos) {
@@ -561,14 +561,14 @@ impl Tool for ShaperTool {
                 if pts.first().is_some_and(|first| pts.iter().all(|p| p.distance(*first) < cx.tol(3.0))) {
                     // In Construction mode a tap selects a source shape.
                     let construction =
-                        cx.isolation.and_then(|id| cx.doc.node(id)).is_some_and(|n| n.name.as_deref() == Some(vectorcraft_doc::shaper::SOURCES));
+                        cx.isolation.and_then(|id| cx.doc.node(id)).is_some_and(|n| n.name.as_deref() == Some(vansoncraft_doc::shaper::SOURCES));
                     let mut params = json!({"point": [ev.pos.x, ev.pos.y]});
                     if construction {
                         params["source"] = json!(true);
                     }
                     return vec![Action::Exec("shaper.select".into(), params)];
                 }
-                let r = |x: vectorcraft_geom::Rect, rotation: f64| json!({ "x": x.x0, "y": x.y0, "width": x.width(), "height": x.height(), "rotation": rotation });
+                let r = |x: vansoncraft_geom::Rect, rotation: f64| json!({ "x": x.x0, "y": x.y0, "width": x.width(), "height": x.height(), "rotation": rotation });
                 match recognize(&pts) {
                     Some(Recognized::Line { a, b }) => vec![Action::Exec("shape.line".into(), json!({ "x1": a.x, "y1": a.y, "x2": b.x, "y2": b.y }))],
                     Some(Recognized::Rectangle { rect, rotation }) => vec![Action::Exec("shape.rectangle".into(), r(rect, rotation))],
@@ -628,16 +628,16 @@ impl GraphTool {
         Self { id, start: None, last: Point::ZERO, mods: Mods::default(), began: false }
     }
     fn kind(&self) -> &'static str {
-        vectorcraft_doc::GraphKind::parse(self.id).unwrap_or_default().id()
+        vansoncraft_doc::GraphKind::parse(self.id).unwrap_or_default().id()
     }
     /// The plot rectangle a drag from `s` to `p` draws (Shift = square, Alt = from the centre).
-    fn plot_rect(s: Point, p: Point, m: Mods) -> vectorcraft_geom::Rect {
+    fn plot_rect(s: Point, p: Point, m: Mods) -> vansoncraft_geom::Rect {
         let mut d = p - s;
         if m.shift {
             let k = d.x.abs().max(d.y.abs());
             d = Vec2::new(k * d.x.signum(), k * d.y.signum());
         }
-        if m.alt { vectorcraft_geom::Rect::from_points(s - d, s + d) } else { vectorcraft_geom::Rect::from_points(s, s + d) }
+        if m.alt { vansoncraft_geom::Rect::from_points(s - d, s + d) } else { vansoncraft_geom::Rect::from_points(s, s + d) }
     }
     fn params(&self, s: Point, p: Point, m: Mods) -> Value {
         let r = Self::plot_rect(s, p, m);
@@ -747,7 +747,7 @@ mod tests {
     #[test]
     fn flare_drag_turns_the_rays_and_shift_holds_their_turn() {
         use crate::testutil::*;
-        use vectorcraft_doc::Selection;
+        use vansoncraft_doc::Selection;
         let (d, _) = doc_with_rect();
         let s = Selection::default();
         let p = paint();
@@ -795,7 +795,7 @@ mod tests {
     #[test]
     fn space_moves_the_flare_being_drawn() {
         use crate::testutil::*;
-        use vectorcraft_doc::Selection;
+        use vansoncraft_doc::Selection;
 
         let (d, _) = doc_with_rect();
         let s = Selection::default();
@@ -841,7 +841,7 @@ mod tests {
     #[test]
     fn reshape_drag_honors_measurement_labels() {
         use crate::testutil::*;
-        use vectorcraft_doc::Selection;
+        use vansoncraft_doc::Selection;
 
         let (d, id) = doc_with_rect();
         let s = Selection { objects: vec![id], ..Selection::default() };
@@ -865,7 +865,7 @@ mod tests {
     #[test]
     fn graph_plot_measure_labels() {
         use crate::testutil::*;
-        use vectorcraft_doc::Selection;
+        use vansoncraft_doc::Selection;
 
         let (d, _) = doc_with_rect();
         let s = Selection::default();

@@ -10,15 +10,15 @@
 //! and the document's changes are still one undo step. On an error the dialog stays open.
 
 use serde_json::{Map, Value, json};
-use vectorcraft_color::cms::ProfileKind;
-use vectorcraft_doc::setup::{GRID_COLOR_PRESETS, LANGUAGES};
-use vectorcraft_doc::{ColorMode, GridSize, Quotes, Unit};
-use vectorcraft_engine::cmd::colormgmt::doc_profiles;
+use vansoncraft_color::cms::ProfileKind;
+use vansoncraft_doc::setup::{GRID_COLOR_PRESETS, LANGUAGES};
+use vansoncraft_doc::{ColorMode, GridSize, Quotes, Unit};
+use vansoncraft_engine::cmd::colormgmt::doc_profiles;
 
 use super::{DialogSpec, form};
 use crate::state::Dialog;
 use crate::theme::Tokens;
-use crate::{VectorcraftApp, widgets};
+use crate::{VansoncraftApp, widgets};
 
 pub(super) const KIND: &str = "documentSetup";
 const TABS: [&str; 4] = ["General", "Transparency", "Type", "Color"];
@@ -33,7 +33,7 @@ pub(super) const SPEC: DialogSpec =
     DialogSpec { heading: |_| tl!("Document Setup").into(), body, confirm, min_width: 540.0, max_width: Some(540.0), ..DialogSpec::FORM };
 
 /// Open Document Setup on the active document's settings.
-pub fn open(app: &mut VectorcraftApp) -> Result<Value, String> {
+pub fn open(app: &mut VansoncraftApp) -> Result<Value, String> {
     let mut fields = app.session.execute("document.setup", &json!({})).map_err(|e| e.to_string())?;
     let linked = fields["bleed"].as_array().is_some_and(|b| b.windows(2).all(|w| w[0] == w[1]));
     fields["bleedLinked"] = json!(linked);
@@ -62,7 +62,7 @@ fn mode_id(m: ColorMode) -> &'static str {
 /// then File › Document Color Mode. Empty when the tab matches the active document. A field the
 /// dialog holds with a value of the wrong kind is an error, and then nothing runs; an omitted
 /// field leaves its setting as it is (`convertColors`: converts).
-fn color_commands(app: &VectorcraftApp, d: &Dialog) -> Result<Vec<Value>, String> {
+fn color_commands(app: &VansoncraftApp, d: &Dialog) -> Result<Vec<Value>, String> {
     let Some(st) = app.session.active() else { return Ok(vec![]) };
     let mut out = vec![];
     let (rgb, cmyk) = doc_profiles(&st.doc);
@@ -99,7 +99,7 @@ fn color_commands(app: &VectorcraftApp, d: &Dialog) -> Result<Vec<Value>, String
     Ok(out)
 }
 
-fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
+fn confirm(app: &mut VansoncraftApp, d: &Dialog) -> Result<Value, String> {
     let params: Map<String, Value> = d.fields.iter().filter(|(k, _)| !UI_ONLY.contains(&k.as_str())).map(|(k, v)| (k.clone(), v.clone())).collect();
     let color = color_commands(app, d)?;
     let r = if color.is_empty() {
@@ -114,7 +114,7 @@ fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
     r
 }
 
-fn body(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
+fn body(app: &mut VansoncraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
     let tab = TABS.iter().position(|t| *t == d.str("tab")).unwrap_or(0);
     if let Some(i) = widgets::tab_bar(ui, &TABS, tab) {
         d.fields.insert("tab".into(), json!(TABS[i]));
@@ -152,7 +152,7 @@ fn unit(d: &Dialog) -> Unit {
 }
 
 /// The General tab of Document Setup (units, bleed, artboard editing, options).
-fn general(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
+fn general(app: &mut VansoncraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
     let units: Vec<(&str, &str)> = Unit::ALL.iter().map(|u| (u.label(), u.label())).collect();
     choice(ui, d, "units", tl!("Units:"), &units);
     ui.add_space(6.0);
@@ -175,7 +175,7 @@ fn general(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool 
     close
 }
 
-fn transparency(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) {
+fn transparency(app: &mut VansoncraftApp, ui: &mut egui::Ui, d: &mut Dialog) {
     let t = Tokens::get(ui.ctx());
     widgets::subheader(ui, tl!("Transparency Grid"));
     let sizes: Vec<(&str, &str)> = GridSize::ALL.iter().map(|g| (g.id(), g.label())).collect();
@@ -201,12 +201,12 @@ fn transparency(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) {
         for i in 0..2 {
             let hex = colors.get(i).map_or("", |h| h.trim_start_matches('#'));
             let (chip, _) = ui.allocate_exact_size(egui::vec2(18.0, 18.0), egui::Sense::hover());
-            if let Some(c) = vectorcraft_color::Color::from_hex(hex) {
+            if let Some(c) = vansoncraft_color::Color::from_hex(hex) {
                 ui.painter().rect_filled(chip, 2.0, crate::panels::c32(&c));
             }
             ui.painter().rect_stroke(chip, 2.0, egui::Stroke::new(1.0, t.input_border), egui::StrokeKind::Inside);
             let name = format!("{} {}", tl!("Grid Colors:"), i + 1);
-            if let Some(c) = widgets::hex_field_named(ui, ("grid-color", i), Some(&name), hex).and_then(|h| vectorcraft_color::Color::from_hex(&h)) {
+            if let Some(c) = widgets::hex_field_named(ui, ("grid-color", i), Some(&name), hex).and_then(|h| vansoncraft_color::Color::from_hex(&h)) {
                 let mut v = colors.clone();
                 v.resize(2, "#ffffff".into());
                 v[i] = c.to_hex();
@@ -232,7 +232,7 @@ fn typography(ui: &mut egui::Ui, d: &mut Dialog) {
     choice(ui, d, "language", tl!("Language:"), &langs);
     // A language brings its quotes.
     if d.str("language") != before
-        && let Some(q) = vectorcraft_doc::setup::language_quotes(&d.str("language"))
+        && let Some(q) = vansoncraft_doc::setup::language_quotes(&d.str("language"))
     {
         d.fields.insert("quotes".into(), json!({"double": q.double.iter().collect::<String>(), "single": q.single.iter().collect::<String>()}));
     }
@@ -283,7 +283,7 @@ fn typography(ui: &mut egui::Ui, d: &mut Dialog) {
 
 /// The Color tab: the document color mode, whether a mode change converts the colors (unchecked:
 /// they keep their numbers), and the RGB and CMYK profiles assigned to the document.
-fn color(app: &VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) {
+fn color(app: &VansoncraftApp, ui: &mut egui::Ui, d: &mut Dialog) {
     widgets::subheader(ui, tl!("Document Color Mode"));
     choice(ui, d, "colorMode", tl!("Color Mode:"), &[("rgb", "RGB Color"), ("cmyk", "CMYK Color")]);
     let mode = d.str("colorMode");
@@ -313,13 +313,13 @@ fn color(app: &VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) {
 mod tests {
     use egui::{Event, PointerButton, Pos2, Rect, vec2};
     use serde_json::json;
-    use vectorcraft_color::{Color, Paint, cms};
-    use vectorcraft_doc::{ColorMode, NodeId};
-    use vectorcraft_engine::Session;
+    use vansoncraft_color::{Color, Paint, cms};
+    use vansoncraft_doc::{ColorMode, NodeId};
+    use vansoncraft_engine::Session;
 
-    use crate::VectorcraftApp;
+    use crate::VansoncraftApp;
 
-    fn dialog_frame(app: &mut VectorcraftApp, ctx: &egui::Context, events: Vec<Event>) -> Vec<(String, Rect)> {
+    fn dialog_frame(app: &mut VansoncraftApp, ctx: &egui::Context, events: Vec<Event>) -> Vec<(String, Rect)> {
         let raw = egui::RawInput { screen_rect: Some(Rect::from_min_size(Pos2::ZERO, vec2(1200.0, 900.0))), events, ..Default::default() };
         let mut out = ctx.run_ui(raw, |ui| crate::dialogs::show(app, ui.ctx()));
         out.textures_delta.clear();
@@ -332,7 +332,7 @@ mod tests {
             .collect()
     }
 
-    fn click_dialog_button(app: &mut VectorcraftApp, label: &str) {
+    fn click_dialog_button(app: &mut VansoncraftApp, label: &str) {
         let ctx = egui::Context::default();
         crate::theme::install_fonts(&ctx);
         crate::theme::apply(&ctx, Default::default());
@@ -347,7 +347,7 @@ mod tests {
 
     #[test]
     fn edit_artboards_applies_settings_and_closes_the_dialog() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.run("file.new", json!({"width": 200, "height": 200})).unwrap();
         app.run("file.documentSetup", json!({})).unwrap();
         app.ui.dialog.as_mut().unwrap().fields.insert("bleed".into(), json!([9, 9, 9, 9]));
@@ -363,7 +363,7 @@ mod tests {
 
     #[test]
     fn edit_artboards_with_invalid_settings_keeps_the_dialog_and_tool() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.run("file.new", json!({"width": 200, "height": 200})).unwrap();
         app.run("file.documentSetup", json!({})).unwrap();
         app.ui.dialog.as_mut().unwrap().fields.insert("bleed".into(), json!(500));
@@ -378,7 +378,7 @@ mod tests {
     #[test]
     fn ok_and_cancel_close_without_switching_tools() {
         for (button, expected_bleed, undo_steps) in [("OK", [9.0; 4], 1), ("Cancel", [0.0; 4], 0)] {
-            let mut app = VectorcraftApp::new(Session::new(), Default::default());
+            let mut app = VansoncraftApp::new(Session::new(), Default::default());
             app.run("file.new", json!({"width": 200, "height": 200})).unwrap();
             app.run("file.documentSetup", json!({})).unwrap();
             app.ui.dialog.as_mut().unwrap().fields.insert("bleed".into(), json!([9, 9, 9, 9]));
@@ -391,7 +391,7 @@ mod tests {
         }
     }
 
-    fn frame(app: &mut VectorcraftApp) {
+    fn frame(app: &mut VansoncraftApp) {
         let ctx = egui::Context::default();
         crate::theme::install_fonts(&ctx);
         crate::theme::apply(&ctx, Default::default());
@@ -402,7 +402,7 @@ mod tests {
 
     #[test]
     fn every_tab_draws_and_ok_is_one_undo_step() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.run("file.new", json!({"width": 200, "height": 200})).unwrap();
         app.run("file.documentSetup", json!({})).unwrap();
         for tab in ["General", "Transparency", "Type", "Color"] {
@@ -419,7 +419,7 @@ mod tests {
         assert!(app.ui.dialog.is_none());
         let st = app.session.active().unwrap();
         assert_eq!((st.doc.setup.bleed, st.doc.setup.grid_colors_name()), ([9.0; 4], "Blue"));
-        assert_eq!((st.doc.setup.quotes.double, st.doc.units), (['„', '“'], vectorcraft_doc::Unit::Millimeters));
+        assert_eq!((st.doc.setup.quotes.double, st.doc.units), (['„', '“'], vansoncraft_doc::Unit::Millimeters));
         assert_eq!(st.history.undo.len(), 1);
         // A bad value keeps the dialog open.
         app.run("file.documentSetup", json!({})).unwrap();
@@ -432,7 +432,7 @@ mod tests {
     /// substituted glyphs highlight, and OK still applies.
     #[test]
     fn general_tab_has_no_substituted_fonts_checkbox() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.run("file.new", json!({"width": 200, "height": 200})).unwrap();
         app.run("file.documentSetup", json!({})).unwrap();
         assert!(app.ui.dialog.as_ref().unwrap().fields.get("highlightSubstitutedFonts").is_none());
@@ -448,24 +448,24 @@ mod tests {
     }
 
     /// A new document with a red square → the app and the square.
-    fn red_square() -> (VectorcraftApp, NodeId) {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    fn red_square() -> (VansoncraftApp, NodeId) {
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.run("file.new", json!({"width": 200, "height": 200})).unwrap();
         let id = app.run("shape.rectangle", json!({"x": 10, "y": 10, "width": 50, "height": 50})).unwrap()["id"].as_u64().unwrap();
         app.run("paint.setFill", json!({"ids": [id], "color": "#ff0000"})).unwrap();
         (app, NodeId(id))
     }
 
-    fn fill(app: &VectorcraftApp, id: NodeId) -> Paint {
+    fn fill(app: &VansoncraftApp, id: NodeId) -> Paint {
         app.session.active().unwrap().doc.node(id).unwrap().appearance.fill().unwrap().paint.clone()
     }
 
-    fn undo_steps(app: &VectorcraftApp) -> usize {
+    fn undo_steps(app: &VansoncraftApp) -> usize {
         app.session.active().unwrap().history.undo.len()
     }
 
     /// Opens Document Setup on the Color tab and sets `fields` in it.
-    fn color_tab(app: &mut VectorcraftApp, fields: serde_json::Value) {
+    fn color_tab(app: &mut VansoncraftApp, fields: serde_json::Value) {
         app.run("file.documentSetup", json!({})).unwrap();
         let d = app.ui.dialog.as_mut().unwrap();
         d.fields.insert("tab".into(), json!("Color"));

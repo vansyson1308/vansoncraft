@@ -30,8 +30,8 @@
 //! where the next one would go.
 
 use serde_json::json;
-use vectorcraft_doc::{NodeId, NodeKind};
-use vectorcraft_geom::{Anchor, BezPath, Point, Vec2};
+use vansoncraft_doc::{NodeId, NodeKind};
+use vansoncraft_geom::{Anchor, BezPath, Point, Vec2};
 
 use crate::direct::hit_handle;
 use crate::draw2::{AnchorTool, editable_paths, shown_paths};
@@ -96,14 +96,14 @@ pub(crate) fn active_path(cx: &ToolContext) -> Option<(NodeId, usize, Point, Poi
     let path_node = match &n.kind {
         NodeKind::Path { .. } => Some(n),
         NodeKind::Compound { children, .. } => {
-            let open: Vec<&vectorcraft_doc::Node> =
+            let open: Vec<&vansoncraft_doc::Node> =
                 children.iter().filter(|c| c.path_data().is_some_and(|pd| pd.subpaths.iter().any(|sp| !sp.closed))).map(|c| c.as_ref()).collect();
             if open.len() == 1 { open.first().copied() } else { None }
         }
         _ => None,
     }?;
     let path = path_node.path_data()?;
-    let open_subs: Vec<(usize, &vectorcraft_geom::SubPath)> = path.subpaths.iter().enumerate().filter(|(_, s)| !s.closed).collect();
+    let open_subs: Vec<(usize, &vansoncraft_geom::SubPath)> = path.subpaths.iter().enumerate().filter(|(_, s)| !s.closed).collect();
     if open_subs.len() != 1 {
         return None;
     }
@@ -156,7 +156,7 @@ pub(crate) fn open_end_at(cx: &ToolContext, p: Point, tol: f64, except: Option<(
         return best.map(|(res, _)| res);
     }
     // 2. Hit-tested object (clicked directly on an unselected path, group, or compound path).
-    if let Some(hit) = vectorcraft_doc::hit::hit_test(cx.doc, p, cx.hit_options()) {
+    if let Some(hit) = vansoncraft_doc::hit::hit_test(cx.doc, p, cx.hit_options()) {
         let leaf = hit.leaf;
         if cx.doc.is_editable(leaf) {
             if let Some(cand) = endpoint_on(cx, leaf, p, tol, except) {
@@ -386,7 +386,7 @@ impl Tool for PenTool {
                 if let Some((id, si, ai, a)) = self.handle {
                     let mut h = ev.pos;
                     if ev.mods.shift {
-                        h = a + vectorcraft_geom::constrain_angle_from(ev.pos - a, 45.0, cx.constrain_angle);
+                        h = a + vansoncraft_geom::constrain_angle_from(ev.pos - a, 45.0, cx.constrain_angle);
                     }
                     return vec![set_out_handle(id, si, ai, h)];
                 }
@@ -401,7 +401,7 @@ impl Tool for PenTool {
                 self.last = ev.pos;
                 let mut out_h = ev.pos;
                 if ev.mods.shift {
-                    out_h = a + vectorcraft_geom::constrain_angle_from(ev.pos - a, 45.0, cx.constrain_angle);
+                    out_h = a + vansoncraft_geom::constrain_angle_from(ev.pos - a, 45.0, cx.constrain_angle);
                 }
                 let alt = ev.mods.alt;
                 let Some(id) = path else {
@@ -664,7 +664,7 @@ fn auto_add_delete(cx: &ToolContext, p: Point, m: Mods, tol: f64) -> Option<Acti
 fn spine_click(cx: &ToolContext, p: Point, tol: f64) -> Option<Vec<Action>> {
     for (id, path) in crate::direct::spines(cx).into_iter().filter(|(id, _)| cx.selection.contains(*id)) {
         let Some(NodeKind::Blend { children, spec }) = cx.doc.node(id).map(|n| &n.kind) else { continue };
-        let keys = vectorcraft_doc::live::blend_spine(children, spec).and_then(|(_, a)| a).unwrap_or_default();
+        let keys = vansoncraft_doc::live::blend_spine(children, spec).and_then(|(_, a)| a).unwrap_or_default();
         if let Some((_, ai, _)) = path.anchors().find(|(_, _, a)| a.p.distance(p) <= tol) {
             if keys.contains(&ai) {
                 return Some(vec![]);

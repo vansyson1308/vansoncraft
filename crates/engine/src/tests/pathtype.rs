@@ -2,9 +2,9 @@
 //! and space it; the selection tools drag its brackets to move it along the path and across it.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{NodeKind, PathAlign, TextKind, TextObject};
-use vectorcraft_geom::{Point, Rect, Shape};
-use vectorcraft_tools::{Mods, PointerEvent, PointerKind};
+use vansoncraft_doc::{NodeKind, PathAlign, TextKind, TextObject};
+use vansoncraft_geom::{Point, Rect, Shape};
+use vansoncraft_tools::{Mods, PointerEvent, PointerKind};
 
 use crate::*;
 
@@ -46,7 +46,7 @@ fn brackets(s: &Session, id: NodeId) -> (f64, Option<f64>) {
 /// The glyphs' ink bounds in the document.
 fn ink(s: &Session, id: NodeId) -> Rect {
     let t = text(s, id);
-    let lay = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &t);
+    let lay = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &t);
     lay.glyphs
         .iter()
         .filter(|g| !g.outline.elements().is_empty())
@@ -58,7 +58,7 @@ fn ink(s: &Session, id: NodeId) -> Rect {
 /// The glyph origins along the path, in reading order.
 fn origins(s: &Session, id: NodeId) -> Vec<Point> {
     let t = text(s, id);
-    vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &t).glyphs.iter().map(|g| t.xf * g.origin).collect()
+    vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &t).glyphs.iter().map(|g| t.xf * g.origin).collect()
 }
 
 fn undo_len(s: &Session) -> usize {
@@ -116,7 +116,7 @@ fn options_keep_the_brackets() {
     // So does a new effect.
     s.execute("type.pathOptions", &json!({"effect": "skew"})).unwrap();
     assert_eq!(brackets(&s, id), (start, None));
-    assert_eq!(text(&s, id).path_effect, vectorcraft_doc::PathEffect::Skew);
+    assert_eq!(text(&s, id).path_effect, vansoncraft_doc::PathEffect::Skew);
     // The end bracket is set, and put back at the end of the path.
     s.execute("type.pathOptions", &json!({"end": 0.9})).unwrap();
     assert_eq!(brackets(&s, id), (start, Some(0.9)));
@@ -201,7 +201,7 @@ fn center_on_top_and_bottom_of_a_circle() {
     let (start, end) = brackets(&s, id);
     assert!(near(start, 0.75) && end.is_none(), "{start} {end:?}");
     assert_eq!((r["ids"].clone(), r["end"].clone()), (json!([id.0]), Value::Null));
-    assert_eq!(text(&s, id).para_at(0).justify, vectorcraft_doc::Justify::Center);
+    assert_eq!(text(&s, id).para_at(0).justify, vansoncraft_doc::Justify::Center);
     let top = ink(&s, id);
     assert!((top.center().x - 200.0).abs() < 0.5 && top.y1 < 101.0, "{top:?}");
     assert_eq!((undo_len(&s), last_step(&s)), (steps + 1, "Center on Top".to_string()));
@@ -218,7 +218,7 @@ fn center_on_top_and_bottom_of_a_circle() {
     // Justify Center stays as it is.
     s.execute("text.setStyle", &json!({"justify": "justifyCenter"})).unwrap();
     s.execute("type.pathCenter.top", &json!({})).unwrap();
-    assert_eq!(text(&s, id).para_at(0).justify, vectorcraft_doc::Justify::JustifyCenter);
+    assert_eq!(text(&s, id).para_at(0).justify, vansoncraft_doc::Justify::JustifyCenter);
     s.execute("edit.undo", &json!({})).unwrap();
     assert!(near(brackets(&s, id).0, 0.25));
     // Brackets already in place with another alignment: only the alignment changes, in one step.
@@ -226,7 +226,7 @@ fn center_on_top_and_bottom_of_a_circle() {
     let (steps, before) = (undo_len(&s), brackets(&s, id));
     s.execute("type.pathCenter.bottom", &json!({})).unwrap();
     assert_eq!((undo_len(&s), brackets(&s, id)), (steps + 1, before));
-    assert_eq!(text(&s, id).para_at(0).justify, vectorcraft_doc::Justify::Center);
+    assert_eq!(text(&s, id).para_at(0).justify, vansoncraft_doc::Justify::Center);
 }
 
 #[test]
@@ -290,7 +290,7 @@ fn center_on_top_moves_every_selected_type_on_a_path_in_one_step() {
     s.execute("type.dynamicText", &json!({"on": true})).unwrap();
     s.execute("type.pathCenter.bottom", &json!({})).unwrap();
     assert!(text(&s, a).dynamic_text && near(brackets(&s, a).0, 0.65), "{:?}", brackets(&s, a));
-    let lay = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &text(&s, a));
+    let lay = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &text(&s, a));
     assert!(lay.fit_scale > 1.5 && !lay.overflow, "{}", lay.fit_scale);
     let bottom = ink(&s, a);
     assert!((bottom.center().x - 200.0).abs() < 1.0 && bottom.y1 > 300.0, "{bottom:?}");
@@ -444,7 +444,7 @@ fn direct_selection_drags_an_anchor_of_the_path_and_the_type_reflows() {
     let path = |s: &Session| text(s, id).type_path().unwrap();
     let (first, middle) = (path(&s).subpaths[0].anchors[0].p, path(&s).subpaths[0].anchors[1].p);
     let (glyphs, n) = (origins(&s, id), undo_len(&s));
-    drag(&mut s, "directSelection", middle, middle + vectorcraft_geom::Vec2::new(40.0, 0.0), Mods::default());
+    drag(&mut s, "directSelection", middle, middle + vansoncraft_geom::Vec2::new(40.0, 0.0), Mods::default());
     let after = path(&s);
     let moved = after.subpaths[0].anchors[1].p;
     assert!(near(moved.x, middle.x + 40.0) && near(moved.y, middle.y), "{middle:?} → {moved:?}");
@@ -477,7 +477,7 @@ fn type_on_a_path_made_with_the_type_tool_has_brackets_at_once() {
         assert!(matches!(text(&s, id).kind, TextKind::OnPath { .. }), "{tool} {d}");
         s.execute("text.setText", &json!({"ids": [id.0], "text": "Slide"})).unwrap();
         s.select_tool(tool, v).unwrap();
-        let lines = s.overlays(v).iter().filter(|o| matches!(o, vectorcraft_tools::Overlay::Line { .. })).count();
+        let lines = s.overlays(v).iter().filter(|o| matches!(o, vansoncraft_tools::Overlay::Line { .. })).count();
         assert!(lines >= 5, "{tool} {d}: the brackets are drawn at once ({lines} lines)");
         if d.ends_with('Z') {
             continue;
@@ -486,7 +486,7 @@ fn type_on_a_path_made_with_the_type_tool_has_brackets_at_once() {
         let (start, end) = brackets(&s, id);
         assert!(near(start, 0.5) && end.is_none(), "{start} {end:?}");
         let centre = Point::new(400.0, 295.0);
-        assert_eq!(s.cursor(centre, Mods::default(), v), vectorcraft_tools::Cursor::PathBracket, "{tool}");
+        assert_eq!(s.cursor(centre, Mods::default(), v), vansoncraft_tools::Cursor::PathBracket, "{tool}");
         drag(&mut s, tool, centre, Point::new(400.0, 330.0), Mods::default());
         let (start, end) = brackets(&s, id);
         assert!(near(start, 0.0) && end.is_some_and(|e| near(e, 0.5)), "{tool}: flipped, {start} {end:?}");

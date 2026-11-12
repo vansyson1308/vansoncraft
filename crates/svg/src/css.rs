@@ -7,11 +7,11 @@
 use std::collections::{HashMap, HashSet};
 
 use serde::{Deserialize, Serialize};
-use vectorcraft_color::{BlendMode, Color, GradientGeom, GradientKind, GradientPaint, Paint};
-use vectorcraft_doc::{AppearanceItem, CharStyle, Document, Justify, LineCap, LiveShape, Node, NodeId, NodeKind, StrokeAlign, StrokeLayer, TextKind};
-use vectorcraft_effects::RasterFx;
-use vectorcraft_geom::shapes::{self, CornerKind};
-use vectorcraft_geom::{Affine, PathData, Point, Rect};
+use vansoncraft_color::{BlendMode, Color, GradientGeom, GradientKind, GradientPaint, Paint};
+use vansoncraft_doc::{AppearanceItem, CharStyle, Document, Justify, LineCap, LiveShape, Node, NodeId, NodeKind, StrokeAlign, StrokeLayer, TextKind};
+use vansoncraft_effects::RasterFx;
+use vansoncraft_geom::shapes::{self, CornerKind};
+use vansoncraft_geom::{Affine, PathData, Point, Rect};
 
 use crate::export::sanitize_id;
 use crate::fmt_num;
@@ -96,7 +96,7 @@ pub(crate) fn transparency(n: &Node) -> Props {
 pub(crate) fn font_descriptor(st: &CharStyle) -> (u16, bool) {
     let fs = st.font_style.to_ascii_lowercase();
     let weight =
-        st.font_axes.get("wght").copied().filter(|w| w.is_finite()).unwrap_or_else(|| f64::from(vectorcraft_text::style_weight(&st.font_style)));
+        st.font_axes.get("wght").copied().filter(|w| w.is_finite()).unwrap_or_else(|| f64::from(vansoncraft_text::style_weight(&st.font_style)));
     (weight.round().clamp(1.0, 1000.0) as u16, fs.contains("italic") || fs.contains("oblique"))
 }
 
@@ -114,10 +114,10 @@ fn generic_fallback(family: &str) -> &'static str {
     if GENERIC.iter().any(|g| family.trim().eq_ignore_ascii_case(g)) {
         return "";
     }
-    match vectorcraft_text::FontDb::global().family_traits(family).class {
-        vectorcraft_text::FontClass::Serif => ", serif",
-        vectorcraft_text::FontClass::Monospaced => ", monospace",
-        vectorcraft_text::FontClass::Script => ", cursive",
+    match vansoncraft_text::FontDb::global().family_traits(family).class {
+        vansoncraft_text::FontClass::Serif => ", serif",
+        vansoncraft_text::FontClass::Monospaced => ", monospace",
+        vansoncraft_text::FontClass::Script => ", cursive",
         _ => ", sans-serif",
     }
 }
@@ -539,7 +539,7 @@ impl Rules<'_> {
     /// A stroke as a border: weight, style (dashed; dotted for round dots) and colour.
     fn border(&mut self, s: &StrokeLayer, bounds: Rect, art: &mut Art) {
         // Aligned strokes still draw as borders; arrowheads, profiles, brushes and fitted dashes don't.
-        if !vectorcraft_effects::stroke::is_plain(&StrokeLayer { align: StrokeAlign::Center, ..s.clone() }) {
+        if !vansoncraft_effects::stroke::is_plain(&StrokeLayer { align: StrokeAlign::Center, ..s.clone() }) {
             art.unsupported("arrowheads, width profiles, brushes or dashes fitted to corners");
         }
         let style = match &s.dash {
@@ -596,7 +596,7 @@ impl Rules<'_> {
                 let (dir, angle) = if length > 1e-9 {
                     (v / length, v.x.atan2(-v.y).to_degrees().rem_euclid(360.0))
                 } else {
-                    (vectorcraft_geom::Vec2::new(1.0, 0.0), 90.0)
+                    (vansoncraft_geom::Vec2::new(1.0, 0.0), 90.0)
                 };
                 let line = (b.width() * dir.x).abs() + (b.height() * dir.y).abs();
                 let from = (geom.start - b.center()).dot(dir);
@@ -646,9 +646,9 @@ impl Rules<'_> {
 
     /// Type: its first character style's font, colour and spacing, its paragraph's alignment. The
     /// font size is the em size the characters are drawn at
-    /// ([`vectorcraft_text::FontDb::font_heights_resolved`]).
-    fn type_art(&mut self, n: &Node, t: &vectorcraft_doc::TextObject, art: &mut Art) {
-        let resolved = vectorcraft_text::FontDb::global().font_heights_resolved(t);
+    /// ([`vansoncraft_text::FontDb::font_heights_resolved`]).
+    fn type_art(&mut self, n: &Node, t: &vansoncraft_doc::TextObject, art: &mut Art) {
+        let resolved = vansoncraft_text::FontDb::global().font_heights_resolved(t);
         let t = &*resolved;
         if matches!(t.kind, TextKind::OnPath { .. }) {
             art.unsupported("type on a path");
@@ -657,7 +657,7 @@ impl Rules<'_> {
             art.unsupported("fills or strokes on the type object");
         }
         // Type that Shrink Text to Fit or Dynamic Text scales is written in the styles it draws in.
-        let fitted = vectorcraft_text::drawn(t);
+        let fitted = vansoncraft_text::drawn(t);
         let t = &*fitted;
         let st = t.first_style();
         if t.runs.iter().any(|r| r.style != st) {
@@ -700,12 +700,12 @@ impl Rules<'_> {
     /// shadow with Darkness is left out and the art marked unsupported.
     fn effects(&mut self, n: &Node, text: bool, art: &mut Art) {
         let fx = &n.appearance.effects;
-        if fx.iter().any(|e| e.visible && !vectorcraft_effects::is_raster(&e.id)) {
+        if fx.iter().any(|e| e.visible && !vansoncraft_effects::is_raster(&e.id)) {
             art.unsupported("live effects");
         }
         let mut shadows = vec![];
         let mut filter = None;
-        for f in vectorcraft_effects::raster_effects(fx) {
+        for f in vansoncraft_effects::raster_effects(fx) {
             match f {
                 RasterFx::DropShadow { darkness: Some(_), .. } => art.unsupported("drop shadows with Darkness"),
                 RasterFx::DropShadow { opacity, dx, dy, blur, color, .. } => {
@@ -750,8 +750,8 @@ fn corners(path: &PathData, live: Option<&LiveShape>) -> Option<Corners> {
         {
             // The radii as drawn: no two neighbours' cuts add up to more than their side, so CSS
             // draws them as they are.
-            let base = shapes::rectangle(vectorcraft_geom::Rect::new(0.0, 0.0, *w, *h));
-            let resolved = vectorcraft_doc::corners::resolve_stored_radii(&base, radii, *radii_relative);
+            let base = shapes::rectangle(vansoncraft_geom::Rect::new(0.0, 0.0, *w, *h));
+            let resolved = vansoncraft_doc::corners::resolve_stored_radii(&base, radii, *radii_relative);
             let stored = std::array::from_fn(|i| resolved.get(i).copied().unwrap_or(0.0));
             let radii = shapes::fitted_corner_radii(*w, *h, stored);
             if radii.iter().all(|r| *r <= 0.0) {

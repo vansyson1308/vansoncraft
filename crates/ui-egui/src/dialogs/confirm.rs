@@ -8,7 +8,7 @@
 use serde_json::{Value, json};
 
 use super::DialogSpec;
-use crate::VectorcraftApp;
+use crate::VansoncraftApp;
 use crate::state::Dialog;
 use crate::theme::Tokens;
 
@@ -31,7 +31,7 @@ pub(super) const SPEC: DialogSpec = DialogSpec {
 
 /// Ask `message` (with an optional `detail` line), both in the UI language; OK runs `command`
 /// with `params`.
-pub fn ask(app: &mut VectorcraftApp, message: &str, detail: &str, command: &str, params: Value) {
+pub fn ask(app: &mut VansoncraftApp, message: &str, detail: &str, command: &str, params: Value) {
     let fields = json!({"message": message, "detail": detail, "__command": command, "__params": params});
     app.ui.dialog = Some(Dialog::new(KIND, fields));
 }
@@ -50,12 +50,12 @@ pub(super) const REPLACE_SPEC: DialogSpec = DialogSpec { confirm: |app, d| crate
 /// Ask whether to replace the file at `path`, which the name `typed` in a save panel became when
 /// the app gave it an extension, over the dialog open now (Cancel shows it again). OK runs
 /// [`crate::picks::replace`]; the Enter that closed the save panel does not press it.
-pub(crate) fn ask_replace(app: &mut VectorcraftApp, path: &str, typed: &str) {
-    let name = vectorcraft_engine::cmd::fileio::file_name(path);
-    let typed = vectorcraft_engine::cmd::fileio::file_name(typed);
+pub(crate) fn ask_replace(app: &mut VansoncraftApp, path: &str, typed: &str) {
+    let name = vansoncraft_engine::cmd::fileio::file_name(path);
+    let typed = vansoncraft_engine::cmd::fileio::file_name(typed);
     let message = crate::i18n::fmt(tl!("“{name}” already exists. Replace it?"), &[("name", &name)]);
     let detail = crate::i18n::fmt(
-        tl!("The name in the save panel was “{typed}”; VectorCraft added the file type's extension. Replacing the file overwrites its contents."),
+        tl!("The name in the save panel was “{typed}”; VansonCraft added the file type's extension. Replacing the file overwrites its contents."),
         &[("typed", &typed)],
     );
     let under = app.ui.dialog.take().and_then(|d| serde_json::to_value(d).ok());
@@ -75,12 +75,12 @@ pub(super) const REPLACE_FILES_SPEC: DialogSpec = DialogSpec { confirm: replace_
 /// document `doc` (its uid) writes, which the save panel did not ask about (a file per artboard, a
 /// linked image). OK runs `command` with `params` again on that document, now replacing those
 /// files and `allowed` (those an earlier OK allowed); Cancel writes nothing.
-pub(crate) fn ask_replace_files(app: &mut VectorcraftApp, doc: u64, files: &[String], allowed: &[String], command: &str, params: Value) {
-    let name = files.first().map(|f| vectorcraft_engine::cmd::fileio::file_name(f)).unwrap_or_default();
+pub(crate) fn ask_replace_files(app: &mut VansoncraftApp, doc: u64, files: &[String], allowed: &[String], command: &str, params: Value) {
+    let name = files.first().map(|f| vansoncraft_engine::cmd::fileio::file_name(f)).unwrap_or_default();
     let message = crate::i18n::fmt(tl!("“{name}” already exists. Replace it?"), &[("name", &name)]);
     // Several: every one of them, by name.
     let detail = match files {
-        [_, _, ..] => files.iter().map(|f| vectorcraft_engine::cmd::fileio::file_name(f)).collect::<Vec<_>>().join("\n"),
+        [_, _, ..] => files.iter().map(|f| vansoncraft_engine::cmd::fileio::file_name(f)).collect::<Vec<_>>().join("\n"),
         _ => String::new(),
     };
     let fields =
@@ -97,7 +97,7 @@ pub(crate) fn ask_replace_files(app: &mut VectorcraftApp, doc: u64, files: &[Str
 /// OK on [`ask_replace_files`]: what asked runs again on its document, and the files the question
 /// named are replaced; one it writes now that was not named is asked about again. The save or export
 /// reads the allowance when it starts, before a background one hands its work to the worker.
-fn replace_files(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
+fn replace_files(app: &mut VansoncraftApp, d: &Dialog) -> Result<Value, String> {
     app.ui.dialog = None;
     if !crate::picks::on_document(app, d.fields.get("doc").and_then(Value::as_u64)) {
         return Ok(Value::Null);
@@ -118,7 +118,7 @@ pub(super) const RESET_PREFS_SPEC: DialogSpec = DialogSpec { confirm: reset_pref
 /// Ask whether to reset the preferences, over the Preferences dialog open now. Cancel and Escape
 /// show Preferences again as it was; OK shows it again with every preference at its default value
 /// ([`crate::prefs_dialog::reset_fields`]). Nothing is applied until OK in Preferences.
-pub(crate) fn ask_reset_prefs(app: &mut VectorcraftApp) {
+pub(crate) fn ask_reset_prefs(app: &mut VansoncraftApp) {
     let under = app.ui.dialog.take().and_then(|d| serde_json::to_value(d).ok());
     let message = tl!("Reset all preferences to their defaults?");
     let detail = tl!("The defaults are applied when you click OK in Preferences. Cancel there keeps your current preferences.");
@@ -127,7 +127,7 @@ pub(crate) fn ask_reset_prefs(app: &mut VectorcraftApp) {
 }
 
 /// OK on [`ask_reset_prefs`]: Preferences again, its fields at their defaults.
-fn reset_prefs(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
+fn reset_prefs(app: &mut VansoncraftApp, d: &Dialog) -> Result<Value, String> {
     let mut prefs = super::parent(d).filter(|p| p.kind == "preferences").ok_or("the dialog it was opened over is no longer open")?;
     crate::prefs_dialog::reset_fields(&mut prefs);
     app.ui.dialog = Some(prefs);
@@ -141,7 +141,7 @@ const MAX_WAITING: usize = 16;
 /// they close. While another dialog is open (the message comes from work in the background) it
 /// waits its turn instead of replacing it: neither what the user was doing there nor the message
 /// is lost.
-pub fn tell(app: &mut VectorcraftApp, message: &str, detail: &str) {
+pub fn tell(app: &mut VansoncraftApp, message: &str, detail: &str) {
     let d = Dialog::new(MESSAGE, json!({"message": message, "detail": detail}));
     if app.ui.dialog.is_none() {
         app.ui.dialog = Some(d);
@@ -151,14 +151,14 @@ pub fn tell(app: &mut VectorcraftApp, message: &str, detail: &str) {
 }
 
 /// Show the next message that waited for a dialog to close (each frame).
-pub(super) fn show_waiting(app: &mut VectorcraftApp) {
+pub(super) fn show_waiting(app: &mut VansoncraftApp) {
     if app.ui.dialog.is_none() && !app.ui.told.is_empty() {
         app.ui.dialog = Some(app.ui.told.remove(0));
     }
 }
 
 /// Closes before running, so a dialog the command opens stays open.
-fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
+fn confirm(app: &mut VansoncraftApp, d: &Dialog) -> Result<Value, String> {
     let params = d.fields.get("__params").cloned().unwrap_or_else(|| json!({}));
     app.ui.dialog = None;
     app.run(&d.str("__command"), params)

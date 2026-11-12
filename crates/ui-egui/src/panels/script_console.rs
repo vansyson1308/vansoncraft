@@ -7,9 +7,9 @@
 
 use egui::{Sense, Ui, vec2};
 use serde_json::{Value, json};
-use vectorcraft_engine::script::console::{Console, ConsoleLine, Ending, Entry};
+use vansoncraft_engine::script::console::{Console, ConsoleLine, Ending, Entry};
 
-use crate::VectorcraftApp;
+use crate::VansoncraftApp;
 use crate::theme::Tokens;
 
 pub const ID: &str = "scriptConsole";
@@ -71,7 +71,7 @@ fn notice(c: &Console) -> Option<String> {
 /// (both kept lines; default every line, with the notice of dropped and cut lines first when the
 /// console dropped or cut any) to the clipboard, as the panel shows them → `{lines: n}`, where `n`
 /// does not count the notice.
-pub(crate) fn copy(app: &mut VectorcraftApp, p: &Value) -> Result<Value, String> {
+pub(crate) fn copy(app: &mut VansoncraftApp, p: &Value) -> Result<Value, String> {
     let c = app.session.script_console();
     let start = c.first_number();
     let end = start + c.lines().len() as u64;
@@ -95,7 +95,7 @@ pub(crate) fn copy(app: &mut VectorcraftApp, p: &Value) -> Result<Value, String>
     Ok(json!({"lines": n}))
 }
 
-pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn show(app: &mut VansoncraftApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let c = app.session.script_console();
     let start = c.first_number();
@@ -172,7 +172,7 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
 }
 
 /// The panel menu: Clear, Copy Selected and Copy All.
-pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn menu(app: &mut VansoncraftApp, ui: &mut Ui) {
     let count = app.session.script_console().lines().len();
     let selection: Option<(u64, u64)> = super::pstate(ui.ctx(), SELECTION);
     if crate::widgets::menu_item(ui, tl!("Clear"), count > 0, false) {
@@ -188,7 +188,7 @@ pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui) {
     }
 }
 
-fn run(app: &mut VectorcraftApp, id: &str, params: Value) {
+fn run(app: &mut VansoncraftApp, id: &str, params: Value) {
     if let Err(e) = app.run(id, params) {
         app.ui.status = e;
     }

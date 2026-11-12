@@ -34,9 +34,9 @@ use std::collections::{BinaryHeap, HashSet};
 use std::sync::Arc;
 
 use kurbo::PathEl;
-use vectorcraft_color::Paint;
-use vectorcraft_doc::{AppearanceItem, Document, Node, NodeKind, StrokeLayer, SymbolBoxes};
-use vectorcraft_geom::{Affine, BezPath, FillRule, Point, Rect};
+use vansoncraft_color::Paint;
+use vansoncraft_doc::{AppearanceItem, Document, Node, NodeKind, StrokeLayer, SymbolBoxes};
+use vansoncraft_geom::{Affine, BezPath, FillRule, Point, Rect};
 
 use crate::MAX_NEST;
 use clip::Region;
@@ -63,8 +63,8 @@ const MAX_CLIP_TESTS: u64 = if cfg!(test) { 1_000_000 } else { 200_000_000 };
 /// The most points the clipping masks around an object may hold, together.
 const MAX_MASK_POINTS: usize = if cfg!(test) { 10_000 } else { 10_000_000 };
 /// The most objects live art (blends, envelopes, repeats) may make for a plot, together, as one
-/// evaluation of live art may make ([`vectorcraft_doc::live::MAX_GENERATED`]).
-const MAX_GENERATED: u64 = if cfg!(test) { 1_000 } else { vectorcraft_doc::live::MAX_GENERATED as u64 };
+/// evaluation of live art may make ([`vansoncraft_doc::live::MAX_GENERATED`]).
+const MAX_GENERATED: u64 = if cfg!(test) { 1_000 } else { vansoncraft_doc::live::MAX_GENERATED as u64 };
 
 const TEXT_OUTLINES: &str = "type is plotted as its glyph outlines";
 const INLINE_GRAPHICS: &str = "inline graphics in type are left out";
@@ -218,7 +218,7 @@ pub fn export_regions(doc: &Document, opts: &HpglOptions, regions: &[Rect]) -> R
         d
     });
     let doc = shown.as_ref().unwrap_or(doc);
-    let baked = vectorcraft_effects::bake_document(doc);
+    let baked = vansoncraft_effects::bake_document(doc);
     let doc = baked.as_ref().unwrap_or(doc);
     // Each plot's lines in plotter units, with the points a move doesn't change dropped, and its
     // warnings.
@@ -597,7 +597,7 @@ struct Walk<'a> {
     clip_tests: u64,
     warnings: Vec<String>,
     nest: u32,
-    /// Objects the symbol instances written held, together ([`vectorcraft_doc::MAX_SYMBOL_NODES`]).
+    /// Objects the symbol instances written held, together ([`vansoncraft_doc::MAX_SYMBOL_NODES`]).
     symbol_nodes: u64,
     /// Objects the live art written made, together ([`MAX_GENERATED`]).
     generated: u64,
@@ -675,7 +675,7 @@ impl<'a> Walk<'a> {
         if n.extras().mask.as_ref().is_some_and(|m| !m.disabled) {
             self.warn(MASKS);
         }
-        let raster = |fx: &[vectorcraft_doc::Effect]| fx.iter().any(|e| e.visible && vectorcraft_effects::is_raster(&e.id));
+        let raster = |fx: &[vansoncraft_doc::Effect]| fx.iter().any(|e| e.visible && vansoncraft_effects::is_raster(&e.id));
         if raster(&n.appearance.effects) || n.appearance.items.iter().any(|i| raster(i.effects())) {
             self.warn(RASTER_FX);
         }
@@ -703,7 +703,7 @@ impl<'a> Walk<'a> {
                 if t.runs.iter().any(|r| r.inline.is_some()) {
                     self.warn(INLINE_GRAPHICS);
                 }
-                if let Some(o) = vectorcraft_effects::outline_text(n) {
+                if let Some(o) = vansoncraft_effects::outline_text(n) {
                     self.warn(TEXT_OUTLINES);
                     self.node(&o, true);
                 }
@@ -731,7 +731,7 @@ impl<'a> Walk<'a> {
                     self.warn(LIVE_LEFT_OUT);
                     return;
                 }
-                let art = vectorcraft_effects::expand_live(Some(self.doc), n);
+                let art = vansoncraft_effects::expand_live(Some(self.doc), n);
                 let count = art.iter().map(|c| c.count() as u64).sum::<u64>();
                 if self.generated.saturating_add(count) > MAX_GENERATED {
                     self.generated = MAX_GENERATED;
@@ -750,7 +750,7 @@ impl<'a> Walk<'a> {
     /// A symbol instance's art, placed (clip groups included), within the budget for the export.
     fn symbol(&mut self, n: &Node, symbol: &str, xf: Affine) {
         let doc = self.doc;
-        if self.symbol_nodes >= vectorcraft_doc::MAX_SYMBOL_NODES {
+        if self.symbol_nodes >= vansoncraft_doc::MAX_SYMBOL_NODES {
             self.warn(SYMBOLS_LEFT_OUT);
             return;
         }
@@ -760,10 +760,10 @@ impl<'a> Walk<'a> {
             return;
         }
         // The instance's own changes and its stain, as the canvas draws it.
-        let art = vectorcraft_brush::instance_art(&sym.art, n);
+        let art = vansoncraft_brush::instance_art(&sym.art, n);
         let count = art.count_with_masks() as u64;
         let most = doc.symbol_slice_map(symbol, xf).map_or(count, |m| m.most_placed(&art, doc));
-        let placed = vectorcraft_doc::charge_symbol_art(&mut self.symbol_nodes, most, || {
+        let placed = vansoncraft_doc::charge_symbol_art(&mut self.symbol_nodes, most, || {
             let placed = doc.place_symbol_art(symbol, &art, xf);
             let n = placed.as_ref().map_or(0, |a| a.count_with_masks() as u64);
             (placed, n)
@@ -777,7 +777,7 @@ impl<'a> Walk<'a> {
             }
             Some(None) => {}
             None => {
-                self.symbol_nodes = vectorcraft_doc::MAX_SYMBOL_NODES;
+                self.symbol_nodes = vansoncraft_doc::MAX_SYMBOL_NODES;
                 self.warn(SYMBOLS_LEFT_OUT);
             }
         }
@@ -786,7 +786,7 @@ impl<'a> Walk<'a> {
     /// Placed symbol art with its geometry effects applied: the document's bake reaches the
     /// layers, not the symbols' art.
     fn baked(&mut self, art: Node) -> Node {
-        if !vectorcraft_effects::needs_bake(&art) {
+        if !vansoncraft_effects::needs_bake(&art) {
             return art;
         }
         // Guides and layers left out go first, as for the document's layers.
@@ -794,7 +794,7 @@ impl<'a> Walk<'a> {
         let art = match plotted(std::slice::from_ref(&art), false) {
             Some(mut kept) => match kept.pop() {
                 Some(a) => a,
-                None => return Node::group(vectorcraft_doc::NodeId(0), vec![]),
+                None => return Node::group(vansoncraft_doc::NodeId(0), vec![]),
             },
             None => art,
         };
@@ -806,9 +806,9 @@ impl<'a> Walk<'a> {
             d
         });
         scratch.layers = vec![Arc::new(art)];
-        let baked = vectorcraft_effects::bake_document(scratch).and_then(|b| b.layers.into_iter().next());
+        let baked = vansoncraft_effects::bake_document(scratch).and_then(|b| b.layers.into_iter().next());
         let art = std::mem::take(&mut scratch.layers).into_iter().next();
-        baked.or(art).map(Arc::unwrap_or_clone).unwrap_or_else(|| Node::group(vectorcraft_doc::NodeId(0), vec![]))
+        baked.or(art).map(Arc::unwrap_or_clone).unwrap_or_else(|| Node::group(vansoncraft_doc::NodeId(0), vec![]))
     }
 
     /// A container's children. A clipping container's first child cuts the rest; it is drawn
@@ -829,7 +829,7 @@ impl<'a> Walk<'a> {
         {
             self.node(fill, false);
         }
-        match vectorcraft_effects::clip_outline(first).map(|(bp, rule)| (self.rings(&bp), rule)) {
+        match vansoncraft_effects::clip_outline(first).map(|(bp, rule)| (self.rings(&bp), rule)) {
             Some((Some(rings), rule)) => {
                 let held: usize = rings.iter().map(Vec::len).sum();
                 if let Some(region) = Region::new(rings, rule) {
@@ -938,7 +938,7 @@ impl<'a> Walk<'a> {
         };
         let (made, taken) = (std::cell::Cell::new(0usize), std::cell::Cell::new(0usize));
         let elements = bp.iter().take_while(|_| made.get() < budget).inspect(|_| taken.set(taken.get() + 1));
-        vectorcraft_geom::flatten(elements, self.tolerance, |el| {
+        vansoncraft_geom::flatten(elements, self.tolerance, |el| {
             made.set(made.get() + 1);
             match el {
                 PathEl::MoveTo(p) => {
@@ -1067,7 +1067,7 @@ fn plotted(nodes: &[Arc<Node>], clipping: bool) -> Option<Vec<Arc<Node>>> {
 /// The symbols of `doc` whose art holds geometry effects, and those whose art holds instances of
 /// them, as deep as symbols are drawn ([`MAX_NEST`]).
 fn effect_symbols(doc: &Document) -> HashSet<String> {
-    let mut set: HashSet<String> = doc.symbols.iter().filter(|s| vectorcraft_effects::needs_bake(&s.art)).map(|s| s.name.clone()).collect();
+    let mut set: HashSet<String> = doc.symbols.iter().filter(|s| vansoncraft_effects::needs_bake(&s.art)).map(|s| s.name.clone()).collect();
     for _ in 0..MAX_NEST {
         if set.is_empty() {
             break;
@@ -1090,7 +1090,7 @@ fn holds_instance_of(n: &Node, symbols: &HashSet<String>) -> bool {
     }
 }
 
-fn rgb8(c: &vectorcraft_color::Color) -> [u8; 3] {
+fn rgb8(c: &vansoncraft_color::Color) -> [u8; 3] {
     let [r, g, b, _] = c.to_rgba8(1.0);
     [r, g, b]
 }
@@ -1103,7 +1103,7 @@ fn average(colors: impl Iterator<Item = [u8; 3]>) -> [u8; 3] {
 
 /// The first visible solid fill color in `n` (a pattern tile's art), hidden objects and objects
 /// or fills at 0% opacity left out.
-fn first_solid(n: &Node) -> Option<vectorcraft_color::Color> {
+fn first_solid(n: &Node) -> Option<vansoncraft_color::Color> {
     if !n.visible || n.opacity <= 0.0 {
         return None;
     }

@@ -2,9 +2,9 @@
 //! (reverse) and Shift+Alt-click (append), image pixels, colour models and the preference.
 
 use serde_json::json;
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::{ImageBlob, ImageObject, Justify, LineCap, Node, NodeKind};
-use vectorcraft_tools::{Mods, PointerEvent, PointerKind};
+use vansoncraft_color::{Color, Paint};
+use vansoncraft_doc::{ImageBlob, ImageObject, Justify, LineCap, Node, NodeKind};
+use vansoncraft_tools::{Mods, PointerEvent, PointerKind};
 
 use crate::*;
 
@@ -254,13 +254,13 @@ fn scaled_type_pick_matches_effective_character_dimensions() {
 }
 
 /// A text object snapshot, including the local attributes and retained affine transform.
-fn sampled_type(s: &Session, id: NodeId) -> vectorcraft_doc::TextObject {
+fn sampled_type(s: &Session, id: NodeId) -> vansoncraft_doc::TextObject {
     let NodeKind::Text(t) = node(s, id).kind else { panic!("not text") };
     *t
 }
 
 /// Compare the dimensional character attributes that text controls display in document units.
-fn assert_sampled_dimensions(actual: &vectorcraft_doc::CharStyle, expected: &vectorcraft_doc::CharStyle) {
+fn assert_sampled_dimensions(actual: &vansoncraft_doc::CharStyle, expected: &vansoncraft_doc::CharStyle) {
     assert_eq!(actual.leading.is_some(), expected.leading.is_some());
     for (a, e) in [
         (actual.size, expected.size),
@@ -300,8 +300,8 @@ fn scaled_type_pick_preserves_affines_and_document_dimensions() {
         assert_sampled_dimensions(&after.effective_char_style(&after.first_style()).unwrap(), &expected);
         assert_eq!(after.xf, before.xf);
         assert_eq!(sampled_type(&s, src), src_text);
-        let bytes = vectorcraft_format::save_file(&s.doc().unwrap().doc);
-        let reopened = vectorcraft_format::load(&bytes).unwrap();
+        let bytes = vansoncraft_format::save_file(&s.doc().unwrap().doc);
+        let reopened = vansoncraft_format::load(&bytes).unwrap();
         let NodeKind::Text(t) = &reopened.node(dst).unwrap().kind else { panic!("not text") };
         assert_sampled_dimensions(&t.effective_char_style(&t.first_style()).unwrap(), &expected);
     }
@@ -567,7 +567,7 @@ fn clicking_an_image_samples_its_pixel() {
         d.images.insert("px".into(), ImageBlob::png(png));
         let l = d.layers[0].id;
         let id = d.alloc_id();
-        let xf = vectorcraft_geom::Affine::translate((300.0, 0.0)) * vectorcraft_geom::Affine::scale(100.0);
+        let xf = vansoncraft_geom::Affine::translate((300.0, 0.0)) * vansoncraft_geom::Affine::scale(100.0);
         let im = ImageObject { key: "px".into(), width: 2, height: 1, xf, link: None, placement: Default::default(), pixels: None };
         d.insert(Some(l), 0, Node::new(id, NodeKind::Image(Box::new(im)))).map_err(|e| crate::EngineError::Other(e.to_string()))
     })
@@ -593,7 +593,7 @@ fn cmyk_doc_with_image(px: &[[u8; 4]]) -> Session {
         d.images.insert("px".into(), ImageBlob::png(png));
         let l = d.layers[0].id;
         let id = d.alloc_id();
-        let xf = vectorcraft_geom::Affine::translate((300.0, 0.0)) * vectorcraft_geom::Affine::scale(100.0);
+        let xf = vansoncraft_geom::Affine::translate((300.0, 0.0)) * vansoncraft_geom::Affine::scale(100.0);
         let im = ImageObject { key: "px".into(), width: w, height: 1, xf, link: None, placement: Default::default(), pixels: None };
         d.insert(Some(l), 0, Node::new(id, NodeKind::Image(Box::new(im)))).map_err(|e| crate::EngineError::Other(e.to_string()))
     })
@@ -603,8 +603,8 @@ fn cmyk_doc_with_image(px: &[[u8; 4]]) -> Session {
 
 /// The CMYK color the color settings separate `rgb` into (with their intent).
 fn managed_cmyk(rgb: Color) -> Color {
-    let cms = vectorcraft_color::cms::active();
-    cms.convert(&rgb, vectorcraft_color::cms::Model::Cmyk, cms.settings().intent)
+    let cms = vansoncraft_color::cms::active();
+    cms.convert(&rgb, vansoncraft_color::cms::Model::Cmyk, cms.settings().intent)
 }
 
 /// #2276: an RGB image's pixel sampled into a CMYK document separates through the color
@@ -625,8 +625,8 @@ fn an_rgb_image_sampled_in_a_cmyk_document_separates_through_the_color_settings(
     let got = node(&s, dst).appearance.fill_paint().color().unwrap();
     assert!(matches!(got, Color::Cmyk { .. }), "{got:?}");
     let light = Color::rgb8(224, 238, 255);
-    let off = |c: Color| vectorcraft_color::cms::delta_e2000(c.to_lab(), light.to_lab());
-    let naive = light.in_model(vectorcraft_color::cms::Model::Cmyk);
+    let off = |c: Color| vansoncraft_color::cms::delta_e2000(c.to_lab(), light.to_lab());
+    let naive = light.in_model(vansoncraft_color::cms::Model::Cmyk);
     assert!(off(got) < 2.0, "{} is ΔE {} from #e0eeff ({} at ΔE {} before)", got.to_hex(), off(got), naive.to_hex(), off(naive));
 }
 
@@ -815,9 +815,9 @@ fn rgb_gradient_and_mesh_colors_given_to_a_cmyk_document_separate_through_the_co
     assert_eq!(colors(&s)[1], blue);
     // New stops recolor the three points from their CMYK values.
     s.execute("paint.editGradient", &json!({"stops": [{"offset": 0, "color": "#ffffff"}, {"offset": 1, "color": "#ff0000"}]})).unwrap();
-    let stored = vectorcraft_color::Gradient::new(
+    let stored = vansoncraft_color::Gradient::new(
         Default::default(),
-        vec![vectorcraft_color::GradientStop::new(0.0, managed_cmyk(Color::WHITE)), vectorcraft_color::GradientStop::new(1.0, red)],
+        vec![vansoncraft_color::GradientStop::new(0.0, managed_cmyk(Color::WHITE)), vansoncraft_color::GradientStop::new(1.0, red)],
     );
     // The points mix in the model the stops share (#2829): CMYK here.
     assert_eq!(colors(&s), [0.0, 0.5, 1.0].map(|t| stored.sample_with(t, Color::lerp_keep_model).0), "{:?}", colors(&s));
@@ -1065,7 +1065,7 @@ fn eyedropper_shift_color_preserves_other_characters_and_clears_on_deselect() {
     assert_eq!(t.runs[2].style, before.first_style());
     assert_eq!(t.runs[1].style.fill.color().unwrap().to_hex(), "#00ff00");
     assert_eq!(t.runs[1].style.size, before.first_style().size);
-    assert!(s.overlays(view).iter().any(|o| matches!(o, vectorcraft_tools::Overlay::Highlight { .. })), "the highlighted range remains visible");
+    assert!(s.overlays(view).iter().any(|o| matches!(o, vansoncraft_tools::Overlay::Highlight { .. })), "the highlighted range remains visible");
     s.execute("select.none", &json!({})).unwrap();
     assert!(s.tool_options().get("editing").is_none_or(Value::is_null));
     s.execute("select.set", &json!({"ids": [dst.0]})).unwrap();

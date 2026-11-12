@@ -4,10 +4,10 @@
 //! colours replaced by them as one undo step (#4923).
 
 use serde_json::{Value, json};
-use vectorcraft_color::cms::{Lab, delta_e2000};
-use vectorcraft_color::{Color, Paint, Swatch};
-use vectorcraft_doc::swatches::color_name;
-use vectorcraft_doc::{Document, NodeId, NodeKind};
+use vansoncraft_color::cms::{Lab, delta_e2000};
+use vansoncraft_color::{Color, Paint, Swatch};
+use vansoncraft_doc::swatches::color_name;
+use vansoncraft_doc::{Document, NodeId, NodeKind};
 
 use super::super::super::colorcmds::recolor_links;
 use super::super::super::menucmds::squash;

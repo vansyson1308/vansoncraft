@@ -4,16 +4,16 @@ use std::sync::Arc;
 
 use egui::{Event, Key, Modifiers, PointerButton, Pos2, Rect, vec2};
 use serde_json::json;
-use vectorcraft_doc::{Document, Selection};
-use vectorcraft_engine::Session;
-use vectorcraft_geom::Point;
+use vansoncraft_doc::{Document, Selection};
+use vansoncraft_engine::Session;
+use vansoncraft_geom::Point;
 
-use crate::{VectorcraftApp, canvas::Xf};
+use crate::{VansoncraftApp, canvas::Xf};
 
 const SELECTION_TOOLS: [&str; 3] = ["selection", "directSelection", "groupSelection"];
 
 struct GuideDrag {
-    app: VectorcraftApp,
+    app: VansoncraftApp,
     ctx: egui::Context,
     time: f64,
     vertical: bool,
@@ -33,7 +33,7 @@ struct GuideDrag {
 
 impl GuideDrag {
     fn new(tool: &'static str, vertical: bool, copy: bool, borrowed: bool) -> Self {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.run("file.new", json!({"width":400,"height":300})).unwrap();
         app.run("view.guides.lock", json!({"locked":false})).unwrap();
         app.run("shape.rectangle", json!({"x":20,"y":20,"width":20,"height":20})).unwrap();
@@ -90,7 +90,7 @@ impl GuideDrag {
         let point = |at| if vertical { Point::new(at, 60.0) } else { Point::new(60.0, at) };
         (f.from, f.to, f.end) = (xf.to_screen(point(100.0)), xf.to_screen(point(140.0)), xf.to_screen(point(160.0)));
         assert!([f.from, f.to, f.end].into_iter().all(|p| rect.contains(p)));
-        assert_eq!(vectorcraft_engine::cmd::guide_indexes(&f.before, &f.selection.guides), vec![0, 1]);
+        assert_eq!(vansoncraft_engine::cmd::guide_indexes(&f.before, &f.selection.guides), vec![0, 1]);
         f.app.session.active_mut().unwrap().mark_saved();
         f.unchanged();
         f
@@ -140,7 +140,7 @@ impl GuideDrag {
     }
 
     fn guides_at_target(&self) {
-        let line = |g: &vectorcraft_doc::Guide| (g.vertical, g.pos, g.artboard, g.layer);
+        let line = |g: &vansoncraft_doc::Guide| (g.vertical, g.pos, g.artboard, g.layer);
         let before: Vec<_> = self.before.ruler_guides().iter().map(line).collect();
         let mut moved = before.clone();
         for guide in &mut moved {
@@ -151,18 +151,18 @@ impl GuideDrag {
         let expected = if self.copy { before.into_iter().chain(moved).collect::<Vec<_>>() } else { moved };
         let st = self.app.session.active().unwrap();
         assert_eq!(st.doc.ruler_guides().iter().map(line).collect::<Vec<_>>(), expected);
-        let art = |d: &vectorcraft_doc::Document| {
+        let art = |d: &vansoncraft_doc::Document| {
             d.layers
                 .iter()
                 .map(|l| {
-                    let mut l = vectorcraft_doc::Node::clone(l);
+                    let mut l = vansoncraft_doc::Node::clone(l);
                     l.strip_ruler_guides();
                     l
                 })
                 .collect::<Vec<_>>()
         };
         assert_eq!(art(&st.doc), art(&self.before));
-        let selected = vectorcraft_engine::cmd::guide_indexes(&st.doc, &st.selection.guides);
+        let selected = vansoncraft_engine::cmd::guide_indexes(&st.doc, &st.selection.guides);
         assert_eq!(selected, if self.copy { vec![2, 3] } else { vec![0, 1] });
     }
 

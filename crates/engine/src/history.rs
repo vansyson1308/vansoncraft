@@ -28,7 +28,7 @@ pub struct HistoryEntry {
     /// A number no other step takes ([`History::step`]).
     serial: u64,
     /// Original and converted new-art colors, only for steps that change document color mode.
-    pub(crate) color_mode_paints: Option<(vectorcraft_tools::PaintDefaults, vectorcraft_tools::PaintDefaults)>,
+    pub(crate) color_mode_paints: Option<(vansoncraft_tools::PaintDefaults, vansoncraft_tools::PaintDefaults)>,
     /// Owned new-art snapshots included in both directional estimates.
     color_mode_bytes: usize,
 }
@@ -66,7 +66,7 @@ pub struct NamedStep {
     pub template: &'static str,
     /// The name in the placeholder, as the document holds it (a style's name).
     pub name: String,
-    /// The name is one VectorCraft gives (`[Normal Character Style]`), not one the user typed.
+    /// The name is one VansonCraft gives (`[Normal Character Style]`), not one the user typed.
     pub built_in: bool,
 }
 
@@ -130,11 +130,11 @@ impl HistoryEntry {
 
     /// Recount the separately owned paints after a color-mode step or group changes them.
     pub(crate) fn recost_paints(&mut self) {
-        let owned = |p: &vectorcraft_tools::PaintDefaults| {
-            std::mem::size_of::<vectorcraft_tools::PaintDefaults>()
-                + vectorcraft_doc::paint_heap_bytes(&p.fill)
-                + vectorcraft_doc::paint_heap_bytes(&p.stroke)
-                + p.appearance.as_ref().map_or(0, vectorcraft_doc::appearance_heap_bytes)
+        let owned = |p: &vansoncraft_tools::PaintDefaults| {
+            std::mem::size_of::<vansoncraft_tools::PaintDefaults>()
+                + vansoncraft_doc::paint_heap_bytes(&p.fill)
+                + vansoncraft_doc::paint_heap_bytes(&p.stroke)
+                + p.appearance.as_ref().map_or(0, vansoncraft_doc::appearance_heap_bytes)
                 + p.style.as_ref().map_or(0, String::capacity)
         };
         let bytes = self.color_mode_paints.as_ref().map_or(0, |(before, after)| owned(before).saturating_add(owned(after)));
@@ -414,14 +414,14 @@ impl crate::Session {
 
 /// The default [`History::byte_budget`] and [`Session::history_budget`](crate::Session::history_budget),
 /// which the open documents' histories share: a quarter of the installed memory, or on Linux of the
-/// process's cgroup memory limit where that is lower ([`vectorcraft_render::physical_memory`], see
+/// process's cgroup memory limit where that is lower ([`vansoncraft_render::physical_memory`], see
 /// [`history_budget_for`]); 1 GiB where the installed memory can't be read, and 256 MiB on the web.
 pub fn default_history_budget() -> usize {
     if cfg!(target_arch = "wasm32") {
         return 256 << 20;
     }
     static BUDGET: std::sync::OnceLock<usize> = std::sync::OnceLock::new();
-    *BUDGET.get_or_init(|| history_budget_for(vectorcraft_render::physical_memory()))
+    *BUDGET.get_or_init(|| history_budget_for(vansoncraft_render::physical_memory()))
 }
 
 /// The default [`History::byte_budget`] for a reading of `memory` bytes installed: a quarter of it,

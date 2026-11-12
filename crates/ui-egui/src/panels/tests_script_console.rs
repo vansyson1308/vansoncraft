@@ -3,21 +3,21 @@
 //! through `ui.copyScriptConsole`.
 
 use serde_json::json;
-use vectorcraft_engine::Session;
+use vansoncraft_engine::Session;
 
 use super::pstate;
 use super::script_console::{DRAWN, ID, show, shown};
 use crate::tests_labels::painted_text;
-use crate::{Services, VectorcraftApp, script_runs};
+use crate::{Services, VansoncraftApp, script_runs};
 
-fn app() -> VectorcraftApp {
-    let mut app = VectorcraftApp::new(Session::new(), Services::default());
+fn app() -> VansoncraftApp {
+    let mut app = VansoncraftApp::new(Session::new(), Services::default());
     app.run("file.new", json!({})).unwrap();
     app
 }
 
 /// Runs `source` to its end, a frame at a time, as the app does.
-fn run(app: &mut VectorcraftApp, source: &str) {
+fn run(app: &mut VansoncraftApp, source: &str) {
     app.session.script_frames = true;
     app.run("script.run", json!({"source": source, "name": "c.js"})).unwrap();
     for _ in 0..10_000 {
@@ -33,7 +33,7 @@ fn run(app: &mut VectorcraftApp, source: &str) {
 fn a_full_console_lays_out_only_the_rows_in_view() {
     let mut app = app();
     run(&mut app, "for (var i = 0; i < 3000; i++) $.writeln('line ' + i)");
-    assert_eq!(app.session.script_console().lines().len(), vectorcraft_engine::script::console::MAX_CONSOLE_LINES);
+    assert_eq!(app.session.script_console().lines().len(), vansoncraft_engine::script::console::MAX_CONSOLE_LINES);
     let ctx = egui::Context::default();
     crate::theme::install_fonts(&ctx);
     let mut drawn = 0;
@@ -101,7 +101,7 @@ fn copy_all_and_copy_selected_put_the_lines_on_the_clipboard() {
 /// without a clock, one host call in the singular, and the slowest commands.
 #[test]
 fn a_report_line_reads_as_script_console_gives_it() {
-    use vectorcraft_engine::script::console::{ConsoleLine, Entry, Slow};
+    use vansoncraft_engine::script::console::{ConsoleLine, Entry, Slow};
     let slow = vec![Slow { id: "a.b".into(), calls: 2, total_ms: 7, max_ms: 4 }, Slow { id: "c".into(), calls: 1, total_ms: 1, max_ms: 1 }];
     for ms in [None, Some(0), Some(12)] {
         for host_calls in [0, 1, 2] {
@@ -130,7 +130,7 @@ fn the_notice_counts_one_line_in_the_singular() {
     ] {
         let mut app = app();
         // A run adds a start, an end and a report line to its output lines.
-        let lines = if dropped > 0 { vectorcraft_engine::script::console::MAX_CONSOLE_LINES - 3 + dropped } else { cut + 1 };
+        let lines = if dropped > 0 { vansoncraft_engine::script::console::MAX_CONSOLE_LINES - 3 + dropped } else { cut + 1 };
         let source = format!("var big = 'x'; while (big.length < 5000) big += big; for (var i = 0; i < {lines}; i++) $.writeln(i < {cut} ? big : i)");
         run(&mut app, &source);
         let c = app.session.script_console();

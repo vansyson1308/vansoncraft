@@ -9,7 +9,7 @@
 
 use std::ops::Range;
 
-use vectorcraft_geom::{BezPath, FillRule, PathData, Point, Rect};
+use vansoncraft_geom::{BezPath, FillRule, PathData, Point, Rect};
 
 use crate::solid::{Face3, extrude_faces, inflate_faces, plane_faces};
 use crate::{Extrude, Inflate, MAX_SOLID_FACES, Revolve, V3, View, finite, perspective_scale};

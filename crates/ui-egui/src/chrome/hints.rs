@@ -1,5 +1,5 @@
 use super::status_bar::{ANIMATED_ZOOM_HINT, clipped_label};
-use super::{Cow, Sense, Stroke, Tokens, Ui, VectorcraftApp, menus, theme, vec2, widgets};
+use super::{Cow, Sense, Stroke, Tokens, Ui, VansoncraftApp, menus, theme, vec2, widgets};
 
 fn hint_for(tool: &str) -> Option<&'static [(&'static str, bool)]> {
     Some(match tool {
@@ -183,7 +183,7 @@ fn hint_for(tool: &str) -> Option<&'static [(&'static str, bool)]> {
 /// can insist a complete language covers them.
 pub fn hint_strings() -> Vec<&'static str> {
     let mut v = Vec::new();
-    for tool in vectorcraft_tools::catalog::all_tools().map(|t| t.id).chain([ANIMATED_ZOOM_HINT]) {
+    for tool in vansoncraft_tools::catalog::all_tools().map(|t| t.id).chain([ANIMATED_ZOOM_HINT]) {
         for &(text, bold) in hint_for(tool).unwrap_or(&[]) {
             let text = if bold { text.rsplit_once('+').map_or(text, |(_, k)| k) } else { text };
             if !text.is_empty() && !text.chars().all(|c| c.is_ascii_digit()) && !v.contains(&text) {
@@ -226,7 +226,7 @@ pub(super) fn hint_segments(tool: &str) -> Vec<(Cow<'static, str>, bool)> {
         .collect()
 }
 
-pub fn hint_bar(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn hint_bar(app: &mut VansoncraftApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let panel = egui::Panel::bottom("hint_bar")
         .exact_size(28.0)

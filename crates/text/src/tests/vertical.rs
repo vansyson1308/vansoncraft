@@ -2,8 +2,8 @@
 //! Japanese text only with craft-fonts' faces, skipped without them).
 use crate::*;
 use kurbo::Shape;
-use vectorcraft_doc::{AreaFit, CharStyle, Justify, TextKind, TextRun};
-use vectorcraft_geom::PathData;
+use vansoncraft_doc::{AreaFit, CharStyle, Justify, TextKind, TextRun};
+use vansoncraft_geom::PathData;
 
 fn vertical(text: &str) -> TextObject {
     vertical_styled(text, CharStyle { size: 20.0, ..CharStyle::default() })
@@ -185,7 +185,7 @@ fn type_on_a_path_stays_horizontal() {
 }
 
 /// `text` in vertical type on a straight path from `from` to `to`, with path effect `effect`.
-fn on_vertical_path(text: &str, from: (f64, f64), to: (f64, f64), effect: vectorcraft_doc::PathEffect) -> TextObject {
+fn on_vertical_path(text: &str, from: (f64, f64), to: (f64, f64), effect: vansoncraft_doc::PathEffect) -> TextObject {
     let mut t = vertical(text);
     t.kind = TextKind::OnPath { path: PathData::from_bezpath(&kurbo::Line::new(from, to).to_path(0.1)), start: 0.0, end: None };
     t.path_effect = effect;
@@ -207,7 +207,7 @@ fn top_and_ahead(l: &TextLayout, i: usize) -> (Vec2, Vec2) {
 /// the glyphs' axes fixed on the page keep that relation only on a path that runs to the right.
 #[test]
 fn on_a_vertical_path_letters_lie_a_quarter_turn_clockwise_from_upright_glyphs() {
-    use vectorcraft_doc::PathEffect;
+    use vansoncraft_doc::PathEffect;
     for to in [(0.0, 1000.0), (0.0, -1000.0), (1000.0, 0.0), (-1000.0, 0.0), (700.0, 700.0)] {
         let l = layout(FontDb::global(), &on_vertical_path("§L", (0.0, 0.0), to, PathEffect::Rainbow));
         let tangent = Vec2::new(to.0, to.1) / Vec2::new(to.0, to.1).hypot();
@@ -244,7 +244,7 @@ fn on_a_vertical_path_letters_lie_a_quarter_turn_clockwise_from_upright_glyphs()
 /// the path without overlapping where the effect keeps them square to it.
 #[test]
 fn on_a_vertical_path_letters_keep_the_horizontal_path_pose() {
-    use vectorcraft_doc::PathEffect;
+    use vansoncraft_doc::PathEffect;
     for effect in [PathEffect::Rainbow, PathEffect::Skew, PathEffect::Ribbon3d, PathEffect::StairStep, PathEffect::Gravity] {
         for to in [(1000.0, 0.0), (-1000.0, 0.0), (700.0, 300.0)] {
             let mut vertical = on_vertical_path("LLl", (0.0, 0.0), to, effect);
@@ -274,7 +274,7 @@ fn on_a_vertical_path_letters_keep_the_horizontal_path_pose() {
 /// a path running any way.
 #[test]
 fn on_a_vertical_path_the_column_is_centered_on_the_path() {
-    use vectorcraft_doc::PathEffect;
+    use vansoncraft_doc::PathEffect;
     let Some(face) = FontDb::global().face("Source Sans 3", "Regular") else { panic!("the bundled face") };
     let (em, centre) = (face.units_per_em(), face.ideographic_centre());
     for to in [(0.0, 1000.0), (0.0, -1000.0), (1000.0, 0.0), (-700.0, 700.0)] {
@@ -300,7 +300,7 @@ fn on_a_vertical_path_the_column_is_centered_on_the_path() {
 /// path, as the glyphs do.
 #[test]
 fn on_a_vertical_path_the_caret_and_selection_span_the_column() {
-    use vectorcraft_doc::PathEffect;
+    use vansoncraft_doc::PathEffect;
     for to in [(0.0, 1000.0), (1000.0, 0.0), (-700.0, 700.0)] {
         let l = layout(FontDb::global(), &on_vertical_path("§L§", (0.0, 0.0), to, PathEffect::Rainbow));
         let tangent = Vec2::new(to.0, to.1) / Vec2::new(to.0, to.1).hypot();
@@ -367,7 +367,7 @@ fn on_a_downward_vertical_path_glyphs_sit_where_vertical_point_type_sets_them() 
 /// the page and its baseline along the tangent.
 #[test]
 fn on_a_curved_vertical_path_skew_keeps_the_axis_across_the_path_upright() {
-    use vectorcraft_doc::PathEffect;
+    use vansoncraft_doc::PathEffect;
     let mut arc = kurbo::BezPath::new();
     arc.move_to((0.0, 0.0));
     arc.curve_to((40.0, 0.0), (80.0, 40.0), (80.0, 120.0));
@@ -412,7 +412,7 @@ fn a_tate_chu_yoko_block_of_mixed_sizes_shares_its_first_characters_em() {
 /// effect on a path running any way.
 #[test]
 fn on_a_vertical_path_tate_chu_yoko_settings_keep_their_directions() {
-    use vectorcraft_doc::PathEffect;
+    use vansoncraft_doc::PathEffect;
     for effect in [PathEffect::Rainbow, PathEffect::Skew, PathEffect::Ribbon3d, PathEffect::StairStep, PathEffect::Gravity] {
         for to in [(1000.0, 0.0), (-1000.0, 0.0), (0.0, 1000.0), (-700.0, -700.0)] {
             let at = |up: f64, right: f64| {
@@ -437,7 +437,7 @@ fn on_a_vertical_path_tate_chu_yoko_settings_keep_their_directions() {
 /// read across the column, their tops toward the path's start, centered on the column.
 #[test]
 fn on_a_vertical_path_tate_chu_yoko_stands_upright() {
-    use vectorcraft_doc::PathEffect;
+    use vansoncraft_doc::PathEffect;
     for to in [(0.0, 1000.0), (0.0, -1000.0), (1000.0, 0.0)] {
         let l = layout(FontDb::global(), &on_vertical_path("§12§", (0.0, 0.0), to, PathEffect::Rainbow));
         assert!(l.glyphs[1].outline.elements().len() > 1, "{to:?}: the 1 draws");
@@ -929,7 +929,7 @@ fn upright_glyphs_follow_the_fonts_vertical_metrics() {
 /// Needs a font with full-width Japanese punctuation (skipped without one).
 #[test]
 fn mojikumi_halves_line_end_and_consecutive_punctuation() {
-    use vectorcraft_doc::Mojikumi;
+    use vansoncraft_doc::Mojikumi;
     let lay = |text: &str, m: Mojikumi, vertical_type: bool| {
         let mut t = TextObject::point(Point::ZERO, text, CharStyle { size: 20.0, ..CharStyle::default() });
         t.xf = Affine::IDENTITY;
@@ -970,7 +970,7 @@ fn mojikumi_halves_line_end_and_consecutive_punctuation() {
 /// none with Mojikumi None. Needs a font with full-width Japanese (skipped without one).
 #[test]
 fn mojikumi_spaces_japanese_from_latin_by_a_quarter_em() {
-    use vectorcraft_doc::Mojikumi;
+    use vansoncraft_doc::Mojikumi;
     let lay = |text: &str, m: Mojikumi, vertical_type: bool| {
         let mut t = TextObject::point(Point::ZERO, text, CharStyle { size: 20.0, ..CharStyle::default() });
         t.xf = Affine::IDENTITY;
@@ -1005,8 +1005,8 @@ fn mojikumi_spaces_japanese_from_latin_by_a_quarter_em() {
 /// list markers too.
 #[test]
 fn mojikumi_applies_only_to_japanese_punctuation_and_letters() {
-    use vectorcraft_doc::Mojikumi;
-    use vectorcraft_doc::text::{Bullet, ParaList};
+    use vansoncraft_doc::Mojikumi;
+    use vansoncraft_doc::text::{Bullet, ParaList};
     let styled = |text: &str, m: Mojikumi| {
         let mut t = TextObject::point(Point::ZERO, text, CharStyle { size: 20.0, ..CharStyle::default() });
         t.xf = Affine::IDENTITY;
@@ -1038,7 +1038,7 @@ fn mojikumi_applies_only_to_japanese_punctuation_and_letters() {
 /// Japanese punctuation (skipped without one).
 #[test]
 fn mojikumi_sets_an_opening_bracket_flush_at_the_start_of_a_wrapped_line() {
-    use vectorcraft_doc::Mojikumi;
+    use vansoncraft_doc::Mojikumi;
     // 20 pt type in a frame three and a half ems across the lines.
     let lay = |text: &str, m: Mojikumi, vertical_type: bool| {
         let mut t = TextObject::point(Point::ZERO, text, CharStyle { size: 20.0, ..CharStyle::default() });
@@ -1084,7 +1084,7 @@ fn mojikumi_sets_an_opening_bracket_flush_at_the_start_of_a_wrapped_line() {
 #[test]
 fn mojikumi_line_end_half_width_counts_when_a_line_breaks() {
     use crate::test_fonts::{FULL_WIDTH_FAMILY, full_width_font};
-    use vectorcraft_doc::{Burasagari, Composer, Kinsoku, KinsokuShoriType, Mojikumi};
+    use vansoncraft_doc::{Burasagari, Composer, Kinsoku, KinsokuShoriType, Mojikumi};
     let db = FontDb::with_font_dirs(vec![]);
     db.add_font(full_width_font().expect("test font"));
     let lay = |text: &str, m: Mojikumi, composer: Composer, burasagari: Burasagari, vertical_type: bool, measure: f64| {
@@ -1153,7 +1153,7 @@ fn mojikumi_line_end_half_width_counts_when_a_line_breaks() {
 #[test]
 fn mojikumi_narrows_a_lines_first_word_when_looking_for_room() {
     use crate::test_fonts::{FULL_WIDTH_FAMILY, full_width_font};
-    use vectorcraft_doc::{Composer, Kinsoku, KinsokuShoriType, Mojikumi, TextWrap, WrapShape};
+    use vansoncraft_doc::{Composer, Kinsoku, KinsokuShoriType, Mojikumi, TextWrap, WrapShape};
     let db = FontDb::with_font_dirs(vec![]);
     db.add_font(full_width_font().expect("test font"));
     // The top 40 pt of the frame are `top` wide, the rest 200: an L-shaped frame, or a rectangle
@@ -1253,7 +1253,7 @@ fn placed_lines(l: &TextLayout, text: &str) -> Vec<(f64, String)> {
 /// Japanese punctuation (skipped without one).
 #[test]
 fn burasagari_hangs_a_comma_or_full_stop_outside_the_line() {
-    use vectorcraft_doc::{Burasagari, Mojikumi};
+    use vansoncraft_doc::{Burasagari, Mojikumi};
     // 20 pt type, justified, in a frame five ems along the lines.
     let lay = |text: &str, b: Burasagari, vertical_type: bool| {
         let mut t = TextObject::point(Point::ZERO, text, CharStyle { size: 20.0, ..CharStyle::default() });
@@ -1313,7 +1313,7 @@ fn burasagari_hangs_a_comma_or_full_stop_outside_the_line() {
 /// Horizontal and vertical. Needs a font with full-width Japanese (skipped without one).
 #[test]
 fn kinsoku_set_decides_whether_a_small_kana_may_start_a_line() {
-    use vectorcraft_doc::Kinsoku;
+    use vansoncraft_doc::Kinsoku;
     let lay = |text: &str, k: Kinsoku, vertical_type: bool| {
         let mut t = TextObject::point(Point::ZERO, text, CharStyle { size: 20.0, ..CharStyle::default() });
         t.xf = Affine::IDENTITY;
@@ -1344,7 +1344,7 @@ fn kinsoku_set_decides_whether_a_small_kana_may_start_a_line() {
 /// without one).
 #[test]
 fn kinsoku_shori_type_pushes_a_closing_bracket_in_or_out() {
-    use vectorcraft_doc::KinsokuShoriType;
+    use vansoncraft_doc::KinsokuShoriType;
     let text = "一二三四五六七八九十一二三四五」六";
     let lay = |ty: KinsokuShoriType, justify: Justify, vertical_type: bool| {
         let mut t = TextObject::point(Point::ZERO, text, CharStyle { size: 20.0, ..CharStyle::default() });
@@ -1394,7 +1394,7 @@ fn kinsoku_shori_type_pushes_a_closing_bracket_in_or_out() {
 /// craft-fonts' Shippori Mincho (skipped without it).
 #[test]
 fn kinsoku_shori_type_closes_a_column_by_the_em_down_the_column() {
-    use vectorcraft_doc::KinsokuShoriType;
+    use vansoncraft_doc::KinsokuShoriType;
     if FontDb::global().face("Shippori Mincho", "Regular").is_none_or(|f| f.family != "Shippori Mincho") {
         eprintln!("skipped: built without craft-fonts (set CRAFT_FONTS_DIR to a craft-fonts checkout to run it)");
         return;
@@ -1425,7 +1425,7 @@ fn kinsoku_shori_type_closes_a_column_by_the_em_down_the_column() {
 /// keeps today's cells. Needs craft-fonts' Shippori Mincho (skipped without it).
 #[test]
 fn proportional_metrics_set_upright_glyphs_on_their_proportional_heights() {
-    use vectorcraft_doc::Mojikumi;
+    use vansoncraft_doc::Mojikumi;
     let lay = |text: &str, font: &str, on: bool, m: Mojikumi| {
         let mut t = vertical_styled(text, CharStyle { size: 20.0, font_family: font.into(), proportional_metrics: on, ..CharStyle::default() });
         t.para.mojikumi = m;

@@ -1,16 +1,16 @@
 [package]
-name = "vectorcraft-doc"
+name = "vansoncraft-doc"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "VectorCraft document model: artboards, layers, objects, appearance (pure data + serde)"
+description = "VansonCraft document model: artboards, layers, objects, appearance (pure data + serde)"
 
 [lints]
 workspace = true
 
 [dependencies]
-vectorcraft-geom = { workspace = true }
-vectorcraft-color = { workspace = true }
+vansoncraft-geom = { workspace = true }
+vansoncraft-color = { workspace = true }
 kurbo = { workspace = true }
 image = { workspace = true }
 tiff = { workspace = true }

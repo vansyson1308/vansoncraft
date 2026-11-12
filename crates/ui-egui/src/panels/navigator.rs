@@ -9,12 +9,12 @@ use std::sync::Arc;
 use egui::{Color32, Rect, Sense, Stroke, StrokeKind, Ui, pos2, vec2};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use vectorcraft_color::Color;
-use vectorcraft_doc::LAYER_COLORS;
-use vectorcraft_geom::{Point, Rect as DRect};
+use vansoncraft_color::Color;
+use vansoncraft_doc::LAYER_COLORS;
+use vansoncraft_geom::{Point, Rect as DRect};
 
 use super::{pstate, set_pstate};
-use crate::VectorcraftApp;
+use crate::VansoncraftApp;
 use crate::theme::Tokens;
 use crate::thumb_worker::{Settle, ThumbWorker};
 use crate::widgets::{self, menu_item};
@@ -67,7 +67,7 @@ impl PanelOptions {
 
 /// `ui.navigatorPanelOptions {color?, solidDashes?}`: with neither, open Panel Options on the
 /// panel's options; otherwise set the ones given and answer the options.
-pub fn set_options(app: &mut VectorcraftApp, p: &Value) -> Result<Value, String> {
+pub fn set_options(app: &mut VansoncraftApp, p: &Value) -> Result<Value, String> {
     let (color, solid) = (p.get("color"), p.get("solidDashes"));
     if color.is_none() && solid.is_none() {
         return crate::dialogs::navigator_panel_options::open(app);
@@ -128,7 +128,7 @@ thread_local! {
 
 impl Cache {
     /// Upload image `r` showing `key` over `region`.
-    fn upload(&mut self, ctx: &egui::Context, key: ImageKey, region: DRect, r: &vectorcraft_render::Rendered, ms: f64) {
+    fn upload(&mut self, ctx: &egui::Context, key: ImageKey, region: DRect, r: &vansoncraft_render::Rendered, ms: f64) {
         let img = crate::canvas::color_image(r);
         match &mut self.tex {
             Some(tx) => tx.set(img, egui::TextureOptions::LINEAR),
@@ -142,7 +142,7 @@ impl Cache {
     /// The region (artboards, and the art unless `artboard_only`, with a margin) to show
     /// `doc` (`uid` at `revision`) in. While `busy` (a drag) the last one of the document stays,
     /// rather than walking the whole document every frame.
-    fn region(&mut self, doc: &vectorcraft_doc::Document, uid: u64, revision: u64, artboard_only: bool, busy: bool) -> DRect {
+    fn region(&mut self, doc: &vansoncraft_doc::Document, uid: u64, revision: u64, artboard_only: bool, busy: bool) -> DRect {
         let key = (uid, revision, artboard_only);
         if let Some((k, r)) = self.region
             && (k == key || (busy && k.0 == uid && k.2 == artboard_only))
@@ -161,7 +161,7 @@ impl Cache {
     /// Bring the image up to `key` (`doc` over `region`): heavy documents render on the worker
     /// while the last image stays, and nothing renders during a drag (`busy`) or before the
     /// document has settled, unless there's no image of it yet.
-    fn update(&mut self, ctx: &egui::Context, doc: &Arc<vectorcraft_doc::Document>, key: ImageKey, region: DRect, busy: bool) {
+    fn update(&mut self, ctx: &egui::Context, doc: &Arc<vansoncraft_doc::Document>, key: ImageKey, region: DRect, busy: bool) {
         if !self.worker_started {
             self.worker_started = true;
             self.worker = ThumbWorker::spawn(ctx, "navigator");
@@ -197,7 +197,7 @@ impl Cache {
         let heavy = self.last_ms > HEAVY_MS && have;
         if heavy && let Some(w) = &self.worker {
             let (doc, opts) = (doc.clone(), opts.clone());
-            let job = move |r: &mut vectorcraft_render::Renderer| {
+            let job = move |r: &mut vansoncraft_render::Renderer| {
                 if opts.solid_dashes {
                     SOLID_RENDERER.with(|solid| solid.borrow_mut().render_region_with(&doc, region, s, &opts))
                 } else {
@@ -220,17 +220,17 @@ impl Cache {
 /// How the image `key` names is drawn: as exported (template layers and guides left out),
 /// transparent, with images far smaller than they are sampling their mip levels, and with Draw
 /// Dashed Lines as Solid Lines, dashed strokes without their dashes.
-fn image_options(key: ImageKey) -> vectorcraft_render::RenderOptions {
-    vectorcraft_render::RenderOptions { skip_templates: true, image_mips: true, solid_dashes: key.solid_dashes, ..Default::default() }
+fn image_options(key: ImageKey) -> vansoncraft_render::RenderOptions {
+    vansoncraft_render::RenderOptions { skip_templates: true, image_mips: true, solid_dashes: key.solid_dashes, ..Default::default() }
 }
 
 thread_local! {
     /// Renders light documents' images on the UI thread.
-    static NAV_RENDERER: std::cell::RefCell<vectorcraft_render::Renderer> = std::cell::RefCell::new(vectorcraft_render::Renderer::new());
+    static NAV_RENDERER: std::cell::RefCell<vansoncraft_render::Renderer> = std::cell::RefCell::new(vansoncraft_render::Renderer::new());
     /// Renders the images with Draw Dashed Lines as Solid Lines on, on the thread that renders
     /// them: each renderer draws every image it makes with one setting, so the art it keeps from
     /// one image is drawn the same way in the next.
-    static SOLID_RENDERER: std::cell::RefCell<vectorcraft_render::Renderer> = std::cell::RefCell::new(vectorcraft_render::Renderer::new());
+    static SOLID_RENDERER: std::cell::RefCell<vansoncraft_render::Renderer> = std::cell::RefCell::new(vansoncraft_render::Renderer::new());
 }
 
 /// Map a document point into the thumbnail rect (region → rect, aspect preserved).
@@ -290,7 +290,7 @@ pub fn slider_to_zoom(t: f64) -> f64 {
     (3.13f64.ln() + t.clamp(0.0, 1.0) * (64000f64.ln() - 3.13f64.ln())).exp()
 }
 
-pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn show(app: &mut VansoncraftApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let Some(st) = app.session.active() else {
         super::empty_state(ui, "map", tl!("No document"), tl!("Open a document to navigate it."));
@@ -372,7 +372,7 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
     });
 }
 
-pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn menu(app: &mut VansoncraftApp, ui: &mut Ui) {
     let ab: bool = pstate(ui.ctx(), "nav-ab-only");
     if menu_item(ui, tl!("View Artboard Only"), true, ab) {
         set_pstate(ui.ctx(), "nav-ab-only", !ab);
@@ -391,7 +391,7 @@ mod tests {
     #[test]
     fn screen_readers_get_the_zoom_the_field_shows() {
         use crate::widgets::accessibility_tests::{slider_value, tree};
-        let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(vansoncraft_engine::Session::new(), Default::default());
         app.run("file.new", json!({"width": 200, "height": 200})).unwrap();
         app.run("view.setZoom", json!({"zoom": 250})).unwrap();
         let shown = tree(|ui| show(&mut app, ui));
@@ -412,8 +412,8 @@ mod tests {
     /// mapped into the document and then into the thumbnail.
     #[test]
     fn the_view_box_turns_with_the_view() {
-        use vectorcraft_engine::Session;
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        use vansoncraft_engine::Session;
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         let canvas = Rect::from_min_size(pos2(0.0, 0.0), vec2(600.0, 400.0));
         app.canvas_rect = Some(canvas);
@@ -455,9 +455,9 @@ mod tests {
     /// wide shows 600 × 1.5 / 4 document points.
     #[test]
     fn the_view_box_outlines_the_canvas_at_every_ui_scaling() {
-        use vectorcraft_engine::Session;
+        use vansoncraft_engine::Session;
         for ui_zoom in [0.75_f32, 1.5, 2.0] {
-            let mut app = VectorcraftApp::new(Session::new(), Default::default());
+            let mut app = VansoncraftApp::new(Session::new(), Default::default());
             app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
             let canvas = Rect::from_min_size(pos2(0.0, 0.0), vec2(600.0, 400.0));
             app.canvas_rect = Some(canvas);
@@ -502,7 +502,7 @@ mod tests {
     #[test]
     fn panel_options_opens_from_the_panel_menu() {
         use crate::widgets::accessibility_tests::{named, tree};
-        let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(vansoncraft_engine::Session::new(), Default::default());
         // Menu rows pad their label where a check mark would go.
         assert!(!named(&tree(|ui| menu(&mut app, ui)), "   Panel Options…").is_disabled());
         let ctx = egui::Context::default();
@@ -529,14 +529,14 @@ mod tests {
     /// changes nothing.
     #[test]
     fn panel_options_set_the_view_box_color_and_solid_dashes() {
-        use vectorcraft_engine::Session;
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        use vansoncraft_engine::Session;
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         app.canvas_rect = Some(Rect::from_min_size(pos2(0.0, 0.0), vec2(600.0, 400.0)));
         app.run("view.setZoom", json!({"zoom": 400, "center": [200, 150]})).unwrap();
         let ctx = egui::Context::default();
         // The view boxes drawn in `color` in one frame.
-        let boxes = |app: &mut VectorcraftApp, color: Color32| {
+        let boxes = |app: &mut VansoncraftApp, color: Color32| {
             let mut out = ctx.run_ui(egui::RawInput::default(), |ui| show(app, ui));
             out.textures_delta.clear();
             let want = egui::epaint::ColorMode::Solid(color);
@@ -573,24 +573,24 @@ mod tests {
     /// Lines, so it draws as the same stroke without dashes; without the option the dashes stay.
     #[test]
     fn the_thumbnail_draws_dashed_lines_as_solid_lines_with_the_option() {
-        use vectorcraft_color::Paint;
-        use vectorcraft_doc::{Appearance, Document, Node};
+        use vansoncraft_color::Paint;
+        use vansoncraft_doc::{Appearance, Document, Node};
         let line = |dash: bool| {
             let mut d = Document::new(100.0, 100.0);
-            let mut bp = vectorcraft_geom::BezPath::new();
+            let mut bp = vansoncraft_geom::BezPath::new();
             bp.move_to((10.0, 50.0));
             bp.line_to((90.0, 50.0));
             let id = d.alloc_id();
             let mut n =
-                Node::path(id, vectorcraft_geom::PathData::from_bezpath(&bp), Appearance::basic(Paint::None, Paint::solid(Color::BLACK), 6.0));
-            n.appearance.stroke_mut().unwrap().dash = dash.then(|| vectorcraft_doc::Dash { pattern: vec![8.0, 8.0], ..Default::default() });
+                Node::path(id, vansoncraft_geom::PathData::from_bezpath(&bp), Appearance::basic(Paint::None, Paint::solid(Color::BLACK), 6.0));
+            n.appearance.stroke_mut().unwrap().dash = dash.then(|| vansoncraft_doc::Dash { pattern: vec![8.0, 8.0], ..Default::default() });
             let l = d.layers[0].id;
             d.insert(Some(l), 0, n).unwrap();
             d
         };
         let key = ImageKey { uid: 1, revision: 1, w: 100, h: 100, artboard_only: false, solid_dashes: false };
         let draw = |d: &Document, key: ImageKey| {
-            vectorcraft_render::Renderer::new().render_region_with(d, DRect::new(0.0, 0.0, 100.0, 100.0), 1.0, &image_options(key)).pixels
+            vansoncraft_render::Renderer::new().render_region_with(d, DRect::new(0.0, 0.0, 100.0, 100.0), 1.0, &image_options(key)).pixels
         };
         let solid = draw(&line(false), key);
         assert_ne!(draw(&line(true), key), solid, "the dashes show without the option");
@@ -614,13 +614,13 @@ mod tests {
 
     #[test]
     fn no_image_is_rendered_during_a_drag_and_one_is_after_it() {
-        use vectorcraft_engine::Session;
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        use vansoncraft_engine::Session;
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 200, "height": 200})).unwrap();
         app.session.execute("shape.rectangle", &json!({"x": 10, "y": 10, "width": 50, "height": 50})).unwrap();
         // One context, so its clock runs on (1/60 s a pass) and the document can settle.
         let ctx = egui::Context::default();
-        let frame = |app: &mut VectorcraftApp| {
+        let frame = |app: &mut VansoncraftApp| {
             let mut out = ctx.run_ui(egui::RawInput::default(), |ui| show(app, ui));
             out.textures_delta.clear();
         };

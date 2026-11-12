@@ -5,9 +5,9 @@
 //! [`GridHandles::of`]; a drag previews the existing Repeat Options command and commits as one undo
 //! step.
 use serde_json::{Value, json};
-use vectorcraft_doc::pattern::tile_offset;
-use vectorcraft_doc::{Document, NodeId, NodeKind, OrientedBox, RepeatKind, Selection};
-use vectorcraft_geom::{Point, Rect, Vec2};
+use vansoncraft_doc::pattern::tile_offset;
+use vansoncraft_doc::{Document, NodeId, NodeKind, OrientedBox, RepeatKind, Selection};
+use vansoncraft_geom::{Point, Rect, Vec2};
 
 use crate::bbox::Handle;
 use crate::{Action, Cursor, Mods, ToolContext};
@@ -258,7 +258,7 @@ mod tests {
     use super::*;
     use crate::testutil::{cx, doc_with_rect, paint};
     use std::sync::Arc;
-    use vectorcraft_doc::pattern::RepeatSpec;
+    use vansoncraft_doc::pattern::RepeatSpec;
 
     /// [`doc_with_rect`]'s 100 × 100 square at (100, 100) as a 3 × 3 grid repeat with 20 pt of
     /// spacing, selected: tiles every 120 pt, the grid 340 pt square.

@@ -8,10 +8,10 @@ use std::borrow::Cow;
 
 use serde::Deserialize;
 use serde_json::{Value, json};
-use vectorcraft_doc::Document;
-use vectorcraft_eps::{EpsOptions, Level, Overprint, Preview, Raster};
-use vectorcraft_geom::{Point, Rect};
-use vectorcraft_render::Rendered;
+use vansoncraft_doc::Document;
+use vansoncraft_eps::{EpsOptions, Level, Overprint, Preview, Raster};
+use vansoncraft_geom::{Point, Rect};
+use vansoncraft_render::Rendered;
 
 use super::super::flatten::{FlattenOptions, expand_transparent_tile_images, flatten_expanded};
 use super::super::{CommandSpec, EngineError, Result, Session, bad, bool_or, cmd, has_doc, str_param};
@@ -223,7 +223,7 @@ fn pages(doc: &Document, set: &Settings, saving: bool) -> Result<(Vec<Page>, boo
     let corner = |r: Rect| Point::new(r.x0, r.y1);
     let art = |art: Rect| (None, art, doc.artboards.first().map_or(corner(art), |a| corner(a.rect)));
     // The visible art's bounds; for Save with no visible art, the first artboard (true).
-    let visible = || match vectorcraft_render::encode::art_bounds(doc) {
+    let visible = || match vansoncraft_render::encode::art_bounds(doc) {
         Some(bounds) => Some((bounds, false)),
         None if saving => doc.artboards.first().map(|a| (a.rect, true)),
         None => None,
@@ -252,9 +252,9 @@ fn fit(rect: Rect, max: f64) -> f64 {
 }
 
 /// `rect` of `doc` drawn at [`fit`]'s scale for `max`, transparent or on white.
-fn render(r: &mut vectorcraft_render::Renderer, doc: &Document, rect: Rect, max: f64, transparent: bool) -> Result<Rendered> {
+fn render(r: &mut vansoncraft_render::Renderer, doc: &Document, rect: Rect, max: f64, transparent: bool) -> Result<Rendered> {
     let scale = fit(rect, max);
-    vectorcraft_render::raster_size(rect, scale).map_err(|e| bad(C, e))?;
+    vansoncraft_render::raster_size(rect, scale).map_err(|e| bad(C, e))?;
     Ok(r.render_region(doc, rect, scale, !transparent))
 }
 
@@ -266,7 +266,7 @@ fn straight(img: &Rendered) -> Raster {
 /// The thumbnail of `rect` made from `preview`, the same rect rendered larger: at the size a
 /// thumbnail render of `rect` has, each pixel the average of the preview's pixels under it, on white.
 fn thumbnail_of(preview: &Rendered, rect: Rect) -> Result<Raster> {
-    let (width, height) = vectorcraft_render::raster_size(rect, fit(rect, THUMBNAIL)).map_err(|e| bad(C, e))?;
+    let (width, height) = vansoncraft_render::raster_size(rect, fit(rect, THUMBNAIL)).map_err(|e| bad(C, e))?;
     let mut rgba = preview.area_resized(width, height).map_err(|e| bad(C, e))?.pixels;
     // Premultiplied over white: each channel gains the white the pixel's alpha leaves showing.
     for px in rgba.as_chunks_mut::<4>().0 {
@@ -284,7 +284,7 @@ fn thumbnail_of(preview: &Rendered, rect: Rect) -> Result<Raster> {
 fn native(doc: &Document, board: Option<usize>, include_linked: bool) -> Vec<u8> {
     let several = board.filter(|_| doc.artboards.len() > 1);
     if several.is_none() && !include_linked {
-        return vectorcraft_format::save(doc, false);
+        return vansoncraft_format::save(doc, false);
     }
     let mut d = doc.clone();
     if let Some(a) = several.and_then(|b| doc.artboards.get(b)) {
@@ -296,7 +296,7 @@ fn native(doc: &Document, board: Option<usize>, include_linked: bool) -> Vec<u8>
             blob.proxy = None;
         }
     }
-    vectorcraft_format::save(&d, false)
+    vansoncraft_format::save(&d, false)
 }
 
 /// Encode `doc` as EPS: one file of the visible art, or with Use Artboards one per chosen
@@ -351,10 +351,10 @@ fn encode_document(doc: &Document, p: &Value, saving: bool) -> Result<Encoded> {
         enc.warnings.push("transparency is flattened into opaque art and images (EPS has none): see the flattener preset".into());
     }
     let preview_limit = if saving { SAVE_PREVIEW } else { MAX_PREVIEW };
-    let created = vectorcraft_doc::metadata::output_time();
-    let mut renderer = vectorcraft_render::Renderer::new();
+    let created = vansoncraft_doc::metadata::output_time();
+    let mut renderer = vansoncraft_render::Renderer::new();
     for (board, region, origin) in pages {
-        let rect = vectorcraft_eps::preview_rect(region, origin);
+        let rect = vansoncraft_eps::preview_rect(region, origin);
         let shown = match set.eps.preview {
             Preview::None => None,
             kind => Some(render(&mut renderer, doc, rect, preview_limit, set.eps.transparent_preview && kind == Preview::TiffColor)?),
@@ -375,7 +375,7 @@ fn encode_document(doc: &Document, p: &Value, saving: bool) -> Result<Encoded> {
             native: Some(native(&editing, if whole { None } else { board }, set.include_linked)),
             ..set.eps.clone()
         };
-        let out = vectorcraft_eps::export(drawn, &o, preview.as_ref(), thumbnail.as_ref()).map_err(|e| bad(C, e))?;
+        let out = vansoncraft_eps::export(drawn, &o, preview.as_ref(), thumbnail.as_ref()).map_err(|e| bad(C, e))?;
         enc.files.push((board, out.bytes));
         for w in out.warnings {
             if !enc.warnings.contains(&w) {

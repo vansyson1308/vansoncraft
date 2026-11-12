@@ -10,7 +10,7 @@
 use serde_json::{Value, json};
 
 use super::{DialogAction, DialogSpec};
-use crate::VectorcraftApp;
+use crate::VansoncraftApp;
 use crate::state::Dialog;
 use crate::widgets;
 
@@ -35,7 +35,7 @@ const DOC: &str = "__doc";
 /// Replace the art of brush `name` with the objects `ids`: at once when no stroke uses the brush,
 /// else after asking whether the strokes take the new art. Art the brush cannot take (art with no
 /// width, say) is refused before anything asks, with the reason in the status bar.
-pub fn replace(app: &mut VectorcraftApp, name: &str, ids: &[u64]) {
+pub fn replace(app: &mut VansoncraftApp, name: &str, ids: &[u64]) {
     let params = json!({"name": name, "ids": ids});
     if super::brush_delete::used(app, &[name.to_string()]) != Some(true) {
         if let Err(e) = app.run("brush.replaceArt", params) {
@@ -58,12 +58,12 @@ pub fn replace(app: &mut VectorcraftApp, name: &str, ids: &[u64]) {
 }
 
 /// Ask whether the strokes that use brush `name` take the art of the objects `ids`.
-pub fn ask(app: &mut VectorcraftApp, name: &str, ids: &[u64]) {
+pub fn ask(app: &mut VansoncraftApp, name: &str, ids: &[u64]) {
     let doc = app.session.active().map(|d| d.uid);
     app.ui.dialog = Some(Dialog::new(KIND, json!({"name": name, "ids": ids, "apply": true, DOC: doc})));
 }
 
-fn body(_: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> DialogAction {
+fn body(_: &mut VansoncraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> DialogAction {
     let mut action = DialogAction::None;
     ui.horizontal(|ui| {
         if widgets::primary_button_enabled(ui, tl!("Apply to Strokes"), true).clicked() {
@@ -83,7 +83,7 @@ fn body(_: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> DialogActi
 
 /// Closes before running. When another document has become the active one, it closes as Cancel does
 /// and changes no brush.
-fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
+fn confirm(app: &mut VansoncraftApp, d: &Dialog) -> Result<Value, String> {
     app.ui.dialog = None;
     if d.fields.get(DOC).and_then(Value::as_u64) != app.session.active().map(|doc| doc.uid) {
         return Ok(json!({}));

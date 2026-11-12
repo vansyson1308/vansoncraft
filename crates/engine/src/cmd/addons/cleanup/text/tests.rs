@@ -2,8 +2,8 @@
 //! each command is one undo step and refuses cleanly when there is nothing to do.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{Justify, NodeId, NodeKind, TextKind, TextObject};
-use vectorcraft_geom::Point;
+use vansoncraft_doc::{Justify, NodeId, NodeKind, TextKind, TextObject};
+use vansoncraft_geom::Point;
 
 use crate::{EngineError, Session};
 
@@ -39,7 +39,7 @@ fn glyphs(s: &Session, ids: &[NodeId]) -> Vec<(char, Point)> {
     for id in ids {
         let t = obj(s, *id);
         let text = t.plain_text();
-        let lay = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &t);
+        let lay = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &t);
         let mut gs: Vec<_> = lay.glyphs.iter().filter(|g| g.len > 0).collect();
         gs.sort_by_key(|g| g.byte);
         gs.dedup_by_key(|g| g.byte);
@@ -109,7 +109,7 @@ fn break_area_type_into_lines_paragraphs_and_glyphs() {
             json!({"x": 40, "y": 40, "text": "A paragraph long enough to wrap in its frame\nSecond one", "size": 14, "area": {"width": 140, "height": 200}}),
         );
         let t = obj(&s, id);
-        let lay = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &t);
+        let lay = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &t);
         assert!(lay.lines.len() >= 3, "the first paragraph wraps");
         let was = glyphs(&s, &[id]);
         select(&mut s, &[id]);
@@ -138,7 +138,7 @@ fn break_tracked_area_type_keeps_its_aligned_lines_in_place() {
                 let id = text(&mut s, json!({"x": 40, "y": 40, "text": text_of, "size": 20, "area": {"width": 90, "height": 200}}));
                 s.execute("text.setRangeStyle", &json!({"id": id.0, "tracking": 200})).unwrap();
                 s.execute("text.setStyle", &json!({"ids": [id.0], "justify": justify})).unwrap();
-                let lay = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &obj(&s, id));
+                let lay = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &obj(&s, id));
                 assert!(lay.lines.len() > 1, "{text_of}: it wraps");
                 let was = glyphs(&s, &[id]);
                 select(&mut s, &[id]);
@@ -201,7 +201,7 @@ fn combine_joins_only_pieces_on_one_line_turned_alike() {
 }
 
 /// Pieces in horizontally scaled type: the tracking that puts each back where it was is measured in
-/// the em as the Horizontal Scale draws it (`vectorcraft_text::spacing_scale`), as layout spaces it.
+/// the em as the Horizontal Scale draws it (`vansoncraft_text::spacing_scale`), as layout spaces it.
 #[test]
 fn combine_puts_horizontally_scaled_pieces_back_where_they_were() {
     let mut s = session();
@@ -361,7 +361,7 @@ fn reset_text_transform_takes_off_rotation_and_with_scale_the_horizontal_scale()
     s.execute("text.setRangeStyle", &json!({"id": id.0, "hScale": 150})).unwrap();
     let centre = |s: &Session| {
         let t = obj(s, id);
-        t.xf * vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &t).bounds.center()
+        t.xf * vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &t).bounds.center()
     };
     let was = centre(&s);
     let size = obj(&s, id).effective_char_style(&obj(&s, id).runs[0].style).unwrap().size;

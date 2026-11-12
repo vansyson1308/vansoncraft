@@ -15,7 +15,7 @@ use skrifa::raw::ps::cs::{self, CharstringContext, CharstringKind, CommandSink, 
 use skrifa::raw::ps::error::Error as CsError;
 use skrifa::raw::ps::type1::Type1Font;
 use skrifa::raw::types::Fixed;
-use vectorcraft_geom::BezPath;
+use vansoncraft_geom::BezPath;
 
 use super::type42;
 

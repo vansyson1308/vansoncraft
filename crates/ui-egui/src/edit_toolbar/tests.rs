@@ -1,5 +1,5 @@
 use egui::{Color32, Event, PointerButton, RawInput};
-use vectorcraft_engine::Session;
+use vansoncraft_engine::Session;
 
 use super::*;
 
@@ -8,24 +8,24 @@ const SCREEN: egui::Vec2 = vec2(1000.0, 4000.0);
 /// A toolbar tool button.
 const BUTTON: egui::Vec2 = vec2(36.0, 29.0);
 
-fn app() -> VectorcraftApp {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+fn app() -> VansoncraftApp {
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 300, "height": 300})).unwrap();
     app
 }
 
-fn slots(app: &VectorcraftApp) -> Vec<Vec<&'static str>> {
+fn slots(app: &VansoncraftApp) -> Vec<Vec<&'static str>> {
     crate::toolbar::slots(app).into_iter().map(|(_, s)| s).collect()
 }
 
 /// The slot holding `tool`.
-fn slot_of(app: &VectorcraftApp, tool: &str) -> Option<usize> {
+fn slot_of(app: &VansoncraftApp, tool: &str) -> Option<usize> {
     slots(app).iter().position(|s| s.contains(&tool))
 }
 
 /// One headless frame of the toolbar, its keys handled first as in the app; returns the texts
 /// painted: (text, a point inside it, colour).
-fn frame(app: &mut VectorcraftApp, ctx: &egui::Context, time: f64, events: Vec<Event>) -> Vec<(String, Pos2, Color32)> {
+fn frame(app: &mut VansoncraftApp, ctx: &egui::Context, time: f64, events: Vec<Event>) -> Vec<(String, Pos2, Color32)> {
     fn texts(s: &egui::Shape, out: &mut Vec<(String, Pos2, Color32)>) {
         match s {
             egui::Shape::Text(t) => {
@@ -58,14 +58,14 @@ fn button(pos: Pos2, pressed: bool) -> Event {
     Event::PointerButton { pos, button: PointerButton::Primary, pressed, modifiers: Default::default() }
 }
 
-fn click(app: &mut VectorcraftApp, ctx: &egui::Context, time: f64, at: Pos2) {
+fn click(app: &mut VansoncraftApp, ctx: &egui::Context, time: f64, at: Pos2) {
     frame(app, ctx, time, vec![Event::PointerMoved(at), button(at, true)]);
     frame(app, ctx, time + 0.05, vec![button(at, false)]);
     frame(app, ctx, time + 0.1, vec![]);
 }
 
 /// A press at `from` dragged to `to` in steps, one frame each, then released there.
-fn drag(app: &mut VectorcraftApp, ctx: &egui::Context, time: f64, from: Pos2, to: Pos2) {
+fn drag(app: &mut VansoncraftApp, ctx: &egui::Context, time: f64, from: Pos2, to: Pos2) {
     frame(app, ctx, time, vec![Event::PointerMoved(from), button(from, true)]);
     for k in 1..=6 {
         frame(app, ctx, time + 0.05 * f64::from(k), vec![Event::PointerMoved(from + (to - from) * (k as f32 / 6.0))]);
@@ -97,7 +97,7 @@ fn cell_at(shown: &[(String, Pos2, Color32)], drawer: Rect, name: &str) -> (Pos2
 #[test]
 fn the_drawer_frames_every_flyout_group_once() {
     let listed: Vec<&str> = groups().iter().flat_map(|(_, gs)| gs.iter().flat_map(|g| g.iter().map(|t| t.id))).collect();
-    let all: Vec<&str> = vectorcraft_tools::catalog::all_tools().map(|t| t.id).collect();
+    let all: Vec<&str> = vansoncraft_tools::catalog::all_tools().map(|t| t.id).collect();
     assert_eq!(listed.len(), all.len());
     assert!(all.iter().all(|id| listed.contains(id)));
     let under = |id: &str| groups().iter().find(|(_, gs)| gs.iter().any(|g| g.iter().any(|t| t.id == id))).map(|(c, _)| *c);
@@ -133,7 +133,7 @@ fn toolbar_show_turns_the_controls_under_the_tools_on_and_off() {
 fn every_tool_is_listed_once_under_a_heading() {
     let s = sections();
     let listed: Vec<&str> = s.iter().flat_map(|(_, tools)| tools.iter().map(|t| t.id)).collect();
-    let all: Vec<&str> = vectorcraft_tools::catalog::all_tools().map(|t| t.id).collect();
+    let all: Vec<&str> = vansoncraft_tools::catalog::all_tools().map(|t| t.id).collect();
     assert_eq!(listed.len(), all.len());
     assert!(all.iter().all(|id| listed.contains(id)));
     let heads: Vec<&str> = s.iter().map(|(c, _)| *c).collect();
@@ -145,7 +145,7 @@ fn every_tool_is_listed_once_under_a_heading() {
 #[test]
 fn enclosing_lasso_is_an_optional_addon_tool() {
     let mut app = app();
-    let id = vectorcraft_tools::addons::enclosing_lasso::ID;
+    let id = vansoncraft_tools::addons::enclosing_lasso::ID;
     assert_eq!(heading(id), "Enclosing Lasso");
     assert!(slot_of(&app, id).is_none());
     app.run("toolbar.addTool", json!({"tool": id})).unwrap();
@@ -463,7 +463,7 @@ fn the_add_tool_menu_fills_a_new_toolbar_without_a_drag() {
     let sense = ctx.viewport(|vp| vp.prev_pass.widgets.layers().flat_map(|(_, w)| w.iter()).find(|w| w.rect == button).map(|w| w.sense));
     assert!(sense.is_some_and(|s| s.is_focusable()), "Tab stops on the + button: {sense:?}");
     // The menu at `time`, opened with a click on the + button unless it is open.
-    let open = |app: &mut VectorcraftApp, time: f64| {
+    let open = |app: &mut VansoncraftApp, time: f64| {
         let shown = frame(app, &ctx, time, vec![]);
         if shown.iter().any(|(s, ..)| s == "Select:") {
             return shown;
@@ -480,7 +480,7 @@ fn the_add_tool_menu_fills_a_new_toolbar_without_a_drag() {
         at.sort_by(|a, b| a.0.y.total_cmp(&b.0.y));
         at
     };
-    let mine = |app: &VectorcraftApp| crate::custom_toolbars::find(&app.ui, "Mine").unwrap().slots.clone();
+    let mine = |app: &VansoncraftApp| crate::custom_toolbars::find(&app.ui, "Mine").unwrap().slots.clone();
     // The keyboard: Enter on the focused + button opens the menu, and Enter on a tool adds it.
     let focusable_at = |p: Pos2| {
         let id = ctx.viewport(|vp| {
@@ -488,7 +488,7 @@ fn the_add_tool_menu_fills_a_new_toolbar_without_a_drag() {
         });
         id.unwrap_or_else(|| panic!("nothing focusable at {p:?}"))
     };
-    let enter = |app: &mut VectorcraftApp, time: f64, at: Pos2| {
+    let enter = |app: &mut VansoncraftApp, time: f64, at: Pos2| {
         let id = focusable_at(at);
         ctx.memory_mut(|m| m.request_focus(id));
         frame(app, &ctx, time, vec![]);
@@ -631,10 +631,10 @@ fn drop_targets_follow_the_buttons_edges() {
 #[test]
 fn addon_tools_are_in_the_drawer_not_the_toolbars() {
     let mut app = app();
-    let enclosing = vectorcraft_tools::addons::enclosing_lasso::ID;
-    let contour = vectorcraft_tools::addons::contour::ID;
-    let box3d = vectorcraft_tools::addons::box3d::ID;
-    let addon: Vec<&str> = vectorcraft_tools::addons::GROUPS.iter().flat_map(|g| g.iter().map(|t| t.id)).collect();
+    let enclosing = vansoncraft_tools::addons::enclosing_lasso::ID;
+    let contour = vansoncraft_tools::addons::contour::ID;
+    let box3d = vansoncraft_tools::addons::box3d::ID;
+    let addon: Vec<&str> = vansoncraft_tools::addons::GROUPS.iter().flat_map(|g| g.iter().map(|t| t.id)).collect();
     assert_eq!(
         addon,
         [

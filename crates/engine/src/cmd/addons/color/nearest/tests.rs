@@ -1,8 +1,8 @@
 //! Find Nearest Swatch.
 
 use serde_json::{Value, json};
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::NodeId;
+use vansoncraft_color::{Color, Paint};
+use vansoncraft_doc::NodeId;
 
 use crate::Session;
 

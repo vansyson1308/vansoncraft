@@ -1,9 +1,9 @@
 //! Effect › Warp on placed images: the pixels bend with the frame, in the canvas and in exports.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::live::{WarpNet, WarpStyle, uses_net, warp_version};
-use vectorcraft_doc::{Node, NodeKind};
-use vectorcraft_geom::{Affine, Point, Rect};
+use vansoncraft_doc::live::{WarpNet, WarpStyle, uses_net, warp_version};
+use vansoncraft_doc::{Node, NodeKind};
+use vansoncraft_geom::{Affine, Point, Rect};
 
 use crate::*;
 
@@ -36,10 +36,10 @@ fn quarters(s: &mut Session) -> NodeId {
     let mut png = vec![];
     img.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
     s.edit("Place", |d, sel| {
-        d.images.insert("quarters".into(), vectorcraft_doc::ImageBlob::png(png));
+        d.images.insert("quarters".into(), vansoncraft_doc::ImageBlob::png(png));
         let id = d.alloc_id();
         let xf = Affine::translate((FRAME.x0, FRAME.y0)) * Affine::scale(2.0);
-        let im = vectorcraft_doc::ImageObject {
+        let im = vansoncraft_doc::ImageObject {
             key: "quarters".into(),
             width: 40,
             height: 40,
@@ -67,12 +67,12 @@ const SAMPLES: [(f64, f64); 10] =
     [(0.2, 0.2), (0.8, 0.2), (0.2, 0.8), (0.8, 0.8), (0.4, 0.4), (0.6, 0.4), (0.4, 0.6), (0.6, 0.6), (0.3, 0.62), (0.7, 0.62)];
 
 /// The document drawn over (0, 0)–(400, 400) at one pixel a point, on white.
-fn drawn(s: &Session) -> vectorcraft_render::Rendered {
-    vectorcraft_render::Renderer::new().render_region(&s.doc().unwrap().doc, Rect::new(0.0, 0.0, 400.0, 400.0), 1.0, true)
+fn drawn(s: &Session) -> vansoncraft_render::Rendered {
+    vansoncraft_render::Renderer::new().render_region(&s.doc().unwrap().doc, Rect::new(0.0, 0.0, 400.0, 400.0), 1.0, true)
 }
 
 /// The sample points whose color in `img` at `at(u, v)` is not the image's color at (u, v).
-fn wrong(img: &vectorcraft_render::Rendered, at: &dyn Fn(f64, f64) -> Point) -> Vec<(f64, f64, [u8; 4])> {
+fn wrong(img: &vansoncraft_render::Rendered, at: &dyn Fn(f64, f64) -> Point) -> Vec<(f64, f64, [u8; 4])> {
     SAMPLES
         .iter()
         .filter_map(|&(u, v)| {
@@ -97,7 +97,7 @@ fn arc_image(s: &mut Session) -> NodeId {
 }
 
 fn decoded(v: &Value) -> Vec<u8> {
-    vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap()
+    vansoncraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap()
 }
 
 #[test]
@@ -110,7 +110,7 @@ fn an_images_pixels_bend_with_effect_warp() {
     assert_eq!(wrong(&bent, &|u, v| arced(50.0, u, v)), vec![], "each pixel is drawn where the warp takes it");
     // Drawn as pieces of the one image, each placed by the warp.
     let d = &s.doc().unwrap().doc;
-    let art = vectorcraft_render::effects::reshape(Some(d), d.node(id).unwrap(), None).unwrap();
+    let art = vansoncraft_render::effects::reshape(Some(d), d.node(id).unwrap(), None).unwrap();
     let mut pieces = 0;
     art.walk(&mut |c| pieces += matches!(c.kind, NodeKind::Image(_)) as usize);
     assert!(pieces >= 100, "{pieces} pieces");
@@ -190,7 +190,7 @@ fn svg_writes_an_image_clipped_twice_in_a_users_group_twice() {
         let mut clipped = vec![];
         for x in [FRAME.x0, FRAME.x0 + 40.0] {
             let mut clip =
-                Node::path(d.alloc_id(), vectorcraft_geom::shapes::rectangle(Rect::new(x, FRAME.y0, x + 30.0, FRAME.y0 + 30.0)), Default::default());
+                Node::path(d.alloc_id(), vansoncraft_geom::shapes::rectangle(Rect::new(x, FRAME.y0, x + 30.0, FRAME.y0 + 30.0)), Default::default());
             if let NodeKind::Path { clipping, .. } = &mut clip.kind {
                 *clipping = true;
             }
@@ -244,10 +244,10 @@ fn red_on_clear(s: &mut Session) -> NodeId {
     image::DynamicImage::ImageLuma8(img).write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
     let id = s
         .edit("Place", |d, sel| {
-            d.images.insert("gray".into(), vectorcraft_doc::ImageBlob::png(png));
+            d.images.insert("gray".into(), vansoncraft_doc::ImageBlob::png(png));
             let id = d.alloc_id();
             let xf = Affine::translate((FRAME.x0, FRAME.y0)) * Affine::scale(2.0);
-            let im = vectorcraft_doc::ImageObject {
+            let im = vansoncraft_doc::ImageObject {
                 key: "gray".into(),
                 width: 40,
                 height: 40,

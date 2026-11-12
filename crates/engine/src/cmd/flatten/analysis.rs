@@ -6,7 +6,7 @@ use super::{Arc, BTreeSet, Document, Effect, ImageBlob, Knockout, Node, NodeKind
 pub(super) struct Scratch {
     /// A copy of the document the art comes from (outlining allocates ids in it).
     pub(super) doc: Document,
-    pub(super) brushes: Vec<vectorcraft_brush::Brush>,
+    pub(super) brushes: Vec<vansoncraft_brush::Brush>,
 }
 
 impl Scratch {
@@ -20,15 +20,15 @@ impl Scratch {
         let made = match &n.kind {
             NodeKind::Text(_) => outlined_text(n),
             NodeKind::SymbolInstance { symbol, .. } => {
-                let art = self.doc.symbols.iter().find(|s| &s.name == symbol).map(|s| vectorcraft_render::instance_art(&s.art, n));
+                let art = self.doc.symbols.iter().find(|s| &s.name == symbol).map(|s| vansoncraft_render::instance_art(&s.art, n));
                 art.and_then(|a| effects::outline_art(Some(&self.doc), n, Some(&a))).map(|g| carry(n, g))
             }
             // A placed document stays one: its art's resources aren't the document's.
             NodeKind::PlacedDocument(_) => None,
             NodeKind::Blend { .. } | NodeKind::Envelope { .. } | NodeKind::Repeat(_) => {
                 let hook: &dyn Fn(&Node) -> Option<Node> = &effects::outline_text;
-                let hooks = vectorcraft_doc::live::Hooks { outline: Some(hook), symbols: Some(&self.doc), ..Default::default() };
-                Some(carry(n, vectorcraft_doc::live::expanded_group_hooks(n, hooks)))
+                let hooks = vansoncraft_doc::live::Hooks { outline: Some(hook), symbols: Some(&self.doc), ..Default::default() };
+                Some(carry(n, vansoncraft_doc::live::expanded_group_hooks(n, hooks)))
             }
             NodeKind::Path { guide: false, .. } | NodeKind::Compound { .. } => outline_strokes(&mut self.doc, &self.brushes, n),
             _ => None,
@@ -118,7 +118,7 @@ pub(super) fn reach(n: &Node) -> Option<Rect> {
     painted(n).map(|b| b.inflate(1.0, 1.0))
 }
 
-type Cancelled = vectorcraft_doc::cancel::Cancelled;
+type Cancelled = vansoncraft_doc::cancel::Cancelled;
 
 /// Whether `b` has finite coordinates and isn't inside out.
 pub(super) fn finite(b: &Rect) -> bool {
@@ -180,7 +180,7 @@ impl Sets {
 /// boxes it overlaps, not every open one (many objects stacked in a column, sharing their
 /// horizontal extent, would otherwise compare every pair). An open box inside a later box of
 /// its group, ending no further right, is closed early: whatever overlaps it overlaps that box.
-/// Fails only when cancelled ([`vectorcraft_doc::cancel`]).
+/// Fails only when cancelled ([`vansoncraft_doc::cancel`]).
 pub(super) fn overlapping(bounds: &[Option<Rect>]) -> Result<Vec<Vec<usize>>, Cancelled> {
     Ok(sweep(bounds, None)?.groups())
 }
@@ -236,7 +236,7 @@ fn sweep(bounds: &[Option<Rect>], see_through: Option<&[bool]>) -> Result<Sets, 
         while let Some((node, lo, hi)) = stack.pop() {
             work += 1;
             if work.is_multiple_of(4096) {
-                vectorcraft_doc::cancel::check()?;
+                vansoncraft_doc::cancel::check()?;
             }
             if lo >= below || low[node] < b.y0 {
                 continue;
@@ -299,7 +299,7 @@ impl Blocks {
         for (b, around) in self.around.iter().enumerate() {
             *work += 1;
             if work.is_multiple_of(4096) {
-                vectorcraft_doc::cancel::check()?;
+                vansoncraft_doc::cancel::check()?;
             }
             if !touch(around, q) {
                 continue;
@@ -327,7 +327,7 @@ impl Blocks {
 /// round. With a `fringe` (how far a group's image can reach past
 /// its art and cover what is under it), an object or group under a group's top whose painted box
 /// that far around a member's touches joins it too. Fails only when cancelled
-/// ([`vectorcraft_doc::cancel`]).
+/// ([`vansoncraft_doc::cancel`]).
 pub(super) fn flatten_groups(
     reach: &[Option<Rect>],
     painted: &[Option<Rect>],
@@ -465,20 +465,20 @@ mod tests {
 
     /// A filled rectangle, unstroked.
     fn filled(id: u64, r: Rect) -> Node {
-        let look = vectorcraft_doc::Appearance::basic(
-            vectorcraft_color::Paint::solid(vectorcraft_color::Color::rgb(1.0, 0.0, 0.0)),
-            vectorcraft_color::Paint::None,
+        let look = vansoncraft_doc::Appearance::basic(
+            vansoncraft_color::Paint::solid(vansoncraft_color::Color::rgb(1.0, 0.0, 0.0)),
+            vansoncraft_color::Paint::None,
             0.0,
         );
-        Node::path(vectorcraft_doc::NodeId(id), vectorcraft_geom::shapes::rectangle(r), look)
+        Node::path(vansoncraft_doc::NodeId(id), vansoncraft_geom::shapes::rectangle(r), look)
     }
 
     /// The antialiasing margin goes around the outermost group once, not once per group.
     #[test]
     fn reach_adds_its_margin_once_however_deep_the_groups() {
         let r = Rect::new(10.0, 20.0, 30.0, 50.0);
-        let inner = Node::group(vectorcraft_doc::NodeId(2), vec![Arc::new(filled(1, r))]);
-        let outer = Node::group(vectorcraft_doc::NodeId(3), vec![Arc::new(inner)]);
+        let inner = Node::group(vansoncraft_doc::NodeId(2), vec![Arc::new(filled(1, r))]);
+        let outer = Node::group(vansoncraft_doc::NodeId(3), vec![Arc::new(inner)]);
         assert_eq!(painted(&outer), Some(r));
         assert_eq!(reach(&outer), Some(r.inflate(1.0, 1.0)));
         assert_eq!(reach(&filled(1, r)), reach(&outer));

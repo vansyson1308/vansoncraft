@@ -2,8 +2,8 @@
 //! trace in the history; frames (dragged area type, type in or on a path) stay.
 
 use serde_json::json;
-use vectorcraft_doc::{NodeId, NodeKind, TextKind};
-use vectorcraft_tools::{Mods, PointerEvent, PointerKind, SurroundingUnit, ToolKey};
+use vansoncraft_doc::{NodeId, NodeKind, TextKind};
+use vansoncraft_tools::{Mods, PointerEvent, PointerKind, SurroundingUnit, ToolKey};
 
 use crate::*;
 
@@ -312,7 +312,7 @@ fn ime_surrounding_excludes_the_preedit_and_remaps_offsets() {
     click(&mut s, 100.0, 100.0);
     s.tool_text("Hé", v).unwrap();
     s.tool_preedit("xy", None, v).unwrap();
-    let vectorcraft_tools::ImeSurrounding::Available { text, cursor, anchor } = s.tool_ime_surrounding(4000, v) else {
+    let vansoncraft_tools::ImeSurrounding::Available { text, cursor, anchor } = s.tool_ime_surrounding(4000, v) else {
         panic!("type editing has a context");
     };
     assert_eq!(text, "Hé");

@@ -33,9 +33,9 @@ use std::borrow::Cow;
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use vectorcraft_color::BlendMode;
-use vectorcraft_doc::{AppearanceItem, Document, Node, NodeId, NodeKind, Scaling, TextKind, Unit, VariableKind};
-use vectorcraft_geom::{Affine, PathData, Point, Rect, Vec2};
+use vansoncraft_color::BlendMode;
+use vansoncraft_doc::{AppearanceItem, Document, Node, NodeId, NodeKind, Scaling, TextKind, Unit, VariableKind};
+use vansoncraft_geom::{Affine, PathData, Point, Rect, Vec2};
 
 use super::Imported;
 use super::ai::{self, Structure, slot_of};
@@ -64,16 +64,16 @@ use slots::join_pieces;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use vectorcraft_doc::{CharStyle, TextObject};
+    use vansoncraft_doc::{CharStyle, TextObject};
 
     /// `doc` with a square ring round (20, 20)–(80, 80) (or at `at`), stroked `color` `width` wide,
     /// named `name`.
-    fn ring(doc: &mut Document, name: Option<&str>, color: vectorcraft_color::Color, width: f64, at: Rect) {
-        let stroke = vectorcraft_color::Paint::solid(color);
+    fn ring(doc: &mut Document, name: Option<&str>, color: vansoncraft_color::Color, width: f64, at: Rect) {
+        let stroke = vansoncraft_color::Paint::solid(color);
         let mut n = Node::path(
             doc.alloc_id(),
-            vectorcraft_geom::shapes::rectangle(at),
-            vectorcraft_doc::Appearance::basic(vectorcraft_color::Paint::None, stroke, width),
+            vansoncraft_geom::shapes::rectangle(at),
+            vansoncraft_doc::Appearance::basic(vansoncraft_color::Paint::None, stroke, width),
         );
         n.name = name.map(str::to_string);
         let layer = doc.layers[0].id;
@@ -84,7 +84,7 @@ mod tests {
     /// by the page: it isn't taken out as unseen (#1102). An object the page doesn't draw still is.
     #[test]
     fn a_stroke_over_one_as_light_is_not_taken_for_unseen() {
-        let (dark, red) = (vectorcraft_color::Color::rgb(0.55, 0.0, 0.0), vectorcraft_color::Color::rgb(1.0, 0.0, 0.0));
+        let (dark, red) = (vansoncraft_color::Color::rgb(0.55, 0.0, 0.0), vansoncraft_color::Color::rgb(1.0, 0.0, 0.0));
         let square = Rect::new(20.0, 20.0, 80.0, 80.0);
         let mut page = Document::new(100.0, 100.0);
         ring(&mut page, None, dark, 12.0, square);
@@ -100,7 +100,7 @@ mod tests {
         let widths: Vec<f64> = layers.layers[0].children().unwrap().iter().filter_map(|n| n.appearance.stroke().map(|s| s.width)).collect();
         assert_eq!(widths, [12.0, 6.0]);
         // Taken by lightness alone, the red and the dark red are alike.
-        let px = |c: vectorcraft_color::Color| {
+        let px = |c: vansoncraft_color::Color| {
             let [r, g, b] = c.to_rgb().map(|v| (v * 255.0).round() as u8);
             [r, g, b, 255]
         };
@@ -153,21 +153,21 @@ mod tests {
     /// false fallback, while genuinely missing art must still be rejected.
     #[test]
     fn raster_page_comparison_filters_minification_without_accepting_missing_art() {
-        use vectorcraft_color::{Color, Paint};
-        use vectorcraft_doc::{Appearance, ImageBlob, ImageObject};
+        use vansoncraft_color::{Color, Paint};
+        use vansoncraft_doc::{Appearance, ImageBlob, ImageObject};
         let mut vector = Document::new(1000.0, 500.0);
         let layer = vector.layers[0].id;
         for i in 0..400 {
             let x = f64::from(i) * 2.5 + 0.5;
             let n = Node::path(
                 vector.alloc_id(),
-                vectorcraft_geom::shapes::rectangle(Rect::new(x, 0.0, x + 1.0, 500.0)),
+                vansoncraft_geom::shapes::rectangle(Rect::new(x, 0.0, x + 1.0, 500.0)),
                 Appearance::basic(Paint::solid(Color::BLACK), Paint::None, 0.0),
             );
             vector.insert(Some(layer), usize::MAX, n).unwrap();
         }
         let rect = vector.artboards[0].rect;
-        let source = vectorcraft_render::Renderer::new().render_region(&vector, rect, 1.6, true);
+        let source = vansoncraft_render::Renderer::new().render_region(&vector, rect, 1.6, true);
         let mut png = Vec::new();
         image::RgbaImage::from_raw(source.width, source.height, source.to_straight())
             .unwrap()
@@ -192,9 +192,9 @@ mod tests {
         page.insert(Some(page.layers[0].id), usize::MAX, image).unwrap();
         assert_eq!(comparison_samples(&page), 4);
         assert_eq!(comparison_samples(&vector), 1, "ordinary vector pages retain their comparison");
-        let mut renderer = vectorcraft_render::Renderer::new();
+        let mut renderer = vansoncraft_render::Renderer::new();
         let a = comparison_render(&mut renderer, &page, rect, 0.4, 1);
-        let b = comparison_render(&mut vectorcraft_render::Renderer::new(), &vector, rect, 0.4, 1);
+        let b = comparison_render(&mut vansoncraft_render::Renderer::new(), &vector, rect, 0.4, 1);
         assert!(compared(&a, &b, &[], &[]).solid > MAX_SOLID_DIFFERENCE, "the old point sampling falsely refused this page");
         let frame = Frame { page: &page, page_rect: rect, rect, whole: false, pages: vec![(rect, Affine::IDENTITY)], more: vec![] };
         let mut view = PageView::new(&frame);
@@ -224,18 +224,18 @@ mod tests {
     /// The boxes `solid_regions_on_every_page` gives for a `width` × `height` page that is one image of a black
     /// `object`, compared with layers that hold nothing.
     fn raster_page_regions(object: Rect, width: f64, height: f64) -> Vec<Rect> {
-        use vectorcraft_color::{Color, Paint};
-        use vectorcraft_doc::{Appearance, ImageBlob, ImageObject};
+        use vansoncraft_color::{Color, Paint};
+        use vansoncraft_doc::{Appearance, ImageBlob, ImageObject};
         let mut vector = Document::new(width, height);
         let layer = vector.layers[0].id;
         let n = Node::path(
             vector.alloc_id(),
-            vectorcraft_geom::shapes::rectangle(object),
+            vansoncraft_geom::shapes::rectangle(object),
             Appearance::basic(Paint::solid(Color::BLACK), Paint::None, 0.0),
         );
         vector.insert(Some(layer), usize::MAX, n).unwrap();
         let rect = vector.artboards[0].rect;
-        let source = vectorcraft_render::Renderer::new().render_region(&vector, rect, 1.0, true);
+        let source = vansoncraft_render::Renderer::new().render_region(&vector, rect, 1.0, true);
         let mut png = Vec::new();
         image::RgbaImage::from_raw(source.width, source.height, source.to_straight())
             .unwrap()

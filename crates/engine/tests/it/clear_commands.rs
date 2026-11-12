@@ -1,8 +1,8 @@
 //! Clear deletes its exact targets, including compound members (#786).
 
 use serde_json::json;
-use vectorcraft_doc::NodeId;
-use vectorcraft_engine::{EngineError, Session};
+use vansoncraft_doc::NodeId;
+use vansoncraft_engine::{EngineError, Session};
 
 fn compound() -> (Session, NodeId, NodeId, NodeId) {
     let mut s = Session::new();

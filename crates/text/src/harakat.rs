@@ -16,7 +16,7 @@
 
 use skrifa::raw::TableProvider;
 use skrifa::raw::tables::layout::ClassDef;
-use vectorcraft_doc::CharStyle;
+use vansoncraft_doc::CharStyle;
 
 use crate::fontdb::FontFace;
 

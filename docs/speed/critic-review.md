@@ -223,7 +223,7 @@ The rest of this document records the findings as first found, with locations as
 **P1-4. The hatching guidance reverses Speed's default and asks for a mode the tool lacks.**
 
 - *Where:* `line.md:21–22`: "choose the angle from the form (across, down, around) rather than one angle for all".
-- *Why it matters:* SP-VIII-15 says the opposite. Keep the lines parallel when in doubt, because that "preserves a unity", and break the rule only for strongly marked forms such as hair, bone and strained muscle (p. 103). The same file's "Speed says" paragraph has it right ("parallel lines in an easy direction"). Agents act on the "With VectorCraft" bullet. "Around" (curved, cross-contour hatching) is also something `study.hatch` cannot draw: it makes straight lines only.
+- *Why it matters:* SP-VIII-15 says the opposite. Keep the lines parallel when in doubt, because that "preserves a unity", and break the rule only for strongly marked forms such as hair, bone and strained muscle (p. 103). The same file's "Speed says" paragraph has it right ("parallel lines in an easy direction"). Agents act on the "With VansonCraft" bullet. "Around" (curved, cross-contour hatching) is also something `study.hatch` cannot draw: it makes straight lines only.
 - *Change:* "Use one hatch angle across the drawing by default (SP-VIII-15); change it only where a form calls for it: down a hard form, crossed for the dark next to the light (SP-VIII-16). `study.hatch` draws straight lines only; curved hatching round a form is not available yet."
 
 ### P2: significant gaps

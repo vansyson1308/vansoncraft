@@ -2,8 +2,8 @@
 //! and adding one to the Swatches panel as a colour group.
 
 use serde_json::{Value, json};
-use vectorcraft_color::Color;
-use vectorcraft_color::harmony::Harmony;
+use vansoncraft_color::Color;
+use vansoncraft_color::harmony::Harmony;
 
 use crate::*;
 

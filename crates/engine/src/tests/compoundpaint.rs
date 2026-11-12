@@ -2,7 +2,7 @@
 //! compound holds the paint, so a member's own appearance is never drawn.
 
 use serde_json::{Value, json};
-use vectorcraft_color::Paint;
+use vansoncraft_color::Paint;
 
 use crate::*;
 

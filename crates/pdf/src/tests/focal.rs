@@ -1,9 +1,9 @@
 //! Radial gradients' focal points as two-point radial shadings, out and back in.
 
-use vectorcraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, Paint};
-use vectorcraft_doc::{Appearance, Document, Node};
-use vectorcraft_geom::{Point, Rect, shapes};
-use vectorcraft_testkit::raster::{assert_similar, render_artboard};
+use vansoncraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, Paint};
+use vansoncraft_doc::{Appearance, Document, Node};
+use vansoncraft_geom::{Point, Rect, shapes};
+use vansoncraft_testkit::raster::{assert_similar, render_artboard};
 
 use crate::*;
 

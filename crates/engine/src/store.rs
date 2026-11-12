@@ -38,10 +38,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::SystemTime;
 
-use vectorcraft_pdf::{PdfPreset, builtin_preset};
-use vectorcraft_plugins::permissions::GrantToken;
-use vectorcraft_plugins::safe_mode;
-use vectorcraft_plugins::storage::{self, Meter, Storage, StorageError};
+use vansoncraft_pdf::{PdfPreset, builtin_preset};
+use vansoncraft_plugins::permissions::GrantToken;
+use vansoncraft_plugins::safe_mode;
+use vansoncraft_plugins::storage::{self, Meter, Storage, StorageError};
 
 use crate::Session;
 use crate::cmd::pdfcmds::{PRESET_FORMAT, PresetFile};
@@ -208,7 +208,7 @@ fn put(dir: &Path, file: &str, bytes: &[u8]) -> bool {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn write_atomic(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
-    vectorcraft_format::write_atomic(path, bytes)
+    vansoncraft_format::write_atomic(path, bytes)
 }
 
 /// The browser has no folders to keep anything in (the apps there never attach a store).
@@ -351,7 +351,7 @@ impl Session {
             }
             let loaded = read_capped(&path, MAX_PROFILE_FILE.min(left)).and_then(|bytes| {
                 left -= bytes.len() as u64;
-                vectorcraft_color::cms::register_icc(&bytes, None).map_err(|e| e.to_string())
+                vansoncraft_color::cms::register_icc(&bytes, None).map_err(|e| e.to_string())
             });
             if let Err(e) = loaded {
                 log::warn!("skipping the stored colour profile {}: {e}", path.display());
@@ -381,8 +381,8 @@ impl Session {
     pub fn attach_color_settings(&mut self, path: PathBuf) {
         if path.exists() {
             let restored = read_capped(&path, MAX_PRESET_FILE)
-                .and_then(|bytes| serde_json::from_slice::<vectorcraft_color::cms::ColorSettings>(&bytes).map_err(|e| e.to_string()))
-                .and_then(|settings| vectorcraft_color::cms::set_active(&settings).map_err(|e| e.to_string()));
+                .and_then(|bytes| serde_json::from_slice::<vansoncraft_color::cms::ColorSettings>(&bytes).map_err(|e| e.to_string()))
+                .and_then(|settings| vansoncraft_color::cms::set_active(&settings).map_err(|e| e.to_string()));
             if let Err(e) = restored {
                 log::warn!("not using the saved color settings {}: {e}", path.display());
             }
@@ -392,7 +392,7 @@ impl Session {
 
     /// Write `settings` to the file [`Session::attach_color_settings`] named; `false` when they
     /// didn't go there.
-    pub(crate) fn store_color_settings(&self, settings: &vectorcraft_color::cms::ColorSettings) -> bool {
+    pub(crate) fn store_color_settings(&self, settings: &vansoncraft_color::cms::ColorSettings) -> bool {
         let Some(path) = &self.color_settings_file else { return false };
         let (Some(dir), Some(file)) = (path.parent(), path.file_name().and_then(|f| f.to_str())) else { return false };
         serde_json::to_vec_pretty(settings).is_ok_and(|bytes| put(dir, file, &bytes))
@@ -422,7 +422,7 @@ impl Session {
             return;
         }
         let grants = self.counted_grants(&dir);
-        let limits = vectorcraft_plugins::Limits::default();
+        let limits = vansoncraft_plugins::Limits::default();
         let mut left = MAX_PLUGIN_STORE;
         let mut asks_nothing = BTreeSet::new();
         for path in list_files(&dir, PLUGIN_EXT) {
@@ -440,7 +440,7 @@ impl Session {
             let token = safe_mode::loading(&item);
             let loaded = read_capped(&path, (limits.max_module_bytes as u64).min(left)).and_then(|bytes| {
                 left -= bytes.len() as u64;
-                vectorcraft_plugins::Plugin::load(&bytes, limits.clone()).map_err(|e| e.to_string())
+                vansoncraft_plugins::Plugin::load(&bytes, limits.clone()).map_err(|e| e.to_string())
             });
             safe_mode::loaded(token);
             match loaded {
@@ -451,9 +451,9 @@ impl Session {
                     match grants.get(&m.id).filter(|g| grant_covers(g, &plugin)) {
                         Some(g) => {
                             asks_nothing.remove(&m.id);
-                            vectorcraft_plugins::registry::grant(GrantToken::from_engine_grants_file(g.clone()));
-                            vectorcraft_plugins::registry::set_storage(&m.id, plugin_storage(Some(&dir), &m.id));
-                            if let Err(e) = vectorcraft_plugins::registry::install(plugin.with_source(path.display().to_string())) {
+                            vansoncraft_plugins::registry::grant(GrantToken::from_engine_grants_file(g.clone()));
+                            vansoncraft_plugins::registry::set_storage(&m.id, plugin_storage(Some(&dir), &m.id));
+                            if let Err(e) = vansoncraft_plugins::registry::install(plugin.with_source(path.display().to_string())) {
                                 log::warn!("skipping the stored plug-in {}: {e}", path.display());
                             }
                         }
@@ -464,8 +464,8 @@ impl Session {
                 }
                 Ok(plugin) => {
                     asks_nothing.insert(plugin.id().to_string());
-                    vectorcraft_plugins::registry::set_storage(plugin.id(), plugin_storage(Some(&dir), plugin.id()));
-                    if let Err(e) = vectorcraft_plugins::registry::install(plugin.with_source(path.display().to_string())) {
+                    vansoncraft_plugins::registry::set_storage(plugin.id(), plugin_storage(Some(&dir), plugin.id()));
+                    if let Err(e) = vansoncraft_plugins::registry::install(plugin.with_source(path.display().to_string())) {
                         log::warn!("skipping the stored plug-in {}: {e}", path.display());
                     }
                 }
@@ -474,7 +474,7 @@ impl Session {
         }
         let kept = read_grants(&dir);
         for id in &asks_nothing {
-            vectorcraft_plugins::registry::revoke(id);
+            vansoncraft_plugins::registry::revoke(id);
             let named = match &kept {
                 Ok(file) => file.names(id),
                 Err(e) => e.unread,
@@ -526,41 +526,41 @@ impl Session {
     /// module (its id and SHA-256) was granted every one it lists, in the grants of the attached
     /// plug-in store when there is one ([`grant_covers`]), not counting a grant that should be gone
     /// and could not be removed ([`Session::ignore_stored_grant`]), else in this process's
-    /// ([`vectorcraft_plugins::registry::approved`]).
-    pub(crate) fn plugin_approved(&self, plugin: &vectorcraft_plugins::Plugin) -> bool {
+    /// ([`vansoncraft_plugins::registry::approved`]).
+    pub(crate) fn plugin_approved(&self, plugin: &vansoncraft_plugins::Plugin) -> bool {
         self.plugin_approver()(plugin)
     }
 
     /// [`Session::plugin_approved`] for many plug-ins: reads the store's grants once, when it is
     /// made, and checks each plug-in against them.
-    pub(crate) fn plugin_approver(&self) -> impl Fn(&vectorcraft_plugins::Plugin) -> bool + use<> {
+    pub(crate) fn plugin_approver(&self) -> impl Fn(&vansoncraft_plugins::Plugin) -> bool + use<> {
         let grants = self.plugin_dir.as_deref().map(|dir| self.counted_grants(dir));
         move |plugin| {
             let m = plugin.manifest();
             match &grants {
                 Some(grants) if m.asks_permissions() => grants.get(&m.id).is_some_and(|g| grant_covers(g, plugin)),
-                _ => vectorcraft_plugins::registry::approved(plugin),
+                _ => vansoncraft_plugins::registry::approved(plugin),
             }
         }
     }
 
     /// [`Session::plugin_approver`] for a folder load: a module the store's grants approve gets
     /// that grant recorded for the process too, since the registry installs only a module that a
-    /// recorded grant covers ([`vectorcraft_plugins::registry::install`]).
+    /// recorded grant covers ([`vansoncraft_plugins::registry::install`]).
     #[cfg(not(target_arch = "wasm32"))]
-    pub(crate) fn plugin_folder_approver(&self) -> impl Fn(&vectorcraft_plugins::Plugin) -> bool + use<> {
+    pub(crate) fn plugin_folder_approver(&self) -> impl Fn(&vansoncraft_plugins::Plugin) -> bool + use<> {
         let grants = self.plugin_dir.as_deref().map(|dir| self.counted_grants(dir));
         move |plugin| {
             let m = plugin.manifest();
             match &grants {
                 Some(grants) if m.asks_permissions() => match grants.get(&m.id).filter(|g| grant_covers(g, plugin)) {
                     Some(g) => {
-                        vectorcraft_plugins::registry::grant(GrantToken::from_engine_grants_file(g.clone()));
+                        vansoncraft_plugins::registry::grant(GrantToken::from_engine_grants_file(g.clone()));
                         true
                     }
                     None => false,
                 },
-                _ => vectorcraft_plugins::registry::approved(plugin),
+                _ => vansoncraft_plugins::registry::approved(plugin),
             }
         }
     }
@@ -568,7 +568,7 @@ impl Session {
     /// The grants kept in the plug-in store `dir` ([`stored_grants`]) without those the process
     /// doesn't count for that folder ([`Session::ignore_stored_grant`]). The folder's key is worked
     /// out on each call, so a path whose link now leads elsewhere is matched with where it leads.
-    fn counted_grants(&self, dir: &Path) -> BTreeMap<String, vectorcraft_plugins::permissions::Grant> {
+    fn counted_grants(&self, dir: &Path) -> BTreeMap<String, vansoncraft_plugins::permissions::Grant> {
         let key = plugin_store_key(dir);
         let mut grants = stored_grants(dir);
         let shared = IGNORED_PLUGIN_GRANTS.lock().unwrap_or_else(|e| e.into_inner());
@@ -592,7 +592,7 @@ impl Session {
         if !path.exists() {
             return Ok(None);
         }
-        let max = vectorcraft_plugins::Limits::default().max_module_bytes as u64;
+        let max = vansoncraft_plugins::Limits::default().max_module_bytes as u64;
         read_capped(&path, max).map(Some).inspect_err(|e| log::warn!("can't read the stored plug-in {}: {e}", path.display()))
     }
 
@@ -628,7 +628,7 @@ impl Session {
     /// so is one whose new content would be larger than `MAX_GRANTS_FILE`. → whether the store now
     /// holds what was asked (`false` without a folder). When it does, the grant kept for `id` counts
     /// again, for every session in the process attached to the store ([`Session::ignore_stored_grant`]).
-    pub(crate) fn store_grant(&self, id: &str, grant: Option<vectorcraft_plugins::permissions::Grant>) -> bool {
+    pub(crate) fn store_grant(&self, id: &str, grant: Option<vansoncraft_plugins::permissions::Grant>) -> bool {
         let done = self.write_grant(id, grant);
         if done && let Some(key) = self.plugin_dir.as_deref().map(plugin_store_key) {
             let mut shared = IGNORED_PLUGIN_GRANTS.lock().unwrap_or_else(|e| e.into_inner());
@@ -676,7 +676,7 @@ impl Session {
         }
     }
 
-    fn write_grant(&self, id: &str, grant: Option<vectorcraft_plugins::permissions::Grant>) -> bool {
+    fn write_grant(&self, id: &str, grant: Option<vansoncraft_plugins::permissions::Grant>) -> bool {
         let Some(dir) = &self.plugin_dir else { return false };
         let mut file = match read_grants(dir) {
             Ok(file) => file,
@@ -731,7 +731,7 @@ impl Session {
     /// one, nowhere (its storage calls then fail as unavailable). Settings and cache that a removal
     /// kept are moved back first ([`plugin_storage`]).
     pub(crate) fn attach_plugin_storage(&self, id: &str) {
-        vectorcraft_plugins::registry::set_storage(id, plugin_storage(self.plugin_dir.as_deref(), id));
+        vansoncraft_plugins::registry::set_storage(id, plugin_storage(self.plugin_dir.as_deref(), id));
     }
 
     /// Does the attached plug-in store have a folder of settings and cache for plug-in `id`, or one
@@ -758,7 +758,7 @@ impl Session {
     /// record, and a later call for the id tries to delete it again.
     pub(crate) fn remove_plugin_storage(&self, id: &str, forget: impl FnOnce() -> bool) -> Result<(), StorageError> {
         let not_forgotten = || StorageError::Io(GRANT_NOT_REMOVED.to_string());
-        vectorcraft_plugins::registry::set_storage(id, None);
+        vansoncraft_plugins::registry::set_storage(id, None);
         let Some(dir) = &self.plugin_dir else {
             return if forget() { Ok(()) } else { Err(not_forgotten()) };
         };
@@ -1035,7 +1035,7 @@ fn io(e: &std::io::Error) -> StorageError {
 /// permission the module lists? A module with other bytes under the id needs the user's approval
 /// again, and so doesn't get the settings and cache kept for the id without it. A grant whose hash
 /// is missing or not a valid SHA-256 covers no module.
-fn grant_covers(g: &vectorcraft_plugins::permissions::Grant, plugin: &vectorcraft_plugins::Plugin) -> bool {
+fn grant_covers(g: &vansoncraft_plugins::permissions::Grant, plugin: &vansoncraft_plugins::Plugin) -> bool {
     let m = plugin.manifest();
     g.covers(&m.id, plugin.hash(), &m.permissions())
 }
@@ -1119,7 +1119,7 @@ impl PluginStorage {
             .and_then(|bytes| serde_json::from_slice::<BTreeMap<String, String>>(&bytes).ok())
             .and_then(|stored| {
                 let decode =
-                    |(k, v): (String, String)| if storage::valid_name(&k) { vectorcraft_format::base64_decode(&v).map(|v| (k, v)) } else { None };
+                    |(k, v): (String, String)| if storage::valid_name(&k) { vansoncraft_format::base64_decode(&v).map(|v| (k, v)) } else { None };
                 let settings: Option<BTreeMap<String, Vec<u8>>> = stored.into_iter().map(decode).collect();
                 settings.filter(|s| s.len() <= storage::MAX_SETTINGS && s.values().all(|v| v.len() <= storage::MAX_SETTING_BYTES))
             });
@@ -1162,7 +1162,7 @@ impl PluginStorage {
                 _ => Ok(()),
             };
         }
-        let stored: BTreeMap<&str, String> = settings.iter().map(|(k, v)| (k.as_str(), vectorcraft_format::base64_encode(v))).collect();
+        let stored: BTreeMap<&str, String> = settings.iter().map(|(k, v)| (k.as_str(), vansoncraft_format::base64_encode(v))).collect();
         let bytes = serde_json::to_vec(&stored).map_err(|e| StorageError::Io(e.to_string()))?;
         if bytes.len() > storage::MAX_SETTINGS_BYTES {
             return Err(StorageError::Full);
@@ -1338,7 +1338,7 @@ impl Storage for PluginStorage {
 #[derive(Default)]
 struct GrantsFile {
     /// The grants this version can use, by plug-in id.
-    grants: BTreeMap<String, vectorcraft_plugins::permissions::Grant>,
+    grants: BTreeMap<String, vansoncraft_plugins::permissions::Grant>,
     /// The entries it can't use (a permission it doesn't know, an invalid id), as they were.
     other: Vec<serde_json::Value>,
 }
@@ -1376,8 +1376,8 @@ fn read_grants(dir: &Path) -> Result<GrantsFile, GrantsError> {
     let mut file = GrantsFile::default();
     let mut first_error = None;
     for entry in entries {
-        let why = match serde_json::from_value::<vectorcraft_plugins::permissions::Grant>(entry.clone()) {
-            Ok(g) if vectorcraft_plugins::manifest::valid_id(&g.id) => {
+        let why = match serde_json::from_value::<vansoncraft_plugins::permissions::Grant>(entry.clone()) {
+            Ok(g) if vansoncraft_plugins::manifest::valid_id(&g.id) => {
                 file.grants.insert(g.id.clone(), g);
                 continue;
             }
@@ -1396,7 +1396,7 @@ fn read_grants(dir: &Path) -> Result<GrantsFile, GrantsError> {
 /// The grants kept in the plug-in store `dir` that this version can use, by plug-in id: none when
 /// there is no grants file, and none, with a log record, when it is too large, can't be read or
 /// doesn't hold a list.
-fn stored_grants(dir: &Path) -> BTreeMap<String, vectorcraft_plugins::permissions::Grant> {
+fn stored_grants(dir: &Path) -> BTreeMap<String, vansoncraft_plugins::permissions::Grant> {
     match read_grants(dir) {
         Ok(file) => file.grants,
         Err(e) => {

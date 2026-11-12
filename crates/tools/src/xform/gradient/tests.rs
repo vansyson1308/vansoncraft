@@ -1,7 +1,7 @@
 use super::*;
 use crate::testutil::*;
-use vectorcraft_color::{GradientPaint, Paint};
-use vectorcraft_doc::{Document, Selection};
+use vansoncraft_color::{GradientPaint, Paint};
+use vansoncraft_doc::{Document, Selection};
 
 fn ev(kind: PointerKind, p: Point) -> PointerEvent {
     PointerEvent::new(kind, p.x, p.y)
@@ -273,9 +273,9 @@ fn a_click_inside_the_art_applies_the_gradient_from_there() {
 #[test]
 fn a_click_on_a_dynamic_instance_with_a_picked_object_names_no_object() {
     use std::sync::Arc;
-    use vectorcraft_doc::{Appearance, Node, NodeId, NodeKind, Symbol};
+    use vansoncraft_doc::{Appearance, Node, NodeId, NodeKind, Symbol};
     let square =
-        Node::path(NodeId(0), vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(0.0, 0.0, 10.0, 10.0)), Appearance::default_art());
+        Node::path(NodeId(0), vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(0.0, 0.0, 10.0, 10.0)), Appearance::default_art());
     let art = Node::group(NodeId(0), vec![Arc::new(square)]);
     let (mut d, _) = doc_with_rect();
     d.symbols.push(Symbol { dynamic: true, name: "One".into(), art: Arc::new(art) });
@@ -424,7 +424,7 @@ fn a_diamond_shows_its_square_and_aspect_handle() {
         for want in [geom.end, geom.start - w, geom.start - u, geom.start + w] {
             assert!(corners.iter().any(|c| c.distance(want) < 1e-9), "{aspect}: {want:?} in {corners:?}");
         }
-        assert!(!squares[0].elements().iter().any(|e| matches!(e, vectorcraft_geom::kurbo::PathEl::CurveTo(..))), "straight sides");
+        assert!(!squares[0].elements().iter().any(|e| matches!(e, vansoncraft_geom::kurbo::PathEl::CurveTo(..))), "straight sides");
         assert!(o.contains(&Overlay::Handle { p: Point::new(100.0, 100.0), color: BAR }), "{aspect}: {o:?}");
         let a = Annotator::of(&cx).unwrap();
         assert_eq!(a.hit(&cx, Point::new(100.0, 100.0)), Some(Part::Aspect));
@@ -459,7 +459,7 @@ fn a_radial_with_a_negative_aspect_drags_to_a_positive_one() {
 /// none.
 #[test]
 fn the_annotator_marks_where_the_runs_meet() {
-    use vectorcraft_color::GradientSpread;
+    use vansoncraft_color::GradientSpread;
     let ticks = |kind: GradientKind, spread: GradientSpread| {
         let (mut d, s) = graded(two());
         let n = d.node_mut(s.objects[0]).unwrap();

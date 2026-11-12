@@ -1,10 +1,10 @@
-# Traceability: Speed's principles to VectorCraft
+# Traceability: Speed's principles to VansonCraft
 
 *Status: 2026-11-12, re-checked against the working tree after the fixes listed in `critic-review.md`. Covers every principle in the four reading ledgers (A: Preface–V, B: VI–IX, C: X–XIV, D: XV–Appendix) of Harold Speed, *The Practice and Science of Drawing* (1913, Project Gutenberg #14264).*
 
 ## How to read this
 
-Each row is one principle id from a ledger. The columns say what the principle asks of a person or an agent, what VectorCraft already had, what was missing, how we chose to treat it, what we built or wrote, what proves it, and its status.
+Each row is one principle id from a ledger. The columns say what the principle asks of a person or an agent, what VansonCraft already had, what was missing, how we chose to treat it, what we built or wrote, what proves it, and its status.
 
 Code was read, not run, for this table. "Existing" names only command ids that were found in `crates/engine/src/cmd/` or `crates/effects/src/catalog.rs`. A test is cited only when its body exercises the behaviour named in the row.
 
@@ -33,7 +33,7 @@ Code was read, not run, for this table. "Existing" names only command ids that w
 | NOT-AUTOMATED | Deliberately left to the person, with the reason. |
 | DEFERRED | Worth building later; the row says why not now. |
 
-**Guidance topics** are the MCP method resources `vectorcraft://method/{topic}`: `procedure`, `line`, `mass`, `rhythm`, `balance`, `proportion`, `portrait`, `memory`, `materials`, `limits`. Their text is in `crates/mcp/src/method/*.md`. The MCP prompts `speed-drawing`, `composition-variants`, `revise-locally` and `memory-exercise` are in `crates/mcp/src/prompts.rs`.
+**Guidance topics** are the MCP method resources `vansoncraft://method/{topic}`: `procedure`, `line`, `mass`, `rhythm`, `balance`, `proportion`, `portrait`, `memory`, `materials`, `limits`. Their text is in `crates/mcp/src/method/*.md`. The MCP prompts `speed-drawing`, `composition-variants`, `revise-locally` and `memory-exercise` are in `crates/mcp/src/prompts.rs`.
 
 **Test tags.** Engine tests are in `crates/engine/src/cmd/study/tests.rs`; MCP tests are in `crates/mcp/src/tests/speed.rs`.
 

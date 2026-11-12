@@ -6,7 +6,7 @@ use super::geom::{
     smooth_pinned,
 };
 use super::restore::{RestoreParams, restore_corners};
-use vectorcraft_geom::Point;
+use vansoncraft_geom::Point;
 
 /// How an outline is fitted. Lengths are in (working) pixels.
 #[derive(Clone, Copy, Debug)]

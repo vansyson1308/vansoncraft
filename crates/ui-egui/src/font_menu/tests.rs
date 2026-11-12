@@ -2,7 +2,7 @@
 /// Japanese.
 #[test]
 fn the_thai_filter_lists_fonts_with_thai() {
-    use vectorcraft_text::FontTraits;
+    use vansoncraft_text::FontTraits;
     let (thai, japanese, latin) =
         (FontTraits { thai: true, ..Default::default() }, FontTraits { japanese: true, ..Default::default() }, FontTraits::default());
     let passing = |t: FontTraits| (0..super::SCRIPTS).filter(|s| super::script_matches(*s, t)).collect::<Vec<_>>();
@@ -24,7 +24,7 @@ fn the_scroll_bar_leaves_the_stars_clear() {
     // Every family starred, so each row draws its star. Tests running alongside add fonts and
     // composite fonts to the process-wide database, which the menu lists too: the ★ filter keeps
     // the rows to the families starred here.
-    let all = vectorcraft_text::FontDb::global().families();
+    let all = vansoncraft_text::FontDb::global().families();
     let ctx = egui::Context::default();
     let area = egui::Rect::from_min_size(egui::pos2(0.0, 0.0), egui::vec2(300.0, 160.0));
     let mut st = super::MenuState { favorites_only: true, ..Default::default() };
@@ -68,7 +68,7 @@ fn family(name: &str) -> Row {
 /// composite fonts at its top, which tests running alongside define and remove in the process-wide
 /// database.
 fn lasting_families() -> Vec<String> {
-    vectorcraft_text::FontDb::global().family_list().iter().filter(|f| !f.starts_with('.')).cloned().collect()
+    vansoncraft_text::FontDb::global().family_list().iter().filter(|f| !f.starts_with('.')).cloned().collect()
 }
 
 #[test]
@@ -708,9 +708,9 @@ fn the_variable_filter_is_named_as_fonts_are() {
 /// filters; clicked again, every family is back.
 #[test]
 fn the_variable_filter_lists_only_variable_families() {
-    use vectorcraft_text::FontClass;
-    use vectorcraft_text::test_fonts::{TWO_AXIS_FAMILY, two_axis_font};
-    let db = vectorcraft_text::FontDb::global();
+    use vansoncraft_text::FontClass;
+    use vansoncraft_text::test_fonts::{TWO_AXIS_FAMILY, two_axis_font};
+    let db = vansoncraft_text::FontDb::global();
     db.add_font(two_axis_font().unwrap());
     let ctx = egui::Context::default();
     let mut st = super::MenuState::default();

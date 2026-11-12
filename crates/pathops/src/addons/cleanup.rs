@@ -6,7 +6,7 @@
 use std::collections::HashMap;
 
 use kurbo::{Point, Vec2};
-use vectorcraft_geom::{Anchor, AnchorKind, EPS, SubPath};
+use vansoncraft_geom::{Anchor, AnchorKind, EPS, SubPath};
 
 use crate::fit::{end_tangent, start_tangent};
 

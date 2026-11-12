@@ -3,7 +3,7 @@
 
 use egui::{Event, PointerButton, Pos2, Rect, Ui, vec2};
 
-use super::VectorcraftApp;
+use super::VansoncraftApp;
 
 /// The frames that opening a popup takes.
 const OPEN_FRAMES: usize = 8;
@@ -15,7 +15,7 @@ const WIDTH: f32 = 500.0;
 const TALL: f32 = 900.0;
 
 /// What a window draws each frame.
-type Draw<'a> = Box<dyn FnMut(&mut VectorcraftApp, &mut Ui) + 'a>;
+type Draw<'a> = Box<dyn FnMut(&mut VansoncraftApp, &mut Ui) + 'a>;
 
 /// A window `height` pt tall with its own clock, drawing `draw` each frame.
 pub(super) struct PopupWindow<'a> {
@@ -28,7 +28,7 @@ pub(super) struct PopupWindow<'a> {
 }
 
 impl<'a> PopupWindow<'a> {
-    pub(super) fn new(app: &mut VectorcraftApp, height: f32, draw: impl FnMut(&mut VectorcraftApp, &mut Ui) + 'a) -> Self {
+    pub(super) fn new(app: &mut VansoncraftApp, height: f32, draw: impl FnMut(&mut VansoncraftApp, &mut Ui) + 'a) -> Self {
         let ctx = egui::Context::default();
         crate::theme::install_fonts(&ctx);
         let mut window = Self { ctx, time: 0.0, width: WIDTH, height, draw: Box::new(draw), texts: vec![] };
@@ -37,7 +37,7 @@ impl<'a> PopupWindow<'a> {
     }
 
     /// One frame with `events`.
-    fn frame(&mut self, app: &mut VectorcraftApp, events: Vec<Event>) {
+    fn frame(&mut self, app: &mut VansoncraftApp, events: Vec<Event>) {
         self.time += 1.0 / 60.0;
         let screen_rect = Some(Rect::from_min_size(Pos2::ZERO, vec2(self.width, self.height)));
         let input = egui::RawInput { time: Some(self.time), screen_rect, events, ..Default::default() };
@@ -48,12 +48,12 @@ impl<'a> PopupWindow<'a> {
     }
 
     /// Makes the window `width` pt wide and draws the frames that takes.
-    pub(super) fn resize(&mut self, app: &mut VectorcraftApp, width: f32) {
+    pub(super) fn resize(&mut self, app: &mut VansoncraftApp, width: f32) {
         self.width = width;
         self.frames(app, OPEN_FRAMES);
     }
 
-    fn frames(&mut self, app: &mut VectorcraftApp, count: usize) {
+    fn frames(&mut self, app: &mut VansoncraftApp, count: usize) {
         for _ in 0..count {
             self.frame(app, vec![]);
         }
@@ -87,7 +87,7 @@ impl<'a> PopupWindow<'a> {
     }
 
     /// A click at `at`, and the frames a popup takes to open.
-    pub(super) fn click(&mut self, app: &mut VectorcraftApp, at: Pos2) {
+    pub(super) fn click(&mut self, app: &mut VansoncraftApp, at: Pos2) {
         let button = |pressed| Event::PointerButton { pos: at, button: PointerButton::Primary, pressed, modifiers: Default::default() };
         self.frame(app, vec![Event::PointerMoved(at), button(true)]);
         self.frame(app, vec![button(false)]);
@@ -95,12 +95,12 @@ impl<'a> PopupWindow<'a> {
     }
 
     /// Turns the wheel far down with the pointer at `over`, and lets the scrolling finish.
-    pub(super) fn wheel_down(&mut self, app: &mut VectorcraftApp, over: Pos2) {
+    pub(super) fn wheel_down(&mut self, app: &mut VansoncraftApp, over: Pos2) {
         self.wheel(app, over, 5000.0);
     }
 
     /// Turns the wheel `down` pt down with the pointer at `over`, and lets the scrolling finish.
-    pub(super) fn wheel(&mut self, app: &mut VectorcraftApp, over: Pos2, down: f32) {
+    pub(super) fn wheel(&mut self, app: &mut VansoncraftApp, over: Pos2, down: f32) {
         let wheel = Event::MouseWheel {
             unit: egui::MouseWheelUnit::Point,
             delta: vec2(0.0, -down),
@@ -121,9 +121,9 @@ const STEADY_FRAMES: usize = 12;
 /// that row, the row's submenu opens and every text of both stays in place too. Returns where the
 /// row is drawn.
 pub(super) fn assert_popup_stays_put(
-    app: &mut VectorcraftApp,
+    app: &mut VansoncraftApp,
     height: f32,
-    draw: impl FnMut(&mut VectorcraftApp, &mut Ui),
+    draw: impl FnMut(&mut VansoncraftApp, &mut Ui),
     pick: impl FnOnce(&PopupWindow) -> Pos2,
     first: &str,
 ) -> Rect {
@@ -142,9 +142,9 @@ struct Opened<'s> {
 /// [`assert_popup_stays_put`] for a popup opened as `opened` says. Returns where the first row is
 /// drawn and where every text is drawn with the submenu open.
 fn assert_popup_opened_stays_put(
-    app: &mut VectorcraftApp,
+    app: &mut VansoncraftApp,
     height: f32,
-    draw: impl FnMut(&mut VectorcraftApp, &mut Ui),
+    draw: impl FnMut(&mut VansoncraftApp, &mut Ui),
     pick: impl FnOnce(&PopupWindow) -> Pos2,
     opened: Opened,
 ) -> (Rect, Vec<(String, Rect)>) {
@@ -180,7 +180,7 @@ fn assert_popup_opened_stays_put(
 /// The Add Effect popup's first and last rows with no plug-ins: the effect catalog's groups, in order.
 pub(super) fn fx_menu_ends() -> (String, String) {
     let mut groups: Vec<&str> = vec![];
-    let catalog = vectorcraft_effects::effect_catalog();
+    let catalog = vansoncraft_effects::effect_catalog();
     for group in catalog.iter().map(|effect| effect.menu.get(1).copied().unwrap_or("Other")) {
         if !groups.contains(&group) {
             groups.push(group);
@@ -192,9 +192,9 @@ pub(super) fn fx_menu_ends() -> (String, String) {
 /// In a window `height` pt tall, the popup of the button `pick` finds opens at its row `first`, and
 /// the wheel brings its row `last` into the window.
 pub(super) fn assert_last_row_scrolls_into_view(
-    app: &mut VectorcraftApp,
+    app: &mut VansoncraftApp,
     height: f32,
-    draw: impl FnMut(&mut VectorcraftApp, &mut Ui),
+    draw: impl FnMut(&mut VansoncraftApp, &mut Ui),
     pick: impl FnOnce(&PopupWindow) -> Pos2,
     first: &str,
     last: &str,
@@ -216,8 +216,8 @@ pub(super) fn assert_last_row_scrolls_into_view(
 /// place and size while the popup stays open. After the 200 pt window becomes `narrow` pt wide,
 /// the popup and its rows in view stay inside the window.
 pub(super) fn assert_rows_stay_on_one_line(
-    app: &mut VectorcraftApp,
-    mut draw: impl FnMut(&mut VectorcraftApp, &mut Ui),
+    app: &mut VansoncraftApp,
+    mut draw: impl FnMut(&mut VansoncraftApp, &mut Ui),
     pick: impl Fn(&PopupWindow) -> Pos2,
     rows: &[String],
     widest: &str,
@@ -286,8 +286,8 @@ pub(super) fn assert_rows_stay_on_one_line(
 /// In a tall window the popup of the button `pick` finds shows its rows `first` to `last` without
 /// scrolling, and the wheel moves neither.
 pub(super) fn assert_short_list_does_not_scroll(
-    app: &mut VectorcraftApp,
-    draw: impl FnMut(&mut VectorcraftApp, &mut Ui),
+    app: &mut VansoncraftApp,
+    draw: impl FnMut(&mut VansoncraftApp, &mut Ui),
     pick: impl FnOnce(&PopupWindow) -> Pos2,
     first: &str,
     last: &str,
@@ -329,8 +329,8 @@ fn menu_of(ui: &mut Ui, rows: usize) {
 }
 
 /// A blank document, for windows that draw no panel.
-fn app() -> VectorcraftApp {
-    VectorcraftApp::new(vectorcraft_engine::Session::new(), Default::default())
+fn app() -> VansoncraftApp {
+    VansoncraftApp::new(vansoncraft_engine::Session::new(), Default::default())
 }
 
 /// A long menu opened from a button `y` pt down a window stays at one place on every frame, and so
@@ -339,7 +339,7 @@ fn app() -> VectorcraftApp {
 fn a_long_menu_stays_put_wherever_its_button_is() {
     for height in [160.0, 300.0, 600.0] {
         for y in [4.0, height / 2.0 - 12.0, height - 28.0] {
-            let draw = move |_: &mut VectorcraftApp, ui: &mut Ui| {
+            let draw = move |_: &mut VansoncraftApp, ui: &mut Ui| {
                 ui.add_space(y);
                 let button = ui.button("Open");
                 egui::Popup::menu(&button).show(long_menu);
@@ -356,7 +356,7 @@ fn a_long_menu_stays_put_wherever_its_button_is() {
 fn a_long_context_menu_stays_put_wherever_it_opens() {
     for height in [160.0, 300.0, 600.0] {
         for y in [4.0, height / 2.0, height - 4.0] {
-            let draw = |_: &mut VectorcraftApp, ui: &mut Ui| {
+            let draw = |_: &mut VansoncraftApp, ui: &mut Ui| {
                 let area = ui.interact(ui.max_rect(), egui::Id::unique("context-area"), egui::Sense::click());
                 area.context_menu(long_menu);
             };
@@ -372,7 +372,7 @@ fn a_long_context_menu_stays_put_wherever_it_opens() {
 #[test]
 fn a_long_submenu_of_a_high_row_reaches_down_to_the_window_bottom() {
     for height in [300.0, 600.0] {
-        let draw = |_: &mut VectorcraftApp, ui: &mut Ui| {
+        let draw = |_: &mut VansoncraftApp, ui: &mut Ui| {
             ui.add_space(4.0);
             let button = ui.button("Open");
             egui::Popup::menu(&button).show(|ui| menu_of(ui, 6));
@@ -399,7 +399,7 @@ fn a_long_submenu_of_a_high_row_reaches_down_to_the_window_bottom() {
 #[test]
 fn a_long_submenu_of_a_low_row_opens_up_and_stays_put() {
     for height in [300.0, 600.0] {
-        let draw = move |_: &mut VectorcraftApp, ui: &mut Ui| {
+        let draw = move |_: &mut VansoncraftApp, ui: &mut Ui| {
             ui.add_space(height - 28.0);
             let button = ui.button("Open");
             egui::Popup::menu(&button).show(|ui| menu_of(ui, 6));

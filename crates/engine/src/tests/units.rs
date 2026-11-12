@@ -3,8 +3,8 @@
 //! canvas measurement labels follow them.
 
 use serde_json::json;
-use vectorcraft_doc::Unit;
-use vectorcraft_tools::{Mods, Overlay, PointerEvent, PointerKind};
+use vansoncraft_doc::Unit;
+use vansoncraft_tools::{Mods, Overlay, PointerEvent, PointerKind};
 
 use crate::cmd::prefscmds::{EAST_ASIAN_UNITS, PREF_SPECS, PrefKind, UNITS};
 use crate::units::Measure;
@@ -130,7 +130,7 @@ fn canvas_measurement_labels_follow_the_units() {
 fn units_survive_a_native_round_trip() {
     let mut s = session();
     s.execute("document.setUnits", &json!({"units": "Feet & Inches"})).unwrap();
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = vansoncraft_format::load(&vansoncraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
     assert_eq!(back.units, Unit::FeetInches);
 }
 
@@ -186,7 +186,7 @@ fn east_asian_type_unit_leaves_the_document_in_points() {
     let after = &s.doc().unwrap().doc;
     assert_eq!(units(&s), Unit::Points);
     assert_eq!(after.units, before.units);
-    let size = |d: &vectorcraft_doc::Document| match &d.node(NodeId(id.as_u64().unwrap())).unwrap().kind {
+    let size = |d: &vansoncraft_doc::Document| match &d.node(NodeId(id.as_u64().unwrap())).unwrap().kind {
         NodeKind::Text(t) => (t.first_style().size, t.first_style().leading),
         _ => panic!("not text"),
     };
@@ -209,7 +209,7 @@ fn general_in(unit: &str) -> Session {
 
 /// `bytes` opened as `name` in `s` → the opened document's units.
 fn opened_units(s: &mut Session, name: &str, bytes: &[u8]) -> Unit {
-    s.execute("document.open", &json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(bytes)})).unwrap();
+    s.execute("document.open", &json!({"name": name, "dataBase64": vansoncraft_format::base64_encode(bytes)})).unwrap();
     units(s)
 }
 
@@ -219,7 +219,7 @@ fn exported(unit: &str, format: &str) -> Vec<u8> {
     s.execute("document.setUnits", &json!({"units": unit})).unwrap();
     s.execute("shape.rectangle", &json!({"x": 10, "y": 10, "width": 50, "height": 30})).unwrap();
     let data = s.execute("document.export", &json!({"format": format})).unwrap()["dataBase64"].clone();
-    vectorcraft_format::base64_decode(data.as_str().unwrap()).unwrap()
+    vansoncraft_format::base64_decode(data.as_str().unwrap()).unwrap()
 }
 
 /// A PostScript `.ai` with one empty layer and `header` among its comments.
@@ -232,7 +232,7 @@ fn postscript_ai(header: &str) -> Vec<u8> {
 
 #[test]
 fn files_that_record_no_units_open_in_the_general_unit() {
-    let pdf = vectorcraft_testkit::pdf::pdf(&[vectorcraft_testkit::pdf::PdfPage::new(120.0, 60.0, "0 0 0 rg 10 10 50 30 re f")], None);
+    let pdf = vansoncraft_testkit::pdf::pdf(&[vansoncraft_testkit::pdf::PdfPage::new(120.0, 60.0, "0 0 0 rg 10 10 50 30 re f")], None);
     let png = exported("Inches", "png");
     let ai = postscript_ai("");
     let mut s = general_in("Millimeters");
@@ -240,7 +240,7 @@ fn files_that_record_no_units_open_in_the_general_unit() {
     assert_eq!(opened_units(&mut s, "image.png", &png), Unit::Millimeters, "nor does an image");
     assert_eq!(opened_units(&mut s, "old.ai", &ai), Unit::Millimeters, "nor a .ai without ruler units");
     // Only the units change: the page keeps its size in points.
-    s.execute("document.open", &json!({"name": "plain.pdf", "dataBase64": vectorcraft_format::base64_encode(&pdf)})).unwrap();
+    s.execute("document.open", &json!({"name": "plain.pdf", "dataBase64": vansoncraft_format::base64_encode(&pdf)})).unwrap();
     let board = s.doc().unwrap().doc.artboards[0].rect;
     assert!((board.width() - 120.0).abs() < 1e-6 && (board.height() - 60.0).abs() < 1e-6, "{board:?}");
     // With the preference left at points, they open in points as before.
@@ -253,7 +253,7 @@ fn files_that_record_units_keep_them_whatever_the_general_unit() {
     let mut s = general_in("Millimeters");
     assert_eq!(opened_units(&mut s, "inches.ai", &postscript_ai("%AI5_RulerUnits: 0\n")), Unit::Inches, "a .ai's ruler units");
     assert_eq!(opened_units(&mut s, "points.ai", &postscript_ai("%AI5_RulerUnits: 2\n")), Unit::Points, "ruler units in points are kept too");
-    assert_eq!(opened_units(&mut s, "saved.vectorcraft", &exported("Inches", "vectorcraft")), Unit::Inches, "a native file");
+    assert_eq!(opened_units(&mut s, "saved.vansoncraft", &exported("Inches", "vansoncraft")), Unit::Inches, "a native file");
     let svg = r#"<svg xmlns="http://www.w3.org/2000/svg" width="2in" height="1in" viewBox="0 0 144 72"><rect width="10" height="10"/></svg>"#;
     assert_eq!(opened_units(&mut s, "inches.svg", svg.as_bytes()), Unit::Inches, "an SVG's root size");
 }
@@ -263,7 +263,7 @@ fn revert_reopens_a_file_without_units_in_the_general_unit() {
     let dir = std::env::temp_dir().join(format!("vc-5820-revert-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join("plain.pdf");
-    std::fs::write(&path, vectorcraft_testkit::pdf::pdf(&[vectorcraft_testkit::pdf::PdfPage::new(120.0, 60.0, "0 0 0 rg 10 10 50 30 re f")], None))
+    std::fs::write(&path, vansoncraft_testkit::pdf::pdf(&[vansoncraft_testkit::pdf::PdfPage::new(120.0, 60.0, "0 0 0 rg 10 10 50 30 re f")], None))
         .unwrap();
     let mut s = general_in("Millimeters");
     s.execute("document.open", &json!({"path": path.to_string_lossy()})).unwrap();

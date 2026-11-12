@@ -18,8 +18,8 @@ use std::f64::consts::PI;
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_geom::{Affine, Anchor, BezPath, CubicBez, ParamCurve, PathData, Point, Rect, Shape, SubPath, Vec2};
+use vansoncraft_color::{Color, Paint};
+use vansoncraft_geom::{Affine, Anchor, BezPath, CubicBez, ParamCurve, PathData, Point, Rect, Shape, SubPath, Vec2};
 
 use crate::appearance::{Appearance, AppearanceItem, FillLayer};
 use crate::node::{ImageObject, Node, NodeId, NodeKind};
@@ -92,7 +92,7 @@ mod tests {
     /// down to one a segment, and matches the plain map where the budget leaves room.
     #[test]
     fn map_nonlinear_within_keeps_to_its_anchor_budget() {
-        let square = vectorcraft_geom::shapes::rectangle(Rect::new(0.0, 0.0, 100.0, 100.0));
+        let square = vansoncraft_geom::shapes::rectangle(Rect::new(0.0, 0.0, 100.0, 100.0));
         let f = |p: Point| Point::new(p.x + (p.y / 10.0).sin(), p.y);
         let full = map_nonlinear(&square, 1.0, f);
         assert_eq!(full.anchor_count(), 4 * 64);
@@ -326,7 +326,7 @@ mod tests {
         assert!(text.contains(r#""version":1"#), "{text}");
         assert_eq!(serde_json::from_str::<EnvelopeKind>(&text).unwrap(), new);
     }
-    use vectorcraft_geom::shapes;
+    use vansoncraft_geom::shapes;
 
     fn rect_node(x: f64, y: f64, w: f64, h: f64, c: Color) -> Arc<Node> {
         Arc::new(Node::path(NodeId(1), shapes::rectangle(Rect::new(x, y, x + w, y + h)), Appearance::basic(Paint::solid(c), Paint::None, 0.0)))
@@ -730,7 +730,7 @@ mod tests {
     /// frame. A native file writes it only when it isn't zero.
     #[test]
     fn an_envelope_maps_from_its_box_with_its_margins() {
-        let rect = Node::path(NodeId(2), vectorcraft_geom::shapes::rectangle(Rect::new(10.0, 20.0, 110.0, 70.0)), crate::Appearance::default_art());
+        let rect = Node::path(NodeId(2), vansoncraft_geom::shapes::rectangle(Rect::new(10.0, 20.0, 110.0, 70.0)), crate::Appearance::default_art());
         let kind = EnvelopeKind::Warp { style: "arc".into(), bend: 0.0, h: 0.0, v: 0.0, horizontal: true, version: 0 };
         let content = [Arc::new(rect)];
         let src = |content: &[Arc<Node>], frame: Affine, options: EnvelopeOptions| EnvelopeMap::new(content, &kind, frame, options).unwrap().src();
@@ -745,7 +745,7 @@ mod tests {
             assert_eq!(src(&content, Affine::IDENTITY, EnvelopeOptions { bounds_margin: [bad, 0.25, 0.0625, 0.5], ..on }), geometric);
         }
         // A finite share of a box too wide to grow leaves the box as it is.
-        let wide = Node::path(NodeId(3), vectorcraft_geom::shapes::rectangle(Rect::new(0.0, 0.0, 1e308, 10.0)), crate::Appearance::default_art());
+        let wide = Node::path(NodeId(3), vansoncraft_geom::shapes::rectangle(Rect::new(0.0, 0.0, 1e308, 10.0)), crate::Appearance::default_art());
         let wide = [Arc::new(wide)];
         let huge = EnvelopeOptions { bounds_margin: [0.0, 0.0, f32::MAX, 0.0], ..on };
         assert_eq!(src(&wide, Affine::IDENTITY, huge), src(&wide, Affine::IDENTITY, EnvelopeOptions::NEW));
@@ -840,10 +840,10 @@ mod tests {
     /// The polylines of `bp` flattened to 0.01 pt.
     fn flattened(bp: &BezPath) -> Vec<Vec<Point>> {
         let mut out: Vec<Vec<Point>> = vec![];
-        vectorcraft_geom::kurbo::flatten(bp.iter(), 0.01, |el| match el {
-            vectorcraft_geom::PathEl::MoveTo(p) => out.push(vec![p]),
-            vectorcraft_geom::PathEl::LineTo(p) => out.last_mut().into_iter().for_each(|v| v.push(p)),
-            vectorcraft_geom::PathEl::ClosePath => out.last_mut().into_iter().for_each(|v| v.push(v[0])),
+        vansoncraft_geom::kurbo::flatten(bp.iter(), 0.01, |el| match el {
+            vansoncraft_geom::PathEl::MoveTo(p) => out.push(vec![p]),
+            vansoncraft_geom::PathEl::LineTo(p) => out.last_mut().into_iter().for_each(|v| v.push(p)),
+            vansoncraft_geom::PathEl::ClosePath => out.last_mut().into_iter().for_each(|v| v.push(v[0])),
             _ => {}
         });
         out

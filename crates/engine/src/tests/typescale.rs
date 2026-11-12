@@ -1,8 +1,8 @@
 //! #1034: Character sizes and horizontal scales account for the object's affine transform.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{NodeId, NodeKind, TextObject};
-use vectorcraft_geom::Point;
+use vansoncraft_doc::{NodeId, NodeKind, TextObject};
+use vansoncraft_geom::Point;
 
 use crate::*;
 
@@ -113,8 +113,8 @@ fn rotated_reflected_nonuniform_range_edits_preserve_the_affine() {
     near(em(&after, 0).1, 10.0);
     assert_eq!(after.xf, before.xf);
     // The native document representation retains both the compensation and the affine.
-    let bytes = vectorcraft_format::save_file(&s.doc().unwrap().doc);
-    let reopened = vectorcraft_format::load(&bytes).unwrap();
+    let bytes = vansoncraft_format::save_file(&s.doc().unwrap().doc);
+    let reopened = vansoncraft_format::load(&bytes).unwrap();
     let NodeKind::Text(t) = &reopened.node(id).unwrap().kind else { panic!("not text") };
     near(em(t, 0).0, 10.0);
     near(em(t, 0).1, 10.0);
@@ -247,17 +247,17 @@ fn a_file_with_type_sizes_out_of_range_opens_with_them_in_range() {
     (h.size, h.h_scale, h.v_scale, h.baseline_shift, h.leading) = (f64::MAX, f64::MAX, f64::MAX, f64::MAX, Some(f64::MAX));
     (k.size, k.h_scale, k.v_scale, k.baseline_shift, k.leading) = (0.001, 0.5, 0.5, 5000.0, Some(0.0));
     let art = d.node(id).unwrap().clone();
-    d.symbols.push(vectorcraft_doc::Symbol { dynamic: false, name: "Lines".into(), art: Arc::new(art) });
+    d.symbols.push(vansoncraft_doc::Symbol { dynamic: false, name: "Lines".into(), art: Arc::new(art) });
     let attrs = json!({"size": 0, "h_scale": 1e9, "v_scale": -1, "baseline_shift": -1e9, "leading": -1});
-    d.char_styles.push(vectorcraft_doc::TextStyleDef { name: "Broken".into(), attrs: attrs.as_object().unwrap().clone() });
+    d.char_styles.push(vansoncraft_doc::TextStyleDef { name: "Broken".into(), attrs: attrs.as_object().unwrap().clone() });
     let attrs = json!({"size": 40, "leading": null});
-    d.char_styles.push(vectorcraft_doc::TextStyleDef { name: "Auto".into(), attrs: attrs.as_object().unwrap().clone() });
-    let data = vectorcraft_format::base64_encode(&vectorcraft_format::save_file(&d));
-    s.execute("document.open", &json!({"name": "sizes.vectorcraft", "dataBase64": data})).unwrap();
+    d.char_styles.push(vansoncraft_doc::TextStyleDef { name: "Auto".into(), attrs: attrs.as_object().unwrap().clone() });
+    let data = vansoncraft_format::base64_encode(&vansoncraft_format::save_file(&d));
+    s.execute("document.open", &json!({"name": "sizes.vansoncraft", "dataBase64": data})).unwrap();
     let dims = |t: &TextObject| {
         t.runs.iter().map(|r| (r.style.size, r.style.h_scale, r.style.v_scale, r.style.baseline_shift, r.style.leading)).collect::<Vec<_>>()
     };
-    let max = vectorcraft_doc::MAX_COORD;
+    let max = vansoncraft_doc::MAX_COORD;
     let want = vec![(12.0, 100.0, 100.0, -max, None), (max, max, max, max, Some(max)), (0.001, 0.5, 0.5, 5000.0, Some(0.0))];
     assert_eq!(dims(&text(&s, id)), want);
     let doc = &s.doc().unwrap().doc;
@@ -280,12 +280,12 @@ fn a_file_with_tate_chu_yoko_offsets_out_of_range_in_a_character_style_opens_wit
     let id = NodeId(s.execute("text.create", &json!({"x": 40, "y": 60, "size": 20, "text": "12"})).unwrap()["id"].as_u64().unwrap());
     let mut d = (*s.doc().unwrap().doc).clone();
     let attrs = json!({"tateChuYoko": true, "tcyUpDown": 1e12, "tcyLeftRight": -1e12});
-    d.char_styles.push(vectorcraft_doc::TextStyleDef { name: "Far".into(), attrs: attrs.as_object().unwrap().clone() });
+    d.char_styles.push(vansoncraft_doc::TextStyleDef { name: "Far".into(), attrs: attrs.as_object().unwrap().clone() });
     let attrs = json!({"tcyUpDown": 5000, "tcyLeftRight": -3.5});
-    d.char_styles.push(vectorcraft_doc::TextStyleDef { name: "Near".into(), attrs: attrs.as_object().unwrap().clone() });
-    let data = vectorcraft_format::base64_encode(&vectorcraft_format::save_file(&d));
-    s.execute("document.open", &json!({"name": "tcy.vectorcraft", "dataBase64": data})).unwrap();
-    let max = vectorcraft_doc::MAX_COORD;
+    d.char_styles.push(vansoncraft_doc::TextStyleDef { name: "Near".into(), attrs: attrs.as_object().unwrap().clone() });
+    let data = vansoncraft_format::base64_encode(&vansoncraft_format::save_file(&d));
+    s.execute("document.open", &json!({"name": "tcy.vansoncraft", "dataBase64": data})).unwrap();
+    let max = vansoncraft_doc::MAX_COORD;
     let doc = &s.doc().unwrap().doc;
     let fixed = json!({"tateChuYoko": true, "tcyUpDown": max, "tcyLeftRight": -max});
     assert_eq!(doc.char_styles[0].attrs, *fixed.as_object().unwrap());
@@ -306,7 +306,7 @@ fn imported_type_with_sizes_outside_the_panels_range_opens_unchanged() {
         <text x="200" y="2600" font-size="12" text-anchor="middle"><tspan x="200" y="2600">One</tspan><tspan x="2900" y="2614.4" text-anchor="start">Two</tspan></text>
     </svg>"#;
     let mut s = Session::new();
-    s.execute("document.open", &json!({"name": "sizes.svg", "dataBase64": vectorcraft_format::base64_encode(SVG.as_bytes())})).unwrap();
+    s.execute("document.open", &json!({"name": "sizes.svg", "dataBase64": vansoncraft_format::base64_encode(SVG.as_bytes())})).unwrap();
     let texts = |s: &Session| {
         let mut out = vec![];
         s.doc().unwrap().doc.walk(|n| {
@@ -320,8 +320,8 @@ fn imported_type_with_sizes_outside_the_panels_range_opens_unchanged() {
     let sizes: Vec<f64> = imported.iter().flat_map(|t| t.runs.iter().map(|r| r.style.size)).collect();
     assert!(sizes.iter().any(|v| *v > 1296.0) && sizes.iter().any(|v| *v < 0.1), "{sizes:?}");
     assert!(imported.iter().flat_map(|t| t.para_styles()).any(|p| p.left_indent > 1296.0), "an indent past the panel's");
-    let saved = s.execute("document.export", &json!({"format": "vectorcraft"})).unwrap()["dataBase64"].clone();
-    s.execute("document.open", &json!({"name": "sizes.vectorcraft", "dataBase64": saved})).unwrap();
+    let saved = s.execute("document.export", &json!({"format": "vansoncraft"})).unwrap()["dataBase64"].clone();
+    s.execute("document.open", &json!({"name": "sizes.vansoncraft", "dataBase64": saved})).unwrap();
     assert_eq!(texts(&s), imported);
 }
 
@@ -348,7 +348,7 @@ fn scale_text_attributes_bakes_group_scale_and_undoes() {
 
 /// Scale Text Attributes bakes a horizontal stretch into the Horizontal Scale: tracked type stays
 /// where the stretch drew it, as tracking is measured in the em the Horizontal Scale draws
-/// (`vectorcraft_text::spacing_scale`). It used to lose the stretch's share of the tracking.
+/// (`vansoncraft_text::spacing_scale`). It used to lose the stretch's share of the tracking.
 #[test]
 fn scale_text_attributes_keeps_tracked_type_where_it_was() {
     let mut s = session();
@@ -357,7 +357,7 @@ fn scale_text_attributes_keeps_tracked_type_where_it_was() {
     s.execute("object.scale", &json!({"sx": 200, "sy": 100})).unwrap();
     let pens = |s: &Session| {
         let t = text(s, id);
-        let lay = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &t);
+        let lay = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &t);
         lay.glyphs.iter().map(|g| t.xf * (g.xf * Point::ZERO)).collect::<Vec<_>>()
     };
     let before = pens(&s);

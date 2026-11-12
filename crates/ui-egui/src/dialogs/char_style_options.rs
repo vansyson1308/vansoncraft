@@ -3,7 +3,7 @@
 use serde_json::{Map, Value, json};
 
 use super::{DialogSpec, form};
-use crate::VectorcraftApp;
+use crate::VansoncraftApp;
 use crate::state::Dialog;
 
 pub const KIND: &str = "charStyleOptions";
@@ -108,7 +108,7 @@ pub(super) const SPEC: DialogSpec = DialogSpec {
     ..DialogSpec::FORM
 };
 
-pub fn open(app: &mut VectorcraftApp, name: &str) -> Result<Value, String> {
+pub fn open(app: &mut VansoncraftApp, name: &str) -> Result<Value, String> {
     crate::panels::character::end_typing(app);
     let doc = &app.session.active().ok_or("no document open")?.doc;
     let def = doc.char_styles.iter().find(|s| s.name == name).ok_or_else(|| format!("no character style `{name}`"))?;
@@ -163,7 +163,7 @@ pub(crate) fn fields_from_attrs(attrs: &Map<String, Value>) -> Map<String, Value
 /// The Tint field for a paint: its tint in percent when it links to a swatch, else empty.
 fn tint_field(paint: &Value) -> Value {
     if paint.get("swatch").is_some_and(Value::is_string) {
-        json!(vectorcraft_color::tint_percent(paint.get("tint").and_then(Value::as_f64).unwrap_or(1.0) as f32))
+        json!(vansoncraft_color::tint_percent(paint.get("tint").and_then(Value::as_f64).unwrap_or(1.0) as f32))
     } else {
         json!("")
     }
@@ -172,13 +172,13 @@ fn tint_field(paint: &Value) -> Value {
 /// The swatches Character Color offers, as `[name, paint]` pairs in the Swatches panel's order, the
 /// built-in Registration swatch first: a global color or a tint of one as a paint linked to it, any
 /// other solid color as that color.
-pub(crate) fn swatch_choices(doc: &vectorcraft_doc::Document) -> Value {
-    let registration = vectorcraft_color::swatch::registration();
+pub(crate) fn swatch_choices(doc: &vansoncraft_doc::Document) -> Value {
+    let registration = vansoncraft_color::swatch::registration();
     let builtin = (!doc.swatches_iter().any(|w| w.name == registration.name)).then_some(registration);
     let choices = builtin.into_iter().chain(doc.swatches_iter()).filter_map(|w| {
         let paint = match (doc.swatch_link(&w.name), &w.paint) {
             (Some((base, tint)), _) => doc.tint_paint(&base, tint)?,
-            (None, vectorcraft_color::Paint::Solid { .. }) => w.paint.clone(),
+            (None, vansoncraft_color::Paint::Solid { .. }) => w.paint.clone(),
             _ => return None,
         };
         Some(json!([w.name, paint]))
@@ -196,9 +196,9 @@ fn bare(tag: &str) -> &str {
 /// which a `-` prefix check misses; every other tag is on unless it starts with `-`.
 fn tag_on(tag: &str) -> bool {
     let name = bare(tag);
-    let valued = name == "swsh" || vectorcraft_text::EXTRA_FEATURES.contains(&name);
-    if valued && vectorcraft_text::OtFeatures::known_tag(tag) {
-        vectorcraft_text::OtFeatures::from_tags([tag]).feature_value(name).is_some()
+    let valued = name == "swsh" || vansoncraft_text::EXTRA_FEATURES.contains(&name);
+    if valued && vansoncraft_text::OtFeatures::known_tag(tag) {
+        vansoncraft_text::OtFeatures::from_tags([tag]).feature_value(name).is_some()
     } else {
         !tag.starts_with('-')
     }
@@ -210,7 +210,7 @@ fn tag_on(tag: &str) -> bool {
 fn opentype_fields(features: Option<&Value>) -> Map<String, Value> {
     let tags: Vec<&str> = features.and_then(Value::as_array).into_iter().flatten().filter_map(Value::as_str).collect();
     let names = |set: &[&str]| tags.iter().any(|t| set.contains(&bare(t)));
-    let f = vectorcraft_text::OtFeatures::from_tags(tags.iter().copied());
+    let f = vansoncraft_text::OtFeatures::from_tags(tags.iter().copied());
     let mut fields = Map::new();
     for (field, tag) in OT_SWITCHES {
         let last = tags.iter().rev().find(|t| bare(t) == *tag);
@@ -225,7 +225,7 @@ fn opentype_fields(features: Option<&Value>) -> Map<String, Value> {
     let position =
         names(&crate::panels::opentype::POSITION_TAGS).then(|| crate::panels::opentype::position(&f).and_then(|i| POSITION_VALUES.get(i))).flatten();
     fields.insert("ot_position".into(), position.map_or(Value::Null, |v| json!(v)));
-    let sets: Vec<String> = vectorcraft_text::EXTRA_FEATURES[..20]
+    let sets: Vec<String> = vansoncraft_text::EXTRA_FEATURES[..20]
         .iter()
         .filter_map(|set| tags.iter().rev().find(|t| bare(t) == *set).map(|t| if tag_on(t) { set.to_string() } else { format!("-{set}") }))
         .collect();
@@ -238,8 +238,8 @@ fn opentype_fields(features: Option<&Value>) -> Map<String, Value> {
 fn language_field(value: Option<&Value>) -> Value {
     match value {
         None => Value::Null,
-        Some(Value::Null) => vectorcraft_doc::setup::char_language_name(None).map_or(Value::Null, Value::from),
-        Some(Value::String(tag)) => json!(vectorcraft_doc::setup::char_language_name(Some(tag)).unwrap_or(tag)),
+        Some(Value::Null) => vansoncraft_doc::setup::char_language_name(None).map_or(Value::Null, Value::from),
+        Some(Value::String(tag)) => json!(vansoncraft_doc::setup::char_language_name(Some(tag)).unwrap_or(tag)),
         Some(other) => other.clone(),
     }
 }
@@ -287,7 +287,7 @@ fn optional_number(d: &Dialog, key: &str) -> Result<Option<Value>, String> {
             let max = match key {
                 "size" => 1296.0,
                 "leading" => 5000.0,
-                _ => vectorcraft_doc::MAX_COORD,
+                _ => vansoncraft_doc::MAX_COORD,
             };
             if ["size", "leading"].contains(&key) && n < 0.1 {
                 return Err(format!("{label} must be a number of at least 0.1"));
@@ -303,7 +303,7 @@ fn optional_number(d: &Dialog, key: &str) -> Result<Option<Value>, String> {
             }
             // Weight from 0 to the document limit, a tint from 0% to 100%.
             let (min, max) = match key {
-                "stroke_width" => (0.0, vectorcraft_doc::MAX_COORD),
+                "stroke_width" => (0.0, vansoncraft_doc::MAX_COORD),
                 "fill_tint" | "stroke_tint" => (0.0, 100.0),
                 _ => (0.0, 0.0),
             };
@@ -504,7 +504,7 @@ fn opentype_attrs(d: &Dialog, original: &Map<String, Value>, original_fields: &M
         }
     }
     if !unchanged("ot_sets") {
-        let sets = &vectorcraft_text::EXTRA_FEATURES[..20];
+        let sets = &vansoncraft_text::EXTRA_FEATURES[..20];
         // A set still on keeps the value its tag gives (`ss01=2`).
         let before: Vec<String> = tags.iter().filter(|t| sets.contains(&bare(t))).cloned().collect();
         tags.retain(|t| !sets.contains(&bare(t)));
@@ -514,7 +514,7 @@ fn opentype_attrs(d: &Dialog, original: &Map<String, Value>, original_fields: &M
                 .iter()
                 .rev()
                 .find(|b| bare(b) == bare(t))
-                .filter(|b| !t.starts_with('-') && vectorcraft_text::OtFeatures::known_tag(b) && tag_on(b));
+                .filter(|b| !t.starts_with('-') && vansoncraft_text::OtFeatures::known_tag(b) && tag_on(b));
             kept.map_or_else(|| t.to_string(), Clone::clone)
         }));
     }
@@ -549,7 +549,7 @@ fn advanced_attrs(
     if !unchanged("language")
         && let Some(language) = d.fields.get("language").and_then(Value::as_str).map(str::trim).filter(|v| !v.is_empty())
     {
-        let value = match vectorcraft_doc::setup::char_language(language) {
+        let value = match vansoncraft_doc::setup::char_language(language) {
             Ok(tag) => tag.map_or(Value::Null, Value::from),
             // A tag not in the list goes to the command as it is: charStyle.edit keeps it only
             // when the style already has it.
@@ -633,7 +633,7 @@ pub(crate) fn reset_section(d: &mut Dialog) {
     }
 }
 
-pub fn reset_panel(app: &mut VectorcraftApp) -> Result<Value, String> {
+pub fn reset_panel(app: &mut VansoncraftApp) -> Result<Value, String> {
     let d = app.ui.dialog.as_mut().ok_or("no dialog open")?;
     let character_new = d.kind == super::new_text_style::KIND && !d.bool("__para");
     if (d.kind != KIND && !character_new) || !can_reset(d) {
@@ -767,7 +767,7 @@ pub(crate) fn advanced_body(ui: &mut egui::Ui, d: &mut Dialog) {
             ui.end_row();
         }
         let row = ui.label(tl!("Language:"));
-        let names: Vec<&str> = std::iter::once(" ").chain(vectorcraft_doc::setup::LANGUAGES.iter().map(|(name, _, _)| *name)).collect();
+        let names: Vec<&str> = std::iter::once(" ").chain(vansoncraft_doc::setup::LANGUAGES.iter().map(|(name, _, _)| *name)).collect();
         let current = d.fields.get("language").and_then(Value::as_str).unwrap_or("").to_string();
         if let Some(i) = ui.label_inputs_by(row.id, |ui| crate::widgets::dropdown(ui, (KIND, "language"), &current, &names, 190.0)) {
             d.fields.insert("language".into(), if i == 0 { Value::Null } else { names.get(i).map_or(Value::Null, |name| json!(name)) });
@@ -815,7 +815,7 @@ fn paint_choice(ui: &mut egui::Ui, d: &mut Dialog, key: &str) {
     } else if let Some((name, _)) = swatches.iter().find(|(_, paint)| paint.get("swatch").is_some_and(|s| Some(s) == current.get("swatch"))) {
         name.clone()
     } else {
-        serde_json::from_value::<vectorcraft_color::Paint>(current).map(|p| p.label()).unwrap_or_default()
+        serde_json::from_value::<vansoncraft_color::Paint>(current).map(|p| p.label()).unwrap_or_default()
     };
     let options: Vec<&str> = [" ", none].into_iter().chain(swatches.iter().map(|(name, _)| name.as_str())).collect();
     if let Some(i) = crate::widgets::dropdown_names(ui, (KIND, key), &shown, &options, 190.0) {
@@ -900,7 +900,7 @@ pub(crate) fn opentype_body(ui: &mut egui::Ui, d: &mut Dialog) {
         d.fields.get("ot_sets").and_then(Value::as_array).into_iter().flatten().filter_map(Value::as_str).map(str::to_string).collect();
     let mut clicked = None;
     egui::Grid::new("character-style-sets").num_columns(5).spacing([12.0, 4.0]).show(ui, |ui| {
-        for (i, set) in vectorcraft_text::EXTRA_FEATURES[..20].iter().enumerate() {
+        for (i, set) in vansoncraft_text::EXTRA_FEATURES[..20].iter().enumerate() {
             let value = listed.iter().find(|t| bare(t) == *set).map(|t| !t.starts_with('-'));
             if crate::widgets::check3(ui, set, value, true) {
                 clicked = Some((*set, value));
@@ -934,7 +934,7 @@ fn footer_id(ui: &egui::Ui) -> egui::Id {
 /// stay on screen at any interface scale; the section list is outside the scroll area and stays put
 /// while the content scrolls. Returns whether the dialog asks to be cancelled (never: Cancel comes
 /// from the button row in `dialogs::show`).
-fn body(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
+fn body(app: &mut VansoncraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
     // The content scrolls inside a shorter window: General lists every attribute of the style and
     // OpenType every feature, so the window stays within the screen and its buttons stay visible.
     // The footer was measured last frame, so the room left for the content keeps it on screen at any
@@ -1006,7 +1006,7 @@ pub(crate) fn attrs_error(ui: &mut egui::Ui, why: &str) {
     ui.colored_label(crate::theme::Tokens::get(ui.ctx()).error, crate::i18n::message(crate::i18n::current(), why));
 }
 
-fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
+fn confirm(app: &mut VansoncraftApp, d: &Dialog) -> Result<Value, String> {
     let attrs = edited_attrs(d)?;
     form::commit_preview(app, "charStyle.edit", json!({"name": d.str("__style"), "to": d.str("name"), "attrs": attrs}))
 }
@@ -1014,15 +1014,15 @@ fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use vectorcraft_engine::Session;
+    use vansoncraft_engine::Session;
 
-    fn app() -> VectorcraftApp {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    fn app() -> VansoncraftApp {
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.run("file.new", json!({"width": 300, "height": 200})).unwrap();
         app
     }
 
-    fn frame(app: &mut VectorcraftApp) {
+    fn frame(app: &mut VansoncraftApp) {
         let ctx = egui::Context::default();
         crate::theme::install_fonts(&ctx);
         let mut out = ctx.run_ui(Default::default(), |ui| super::super::show(app, ui.ctx()));
@@ -1047,7 +1047,7 @@ mod tests {
 
     /// The texts of a few headless frames in `ctx` at a screen `w` by `h`, with their screen rects:
     /// the dialog lays its scroll area out and measures its footer over the first frames.
-    fn frame_texts_in(ctx: &egui::Context, app: &mut VectorcraftApp, w: f32, h: f32) -> Vec<(String, egui::Rect)> {
+    fn frame_texts_in(ctx: &egui::Context, app: &mut VansoncraftApp, w: f32, h: f32) -> Vec<(String, egui::Rect)> {
         let screen = egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(w, h));
         let mut texts = vec![];
         for _ in 0..5 {
@@ -1059,7 +1059,7 @@ mod tests {
     }
 
     /// The texts of a few headless frames at a screen `w` by `h`, and the context they were drawn in.
-    fn frame_texts_at(app: &mut VectorcraftApp, w: f32, h: f32) -> (egui::Context, Vec<(String, egui::Rect)>) {
+    fn frame_texts_at(app: &mut VansoncraftApp, w: f32, h: f32) -> (egui::Context, Vec<(String, egui::Rect)>) {
         let ctx = egui::Context::default();
         crate::theme::install_fonts(&ctx);
         let texts = frame_texts_in(&ctx, app, w, h);
@@ -1215,7 +1215,7 @@ mod tests {
         let ctx = egui::Context::default();
         crate::theme::install_fonts(&ctx);
         let screen = egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(900.0, 560.0));
-        let frame = |app: &mut VectorcraftApp, events: Vec<egui::Event>| {
+        let frame = |app: &mut VansoncraftApp, events: Vec<egui::Event>| {
             let mut out =
                 ctx.run_ui(egui::RawInput { screen_rect: Some(screen), events, ..Default::default() }, |ui| super::super::show(app, ui.ctx()));
             out.textures_delta.clear();
@@ -1257,7 +1257,7 @@ mod tests {
             "General scrolls to other attributes"
         );
         // Click Basic Character Formats, then General.
-        let click = |app: &mut VectorcraftApp, label: &str| {
+        let click = |app: &mut VansoncraftApp, label: &str| {
             let texts = frame(app, vec![]);
             let pos = texts.iter().find(|(text, _)| text == label).unwrap_or_else(|| panic!("{label} is drawn")).1.center();
             let button = |pressed| egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
@@ -1326,8 +1326,8 @@ mod tests {
             assert_eq!(state.doc, before);
             assert_eq!((state.history.undo.len(), state.history.redo.len()), history);
             assert_eq!(
-                state.doc.node(vectorcraft_doc::NodeId(id)).and_then(|node| match &node.kind {
-                    vectorcraft_doc::NodeKind::Text(text) => text.runs.first().map(|run| run.style.small_caps),
+                state.doc.node(vansoncraft_doc::NodeId(id)).and_then(|node| match &node.kind {
+                    vansoncraft_doc::NodeKind::Text(text) => text.runs.first().map(|run| run.style.small_caps),
                     _ => None,
                 }),
                 Some(Some(state.doc.setup.small_caps_size))
@@ -1419,7 +1419,7 @@ mod tests {
         super::super::confirm(&mut app).unwrap();
         let doc = &app.session.doc().unwrap().doc;
         assert_eq!(doc.char_styles[0].attrs["standardVerticalRoman"], json!(true));
-        let vectorcraft_doc::NodeKind::Text(t) = &doc.node(vectorcraft_doc::NodeId(id)).unwrap().kind else { panic!("text") };
+        let vansoncraft_doc::NodeKind::Text(t) = &doc.node(vansoncraft_doc::NodeId(id)).unwrap().kind else { panic!("text") };
         assert!(t.runs.iter().all(|r| r.style.standard_vertical_roman));
     }
 
@@ -1569,7 +1569,7 @@ mod tests {
             state.doc.char_styles[0].attrs,
             attrs(json!({"size": 18.0, "h_scale": 80.0, "v_scale": 60.0, "baseline_shift": 2.0, "rotation": 45.0, "language": "tr"}))
         );
-        let vectorcraft_doc::NodeKind::Text(t) = &state.doc.node(vectorcraft_doc::NodeId(id)).unwrap().kind else { panic!("text") };
+        let vansoncraft_doc::NodeKind::Text(t) = &state.doc.node(vansoncraft_doc::NodeId(id)).unwrap().kind else { panic!("text") };
         assert_eq!(
             t.runs
                 .iter()
@@ -1667,7 +1667,7 @@ mod tests {
         let state = app.session.doc().unwrap();
         assert_eq!(state.history.undo.len(), undo + 1);
         assert_eq!(state.doc.char_styles[0].attrs, attrs(json!({"size": 24.0, "tcyUpDown": 4.0, "tcyLeftRight": -3.0})));
-        let vectorcraft_doc::NodeKind::Text(t) = &state.doc.node(vectorcraft_doc::NodeId(id)).unwrap().kind else { panic!("text") };
+        let vansoncraft_doc::NodeKind::Text(t) = &state.doc.node(vansoncraft_doc::NodeId(id)).unwrap().kind else { panic!("text") };
         assert_eq!(t.runs.iter().map(|r| (r.style.tcy_up_down, r.style.tcy_left_right)).collect::<Vec<_>>(), [(4.0, -3.0), (4.0, 5.0)]);
         app.run("edit.undo", json!({})).unwrap();
         assert_eq!(app.session.doc().unwrap().doc, before);
@@ -1686,7 +1686,7 @@ mod tests {
 
     /// The negated tags of the twenty stylistic sets: an explicit empty Stylistic Sets choice.
     fn no_sets() -> Vec<String> {
-        vectorcraft_text::EXTRA_FEATURES[..20].iter().map(|s| format!("-{s}")).collect()
+        vansoncraft_text::EXTRA_FEATURES[..20].iter().map(|s| format!("-{s}")).collect()
     }
 
     #[test]
@@ -1865,9 +1865,9 @@ mod tests {
         open(&mut app, "Body").unwrap();
         let choices = app.ui.dialog.as_ref().unwrap().fields["__swatches"].as_array().unwrap().clone();
         assert!(choices.contains(&json!(["Brand", brand])));
-        let registration = vectorcraft_color::swatch::REGISTRATION;
+        let registration = vansoncraft_color::swatch::REGISTRATION;
         assert_eq!(choices.first(), Some(&json!([registration, before.tint_paint(registration, 1.0).unwrap()])));
-        let set = |app: &mut VectorcraftApp| {
+        let set = |app: &mut VansoncraftApp| {
             let d = app.ui.dialog.as_mut().unwrap();
             d.fields.insert("section".into(), json!("color"));
             d.fields.insert("fill".into(), brand.clone());
@@ -1895,7 +1895,7 @@ mod tests {
         let def = state.doc.char_styles[0].attrs.clone();
         assert_eq!(def["stroke"], json!(tint40));
         assert_eq!(def["features"], json!(["dlig", "tnum", "lnum", "-onum", "-pnum"]));
-        let vectorcraft_doc::NodeKind::Text(t) = &state.doc.node(vectorcraft_doc::NodeId(id)).unwrap().kind else { panic!("text") };
+        let vansoncraft_doc::NodeKind::Text(t) = &state.doc.node(vansoncraft_doc::NodeId(id)).unwrap().kind else { panic!("text") };
         for run in &t.runs {
             assert_eq!(
                 (run.style.fill.clone(), run.style.stroke.clone(), run.style.stroke_width),
@@ -1925,7 +1925,7 @@ mod tests {
         let doc = &app.session.doc().unwrap().doc;
         let def = doc.char_styles.iter().find(|def| def.name == "Ink").unwrap();
         assert_eq!(def.attrs["features"], json!(["-frac", "-ss02", "ss04"]));
-        let vectorcraft_doc::NodeKind::Text(t) = &doc.node(vectorcraft_doc::NodeId(id)).unwrap().kind else { panic!("text") };
+        let vansoncraft_doc::NodeKind::Text(t) = &doc.node(vansoncraft_doc::NodeId(id)).unwrap().kind else { panic!("text") };
         assert!(t.runs.iter().all(|r| r.style.style_name.as_deref() == Some("Body")));
     }
 
@@ -1975,7 +1975,7 @@ mod tests {
             let shown = crate::i18n::message(crate::i18n::current(), &why);
             let mut fonts = false;
             let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1100.0, 900.0)).build_ui_state(
-                move |ui, app: &mut VectorcraftApp| {
+                move |ui, app: &mut VansoncraftApp| {
                     if !std::mem::replace(&mut fonts, true) {
                         crate::theme::install_fonts(ui.ctx());
                         return;
@@ -2009,7 +2009,7 @@ mod tests {
                 let mut fonts = false;
                 // The harness fails a frame that leaves an input without an accessible name.
                 let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1100.0, 900.0)).build_ui_state(
-                    move |ui, app: &mut VectorcraftApp| {
+                    move |ui, app: &mut VansoncraftApp| {
                         if !std::mem::replace(&mut fonts, true) {
                             crate::theme::install_fonts(ui.ctx());
                             return;
@@ -2046,7 +2046,7 @@ mod tests {
             }
             let mut fonts = false;
             let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1100.0, 900.0)).build_ui_state(
-                move |ui, app: &mut VectorcraftApp| {
+                move |ui, app: &mut VansoncraftApp| {
                     if !std::mem::replace(&mut fonts, true) {
                         crate::theme::install_fonts(ui.ctx());
                         return;

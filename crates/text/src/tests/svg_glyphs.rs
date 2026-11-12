@@ -4,9 +4,9 @@
 use std::sync::Arc;
 
 use kurbo::{Point, Rect, Shape};
-use vectorcraft_doc::color::{Color, Paint};
-use vectorcraft_doc::{Appearance, CharStyle, Node, NodeId, TextObject};
-use vectorcraft_geom::PathData;
+use vansoncraft_doc::color::{Color, Paint};
+use vansoncraft_doc::{Appearance, CharStyle, Node, NodeId, TextObject};
+use vansoncraft_geom::PathData;
 
 use crate::test_fonts::{SVG_CHAR, source_sans_gid, svg_font};
 

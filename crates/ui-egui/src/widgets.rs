@@ -3,8 +3,8 @@
 use std::ops::RangeInclusive;
 
 use egui::{Color32, CornerRadius, Pos2, Rect, Response, Sense, Stroke, StrokeKind, Ui, Vec2, pos2, vec2};
-use vectorcraft_color::{BlendMode, Color, Paint};
-use vectorcraft_doc::Unit;
+use vansoncraft_color::{BlendMode, Color, Paint};
+use vansoncraft_doc::Unit;
 
 use crate::theme::{self, Tokens};
 use crate::{icons, scrub};
@@ -79,7 +79,7 @@ pub(crate) use wheel_stream::WHEEL_STREAM_GAP;
 pub(crate) use wheel_stream::{ArmedWheelField, WheelStream, WheelStreamOwner, taken_from_raw_id};
 
 /// A widget id salt that needs only [`std::hash::Hash`]. egui 0.37's [`egui::AsIdSalt`] also
-/// requires `Debug` for its debug-only id-source registry; VectorCraft's public field helpers do
+/// requires `Debug` for its debug-only id-source registry; VansonCraft's public field helpers do
 /// not need a `Debug` bound merely to salt a widget id, and never make an accessible name from it.
 #[derive(Clone, Copy)]
 struct HashOnly<T>(T);
@@ -707,7 +707,7 @@ mod menu_room_tests {
 #[cfg(test)]
 mod gradient_chip_tests {
     use super::*;
-    use vectorcraft_color::{Gradient, GradientKind, GradientPaint};
+    use vansoncraft_color::{Gradient, GradientKind, GradientPaint};
 
     fn paint(kind: GradientKind, angle: f64) -> GradientPaint {
         let mut gp = GradientPaint::new(Gradient { kind, ..Gradient::default() });
@@ -740,9 +740,9 @@ mod gradient_chip_tests {
         // From the right: a quarter turn on is below the center, halfway around left of it.
         assert!(at(&chip, 2, 4).abs_diff(191) <= 2 && at(&chip, 2, 0).abs_diff(64) <= 2, "{chip:?}");
         assert!(at(&chip, 0, 2).abs_diff(128) <= 2, "{chip:?}");
-        let c = vectorcraft_geom::kurbo::Point::new(50.0, 50.0);
+        let c = vansoncraft_geom::kurbo::Point::new(50.0, 50.0);
         gp.geom =
-            Some(vectorcraft_color::GradientGeom { start: c, end: c + vectorcraft_geom::kurbo::Vec2::new(10.0, 0.0), aspect: -1.0, focal: None });
+            Some(vansoncraft_color::GradientGeom { start: c, end: c + vansoncraft_geom::kurbo::Vec2::new(10.0, 0.0), aspect: -1.0, focal: None });
         let mirrored = gradient_chip_colors(&gp, 20.0, 20.0, 4, 4);
         assert!(at(&mirrored, 2, 4).abs_diff(64) <= 2 && at(&mirrored, 2, 0).abs_diff(191) <= 2, "{mirrored:?}");
     }
@@ -769,7 +769,7 @@ mod gradient_chip_tests {
     /// A stop at opacity 0 is clear on the chip of every kind, and one at 50% half clear.
     #[test]
     fn chip_shows_the_stops_opacity() {
-        use vectorcraft_color::{Color, GradientStop};
+        use vansoncraft_color::{Color, GradientStop};
         for kind in [GradientKind::Linear, GradientKind::Radial, GradientKind::Conic] {
             let mut gp = paint(kind, 0.0);
             gp.gradient.stops = vec![
@@ -819,8 +819,8 @@ mod gradient_chip_tests {
 
     #[test]
     fn freeform_chip_shows_the_points_opacity() {
-        use vectorcraft_color::{Color, Freeform, FreeformPoint};
-        use vectorcraft_geom::kurbo::Point;
+        use vansoncraft_color::{Color, Freeform, FreeformPoint};
+        use vansoncraft_geom::kurbo::Point;
         let mut gp = paint(GradientKind::Freeform, 0.0);
         let clear = FreeformPoint { opacity: 0.0, ..FreeformPoint::new(Point::new(10.0, 10.0), Color::BLACK) };
         gp.freeform = Some(Freeform { points: vec![clear], ..Default::default() });
@@ -832,8 +832,8 @@ mod gradient_chip_tests {
     /// chip is opaque everywhere.
     #[test]
     fn holographic_chips_show_a_glow_clear_at_its_edge_and_a_foil_opaque() {
-        use vectorcraft_color::Paint;
-        let lib = vectorcraft_color::libraries::builtin_library("holographic").unwrap();
+        use vansoncraft_color::Paint;
+        let lib = vansoncraft_color::libraries::builtin_library("holographic").unwrap();
         let chip = |name: &str| match &lib.swatch(name).unwrap().paint {
             Paint::Gradient(g) => gradient_chip_colors(g, 20.0, 20.0, 4, 4),
             p => panic!("{name}: {p:?}"),
@@ -847,8 +847,8 @@ mod gradient_chip_tests {
 
     #[test]
     fn freeform_chip_mixes_points_in_the_model_they_share() {
-        use vectorcraft_color::{Color, Freeform, FreeformPoint};
-        use vectorcraft_geom::kurbo::Point;
+        use vansoncraft_color::{Color, Freeform, FreeformPoint};
+        use vansoncraft_geom::kurbo::Point;
         let chip = |a: Color, b: Color| {
             let p = |x, c| FreeformPoint::new(Point::new(x, 10.0), c);
             let mut gp = paint(GradientKind::Freeform, 0.0);

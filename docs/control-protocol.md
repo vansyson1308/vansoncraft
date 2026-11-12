@@ -2,19 +2,19 @@
 
 > **Last updated:** 2026-11-07 · **Change:** text style commands take a feature with a value (`"features": ["salt=2"]`), the font's alternate number, and shape runs that differ only in features as one piece of text; previously: Confining file access refuses a `:` in a name after the drive on Windows, an NTFS alternate data stream such as `x.svg:evil` (#3604); previously: Object → Expand… dimmed while the selection has an appearance Expand Appearance expands (`object.expand.info`'s `appearance`, #3089); previously: brush library panels (`window.brushLibrary`, `window.brushLibrary.other`, `ui.saveBrushLibrary`); previously: Transform Each opens on the values it was last confirmed with; its Copy button confirms with `copy: true` (#1732); previously: panel docking on craft-ui's layout: `ui.docking`, the parameters of `window.panel.float` and `window.panel.dock`; previously: `ui.screenshot`'s 64 MiB inline-PNG cap and its path-plus-data downgrade; symbol library panels (`window.symbolLibrary`, `window.symbolLibrary.other`, `ui.saveSymbolLibrary`); synthetic input budgets (#1709); bounded transport waits (#1726).
 
-`vectorcraft --control <port>` listens on `127.0.0.1:<port>` (loopback only). The port must be a number
+`vansoncraft --control <port>` listens on `127.0.0.1:<port>` (loopback only). The port must be a number
 from 1 to 65535 (`--control=<port>` works too), given once; otherwise the app prints an error and exits
 before it starts. One JSON request per line:
 `{"id": 1, "method": "ui.inspect", "params": {}}` → `{"id": 1, "ok": true, "result": {...}}` or `{"id":1,"ok":false,"error":"..."}`.
 
-Set `VECTORCRAFT_CONFIG_DIR` to a dedicated directory for an isolated native test profile. Preferences,
+Set `VANSONCRAFT_CONFIG_DIR` to a dedicated directory for an isolated native test profile. Preferences,
 logs, recovery and user libraries then use that root, without importing the legacy DrawCraft profile.
 An unset override preserves the usual platform paths and legacy migration; an explicitly empty override
-disables those paths. `VECTORCRAFT_NO_PREFS` continues to disable preference reads and writes.
-Without the override, a `portable.txt` or `VectorCraft.portable` file beside the executable (as in the
-Windows portable zip) puts that root in `VectorCraftData` next to the executable; on macOS the marker
-and the folder sit next to `VectorCraft.app`, for an AppImage next to the `.AppImage` file, and a
-Flatpak install has neither. `VECTORCRAFT_NO_PREFS` never looks for the marker or creates the folder.
+disables those paths. `VANSONCRAFT_NO_PREFS` continues to disable preference reads and writes.
+Without the override, a `portable.txt` or `VansonCraft.portable` file beside the executable (as in the
+Windows portable zip) puts that root in `VansonCraftData` next to the executable; on macOS the marker
+and the folder sit next to `VansonCraft.app`, for an AppImage next to the `.AppImage` file, and a
+Flatpak install has neither. `VANSONCRAFT_NO_PREFS` never looks for the marker or creates the folder.
 
 **Only requests are read.** Every line must be a JSON object with a string `method` (`id` and `params`
 are optional; blank lines are skipped). Anything else gets one error reply
@@ -31,7 +31,7 @@ renew it). A reply has 60 seconds to be written. Expiration closes the connectio
 that stalls gets the usual error line first);
 persistent clients can send further requests within these bounds, or reconnect after idle expiration.
 These transport budgets are separate from the existing 60-second command-processing wait.
-Transport: `apps/vectorcraft/src/control_server.rs`.
+Transport: `apps/vansoncraft/src/control_server.rs`.
 
 ## Synthetic input budgets
 
@@ -57,12 +57,12 @@ answering with its window hidden, minimized or covered, or with the screen locke
 ## Confining file access
 
 ```sh
-vectorcraft --control 7979 --automation-read-root /work/project --automation-write-root /work/project/out
+vansoncraft --control 7979 --automation-read-root /work/project --automation-write-root /work/project/out
 ```
 
-`--automation-read-root <dir>` and `--automation-write-root <dir>` (or `VECTORCRAFT_AUTOMATION_READ_ROOT` /
-`VECTORCRAFT_AUTOMATION_WRITE_ROOT`; `--flag=<dir>` works too) confine what the control channel reads and
-writes, with the same flags as `vectorcraft-cli mcp` and the other Craft apps. Every path a request reads
+`--automation-read-root <dir>` and `--automation-write-root <dir>` (or `VANSONCRAFT_AUTOMATION_READ_ROOT` /
+`VANSONCRAFT_AUTOMATION_WRITE_ROOT`; `--flag=<dir>` works too) confine what the control channel reads and
+writes, with the same flags as `vansoncraft-cli mcp` and the other Craft apps. Every path a request reads
 (open, place, relink, library and profile loads, plug-ins…) must lie inside a read root, every path it
 writes (save, export, package, captures, library saves…) inside a write root; anything else is an
 ordinary error reply. Paths are made absolute against the app's working directory, links are followed
@@ -83,7 +83,7 @@ and window captures. The person at the keyboard is not: files opened from the co
 file dialog, and everything done with the mouse and keyboard, work as usual. The preferences that move
 folders the app reads or writes on its own (Additional Fonts Folder, Additional Plug-ins Folder, Data
 Recovery's folder, the Templates folder) can only be pointed inside the roots by automation. The app's own folders
-(preferences, Data Recovery, the library folders, VectorCraft's Fonts folder) are not confined, since no
+(preferences, Data Recovery, the library folders, VansonCraft's Fonts folder) are not confined, since no
 agent names a path there. A path is checked, then opened: another program that swaps in a link between
 the two can still win that race.
 
@@ -111,7 +111,7 @@ the two can still win that race.
 | `app.export` with `useArtboards` | `{path, useArtboards: true, range? \| artboards?, …}` | Export As: PNG, JPEG and WebP write one file per chosen artboard (default all; SVG does so for a `range`), `<path stem>-<artboard>.<ext>`, and return `{path, files: [path…]}`; a PDF keeps them as pages of `path`. `useArtboards: false` covers the bounds of the visible art. The menu's Export As… is `file.exportAs`: the `exportAs` dialog (`format`, `useArtboards`, `all`, `range`), then a save dialog and the format's options: `pngOptions` / `jpgOptions` / `webpOptions`, `svgOptions`, or `savePdf` for a PDF with Use Artboards |
 | `ui.dialog.*` on `gradientStop` | `{field: "color" \| "opacity" \| "location", value}` | double-clicking a stop on the Gradient tool's annotator opens its popover (fields `index`, `x`, `y`, `tab`); set `color` (hex), `opacity` or `location` (percentages) and `ui.dialog.confirm` to apply them to the selected stop. `gradient.selectStop {index}` picks the stop the annotator, the panels and Delete/←/→ (`ui.key`) act on |
 | `engine.execute` `ui.savePdfDialog` | `{path?, preset?, range?, …document.exportPdf options}` | opens the Save PDF dialog (`file.export.pdf` with no params opens it too). Its fields are the `document.exportPdf` options: set `compatibility` with `ui.dialog.set {field: "compatibility", value: "1.5"}`, a whole section with `{field: "compression", value: {…}}`, the artboards with `__allArtboards: false` and `range`, the visible section with `__section` (General, Compression, Marks and Bleeds, Output, Advanced, Security, Summary). `ui.dialog.confirm` writes `path` (else asks for one), returns `{path, bytes, warnings}` and opens the file when `viewAfterSaving` is set |
-| `file.save` / `file.saveAs` / `file.saveCopy` / `file.saveAsTemplate` (via `engine.execute`) | `{path?, format?, options?, svg?}` | Save writes the document's own file in its own format (a document opened from or saved as SVG/PDF saves as that again; the result's `warnings` say what the format loses). With `path` the file is written at once (Save As or a Copy to an SVG path without SVG options first opens SVG Options, below). Without one (never saved, a converted older file, Save As, a Copy, a Template) the app shows a save panel with one file type per save format (`vectorcraft`, `template`, `pdf`, `svg`, `svgz`, `ai`; for a Template, `template` and `ait`), then the format's options: SVG opens the `svgOptions` dialog (below; returns `{"pending": "svgOptions", "path"}`), PDF the `savePdf` dialog (its `__save` field names the save command); `ui.dialog.confirm` finishes the save. A name typed in the panel without the file type's extension gets it, and a name the panel returns with the extension of a format the panel does not list has it replaced (in a native save, `card.png` and `card.ait` are saved as `card.vectorcraft`, and `notes.v2`, whose extension names no format, is saved as `notes.v2.vectorcraft`); when a file of that name exists, which the panel did not ask about, the save (and every export or other write through a save panel) answers `cancelled` and opens a `replaceFile` dialog (fields `message`, `detail`, `path`): `ui.dialog.confirm` writes that file, `ui.dialog.cancel` writes nothing. A save or export that writes other files beside that path (a file per artboard, linked images, image maps) checks them before it writes anything: when any of them exists, it writes nothing and opens a `replaceFiles` dialog (fields `message`, `detail` (each file's name when there are several), `files`, `__command`, `__params`; the reply is `{"pending": "replaceFiles"}`, or comes once a Background Save or Export ends): `ui.dialog.confirm` runs the save or export again and replaces them, `ui.dialog.cancel` writes nothing; a dialog open when a background job asks stays open, and the question follows it. A save does not ask about the files the document's last Save or Save As in this session wrote. On the web a `saveOptions` dialog (fields `path`, `format`) first names the file and picks the format. `file.formatOptions {format?}` reads the options a save would use. `file.revert` opens a `confirm` dialog (`{"pending": "confirm"}`); `ui.dialog.confirm` reloads the saved file in the same tab. Location refusals return `READ_ONLY_LOCATION: <reason>` without a fallback panel for automation; see [Save location errors](#save-location-errors). |
+| `file.save` / `file.saveAs` / `file.saveCopy` / `file.saveAsTemplate` (via `engine.execute`) | `{path?, format?, options?, svg?}` | Save writes the document's own file in its own format (a document opened from or saved as SVG/PDF saves as that again; the result's `warnings` say what the format loses). With `path` the file is written at once (Save As or a Copy to an SVG path without SVG options first opens SVG Options, below). Without one (never saved, a converted older file, Save As, a Copy, a Template) the app shows a save panel with one file type per save format (`vansoncraft`, `template`, `pdf`, `svg`, `svgz`, `ai`; for a Template, `template` and `ait`), then the format's options: SVG opens the `svgOptions` dialog (below; returns `{"pending": "svgOptions", "path"}`), PDF the `savePdf` dialog (its `__save` field names the save command); `ui.dialog.confirm` finishes the save. A name typed in the panel without the file type's extension gets it, and a name the panel returns with the extension of a format the panel does not list has it replaced (in a native save, `card.png` and `card.ait` are saved as `card.vansoncraft`, and `notes.v2`, whose extension names no format, is saved as `notes.v2.vansoncraft`); when a file of that name exists, which the panel did not ask about, the save (and every export or other write through a save panel) answers `cancelled` and opens a `replaceFile` dialog (fields `message`, `detail`, `path`): `ui.dialog.confirm` writes that file, `ui.dialog.cancel` writes nothing. A save or export that writes other files beside that path (a file per artboard, linked images, image maps) checks them before it writes anything: when any of them exists, it writes nothing and opens a `replaceFiles` dialog (fields `message`, `detail` (each file's name when there are several), `files`, `__command`, `__params`; the reply is `{"pending": "replaceFiles"}`, or comes once a Background Save or Export ends): `ui.dialog.confirm` runs the save or export again and replaces them, `ui.dialog.cancel` writes nothing; a dialog open when a background job asks stays open, and the question follows it. A save does not ask about the files the document's last Save or Save As in this session wrote. On the web a `saveOptions` dialog (fields `path`, `format`) first names the file and picks the format. `file.formatOptions {format?}` reads the options a save would use. `file.revert` opens a `confirm` dialog (`{"pending": "confirm"}`); `ui.dialog.confirm` reloads the saved file in the same tab. Location refusals return `READ_ONLY_LOCATION: <reason>` without a fallback panel for automation; see [Save location errors](#save-location-errors). |
 | SVG Options (`engine.execute` of `file.export.svg`, `file.saveAs`, `file.saveCopy`) | `{}` / `{path?, svg?: {…}}` | `file.export.svg` without params, and Save As or Save a Copy to an `.svg`/`.svgz` path without SVG options, open the `svgOptions` dialog (`ui.dialog.set` its fields: `styling`, `outlineText`, `images`, `objectIds`, `decimals`, `minify`, `responsive`, `fewerTspans`, `metadata`, `preserveEditing`, `useArtboards`, `allArtboards`, `range`, `showCode`, `profile` (`svg11`/`tiny12`), `encoding` (`utf8`/`utf16`/`latin1`), `embedFonts`; `ui.dialog.confirm` exports or saves and remembers the choices). With `svg: {…}` (the `document.formats` SVG options) they run directly. `app.save {path?, svg?}` takes the same options; a document saved as SVG saves as SVG again with the same options |
 | `engine.execute` `file.place` | `{paths?}` / `{path \| name+dataBase64, …file.place params}` | with no file, picks files and opens the `place` dialog; with `paths`, opens it for them (fields `files`, `link`, `template`, `replace`; `__replace` says whether Replace applies, `__info` describes each file). `ui.dialog.confirm` places one file centered in the view (or in place of the selected object) and loads the place cursor with several (`file.place.queue`). In the desktop app the dialog reads its files off the UI thread: `__info` is empty until they are read, `ui.dialog.confirm` returns `{background: true, status}`, `ui.inspect` lists the files still being read in `placing`, and the file is placed (or the cursor loaded) once it is read. With a file, it runs `file.place` centered in the view, at once. Files dropped on the window with no document open open. On the web, files dropped on the canvas are placed at the drop point (linked; Shift embeds) and files dropped off it (the tab bar) open, as in Illustrator; desktop drops carry no pointer position, so documents (native, SVG, PDF, `.ai`, EPS, DXF, EMF/WMF) open as tabs of their own and pictures and text are placed in the middle of the view. Swatch libraries and color books (`.vcswatches`, `.gpl`, `.ase`, `.acb`), graphic style libraries (`.vcstyles`), Libraries panel files (`.vclibrary`), presets (`.vcflattener`, `.vcpdfpresets`, `.vcprintpresets`, `.vcperspective`, `.vcexportpresets`), plug-ins (`.wasm`) and shortcut sets (`.kys`, in Import Shortcut Set) open wherever they are dropped, as File › Open opens them. With the cursor loaded (`ui.inspect` → `tool: "place"`, `toolOptions: {count, current, name, names}`), `ui.pointer` clicks and drags place files (in the desktop app each file is read off the UI thread and placed once it is read, and `ui.inspect` lists it in `placing` until then) and `ui.key` ←/→/↑/↓ and Escape cycle and discard them |
 | `app.export` raster options | `{path?, format: png \| jpg \| webp, ppi?, width?, height?, background?, antiAlias?, interlaced?, quality?}` | `ppi` sets the pixel size (72 = one pixel per point) and is stored in PNG and JPEG files (WebP files store no resolution); `width` or `height` sets the size of each file in pixels instead (`width` wins), and PNG and JPEG files store the resolution that results; `background` is `transparent`, `white`, `black` or `"#rrggbb"`; `antiAlias` is `none`, `art` or `type` (text snapped to pixels); `interlaced` writes an Adam7 PNG. The PNG Options dialog (`pngOptions`; `jpgOptions` / `webpOptions` for the other raster formats) has the same fields: fill them with `ui.dialog.set` and press OK with `ui.dialog.confirm` |
@@ -120,13 +120,13 @@ the two can still win that race.
 | `app.export` Text and WebP | `{path?, format: txt, encoding?: utf8 \| utf16, lineEndings?: lf \| crlf, selectionOnly?}` / `{format: webp, lossless?, quality?}` | Text writes the stories in stacking order (back to front; a thread once; hidden objects and template layers left out), each line ended by `lineEndings`; `utf16` is little-endian with a byte order mark. Export As → Text opens `txtOptions` (fields `path`, `encoding`, `lineEndings`, `selectionOnly`; OK writes the file). WebP is always lossless: `lossless: false` adds a warning |
 | `engine.execute` `document.exportForOffice` | `{}` / `{path?, ppi?: 72 \| 150 \| 300, transparent?, artboard?}` | File → Save for Office Documents…: without params opens `saveForOffice` (fields `ppi`, `transparent`, `artboard`; OK picks the file); with params writes the artboard as a PNG (`path`, else a picked file) → `{path}`, and the status bar shows the export's `warnings` as Save As shows a save's notes. Headless it returns `{dataBase64, width, height, warnings}` |
 | Native file dialogs | any command with no `path` that needs one (`file.open`, `file.saveAs`, `file.place`, exports…) | on macOS (a sheet on the window) and Linux the dialog doesn't hold the window: the call returns `"cancelled"` at once, `ui.inspect` reports `fileDialog`, and when the person at the computer picks a file the command runs again on the document it was asked for. While it is open another dialog is refused: that call returns `"cancelled"` too, and the status bar (`ui.inspect` → `ui.status`) says `"A file dialog is open: choose there first"`; on macOS `app.quit`, `file.close` and `file.closeAll` return that message and the menu bar does nothing (#592, #867). On Windows the dialog is shown in line: the call returns once it closes. Pass `path` to skip the dialog |
-| Background Save / Export | `app.save`, `app.export {path}`, `file.save`, `file.saveAs`, `file.saveCopy`, `file.exportForScreens {folder, …}` | with the `backgroundSave` / `backgroundExport` preferences on (the default) the desktop app writes the file from a snapshot on a worker thread: the call returns `{path, background: true, status}` at once (`file.exportForScreens`: `{background: true, status}`, and the files are written into the folder from a snapshot taken at the call), `ui.inspect` lists the jobs still running in `background` (labels such as `"Saving a.vectorcraft"`), and the document counts as saved (as of the snapshot) once its file is written. Quit and Close wait for them. A job that fails reports the error in the status bar only (`ui.inspect` → `ui.status`), a path outside `--automation-write-root` included. With the preferences off (`prefs.set`), saves return once written. `app.save {path?, wait: true}` and `app.export {path, wait: true}` wait for the jobs already running, write the file before they reply whatever the preferences are set to, and return its result or the error. When the save asks first (the question before replacing a file that opened with losses, or on macOS and Linux the file dialog for an untitled document without `path`), the reply is `{pending}` or `"cancelled"` as before, and the save that runs after the answer uses the preferences. A `wait` that is not `true`, `false` or `null` is refused with "`wait` must be true or false", and nothing is written |
+| Background Save / Export | `app.save`, `app.export {path}`, `file.save`, `file.saveAs`, `file.saveCopy`, `file.exportForScreens {folder, …}` | with the `backgroundSave` / `backgroundExport` preferences on (the default) the desktop app writes the file from a snapshot on a worker thread: the call returns `{path, background: true, status}` at once (`file.exportForScreens`: `{background: true, status}`, and the files are written into the folder from a snapshot taken at the call), `ui.inspect` lists the jobs still running in `background` (labels such as `"Saving a.vansoncraft"`), and the document counts as saved (as of the snapshot) once its file is written. Quit and Close wait for them. A job that fails reports the error in the status bar only (`ui.inspect` → `ui.status`), a path outside `--automation-write-root` included. With the preferences off (`prefs.set`), saves return once written. `app.save {path?, wait: true}` and `app.export {path, wait: true}` wait for the jobs already running, write the file before they reply whatever the preferences are set to, and return its result or the error. When the save asks first (the question before replacing a file that opened with losses, or on macOS and Linux the file dialog for an untitled document without `path`), the reply is `{pending}` or `"cancelled"` as before, and the save that runs after the answer uses the preferences. A `wait` that is not `true`, `false` or `null` is refused with "`wait` must be true or false", and nothing is written |
 | `engine.execute` `file.exportForScreens` | `{}` / `{…document.exportForScreens params}` | without params opens `exportForScreens` on the settings the document last exported with (`document.exportSettings`). While the Artboard tool is in use, the artboards it has selected (its `selected` option, the rows the Artboards panel highlights) are checked instead, and `select` is `range`, or `all` when every artboard is selected. Fields: `tab` (`artboards` \| `assets` \| `layers` \| `selection`; OK reads Export Layer or Export Selection on those), `layers` ([layer id…] checked), `selectionMode` (`one` \| `each`), `name` (the file name pattern of `document.exportForScreens`), `counterStart`, `folders` (`none` \| `rows` \| `format` \| `item` \| `itemFormat`), `exportPreset` (the preset applied last), `__savePreset` (the name typed to save one), `select` (`all` \| `range` \| `full`), `range` ("1-3, 5"), `boards` (a bool per artboard; checking them sets `select` and `range`), `includeBleed`, `folder` (desktop; default the Desktop, else home), `openLocation`, `subfolders`, `prefix`, `preset` (`""` \| `mobile` \| `density`), `formats` (rows `{format, scale: "2x" \| "100w" \| "100h" \| "72ppi", suffix, quality?, folder?}`), `settings` (`{png \| png8 \| jpg \| webp \| gif \| svg \| pdf: {…options}}`, the gear's Format Settings; `__settings` names the format shown). `ui.dialog.confirm` exports (a bad range or no folder keeps it open); on the web OK reads "Download" and the files download (several as one `.zip`). With params it runs `document.exportForScreens`: no `folder` returns the files (or with `zip: true` one zip) as `dataBase64`; with `openLocation` the first file is shown in the file manager. When `warnings` is not empty, an export into a folder or a download shows the first in the status bar as Save As shows a save's notes |
 | Export for Screens' Assets tab, Asset Export panel | `ui.dialog.set` `tab: "assets"`, `assets: [asset id…]`; `window.panel {panel: "assetExport"}` | on the Assets tab of `exportForScreens` the `assets` field lists the checked asset ids (all of them when it opens); `ui.dialog.confirm` runs `document.exportForScreens {assets}` (nothing checked keeps it open) and OK reads "Export Asset". The Asset Export panel acts through `assets.*` and shares the format rows with the dialog (`assets.settings.set`). The dialog has the format presets menu (☰). In the dialog, `exportPreset` names the preset applied last (`ui.dialog.set` of it applies the preset it names, as picking it does; a name that is not a preset's is an error and leaves the dialog as it was), `__exportPresets` lists the presets, and `__savePreset` holds the name being typed after Save Preset…. The panel menu applies presets through `assets.settings.set {exportPreset}` and holds Save As Preset…, Save Changes, Delete Preset, Import Preset… and Export Preset…. Import and Export use picked files. |
 | `engine.execute` `file.exportSelection` | `{multiple?}` | File › Export Selection…: collects the selected objects as one asset (`assets.add`; one per object with `multiple: true`) and opens `exportForScreens` on its Assets tab with just them checked → `{assets}`. `document.exportSelection` still exports the selection in one go, without the dialog |
 | CSS Properties panel | `window.panel {panel: "cssProperties"}`; `engine.execute` `css.copy` / `css.exportFile` | the panel shows `css.selection` of the selection (after Generate CSS, while nothing is selected, `css.generate`); its menu holds the options the commands take (`units`, `position`, `dimensions`, `unnamed`, `rasterize`). `css.copy {scope?, …options}` copies the CSS to the clipboard → `{css, rules}`; `css.exportFile {path?, scope?, …options}` writes `css.export` to `path` (else a picked file; the web downloads it) with the pictures of rasterized art next to it → `{path, rules, images, warnings}`, and the status bar shows `warnings` as Export As shows an export's notes |
 
-| `ui.dialog.*` on `importPdf` | `{field: "page" \| "allPages" \| "range" \| "cropTo" \| "password", value}` | opening (`app.open`, `file.open`) a PDF, `.ai` or `.ait` with a password, or one with several pages unless it is a `.ai` or `.ait` with its editing data or carries its VectorCraft document (those open whole), or placing (`file.place` without `page`) any of them with several pages or a password, opens the Import PDF dialog (`mode`: `open` or `place`; `pageCount`). While `__locked` is true, set `password` and `ui.dialog.confirm` to unlock it (a one-page file then opens or is placed). Then set `allPages: false` and `range` ("2-3, 5") to open some pages, or `page` to place one, and `cropTo` (`bounding`, `art`, `crop`, `trim`, `bleed`, `media`); `ui.dialog.confirm` opens or places them (placing keeps the other `file.place` params, such as `link`, `template` and `at`, in `__place`). `document.open {pages, cropTo, password}` and `file.place {page, crop, password}` do the same without the dialog |
+| `ui.dialog.*` on `importPdf` | `{field: "page" \| "allPages" \| "range" \| "cropTo" \| "password", value}` | opening (`app.open`, `file.open`) a PDF, `.ai` or `.ait` with a password, or one with several pages unless it is a `.ai` or `.ait` with its editing data or carries its VansonCraft document (those open whole), or placing (`file.place` without `page`) any of them with several pages or a password, opens the Import PDF dialog (`mode`: `open` or `place`; `pageCount`). While `__locked` is true, set `password` and `ui.dialog.confirm` to unlock it (a one-page file then opens or is placed). Then set `allPages: false` and `range` ("2-3, 5") to open some pages, or `page` to place one, and `cropTo` (`bounding`, `art`, `crop`, `trim`, `bleed`, `media`); `ui.dialog.confirm` opens or places them (placing keeps the other `file.place` params, such as `link`, `template` and `at`, in `__place`). `document.open {pages, cropTo, password}` and `file.place {page, crop, password}` do the same without the dialog |
 
 Swatch editors: `engine.execute` with `ui.swatchOptions {name}` opens the `swatchOptions` dialog for a colour swatch
 (fields `name`, `spot`, `global`, `mode`: `gray`/`rgb`/`hsb`/`lab`/`cmyk`/`web`, `color`: `"#rrggbb"` or a colour object,
@@ -148,7 +148,7 @@ fill or stroke (fields as in `swatchOptions` plus `group`; a gradient or pattern
 
 The Color Picker is a dialog too: `engine.execute {command: "ui.colorPicker", params: {stroke?, color?}}` opens it for the fill (or stroke) proxy; `ui.dialog.set {field: "hex", value: "00FF00"}` (or `color`, `channel`, `webOnly`, `swatches`) then `ui.dialog.confirm` applies the colour through `paint.setFill` / `paint.setStroke`.
 
-Sample Color from Screen: `ui.sampleScreenColor {stroke?, picker?}` shows the system's color sampler (macOS; Linux through the XDG desktop portal's [PickColor](https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.Screenshot.html); browsers with an EyeDropper) and returns `null` at once. When the person at the computer clicks a color anywhere on the screen, it runs `paint.setFill` (or `paint.setStroke`) with that color as one undo step, or with `picker: true` sets the open Color Picker's `color`; a cancel (Escape on macOS and in browsers) leaves the colors as they were. The sampled display sRGB color is converted into the working RGB space. `ui.inspect` reports `screenSampler: true` until the sampler answers. On Linux, a session without a portal that has PickColor, a portal that does not return from the call within 25 seconds (VectorCraft's own limit) or leaves the bus before it answers, and a portal that ends the request in another way each put a message in the status bar and end the wait, so the sampler can be shown again. A portal that returns from the call and then neither answers nor leaves the bus keeps the sampler open. Without a sampler (Windows, FreeBSD, DragonFly BSD, NetBSD, OpenBSD, other browsers) the call returns an error. To read a color from VectorCraft's own window without a person, call `ui.screenshot`.
+Sample Color from Screen: `ui.sampleScreenColor {stroke?, picker?}` shows the system's color sampler (macOS; Linux through the XDG desktop portal's [PickColor](https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.Screenshot.html); browsers with an EyeDropper) and returns `null` at once. When the person at the computer clicks a color anywhere on the screen, it runs `paint.setFill` (or `paint.setStroke`) with that color as one undo step, or with `picker: true` sets the open Color Picker's `color`; a cancel (Escape on macOS and in browsers) leaves the colors as they were. The sampled display sRGB color is converted into the working RGB space. `ui.inspect` reports `screenSampler: true` until the sampler answers. On Linux, a session without a portal that has PickColor, a portal that does not return from the call within 25 seconds (VansonCraft's own limit) or leaves the bus before it answers, and a portal that ends the request in another way each put a message in the status bar and end the wait, so the sampler can be shown again. A portal that returns from the call and then neither answers nor leaves the bus keeps the sampler open. Without a sampler (Windows, FreeBSD, DragonFly BSD, NetBSD, OpenBSD, other browsers) the call returns an error. To read a color from VansonCraft's own window without a person, call `ui.screenshot`.
 
 Graphic styles: `ui.graphicStyleOptions {name}` opens the `graphicStyleOptions` dialog (field `name`) for a style and
 `ui.dialog.confirm` renames it with `graphicStyle.rename` (a name another style has returns an error and keeps the
@@ -312,11 +312,11 @@ Symbol libraries open in the same panels: `window.symbolLibrary {library}` (`lib
 null` closes them). Clicking a symbol there runs `symbol.addFromLibrary {library, name}`, adding it to the document's
 Symbols in one undo step; Shift/Cmd-clicks select symbols for Add to Symbols, and a symbol dragged onto the canvas runs
 it with `place: true` and the drop point as `x`, `y`. `window.symbolLibrary.other {path?}` loads the symbols of any
-document VectorCraft opens (a saved symbol library is a `.vectorcraft` document) and opens them there. The User
+document VansonCraft opens (a saved symbol library is a `.vansoncraft` document) and opens them there. The User
 Defined libraries are `window.userSymbolLibrary1`…`10` in Window → Symbol Libraries. `ui.saveSymbolLibrary {names?}`
 (Save Symbols…, the Symbols panel's Save Symbol Library…) opens the `saveSymbolLibrary` dialog (fields `name`, `user`:
 save to the user library folder, `selectedOnly` with `names`); `ui.dialog.confirm` runs `symbol.saveLibrary` (to a
-file it asks for a path and suggests `name` with `.vectorcraft`).
+file it asks for a path and suggests `name` with `.vansoncraft`).
 
 Brush libraries open in the same panels: `window.brushLibrary {library}` (`library_panels` kind `brushes`; `library:
 null` closes them). Clicking a brush there runs `brush.addFromLibrary {library, name}`, adding it to the document's
@@ -324,11 +324,11 @@ Brushes in one undo step, with `apply: true` when paths are selected (they take 
 Apply Brush when the document has the brush already and the click only applies it);
 Shift/Cmd-clicks select brushes for Add to Brushes. A brush dragged onto a path runs it with `apply: true` and that
 path as `ids`, and one dragged onto the Brushes panel runs it without. `window.brushLibrary.other {path?}` loads the
-brushes of any document VectorCraft opens (a saved brush library is a `.vectorcraft` document) and opens them there.
+brushes of any document VansonCraft opens (a saved brush library is a `.vansoncraft` document) and opens them there.
 The User Defined libraries are `window.userBrushLibrary1`…`10` in Window → Brush Libraries. `ui.saveBrushLibrary
 {names?}` (Save Brushes…, the Brushes panel's Save Brush Library…) opens the `saveBrushLibrary` dialog (fields
 `name`, `user`: save to the user library folder, `selectedOnly` with `names`); `ui.dialog.confirm` runs
-`brush.saveLibrary` (to a file it asks for a path and suggests `name` with `.vectorcraft`).
+`brush.saveLibrary` (to a file it asks for a path and suggests `name` with `.vansoncraft`).
 
 Tile Edge Color: Object → Pattern → Tile Edge Color… (`ui.tileEdgeColor`) opens the `tileEdgeColor` dialog (field
 `color`: `#rrggbb` or a preset name such as "Light Blue"); `ui.dialog.confirm` sets the preference
@@ -340,16 +340,16 @@ caption buttons (Minimize, Maximize/Restore, Close) sit at the bar's right end, 
 not commands, so drive them with `ui.click` if needed. Close runs `app.quit` (the same `saveChanges` questions for
 modified documents), and empty bar space and the 5 pt window edges move and resize the window. Preferences › User
 Interface › System Title Bar (`systemTitleBar`, read when the app starts) gives the window its OS decorations back
-instead: the OS title then shows the active document (`*name — VectorCraft` with unsaved changes) and the app bar
+instead: the OS title then shows the active document (`*name — VansonCraft` with unsaved changes) and the app bar
 drops its brand mark. On Linux the app bar also drops its brand mark whenever the desktop draws the window's frame, with
 System Title Bar on or off. On macOS the window buttons are centred on the app bar; the web build is unchanged.
 
-On Linux and the BSDs, Preferences › User Interface › VectorCraft Title Bar on Every Desktop (`appTitleBar`, read
+On Linux and the BSDs, Preferences › User Interface › VansonCraft Title Bar on Every Desktop (`appTitleBar`, read
 when the app starts, off by default) turns off the desktop's frame and uses the app bar as the title bar in the
 sessions where the desktop would draw the frame: X11 sessions, Wayland compositors that draw server-side decorations
-such as KDE Plasma, and a window opened through XWayland. System Title Bar and `VECTORCRAFT_TITLEBAR` (`app`, or
+such as KDE Plasma, and a window opened through XWayland. System Title Bar and `VANSONCRAFT_TITLEBAR` (`app`, or
 `system` or `desktop`) take precedence over it. The checkbox is dimmed while either applies, and a note under it names
-each one that applies. `VECTORCRAFT_TITLEBAR` also takes precedence over System Title Bar for the run it is set in:
+each one that applies. `VANSONCRAFT_TITLEBAR` also takes precedence over System Title Bar for the run it is set in:
 `app` keeps the app bar as the title bar with System Title Bar on. Only the values `app`, `system` and `desktop` take
 precedence (case-sensitive, surrounding spaces ignored); any other value, such as `unknown`, is ignored and does not
 override System Title Bar. While the variable is set to one of those values, the Preferences dialog dims
@@ -707,7 +707,7 @@ lists (0 hides them all; `file.recentFiles` returns the listed paths; under a re
 `file.recentFiles` leave out the files outside it and `file.openRecentN` answers `no such recent file` for one), `file.reveal` shows the document's file in the
 system file manager (desktop only; answers `{path}`), and `file.newFromTemplate` without params opens a file picker
 in the Templates folder (preference `templatesFolder`). Older native files open as "<name> [Converted]" (preference
-`appendConverted`), so their Save asks for a new `.vectorcraft` name. Native files reopen at the view they were saved
+`appendConverted`), so their Save asks for a new `.vansoncraft` name. Native files reopen at the view they were saved
 with.
 
 DXF Options: Export As… with the DXF format (`file.exportAs {format: "dxf"}`, then the save dialog), or
@@ -790,7 +790,7 @@ for the next launch. While copies are written in the background `ui.inspect` lis
 ("Saving recovery data for <name>").
 
 Native save options: File → Save As to a native or `.ai` file opens the `saveOptions` dialog after the save panel
-(heading "VectorCraft Options" or "PDF-compatible .ai Options"). Fields: `separateArtboards`, `all` (true: every
+(heading "VansonCraft Options" or "PDF-compatible .ai Options"). Fields: `separateArtboards`, `all` (true: every
 artboard; false: `range`, such as "1-3, 5"), `includeLinked`, `embedProfiles`, `pdfCompatible`, `compress`, and for
 native files `version` and `preview`. A bad range keeps the dialog open; `ui.dialog.confirm` writes the file and the
 artboards' files. A `.ai` file's `aiVersion` comes first: `"pdf"` (the default) or `"7"` (legacy, heading "Legacy .ai
@@ -1026,7 +1026,7 @@ Commands (`panel` and every panel parameter take a panel id in any case or its d
 | `window.panel.iconic` | `{panel, iconic?}` | collapses the panel's dock column to icons, or expands it |
 | `window.panel.layout`, `ui.dock` | `{action}` | one craft-ui `Action`, externally tagged, e.g. `{"MoveFloating":{"panel":"swatches","rect":[44,66,360,450]}}` or `{"ResizeSplit":{"path":[],"size":{"Ratio":0.35}}}`; `ui.dock` also takes craft-ui's `{operation, …}` |
 
-Parameters from VectorCraft's own docking, on `window.panel.float` and `window.panel.dock`:
+Parameters from VansonCraft's own docking, on `window.panel.float` and `window.panel.dock`:
 
 - `onto`: as a tab of the group holding that panel. On `float` that group must float; on `dock` it is `anchor`.
 - `above`, `below`: as a group of its own above or below the group holding that panel, in its floating window or
@@ -1071,29 +1071,29 @@ main window's shortcuts; modal dialogs block them.
 - [x] Release connection slots on worker exit, including timeout and failed worker creation.
 - [x] Preserve correlated replies and persistent connections within the transport budgets.
 
-## In the browser: `window.vectorcraft`
+## In the browser: `window.vansoncraft`
 
 The web build has no TCP server (a page can't listen on a socket), so it offers the same methods to the
-page itself, as promises on `window.vectorcraft` (`apps/vectorcraft-web/src/api.rs`). An agent driving VectorCraft in a
+page itself, as promises on `window.vansoncraft` (`apps/vansoncraft-web/src/api.rs`). An agent driving VansonCraft in a
 browser tab, or a host app showing it in an `<iframe>`, uses the commands it would send to the desktop
 app:
 
 | Call | |
 |---|---|
-| `vectorcraft.request(method, params)` | any control method of this document → its `result` |
-| `vectorcraft.execute(command, params)` | `engine.execute` |
-| `vectorcraft.commands()` | `engine.commands` |
-| `vectorcraft.docInspect(params)` / `vectorcraft.uiInspect(params)` | `document.inspect` / `ui.inspect` |
-| `vectorcraft.inspect()` | `ui.inspect` (the name before `uiInspect`) |
-| `vectorcraft.screenshot(params)` | `ui.screenshot` (no `path`: the PNG comes back inline, as `data` and as `pngBase64`) |
-| `vectorcraft.openFile(name, bytes)` | opens the bytes the way a dropped file opens, as automation: a plug-in install it asks for has to be started by the person (returns `true` once queued) |
-| `vectorcraft.captureDownloads(on)` | while on, a save or export is kept in the page instead of downloaded |
-| `vectorcraft.files()` / `vectorcraft.readFile(name)` | the kept files (`{path, size}`) / one of them as a `Uint8Array` |
+| `vansoncraft.request(method, params)` | any control method of this document → its `result` |
+| `vansoncraft.execute(command, params)` | `engine.execute` |
+| `vansoncraft.commands()` | `engine.commands` |
+| `vansoncraft.docInspect(params)` / `vansoncraft.uiInspect(params)` | `document.inspect` / `ui.inspect` |
+| `vansoncraft.inspect()` | `ui.inspect` (the name before `uiInspect`) |
+| `vansoncraft.screenshot(params)` | `ui.screenshot` (no `path`: the PNG comes back inline, as `data` and as `pngBase64`) |
+| `vansoncraft.openFile(name, bytes)` | opens the bytes the way a dropped file opens, as automation: a plug-in install it asks for has to be started by the person (returns `true` once queued) |
+| `vansoncraft.captureDownloads(on)` | while on, a save or export is kept in the page instead of downloaded |
+| `vansoncraft.files()` / `vansoncraft.readFile(name)` | the kept files (`{path, size}`) / one of them as a `Uint8Array` |
 
 Errors reject with an `Error` carrying the method's message. Requests run on the UI's next frame, so a
 hidden tab (whose frames the browser pauses) answers when it is shown again.
 
-`request`, `execute`, `commands`, `docInspect`, `uiInspect` and `screenshot` come from [`craft-web-api`](https://github.com/storytold/craft-libs/tree/main/crates/web-api) (storytold/craft-libs#413), the same shape in every Craft app. A call the app does not answer within 30 seconds rejects, and the app drops it unrun if it had not started it. `openFile`, `captureDownloads`, `files`, `readFile` and `inspect` are VectorCraft's own.
+`request`, `execute`, `commands`, `docInspect`, `uiInspect` and `screenshot` come from [`craft-web-api`](https://github.com/storytold/craft-libs/tree/main/crates/web-api) (storytold/craft-libs#413), the same shape in every Craft app. A call the app does not answer within 30 seconds rejects, and the app drops it unrun if it had not started it. `openFile`, `captureDownloads`, `files`, `readFile` and `inspect` are VansonCraft's own.
 
 ## Revision history
 
@@ -1107,7 +1107,7 @@ hidden tab (whose frames the browser pauses) answers when it is shown again.
 | 2026-10-24 | minor | Documented the brush library panel commands (`window.brushLibrary`, `.other`, `ui.saveBrushLibrary`, `window.userBrushLibrary1`…`10`). |
 | 2026-10-24 | minor | Documented `ui.screenshot`'s 64 MiB inline-PNG reply cap: with `path` the file is still written and `pngBase64` is omitted when over the cap; a path-less `data: true` request fails before encoding. |
 | 2026-10-23 | minor | Documented the symbol library panel commands (`window.symbolLibrary`, `.other`, `ui.saveSymbolLibrary`, `window.userSymbolLibrary1`…`10`). |
-| 2026-10-18 | minor | Documented `window.vectorcraft`, the web build's control channel. |
+| 2026-10-18 | minor | Documented `window.vansoncraft`, the web build's control channel. |
 | 2026-10-13 | minor | Documented count, pending-event and per-frame request budgets (#1709). |
 | 2026-10-13 | minor | Documented transport deadlines and connection-slot recovery (#1726). |
 

@@ -13,12 +13,12 @@ fn session(width: f64, height: f64, artboards: usize) -> Session {
 }
 
 fn b64(v: &Value) -> Vec<u8> {
-    vectorcraft_format::base64_decode(v["dataBase64"].as_str().expect("dataBase64")).unwrap()
+    vansoncraft_format::base64_decode(v["dataBase64"].as_str().expect("dataBase64")).unwrap()
 }
 
 /// The PostScript of an EPS file (behind its preview header, if any).
 fn postscript(bytes: &[u8]) -> String {
-    String::from_utf8(vectorcraft_eps::sections(bytes).unwrap().0.to_vec()).unwrap()
+    String::from_utf8(vansoncraft_eps::sections(bytes).unwrap().0.to_vec()).unwrap()
 }
 
 fn dsc(ps: &str, key: &str) -> Option<String> {
@@ -49,7 +49,7 @@ fn eps_covers_the_art_y_up_from_the_first_artboard_with_a_preview_and_the_docume
     assert_eq!(r["format"], "eps");
     let bytes = b64(&r);
     // The default TIFF preview sits behind the binary header.
-    let (_, tiff) = vectorcraft_eps::sections(&bytes).unwrap();
+    let (_, tiff) = vansoncraft_eps::sections(&bytes).unwrap();
     let preview = image::load_from_memory_with_format(tiff.unwrap(), image::ImageFormat::Tiff).unwrap();
     assert_eq!((preview.width(), preview.height()), (100, 40));
     let ps = postscript(&bytes);
@@ -59,15 +59,15 @@ fn eps_covers_the_art_y_up_from_the_first_artboard_with_a_preview_and_the_docume
     // RGB documents are written in CMYK by default.
     assert!(!ps.contains(" rg\n") && ps.contains(" k\n"), "{ps}");
     // The document comes back whole, and so does a thumbnail.
-    let native = vectorcraft_format::load(&vectorcraft_eps::native(&bytes).unwrap()).unwrap();
+    let native = vansoncraft_format::load(&vansoncraft_eps::native(&bytes).unwrap()).unwrap();
     assert_eq!(native.layers[0].children().unwrap().len(), 1);
-    assert!(vectorcraft_eps::thumbnail(&bytes).unwrap().starts_with(b"\x89PNG"));
+    assert!(vansoncraft_eps::thumbnail(&bytes).unwrap().starts_with(b"\x89PNG"));
     // Without the preview, thumbnail and CMYK: plain PostScript in RGB.
     let r = s.execute("document.exportEps", &json!({"previewFormat": "none", "thumbnails": false, "cmykPostScript": false, "level": 2})).unwrap();
     let bytes = b64(&r);
     assert!(bytes.starts_with(b"%!PS-Adobe-3.0 EPSF-3.0"));
     let ps = postscript(&bytes);
-    assert!(ps.contains(" rg\n") && vectorcraft_eps::thumbnail(&bytes).is_none());
+    assert!(ps.contains(" rg\n") && vansoncraft_eps::thumbnail(&bytes).is_none());
     assert_eq!(dsc(&ps, "LanguageLevel").as_deref(), Some("2"));
 }
 
@@ -84,14 +84,14 @@ fn use_artboards_writes_a_file_per_artboard_named_with_an_underscore() {
     // The central file comes first: the whole document, bounded by the visible art of both artboards.
     let central = b64(&files[0]);
     assert_eq!(dsc(&postscript(&central), "BoundingBox").as_deref(), Some(format!("10 60 {} 90", second + 40.0).as_str()));
-    let native = vectorcraft_format::load(&vectorcraft_eps::native(&central).unwrap()).unwrap();
+    let native = vansoncraft_format::load(&vansoncraft_eps::native(&central).unwrap()).unwrap();
     assert_eq!((native.artboards.len(), native.layers[0].children().unwrap().len()), (2, 2));
     for f in &files[1..] {
         let bytes = b64(f);
         let ps = postscript(&bytes);
         assert_eq!(dsc(&ps, "BoundingBox").as_deref(), Some("0 0 100 100"));
         // Each carries the document with its own artboard.
-        let native = vectorcraft_format::load(&vectorcraft_eps::native(&bytes).unwrap()).unwrap();
+        let native = vansoncraft_format::load(&vansoncraft_eps::native(&bytes).unwrap()).unwrap();
         assert_eq!(native.artboards.len(), 1);
     }
     // Named artboards, two or more, get the central file too.
@@ -160,7 +160,7 @@ fn transparency_is_flattened_with_the_flattener_preset() {
     // The document is left as it was, and reopens with its transparency.
     let doc = &s.doc().unwrap().doc;
     assert_eq!(doc.layers[0].children().unwrap().len(), 2);
-    let native = vectorcraft_format::load(&vectorcraft_eps::native(&b64(&r)).unwrap()).unwrap();
+    let native = vansoncraft_format::load(&vansoncraft_eps::native(&b64(&r)).unwrap()).unwrap();
     assert!(native.layers[0].children().unwrap().iter().any(|c| c.opacity < 1.0));
     // A saved preset by name; an unknown one is refused.
     s.execute("flattener.presets.save", &json!({"name": "All Raster", "balance": 0})).unwrap();
@@ -185,7 +185,7 @@ fn flattening_cropped_art_keeps_the_art_under_its_hidden_part() {
         let opts = json!({"artboards": [0], "flattenerPreset": preset, "previewFormat": "none", "thumbnails": false});
         let r = s.execute("document.exportEps", &opts).unwrap();
         // What the file prints, not the document it carries.
-        let back = vectorcraft_eps::import_with(&b64(&r), false).unwrap().document;
+        let back = vansoncraft_eps::import_with(&b64(&r), false).unwrap().document;
         assert_eq!(lost(&canvas, &drawn(&back)), 0, "{preset}: art went missing");
         let sizes = shown_image_sizes(&back);
         assert!(!sizes.is_empty() && sizes.iter().all(|(w, h)| *w <= CROP[2] + 1.0 && *h <= CROP[3] + 1.0), "{preset}: the images show {sizes:?}");
@@ -210,7 +210,7 @@ fn placed_images_are_written_and_previews_are_black_and_white_on_request() {
     let bytes = b64(&r);
     let ps = postscript(&bytes);
     assert!(ps.contains("/RunLengthDecode filter >> image"), "{ps}");
-    let tiff = vectorcraft_eps::sections(&bytes).unwrap().1.unwrap();
+    let tiff = vansoncraft_eps::sections(&bytes).unwrap().1.unwrap();
     // A bilevel TIFF: one sample of one bit, white is zero.
     assert!(tiff.starts_with(b"II*\0"));
     assert_eq!((tiff_tag(tiff, 258), tiff_tag(tiff, 277), tiff_tag(tiff, 262)), (Some(1), Some(1), Some(0)));
@@ -220,22 +220,22 @@ fn placed_images_are_written_and_previews_are_black_and_white_on_request() {
 
 /// The PNG thumbnail of an EPS file, decoded.
 fn thumbnail_png(bytes: &[u8]) -> image::RgbaImage {
-    let png = vectorcraft_eps::thumbnail(bytes).expect("a thumbnail");
+    let png = vansoncraft_eps::thumbnail(bytes).expect("a thumbnail");
     image::load_from_memory_with_format(&png, image::ImageFormat::Png).unwrap().to_rgba8()
 }
 
 /// The TIFF preview of an EPS file, decoded.
 fn preview_tiff(bytes: &[u8]) -> image::RgbaImage {
-    let tiff = vectorcraft_eps::sections(bytes).unwrap().1.expect("a preview");
+    let tiff = vansoncraft_eps::sections(bytes).unwrap().1.expect("a preview");
     image::load_from_memory_with_format(tiff, image::ImageFormat::Tiff).unwrap().to_rgba8()
 }
 
 /// The size of a thumbnail render of the rect an EPS file's preview shows (its bounding box).
 fn thumbnail_size(bytes: &[u8]) -> (u32, u32) {
     let b: Vec<f64> = dsc(&postscript(bytes), "BoundingBox").unwrap().split(' ').map(|v| v.parse().unwrap()).collect();
-    let rect = vectorcraft_geom::Rect::new(b[0], b[1], b[2], b[3]);
+    let rect = vansoncraft_geom::Rect::new(b[0], b[1], b[2], b[3]);
     let long = rect.width().max(rect.height());
-    vectorcraft_render::raster_size(rect, if long > 128.0 { 128.0 / long } else { 1.0 }).unwrap()
+    vansoncraft_render::raster_size(rect, if long > 128.0 { 128.0 / long } else { 1.0 }).unwrap()
 }
 
 /// The thumbnail is the color preview made smaller, the area average of its pixels at the size a
@@ -252,10 +252,10 @@ fn the_thumbnail_is_made_from_the_preview() {
     let thumb = thumbnail_png(&bytes);
     assert_eq!(thumb.dimensions(), (128, 90));
     // An opaque preview's straight pixels are its premultiplied ones.
-    let shown = vectorcraft_render::Rendered { width: 1000, height: 700, pixels: preview.into_raw() };
+    let shown = vansoncraft_render::Rendered { width: 1000, height: 700, pixels: preview.into_raw() };
     assert!(thumb.as_raw() == &shown.area_resized(128, 90).unwrap().pixels, "the thumbnail isn't the preview made smaller");
     let doc = &s.doc().unwrap().doc;
-    let fresh = vectorcraft_render::Renderer::new().render_region(doc, vectorcraft_geom::Rect::new(0.0, 0.0, 1000.0, 700.0), 0.128, true);
+    let fresh = vansoncraft_render::Renderer::new().render_region(doc, vansoncraft_geom::Rect::new(0.0, 0.0, 1000.0, 700.0), 0.128, true);
     let mut diffs: Vec<u8> = thumb.as_raw().iter().zip(&fresh.pixels).map(|(a, b)| a.abs_diff(*b)).collect();
     diffs.sort_unstable();
     let mean = diffs.iter().map(|d| f64::from(*d)).sum::<f64>() / diffs.len() as f64;
@@ -271,7 +271,7 @@ fn thumbnails_of_transparent_and_black_and_white_previews_are_opaque_color() {
     s.execute("paint.setFill", &json!({"color": "#ff0000"})).unwrap();
     s.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 200, "height": 200})).unwrap();
     let doc = &s.doc().unwrap().doc;
-    let fresh = vectorcraft_render::Renderer::new().render_region(doc, vectorcraft_geom::Rect::new(0.0, 0.0, 400.0, 200.0), 0.32, true);
+    let fresh = vansoncraft_render::Renderer::new().render_region(doc, vansoncraft_geom::Rect::new(0.0, 0.0, 400.0, 200.0), 0.32, true);
     let red: [u8; 4] = fresh.pixels[(32 * 128 + 10) * 4..][..4].try_into().unwrap();
     for preview in ["tiffColor", "tiffBw"] {
         let r = s.execute("document.exportEps", &json!({"useArtboards": true, "previewFormat": preview})).unwrap();
@@ -315,7 +315,7 @@ fn every_file_s_thumbnail_has_the_thumbnail_size() {
     let saved = b64(&s.execute("document.save", &json!({"format": "eps", "previewFormat": "tiffColor"})).unwrap());
     assert_eq!(thumbnail_png(&saved).dimensions(), thumbnail_size(&saved));
     let r = s.execute("document.exportEps", &json!({"useArtboards": true, "thumbnails": false})).unwrap();
-    assert!(r["files"].as_array().unwrap().iter().all(|f| vectorcraft_eps::thumbnail(&b64(f)).is_none()));
+    assert!(r["files"].as_array().unwrap().iter().all(|f| vansoncraft_eps::thumbnail(&b64(f)).is_none()));
 }
 
 /// Two placed images whose pixel data can't be decoded are left out of the EPS, and `warnings`

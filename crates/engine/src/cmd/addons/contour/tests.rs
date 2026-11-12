@@ -1,8 +1,8 @@
 //! Tests for `addon.contour.set`: a live Offset Path copy of a shape that stays editable until baked.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::NodeKind;
-use vectorcraft_geom::Rect;
+use vansoncraft_doc::NodeKind;
+use vansoncraft_geom::Rect;
 
 use crate::*;
 
@@ -21,7 +21,7 @@ fn ids_of(v: &Value, key: &str) -> Vec<NodeId> {
     v[key].as_array().unwrap().iter().map(|x| NodeId(x.as_u64().unwrap())).collect()
 }
 
-fn node(s: &Session, id: NodeId) -> vectorcraft_doc::Node {
+fn node(s: &Session, id: NodeId) -> vansoncraft_doc::Node {
     s.doc().unwrap().doc.node(id).cloned().unwrap()
 }
 
@@ -214,15 +214,15 @@ fn border_with_a_gap_from_two_contours_and_minus_front() {
     let ring = ids_of(&s.execute("object.pathfinder.minusFront", &json!({})).unwrap(), "ids");
     assert_eq!(ring.len(), 1);
     // 90 x 80 outer minus 66 x 56 inner, with sharp corners.
-    let area = vectorcraft_pathops::area(&ring_path(&s, ring[0]).0, ring_path(&s, ring[0]).1);
+    let area = vansoncraft_pathops::area(&ring_path(&s, ring[0]).0, ring_path(&s, ring[0]).1);
     assert!((area - (90.0 * 80.0 - 66.0 * 56.0)).abs() < 1.0, "{area}");
 }
 
-fn ring_path(s: &Session, id: NodeId) -> (vectorcraft_geom::PathData, vectorcraft_geom::FillRule) {
+fn ring_path(s: &Session, id: NodeId) -> (vansoncraft_geom::PathData, vansoncraft_geom::FillRule) {
     match &node(s, id).kind {
         NodeKind::Path { path, rule, .. } => (path.clone(), *rule),
         NodeKind::Compound { children, rule } => {
-            (vectorcraft_geom::PathData::new(children.iter().flat_map(|c| c.path_data().unwrap().subpaths.clone()).collect()), *rule)
+            (vansoncraft_geom::PathData::new(children.iter().flat_map(|c| c.path_data().unwrap().subpaths.clone()).collect()), *rule)
         }
         NodeKind::Group { children, .. } => children.first().map(|c| ring_path(s, c.id)).unwrap(),
         _ => panic!("not a path"),
@@ -230,7 +230,7 @@ fn ring_path(s: &Session, id: NodeId) -> (vectorcraft_geom::PathData, vectorcraf
 }
 
 mod tool {
-    use vectorcraft_tools::{Mods, PointerEvent, PointerKind, ToolKey};
+    use vansoncraft_tools::{Mods, PointerEvent, PointerKind, ToolKey};
 
     use super::*;
     use crate::tooling::ViewInfo;
@@ -370,7 +370,7 @@ mod tool {
     /// over any fill); a shape that is not a Contour yet has none.
     #[test]
     fn a_selected_contour_shows_the_outline_it_was_made_from() {
-        use vectorcraft_tools::Overlay;
+        use vansoncraft_tools::Overlay;
         let (mut s, _) = ready();
         let paths = |s: &mut Session| -> Vec<(bool, f32)> {
             s.overlays(view())

@@ -2,7 +2,7 @@
 //! layers would be gone for good.
 
 use serde_json::json;
-use vectorcraft_engine::Session;
+use vansoncraft_engine::Session;
 
 fn ascii85(data: &[u8]) -> String {
     let mut out = String::new();

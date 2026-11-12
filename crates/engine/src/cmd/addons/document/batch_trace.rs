@@ -29,7 +29,7 @@ pub(super) const MAX_FILES: usize = 500;
 #[cfg(not(target_arch = "wasm32"))]
 const MAX_DEPTH: usize = 8;
 #[cfg(not(target_arch = "wasm32"))]
-const FORMATS: [&str; 5] = ["vectorcraft", "svg", "pdf", "ai", "eps"];
+const FORMATS: [&str; 5] = ["vansoncraft", "svg", "pdf", "ai", "eps"];
 
 #[cfg(not(target_arch = "wasm32"))]
 /// The image files in `folder` (and its subfolders with `deep`), sorted.
@@ -70,7 +70,7 @@ pub(super) fn batch_trace_folder(s: &mut Session, p: &Value) -> Result<Value> {
     let folder = str_param(p, "folder").map(fileio::absolute_path).ok_or_else(|| bad(ID, "missing `folder`"))?;
     let dest = str_param(p, "destinationFolder").map(fileio::absolute_path).ok_or_else(|| bad(ID, "missing `destinationFolder`"))?;
     let format = match p.get("format") {
-        None => "vectorcraft",
+        None => "vansoncraft",
         Some(Value::String(value)) => value.as_str(),
         Some(_) => return Err(bad(ID, "`format` must be a string")),
     };

@@ -5,7 +5,7 @@
 
 Scope: what an AI agent needs to create and edit real vector art through MCP — Bézier editing,
 paint, transforms, booleans and clipping, selection and hierarchy, undo, persistence, SVG, the MCP
-server, errors and limits. Method: a code audit of `crates/mcp`, `apps/vectorcraft-cli` and the
+server, errors and limits. Method: a code audit of `crates/mcp`, `apps/vansoncraft-cli` and the
 control server by an independent agent (read-only), then reproduction of each claim against a
 debug build through the real MCP stdio protocol. Historical parity numbers and test counts in other
 docs were not taken as evidence.
@@ -14,16 +14,16 @@ docs were not taken as evidence.
 
 | Item | Value |
 |---|---|
-| Repository | `vansyson1308/vansoncraft`, a fork of VectorCraft (product name, crates and file format still `vectorcraft`) |
+| Repository | `vansyson1308/vansoncraft`, a fork of VansonCraft (product name, crates and file format still `vansoncraft`) |
 | Commit audited | `2304b38f19378954c8e874a82fa8735f9bce48c4` (`main` = `origin/main` at the start) |
 | Working tree | clean; no open pull requests or issues on the fork |
 | Machine | Linux container, 4 cores, 15 GB RAM, about 30 GB free disk; Rust 1.97.0 |
-| Build | `cargo build -p vectorcraft-cli` (dev profile): 9 min 24 s from cold, target dir 4.9 GB |
-| Tests run at baseline | `cargo test -p vectorcraft-mcp`: 168 + 5 + 15 passed, 0 failed (4 min 13 s) |
+| Build | `cargo build -p vansoncraft-cli` (dev profile): 9 min 24 s from cold, target dir 4.9 GB |
+| Tests run at baseline | `cargo test -p vansoncraft-mcp`: 168 + 5 + 15 passed, 0 failed (4 min 13 s) |
 | Not run | the full `cargo xtask ci` (a workspace test build needs about 30 GB of target dir, more than the disk); wasm build; macOS and Windows builds |
 
-Branding: the app, crates, CLI, file format and MCP server are still named VectorCraft
-(`vectorcraft-cli`, `.vectorcraft`, `vectorcraft://` URIs), with `drawcraft` aliases for old files.
+Branding: the app, crates, CLI, file format and MCP server are still named VansonCraft
+(`vansoncraft-cli`, `.vansoncraft`, `vansoncraft://` URIs), with `drawcraft` aliases for old files.
 These are technical names that file formats, configs and clients depend on; nothing was renamed.
 `LICENSE-*`, `NOTICE`, `ASSETS.md` and `ATTRIBUTION.md` are kept as they are.
 
@@ -42,7 +42,7 @@ These are technical names that file formats, configs and clients depend on; noth
 | Autosave / recovery | desktop Data Recovery (`cmd/recovery.rs`) | not exercised | headless MCP sessions have none: unsaved headless work is lost when the server stops (stated in the fallback notice, F1) |
 | MCP server, 33 tools, resources, prompts | `crates/mcp` | protocol tests; scenarios A–G | see findings |
 | Errors and limits | engine params checks, MCP caps | scenario G: unknown argument → −32602, unknown or deleted id → error naming it, non-number → error, huge numbers → refused, corrupt and truncated files → error, server alive | the message for a non-number `x` says "missing number" (N3) |
-| Performance budgets | `vectorcraft-cli perf` | see `acceptance-matrix.md` | — |
+| Performance budgets | `vansoncraft-cli perf` | see `acceptance-matrix.md` | — |
 
 ## Findings
 
@@ -55,7 +55,7 @@ up in the code and in the runs.
 
 | # | Sev | Finding | Reproduction (MCP, headless unless noted) | Expected / actual (before) | Status |
 |---|---|---|---|---|---|
-| F1 | P1 | With no flag, `vectorcraft-cli mcp` falls back to headless silently when no app listens on 127.0.0.1:7979; only the `initialize` instructions end with "Backend: headless." | start the server with no app; `draw_shape` → success; nothing in any window; ending the client loses the art | the agent and user can tell / they could not | **Fixed.** The fallback is stated in `initialize` and after the first tool result; `doc_inspect` reports `backend {kind, describe, desktopWindow}`. Tests `a_server_that_fell_back_says_so_once`, `doc_inspect_says_which_backend_the_tools_act_in`. |
+| F1 | P1 | With no flag, `vansoncraft-cli mcp` falls back to headless silently when no app listens on 127.0.0.1:7979; only the `initialize` instructions end with "Backend: headless." | start the server with no app; `draw_shape` → success; nothing in any window; ending the client loses the art | the agent and user can tell / they could not | **Fixed.** The fallback is stated in `initialize` and after the first tool result; `doc_inspect` reports `backend {kind, describe, desktopWindow}`. Tests `a_server_that_fell_back_says_so_once`, `doc_inspect_says_which_backend_the_tools_act_in`. |
 | F2 | P1 | After undo, the next new object took the undone object's id, so a stale id silently edited the new object | `draw_shape` rect (id 2) → `undo` → `draw_shape` ellipse → **id 2** → `set_paint {ids:[2]}` painted the ellipse (`objects: 1`) | "no such object" / the wrong object changed | **Fixed for MCP headless sessions**: the engine session option `unique_ids` keeps new ids above the highest id the document had (`DocState::id_floor`, raised by undo and redo, not by a cancelled group whose journal entries are dropped); the MCP headless session turns it on. Off by default, because 14 engine tests and recorded journals rely on today's ids and the desktop app's Data Recovery replays journals. **Deferred for the desktop app** (needs the flag recorded with the journal). Tests `engine::tests::id_reuse::*`, MCP `a_stale_id_after_undo_fails_instead_of_painting_a_new_object`. |
 | F2b | P1 | Ids repeat across documents (each starts at 1) and every tool acts on the active document; in the desktop app a person can switch tabs between calls | `draw_shape` → `file.new` → `draw_shape`: both ids 2 | a guard / none | **Mitigated:** `doc_inspect` gives the document `uid` (unique per process) and `backend`; `command_run`, `run_command`, `invoke_menu` and `command_batch` take `expect_document: uid` and run nothing when another document is active (test `a_call_meant_for_another_document_runs_nothing`). In the desktop app the check and the command are two requests, so a tab switch between them still slips past; an atomic check inside the app's `engine.execute` is **deferred**. |
 | F3 | P2 | `command_batch {atomic:true}` only grouped undo: a failing step left the earlier steps applied | batch `[shape.rectangle, no.such.command]` → objects 2 → 3, history "Job" | nothing applied / partial | **Fixed:** a failed atomic batch cancels its undo group and replies `rolledBack: true`; `keep_on_error: true` keeps the old behaviour. Files written and documents opened are not taken back (documented). Tests `a_failed_atomic_batch_leaves_the_document_as_it_was`, updated `an_atomic_batch_is_one_undo_step_in_a_document_it_creates`, `atomic_batch_still_closes_its_undo_group_when_results_grow_too_big`. |

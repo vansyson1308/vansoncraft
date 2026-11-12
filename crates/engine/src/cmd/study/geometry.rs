@@ -2,8 +2,8 @@
 //! simplification within a tolerance, the long axis, and scanline crossings with a fill rule.
 //! Everything is bounded: [`MAX_POINTS`] caps how many points one study flattens.
 
-use vectorcraft_doc::{Document, Node, NodeId, NodeKind};
-use vectorcraft_geom::{FillRule, PathData, Point, Rect};
+use vansoncraft_doc::{Document, Node, NodeId, NodeKind};
+use vansoncraft_geom::{FillRule, PathData, Point, Rect};
 
 /// Most flattened points one study reads; a larger drawing is an error, not a slow reply.
 pub(crate) const MAX_POINTS: usize = 400_000;
@@ -135,16 +135,16 @@ fn collect(n: &Node, parts: &mut Vec<Part>, budget: &mut usize, depth: usize) ->
 
 /// `path` flattened within [`FLATTEN_TOLERANCE`], one ring per subpath with two points or more.
 pub(crate) fn flatten_into(path: &PathData, rings: &mut Vec<Ring>, budget: &mut usize) -> Result<(), String> {
-    use vectorcraft_geom::PathEl;
+    use vansoncraft_geom::PathEl;
     for sp in &path.subpaths {
         if sp.anchors.len() < 2 || sp.anchors.iter().any(|a| !a.p.is_finite() || !a.h_in.is_finite() || !a.h_out.is_finite()) {
             continue;
         }
-        let mut bp = vectorcraft_geom::BezPath::new();
+        let mut bp = vansoncraft_geom::BezPath::new();
         sp.to_bezpath_into(&mut bp);
         let mut pts: Vec<Point> = Vec::new();
         let mut over = false;
-        vectorcraft_geom::flatten(bp.elements().iter().copied(), FLATTEN_TOLERANCE, |el| match el {
+        vansoncraft_geom::flatten(bp.elements().iter().copied(), FLATTEN_TOLERANCE, |el| match el {
             PathEl::MoveTo(p) | PathEl::LineTo(p) => {
                 if pts.len() >= *budget {
                     over = true;
@@ -319,7 +319,7 @@ pub(crate) fn long_axis(pts: &[Point]) -> Option<(Point, Point)> {
         sxy += dx * dy;
     }
     let angle = 0.5 * (2.0 * sxy).atan2(sxx - syy);
-    let dir = vectorcraft_geom::Vec2::new(angle.cos(), angle.sin());
+    let dir = vansoncraft_geom::Vec2::new(angle.cos(), angle.sin());
     let c = Point::new(mx, my);
     let (lo, hi) = pts.iter().fold((f64::INFINITY, f64::NEG_INFINITY), |(lo, hi), p| {
         let t = (*p - c).dot(dir);

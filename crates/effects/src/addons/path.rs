@@ -7,10 +7,10 @@
 //! path with a coordinate past [`MAX_COORDINATE`] or not finite is left as it is.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::Dash;
-use vectorcraft_geom::{PathData, Point, SubPath};
-use vectorcraft_pathops::addons::pathtools::{self as tools, AnchorSpacing, CloseMode, ExtendMode, SMOOTH_RATIO, SegmentKind};
-use vectorcraft_pathops::addons::{PT_PER_TOLERANCE, retract_tiny_handles, simplify_keep_shape};
+use vansoncraft_doc::Dash;
+use vansoncraft_geom::{PathData, Point, SubPath};
+use vansoncraft_pathops::addons::pathtools::{self as tools, AnchorSpacing, CloseMode, ExtendMode, SMOOTH_RATIO, SegmentKind};
+use vansoncraft_pathops::addons::{PT_PER_TOLERANCE, retract_tiny_handles, simplify_keep_shape};
 
 use crate::catalog::{EffectInfo, Lengths};
 use crate::stroke;

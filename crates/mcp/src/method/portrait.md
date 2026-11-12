@@ -8,7 +8,7 @@ features are seldom seen as the same: don't force symmetry (SP-XVII-12). Order o
 enclosing shape in square lines, the skull, a centre line with brows, nose, mouth and chin, then the
 masses, from the impression "seen a long way off" inwards (Procedure XVII).
 
-**With VectorCraft.**
+**With VansonCraft.**
 - Work from the user's reference on a template layer (`file.place {template: true}` or a template
   `layer.new`), shown with `render_preview {showTemplates: true}`.
 - Landmarks: small marks or short guide paths on the `Construction` layer at brows, nose base,

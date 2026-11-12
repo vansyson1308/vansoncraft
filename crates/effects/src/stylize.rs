@@ -1,9 +1,9 @@
 //! Convert to Shape, Round Corners and Scribble.
 
 use serde_json::{Value, json};
-use vectorcraft_geom::kurbo;
-use vectorcraft_geom::shapes::{self, KAPPA};
-use vectorcraft_geom::{Affine, Anchor, PathData, Point, Rect, SubPath, corners};
+use vansoncraft_geom::kurbo;
+use vansoncraft_geom::shapes::{self, KAPPA};
+use vansoncraft_geom::{Affine, Anchor, PathData, Point, Rect, SubPath, corners};
 
 use crate::util::{catmull_rom, flag, noise, num, seed};
 
@@ -145,7 +145,7 @@ fn crosses_outline(p: Point, q: Point, polys: &[Vec<Point>]) -> bool {
 }
 
 /// One named Settings entry in Effect › Stylize › Scribble (public feature names; parameter sets
-/// are chosen for VectorCraft).
+/// are chosen for VansonCraft).
 pub struct ScribbleSetting {
     pub id: &'static str,
     pub label: &'static str,

@@ -2,7 +2,7 @@
 //! Extrude & Bevel (Classic) (Wireframe, No Shading, Diffuse and Plastic), their highlight, blend
 //! steps and shading color.
 use serde_json::Value;
-use vectorcraft_three_d::Revolve;
+use vansoncraft_three_d::Revolve;
 
 pub const CLASSIC_REVOLVE: &str = "threeD.classicRevolve";
 
@@ -41,9 +41,9 @@ pub(crate) fn validate(p: &Value) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use serde_json::json;
-    use vectorcraft_doc::color::{Color, Paint};
-    use vectorcraft_doc::{Appearance, AppearanceItem, Node, NodeId};
-    use vectorcraft_geom::{BezPath, PathData};
+    use vansoncraft_doc::color::{Color, Paint};
+    use vansoncraft_doc::{Appearance, AppearanceItem, Node, NodeId};
+    use vansoncraft_geom::{BezPath, PathData};
 
     use super::*;
 
@@ -81,7 +81,7 @@ mod tests {
         let n = profile();
         let path = n.path_data().unwrap();
         let p = crate::merged_params(CLASSIC_REVOLVE, params);
-        vectorcraft_three_d::revolve_facets(path, path.bounds().unwrap(), options(&p)).unwrap().len()
+        vansoncraft_three_d::revolve_facets(path, path.bounds().unwrap(), options(&p)).unwrap().len()
     }
 
     #[test]
@@ -157,7 +157,7 @@ mod tests {
     /// member's faces are drawn between them where they are in front of some and behind others.
     #[test]
     fn a_member_in_a_transparent_gradient_keeps_the_shared_face_order() {
-        use vectorcraft_doc::color::{Gradient, GradientKind, GradientPaint, GradientStop};
+        use vansoncraft_doc::color::{Gradient, GradientKind, GradientPaint, GradientStop};
         let art = |end_opacity: f32| {
             let mut end = GradientStop::new(1.0, Color::BLACK);
             end.opacity = end_opacity;

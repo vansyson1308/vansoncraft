@@ -3,8 +3,8 @@
 //! step. Behaviour: <https://helpx.adobe.com/illustrator/desktop/manage-objects/edit-objects/edit-similar-objects.html>.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{Node, NodeKind};
-use vectorcraft_geom::{Affine, PathData, Rect};
+use vansoncraft_doc::{Node, NodeKind};
+use vansoncraft_geom::{Affine, PathData, Rect};
 
 use crate::*;
 
@@ -127,7 +127,7 @@ fn the_canvas_highlights_similar_objects_before_the_start_with_the_selection_too
     let shown = |s: &mut Session| {
         s.overlays(ViewInfo::default())
             .iter()
-            .any(|o| matches!(o, vectorcraft_tools::Overlay::Path { path, width, .. } if *path == outline && *width == 1.0))
+            .any(|o| matches!(o, vansoncraft_tools::Overlay::Path { path, width, .. } if *path == outline && *width == 1.0))
     };
     sel(&mut s, &[a]);
     s.select_tool("selection", ViewInfo::default()).unwrap();
@@ -454,7 +454,7 @@ fn an_object_left_out_keeps_its_own_shape_while_the_others_follow() {
 
 /// A Shift-drag with the Selection tool from `from` to `to`.
 fn shift_drag(s: &mut Session, from: (f64, f64), to: (f64, f64)) {
-    use vectorcraft_tools::{Mods, PointerEvent, PointerKind};
+    use vansoncraft_tools::{Mods, PointerEvent, PointerKind};
     let v = ViewInfo::default();
     s.select_tool("selection", v).unwrap();
     let steps = if from == to {
@@ -709,8 +709,8 @@ fn an_object_added_to_the_group_is_added_to_the_others() {
     let added = s
         .edit("add", |d, _| {
             let id = d.alloc_id();
-            let path = vectorcraft_geom::shapes::rectangle(Rect::new(0.0, 80.0, 10.0, 90.0));
-            d.insert(Some(g), usize::MAX, Node::path(id, path, vectorcraft_doc::Appearance::default_art()))
+            let path = vansoncraft_geom::shapes::rectangle(Rect::new(0.0, 80.0, 10.0, 90.0));
+            d.insert(Some(g), usize::MAX, Node::path(id, path, vansoncraft_doc::Appearance::default_art()))
                 .map_err(|e| EngineError::Other(e.to_string()))
         })
         .unwrap();
@@ -732,8 +732,8 @@ fn global_edit_takes_at_most_max_members() {
             for i in 0..MAX_MEMBERS + 5 {
                 let (x, y) = ((i % 70) as f64 * 10.0, (i / 70 % 50) as f64 * 10.0);
                 let id = d.alloc_id();
-                let path = vectorcraft_geom::shapes::rectangle(Rect::new(x, y, x + 8.0, y + 8.0));
-                d.insert(layer, usize::MAX, Node::path(id, path, vectorcraft_doc::Appearance::default_art()))
+                let path = vansoncraft_geom::shapes::rectangle(Rect::new(x, y, x + 8.0, y + 8.0));
+                d.insert(layer, usize::MAX, Node::path(id, path, vansoncraft_doc::Appearance::default_art()))
                     .map_err(|e| EngineError::Other(e.to_string()))?;
                 first.get_or_insert(id);
             }
@@ -751,7 +751,7 @@ fn groups_nested_as_deep_as_a_document_allows_are_edited_together() {
         let side = rect(s, x + 20.0, 0.0, 10.0, 10.0);
         let mut top = group_of(s, &[inner, side]);
         // Group until the document refuses to go deeper.
-        for _ in 0..2 * vectorcraft_doc::MAX_DEPTH {
+        for _ in 0..2 * vansoncraft_doc::MAX_DEPTH {
             sel(s, &[top]);
             match s.execute("object.group", &json!({})) {
                 Ok(r) => top = NodeId(r["id"].as_u64().unwrap()),

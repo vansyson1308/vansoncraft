@@ -1,10 +1,10 @@
 //! A click after a smooth anchor: the new corner has no handles, so the segment curves from the previous anchor's side only.
 
 use serde_json::json;
-use vectorcraft_doc::NodeKind;
-use vectorcraft_engine::{Session, ViewInfo};
-use vectorcraft_geom::Point;
-use vectorcraft_tools::{PointerEvent, PointerKind};
+use vansoncraft_doc::NodeKind;
+use vansoncraft_engine::{Session, ViewInfo};
+use vansoncraft_geom::Point;
+use vansoncraft_tools::{PointerEvent, PointerKind};
 
 #[test]
 fn click_after_a_smooth_anchor_curves_from_its_side_only() {

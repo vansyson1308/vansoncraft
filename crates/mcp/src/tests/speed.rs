@@ -18,7 +18,7 @@ fn payload(r: &Value) -> Value {
 
 fn image(r: &Value) -> image::RgbaImage {
     let data = r["content"].as_array().unwrap().iter().find(|c| c["type"] == "image").unwrap()["data"].as_str().unwrap();
-    image::load_from_memory(&vectorcraft_format::base64_decode(data).unwrap()).unwrap().to_rgba8()
+    image::load_from_memory(&vansoncraft_format::base64_decode(data).unwrap()).unwrap().to_rgba8()
 }
 
 #[test]
@@ -43,7 +43,7 @@ fn a_server_that_fell_back_says_so_once() {
     let first = call(&mut s, "draw_shape", json!({"shape": "rectangle", "x": 0, "y": 0, "width": 10, "height": 10}));
     let blocks = first["content"].as_array().unwrap();
     assert_eq!(blocks.len(), 2, "{first}");
-    assert!(blocks[1]["text"].as_str().unwrap().contains("no VectorCraft app answered on 127.0.0.1:7979"));
+    assert!(blocks[1]["text"].as_str().unwrap().contains("no VansonCraft app answered on 127.0.0.1:7979"));
     // The result itself is still the first block, as JSON.
     assert!(payload(&first)["id"].is_u64());
     let second = call(&mut s, "doc_inspect", json!({"depth": 0}));
@@ -215,7 +215,7 @@ fn a_vase_of_flowers_stays_editable_part_by_part() {
     let containers: Vec<&u64> = changed.iter().filter(|id| !petals.contains(id)).collect();
     assert!(containers.len() <= 2, "only flower 1's group and its layer may change around the petals: {containers:?}");
     // Native round trip, then SVG with the parts' names.
-    let path = super::tmp("vase.vectorcraft");
+    let path = super::tmp("vase.vansoncraft");
     let doc_before = payload(&call(&mut s, "command_run", json!({"id": "document.json", "params": {}})));
     assert_eq!(call(&mut s, "save_file", json!({"path": path.to_str().unwrap()}))["isError"], false);
     assert_eq!(call(&mut s, "open_file", json!({"path": path.to_str().unwrap()}))["isError"], false);

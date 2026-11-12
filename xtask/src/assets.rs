@@ -31,8 +31,9 @@ const ASSET_EXT: &[&str] = &[
     "ase",
     "aco",
     "abr",
-    "vectorcraft",
-    "drawcraft",
+    "vansoncraft",
+    "vectorcraft", // brand-ok: native files saved before the rename
+    "drawcraft",   // brand-ok: native files saved under the first name
     "mp4",
     "wav",
     "mp3",

@@ -3,8 +3,8 @@
 //! without self-intersections, and covering the end of the stroke under it.
 
 use kurbo::{BezPath, PathEl, Point, Shape};
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::{ArrowAlign, Arrowhead, StrokeLayer};
+use vansoncraft_color::{Color, Paint};
+use vansoncraft_doc::{ArrowAlign, Arrowhead, StrokeLayer};
 
 use super::stroke_pieces;
 

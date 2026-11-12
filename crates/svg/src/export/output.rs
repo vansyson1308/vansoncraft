@@ -87,7 +87,7 @@ pub(super) fn entity_value(decl: &str) -> String {
 fn dublin_core(doc: &Document) -> Vec<(&'static str, String)> {
     let info = &doc.metadata;
     let mut terms = vec![("format", "image/svg+xml".to_string())];
-    let created = info.created.map(vectorcraft_doc::metadata::iso8601).unwrap_or_default();
+    let created = info.created.map(vansoncraft_doc::metadata::iso8601).unwrap_or_default();
     let fields = [("title", doc.info_title()), ("creator", info.author.as_str()), ("description", info.description.as_str())];
     let rights = [("rights", info.copyright_notice.as_str()), ("rights", info.copyright_url.as_str()), ("date", created.as_str())];
     let keywords = info.keywords.iter().map(|k| ("subject", k.as_str()));
@@ -271,7 +271,7 @@ impl Writer<'_> {
         if let Some(p) = self.foreign_ns.get(ns) {
             return p.clone();
         }
-        const OURS: [&str; 5] = ["svg", "xlink", "rdf", "dc", "vectorcraft"];
+        const OURS: [&str; 5] = ["svg", "xlink", "rdf", "dc", "vansoncraft"];
         let base = if wanted.to_ascii_lowercase().starts_with("xml") { "ns" } else { wanted };
         let taken = |p: &str| OURS.contains(&p) || self.foreign_ns.values().any(|q| q == p);
         let mut prefix = base.to_string();
@@ -389,7 +389,7 @@ impl Writer<'_> {
             line(
                 2,
                 &format!(
-                    "<vectorcraft:document xmlns:vectorcraft=\"{EDITING_NS}\" hash=\"{hash}\"><![CDATA[{}]]></vectorcraft:document>",
+                    "<vansoncraft:document xmlns:vansoncraft=\"{EDITING_NS}\" hash=\"{hash}\"><![CDATA[{}]]></vansoncraft:document>",
                     base64_encode(bytes)
                 ),
             );

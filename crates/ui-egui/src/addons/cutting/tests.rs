@@ -1,24 +1,24 @@
 use serde_json::json;
-use vectorcraft_engine::Session;
+use vansoncraft_engine::Session;
 
 use crate::tests_labels::painted_text;
-use crate::{VectorcraftApp, menus};
+use crate::{VansoncraftApp, menus};
 
 /// Object › Plug-ins › Cutting Tools › Stencil Bridges… opens the command dialog on a 2 pt width, one
 /// bridge per island, vertical bridges and Keep Original on; the direction is a list of its three
 /// ways; OK cuts the bridges as one undo step, and a message shows when there are no islands.
 #[test]
 fn stencil_bridges_opens_its_dialog_and_runs_on_ok() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     let outer = app.run("shape.rectangle", json!({"x": 100, "y": 100, "width": 100, "height": 100})).unwrap()["id"].clone();
     let inner = app.run("shape.rectangle", json!({"x": 120, "y": 120, "width": 60, "height": 60})).unwrap()["id"].clone();
     app.run("select.set", json!({"ids": [outer, inner]})).unwrap();
     let o = app.run("object.pathfinder.minusFront", json!({})).unwrap()["ids"][0].clone();
     app.run("select.set", json!({"ids": [o]})).unwrap();
-    let steps = |app: &VectorcraftApp| app.session.doc().unwrap().history.undo.len();
+    let steps = |app: &VansoncraftApp| app.session.doc().unwrap().history.undo.len();
     let n = steps(&app);
-    let open = |app: &mut VectorcraftApp| {
+    let open = |app: &mut VansoncraftApp| {
         let entries = menus::menu_entries(app);
         let item = entries.iter().find(|e| e.path == ["Object", "Plug-ins", "Cutting Tools"] && e.label == "Stencil Bridges…").expect("listed");
         assert!(item.enabled);
@@ -58,14 +58,14 @@ fn stencil_bridges_opens_its_dialog_and_runs_on_ok() {
 /// dialog is open; Cancel takes them away with no step of history, and OK keeps them as one step.
 #[test]
 fn weed_box_and_lines_previews_cancels_and_runs_on_ok() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 600, "height": 400})).unwrap();
     let id = app.run("shape.rectangle", json!({"x": 100, "y": 100, "width": 50, "height": 40})).unwrap()["id"].as_u64().unwrap();
     app.run("select.set", json!({"ids": [id]})).unwrap();
-    let steps = |app: &VectorcraftApp| app.session.doc().unwrap().history.undo.len();
-    let count = |app: &VectorcraftApp| app.session.doc().unwrap().doc.node_count();
+    let steps = |app: &VansoncraftApp| app.session.doc().unwrap().history.undo.len();
+    let count = |app: &VansoncraftApp| app.session.doc().unwrap().doc.node_count();
     let (start, n, nodes) = (app.session.doc().unwrap().doc.clone(), steps(&app), count(&app));
-    let open = |app: &mut VectorcraftApp| {
+    let open = |app: &mut VansoncraftApp| {
         let entries = menus::menu_entries(app);
         let item = entries.iter().find(|e| e.path == ["Object", "Plug-ins", "Cutting Tools"] && e.label == "Weed Box and Lines…").unwrap();
         assert!(item.enabled);

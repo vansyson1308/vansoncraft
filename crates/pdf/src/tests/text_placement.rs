@@ -7,9 +7,9 @@
 use std::sync::Arc;
 
 use kurbo::{BezPath, PathEl, Point, Rect, Shape};
-use vectorcraft_doc::{Document, NodeKind, TextKind, TextObject};
-use vectorcraft_testkit::pdf::{PdfPage, first_extra, pdf_with};
-use vectorcraft_text::{FontDb, FontFace};
+use vansoncraft_doc::{Document, NodeKind, TextKind, TextObject};
+use vansoncraft_testkit::pdf::{PdfPage, first_extra, pdf_with};
+use vansoncraft_text::{FontDb, FontFace};
 
 use crate::tests_import_fidelity::stream;
 use crate::*;
@@ -204,7 +204,7 @@ fn contours(d: &Document) -> Vec<Rect> {
     d.walk(|n| match &n.kind {
         NodeKind::Path { path, .. } => contours_of(&path.to_bezpath(), &mut out),
         NodeKind::Text(t) => {
-            for g in vectorcraft_text::layout(FontDb::global(), t).glyphs {
+            for g in vansoncraft_text::layout(FontDb::global(), t).glyphs {
                 contours_of(&(t.xf * g.outline), &mut out);
             }
         }
@@ -288,7 +288,7 @@ fn spacing_and_scaling_keep_each_glyph_where_the_file_put_it() {
 
 /// Character spacing in horizontally scaled type: a PDF scales `Tc` by its horizontal scaling
 /// (ISO 32000-1 §9.4.4), as layout scales tracking by the Horizontal Scale
-/// (`vectorcraft_text::spacing_scale`), so the type's tracking is the file's `Tc` in thousandths of
+/// (`vansoncraft_text::spacing_scale`), so the type's tracking is the file's `Tc` in thousandths of
 /// its size: 1.5 pt at 16 pt is 93.75, set 80% wide.
 #[test]
 fn character_spacing_in_horizontally_scaled_type_is_the_files_tc() {
@@ -399,7 +399,7 @@ fn text_boxes_open_where_their_lines_were() {
     content += "ET";
     let t = texts(&open_as(&page(&content, ""), TextAs::Text));
     assert_eq!(t.len(), 1, "one text box: {:?}", t.iter().map(TextObject::plain_text).collect::<Vec<_>>());
-    assert_eq!(t[0].para.justify, vectorcraft_doc::Justify::JustifyLeft);
+    assert_eq!(t[0].para.justify, vansoncraft_doc::Justify::JustifyLeft);
     lands(&content, "", &[PARAGRAPH_TEXT]);
 }
 
@@ -572,7 +572,7 @@ fn text_boxes_word_spaced_throughout_open_as_one() {
     let t = texts(&open_as(&page(&content, ""), TextAs::Text));
     assert_eq!(t.len(), 1, "one text box: {:?}", t.iter().map(TextObject::plain_text).collect::<Vec<_>>());
     assert!(matches!(t[0].kind, TextKind::Area { .. }));
-    assert_eq!(t[0].para.justify, vectorcraft_doc::Justify::Left);
+    assert_eq!(t[0].para.justify, vansoncraft_doc::Justify::Left);
     let spaces: Vec<f64> = t[0].runs.iter().filter(|r| r.text.trim().is_empty()).map(|r| r.style.tracking).collect();
     assert!(!spaces.is_empty() && spaces.iter().all(|s| (s - 2.0 / 12.0 * 1000.0).abs() < 1.0), "{:?}", t[0].runs);
     lands(&content, "", &[PARAGRAPH_TEXT]);

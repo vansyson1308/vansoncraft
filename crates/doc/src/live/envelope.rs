@@ -1,7 +1,7 @@
 use super::expand::{Hooks, Outliner, Warper, map_node};
 use super::mesh::{GradientMesh, MeshPoint, grid_len, grid_points, surface_of};
 use super::{Affine, Arc, Color, Deserialize, Node, NodeId, NodeKind, PathData, Point, Rect, Serialize, Vec2, yes};
-use vectorcraft_geom::Homography;
+use vansoncraft_geom::Homography;
 
 fn is_zero(n: &u32) -> bool {
     *n == 0
@@ -152,7 +152,7 @@ pub fn envelope_content_boxes(content: &[Arc<Node>], frame: Affine) -> Option<(R
     let frame = if frame.is_finite() && frame.determinant().abs() > 1e-12 { frame } else { Affine::IDENTITY };
     let to_frame = frame.inverse();
     let (stroked, plain) = content.iter().fold((None, None), |(stroked, plain), c| {
-        (vectorcraft_geom::union_opt(stroked, content_box(c, true, to_frame)), vectorcraft_geom::union_opt(plain, content_box(c, false, to_frame)))
+        (vansoncraft_geom::union_opt(stroked, content_box(c, true, to_frame)), vansoncraft_geom::union_opt(plain, content_box(c, false, to_frame)))
     });
     Some((stroked?, plain?))
 }
@@ -162,7 +162,7 @@ pub fn envelope_content_boxes(content: &[Arc<Node>], frame: Affine) -> Option<(R
 /// of its laid-out box. Type keeps its laid-out box while nothing is registered with
 /// [`set_type_ink`], and when it draws nothing.
 pub fn envelope_content_bounds(content: &[Arc<Node>]) -> Option<Rect> {
-    content.iter().fold(None, |acc, c| vectorcraft_geom::union_opt(acc, content_box(c, false, Affine::IDENTITY)))
+    content.iter().fold(None, |acc, c| vansoncraft_geom::union_opt(acc, content_box(c, false, Affine::IDENTITY)))
 }
 
 /// The box of type's glyph outlines, underlines and strikethroughs with its text space mapped by
@@ -426,7 +426,7 @@ fn content_box_in(n: &Arc<Node>, stroked: bool, to: Affine, typed: &std::collect
                 own_strokes.transform(to, true);
                 own_strokes.visual_of_members(members.map(|c| content_box_in(c, true, to, typed)))
             } else {
-                members.filter(|c| c.visible || !layer).fold(None, |acc, c| vectorcraft_geom::union_opt(acc, content_box_in(c, false, to, typed)))
+                members.filter(|c| c.visible || !layer).fold(None, |acc, c| vansoncraft_geom::union_opt(acc, content_box_in(c, false, to, typed)))
             }
         }
         _ => own(&moved()),
@@ -564,7 +564,7 @@ impl<'a> EnvelopeMap<'a> {
     pub fn new(content: &[Arc<Node>], kind: &'a EnvelopeKind, frame: Affine, options: EnvelopeOptions) -> Option<Self> {
         let frame = if frame.is_finite() && frame.determinant().abs() > 1e-12 { frame } else { Affine::IDENTITY };
         let to_frame = frame.inverse();
-        let src = content.iter().fold(None, |acc, c| vectorcraft_geom::union_opt(acc, content_box(c, false, to_frame)))?;
+        let src = content.iter().fold(None, |acc, c| vansoncraft_geom::union_opt(acc, content_box(c, false, to_frame)))?;
         let src = options.source_box(src);
         Some(Self { src, frame, to_frame, surface: surface_of(kind, src, frame) })
     }
@@ -745,7 +745,7 @@ mod tests {
     fn a_stroked_group_of_type_is_measured_with_its_strokes_in_the_frame() {
         let text = type_node(1, "Group");
         let mut group = Node::group(NodeId(2), vec![text.clone()]);
-        group.appearance = crate::Appearance::basic(vectorcraft_color::Paint::None, vectorcraft_color::Paint::solid(Color::BLACK), 4.0).into();
+        group.appearance = crate::Appearance::basic(vansoncraft_color::Paint::None, vansoncraft_color::Paint::solid(Color::BLACK), 4.0).into();
         let group = Arc::new(group);
         let to = Affine::scale(2.0);
         let mut moved = (*group).clone();

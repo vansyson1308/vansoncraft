@@ -105,7 +105,7 @@ fn the_cnc_cam_preset_sets_the_fields_and_a_change_shows_custom() {
 #[test]
 fn include_placed_images_and_fill_hatches_follow_the_preset_and_a_change_shows_custom() {
     let (mut app, written) = app(1);
-    let shown = |app: &VectorcraftApp| {
+    let shown = |app: &VansoncraftApp| {
         let d = app.ui.dialog.as_ref().unwrap();
         (d.str("dxfPreset"), d.bool("includeImages"), d.bool("includeHatches"))
     };
@@ -184,7 +184,7 @@ fn dwg_is_listed_but_points_to_dxf() {
 
 #[test]
 fn the_dxf_options_dialog_needs_a_document() {
-    let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(vansoncraft_engine::Session::new(), Default::default());
     assert!(app.run("ui.dxfOptionsDialog", json!({})).is_err());
     assert!(!crate::menus::enabled(&app, "ui.dxfOptionsDialog"));
 }

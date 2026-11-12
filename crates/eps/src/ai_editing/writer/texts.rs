@@ -19,12 +19,12 @@ use std::collections::{HashMap, HashSet};
 use std::fmt::Write;
 
 use kurbo::{ParamCurveArclen, PathSeg};
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::{
+use vansoncraft_color::{Color, Paint};
+use vansoncraft_doc::{
     AreaOptions, Burasagari, CharStyle, Document, FirstBaseline, Justify, LineCap, LineJoin, Mojikumi, Node, NodeId, NodeKind, ParaDirection,
     ParaStyle, PathAlign, PathEffect, TextKind, TextObject, VerticalAlign,
 };
-use vectorcraft_geom::{Affine, PathData, Point};
+use vansoncraft_geom::{Affine, PathData, Point};
 
 use crate::ps;
 
@@ -246,7 +246,7 @@ fn within_reader(t: &TextObject, scale: f64) -> bool {
             && (s.stroke.is_none() || (s.stroke_width.is_finite() && s.stroke_width >= 0.0 && s.stroke_width / scale < 1e4))
     };
     let para_ok = |p: &ParaStyle| [p.left_indent, p.right_indent, p.first_line_indent, p.space_before, p.space_after].into_iter().all(length);
-    let max = vectorcraft_doc::AreaOptions::MAX_ROWS_COLUMNS;
+    let max = vansoncraft_doc::AreaOptions::MAX_ROWS_COLUMNS;
     let area_ok = |o: &AreaOptions| {
         [o.gutter, o.row_gutter.unwrap_or(o.gutter), o.first_baseline_min].iter().all(|g| g.is_finite() && *g >= 0.0 && *g / scale <= 10_000.0)
             && o.rows <= max
@@ -290,7 +290,7 @@ fn joined(texts: &[&TextObject]) -> Option<(TextObject, bool)> {
     if whole.runs.is_empty() {
         whole.runs = texts.first()?.runs.clone();
     }
-    whole.set_paragraph_styles(vectorcraft_text::thread::story_paras(texts, &[]));
+    whole.set_paragraph_styles(vansoncraft_text::thread::story_paras(texts, &[]));
     Some((whole, differs))
 }
 
@@ -326,7 +326,7 @@ fn end_read_as_none(t: &TextObject) -> bool {
 /// Has type `t` attributes the text document leaves out ([`TYPE_ATTRIBUTES`])?
 pub(in crate::ai_editing) fn loses(t: &TextObject) -> bool {
     // Small capitals are read back at Document Setup's default size.
-    let default_small_caps = vectorcraft_doc::DocSetup::default().small_caps_size;
+    let default_small_caps = vansoncraft_doc::DocSetup::default().small_caps_size;
     // A run's style as the text document holds it: every other attribute at its default. A color
     // is held without its swatch link.
     let held_char = |s: &CharStyle| {
@@ -458,7 +458,7 @@ struct FontRecord {
 /// and style as `family-style` (the family alone for Regular), the form the reader's
 /// `family_style` splits.
 fn font_name(st: &CharStyle) -> FontRecord {
-    let db = vectorcraft_text::FontDb::global();
+    let db = vansoncraft_text::FontDb::global();
     // The face of that family and style (the font database gives a fallback face for others).
     let record = |name: String| FontRecord { name, truetype: false, design: vec![], version: String::new() };
     match db
@@ -518,7 +518,7 @@ fn fixed(v: f32) -> i64 {
 /// name it is written under (as its `char_style` does)?
 fn font_kept(st: &CharStyle) -> bool {
     let (family, style) = crate::family_style(&font_name(st).name);
-    let family = vectorcraft_text::FontDb::global().find_family(&family).unwrap_or(family);
+    let family = vansoncraft_text::FontDb::global().find_family(&family).unwrap_or(family);
     family == st.font_family && style == st.font_style
 }
 

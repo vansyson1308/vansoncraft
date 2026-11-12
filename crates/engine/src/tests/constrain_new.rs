@@ -4,9 +4,9 @@
 //! before; quarter turns are exact.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{LiveShape, NodeKind, TextKind};
-use vectorcraft_geom::{PathData, Point, Rect};
-use vectorcraft_tools::{Mods, PointerEvent, PointerKind};
+use vansoncraft_doc::{LiveShape, NodeKind, TextKind};
+use vansoncraft_geom::{PathData, Point, Rect};
+use vansoncraft_tools::{Mods, PointerEvent, PointerKind};
 
 use crate::*;
 

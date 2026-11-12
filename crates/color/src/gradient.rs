@@ -146,7 +146,7 @@ impl<'de> Deserialize<'de> for GradientSpread {
     }
 }
 
-/// Most times a gradient's stops run along its vector ([`Gradient::repeats`]): VectorCraft's own
+/// Most times a gradient's stops run along its vector ([`Gradient::repeats`]): VansonCraft's own
 /// limit.
 pub const MAX_REPEATS: u32 = 100;
 

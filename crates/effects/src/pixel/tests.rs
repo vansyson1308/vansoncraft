@@ -1,6 +1,6 @@
 use serde_json::json;
-use vectorcraft_doc::Effect;
-use vectorcraft_geom::{Affine, Point, Rect};
+use vansoncraft_doc::Effect;
+use vansoncraft_geom::{Affine, Point, Rect};
 
 use super::*;
 use crate::{RasterFx, raster_effects};
@@ -152,7 +152,7 @@ fn film_grain_pattern_survives_redraws_moves_resolution_changes_and_tiles() {
     grain.apply(&mut again, w, h, &space(w, h));
     assert_eq!(whole, again);
     let moved =
-        PixelSpace { to_doc: Affine::translate((17.0, -9.0)), center: space(w, h).center + vectorcraft_geom::Vec2::new(17.0, -9.0), ..space(w, h) };
+        PixelSpace { to_doc: Affine::translate((17.0, -9.0)), center: space(w, h).center + vansoncraft_geom::Vec2::new(17.0, -9.0), ..space(w, h) };
     let mut shifted = src;
     grain.apply(&mut shifted, w, h, &moved);
     assert_eq!(whole, shifted);
@@ -909,7 +909,7 @@ fn linear_light_blur_mixes_light_not_values() {
     }
 }
 
-/// Timings on a 2000 × 2000 raster (`cargo test -p vectorcraft-effects --release -- --ignored
+/// Timings on a 2000 × 2000 raster (`cargo test -p vansoncraft-effects --release -- --ignored
 /// --nocapture pixel_timings`).
 #[test]
 #[ignore]

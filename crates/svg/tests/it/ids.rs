@@ -3,10 +3,10 @@
 
 use std::collections::HashSet;
 
-use vectorcraft_color::{Color, Gradient, GradientKind, GradientPaint, GradientStop, Paint};
-use vectorcraft_doc::{Appearance, Document, Node};
-use vectorcraft_geom::{Rect, shapes};
-use vectorcraft_svg::{ExportOptions, ObjectIds, Styling, export, import};
+use vansoncraft_color::{Color, Gradient, GradientKind, GradientPaint, GradientStop, Paint};
+use vansoncraft_doc::{Appearance, Document, Node};
+use vansoncraft_geom::{Rect, shapes};
+use vansoncraft_svg::{ExportOptions, ObjectIds, Styling, export, import};
 
 /// A document with a named rectangle, an unnamed gradient-filled one and a second layer.
 fn doc(title: &str, shift: f64) -> Document {
@@ -167,7 +167,7 @@ fn ruler_guides_are_not_written_and_take_no_id() {
     let plain = doc("a", 0.0);
     let mut guided = plain.clone();
     for (i, (l, name)) in [(guided.layers[0].id, "Top & Front"), (guided.layers[1].id, "Logo mark (v2)")].into_iter().enumerate() {
-        let mut g = Node::new(guided.alloc_id(), vectorcraft_doc::NodeKind::RulerGuide { vertical: i == 0, pos: 30.0, artboard: None });
+        let mut g = Node::new(guided.alloc_id(), vansoncraft_doc::NodeKind::RulerGuide { vertical: i == 0, pos: 30.0, artboard: None });
         g.name = Some(name.into());
         g.edit_attrs(|a| a.url = "https://example.com/".into());
         guided.insert(Some(l), usize::MAX, g).unwrap();

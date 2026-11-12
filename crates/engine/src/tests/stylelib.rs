@@ -4,9 +4,9 @@
 use std::sync::Arc;
 
 use serde_json::{Value, json};
-use vectorcraft_color::{Paint, Swatch};
-use vectorcraft_doc::{GraphicStyle, Node, NodeId, PatternDef};
-use vectorcraft_geom::{Point, Rect, shapes};
+use vansoncraft_color::{Paint, Swatch};
+use vansoncraft_doc::{GraphicStyle, Node, NodeId, PatternDef};
+use vansoncraft_geom::{Point, Rect, shapes};
 
 use crate::*;
 
@@ -20,7 +20,7 @@ fn run(s: &mut Session, id: &str, p: Value) -> Value {
     s.execute(id, &p).unwrap_or_else(|e| panic!("{id} {p}: {e}"))
 }
 
-fn doc(s: &Session) -> &vectorcraft_doc::Document {
+fn doc(s: &Session) -> &vansoncraft_doc::Document {
     &s.doc().unwrap().doc
 }
 
@@ -55,7 +55,7 @@ fn builtin_libraries_are_listed_with_original_styles_using_catalogued_effects() 
             let ap = &st.appearance;
             let item_fx = ap.items.iter().flat_map(|i| i.effects());
             for e in ap.effects.iter().chain(item_fx) {
-                assert!(vectorcraft_render::effects::effect_info(&e.id).is_some(), "{id} / {}: unknown effect {}", st.name, e.id);
+                assert!(vansoncraft_render::effects::effect_info(&e.id).is_some(), "{id} / {}: unknown effect {}", st.name, e.id);
             }
         }
     }
@@ -73,14 +73,14 @@ fn builtin_libraries_are_listed_with_original_styles_using_catalogued_effects() 
     let r = run(&mut s, "graphicStyle.addFromLibrary", json!({"library": "game-hud", "name": "Mana Glow", "apply": true, "ids": [id.0]}));
     assert_eq!((names(&r["added"]), r["applied"].as_str()), (vec!["Mana Glow"], Some("Mana Glow")));
     let node = doc(&s).node(id).unwrap();
-    assert_eq!(node.appearance.fill_paint(), Paint::solid(vectorcraft_color::Color::from_hex("#3498db").unwrap()));
+    assert_eq!(node.appearance.fill_paint(), Paint::solid(vansoncraft_color::Color::from_hex("#3498db").unwrap()));
     assert_eq!(node.appearance.stroke_paint(), Paint::None);
     assert_eq!(node.appearance.effects.iter().map(|e| e.id.as_str()).collect::<Vec<_>>(), ["stylize.outerGlow"]);
     let id2 = rect(&mut s, 60.0, 20.0, 40.0, 30.0);
     let r2 = run(&mut s, "graphicStyle.addFromLibrary", json!({"library": "status-effects", "name": "Poison Tint", "apply": true, "ids": [id2.0]}));
     assert_eq!((names(&r2["added"]), r2["applied"].as_str()), (vec!["Poison Tint"], Some("Poison Tint")));
     let node2 = doc(&s).node(id2).unwrap();
-    assert_eq!(node2.appearance.fill_paint(), Paint::solid(vectorcraft_color::Color::from_hex("#2ecc71").unwrap()));
+    assert_eq!(node2.appearance.fill_paint(), Paint::solid(vansoncraft_color::Color::from_hex("#2ecc71").unwrap()));
     assert_eq!(node2.appearance.effects.iter().map(|e| e.id.as_str()).collect::<Vec<_>>(), ["stylize.outerGlow"]);
     // By name in any case.
     assert_eq!(run(&mut s, "graphicStyle.library", json!({"library": "shadows and glows"}))["id"], "shadows-glows");
@@ -112,7 +112,7 @@ fn painted_and_sketched_styles_set_every_effect_setting_and_reopen_applied() {
     let (_, lib) = cmd::stylelib::library(&s, "painted-sketched").unwrap();
     for st in &lib.styles {
         let e = &st.appearance.effects[0];
-        let defaults = vectorcraft_render::effects::effect_info(&e.id).unwrap().defaults;
+        let defaults = vansoncraft_render::effects::effect_info(&e.id).unwrap().defaults;
         let (set, all) = (e.params.as_object().unwrap(), defaults.as_object().unwrap());
         let keys = |m: &serde_json::Map<String, Value>| m.keys().cloned().collect::<Vec<_>>();
         assert_eq!(keys(set), keys(all), "{}", st.name);
@@ -134,7 +134,7 @@ fn painted_and_sketched_styles_set_every_effect_setting_and_reopen_applied() {
         assert_eq!((names(&r["added"]), r["applied"].as_str()), (vec![*name], Some(*name)));
         assert_eq!(undo_len(&s), before + 1, "{name}");
         let node = doc(&s).node(id).unwrap();
-        assert_eq!(node.appearance.fill_paint(), Paint::solid(vectorcraft_color::Color::from_hex(fill).unwrap()), "{name}");
+        assert_eq!(node.appearance.fill_paint(), Paint::solid(vansoncraft_color::Color::from_hex(fill).unwrap()), "{name}");
         assert_eq!(node.appearance.effects.iter().map(|e| e.id.as_str()).collect::<Vec<_>>(), [*effect]);
         assert_eq!(node.appearance.effects[0].params, lib.style(name).unwrap().appearance.effects[0].params, "{name}");
         ids.push((id, *name));
@@ -151,7 +151,7 @@ fn painted_and_sketched_styles_set_every_effect_setting_and_reopen_applied() {
 
     // Saved and opened again, the styles keep their effects and the rectangles stay linked to them.
     let b64 = run(&mut s, "document.serialize", json!({}))["dataBase64"].as_str().unwrap().to_string();
-    run(&mut s, "document.open", json!({"name": "painted.vectorcraft", "dataBase64": b64}));
+    run(&mut s, "document.open", json!({"name": "painted.vansoncraft", "dataBase64": b64}));
     for (id, name) in &ids {
         let d = doc(&s);
         let style = d.graphic_style(name).unwrap();
@@ -290,8 +290,8 @@ fn textures_styles_apply_their_texture_effects_and_keep_their_params_through_sav
         let want: Vec<(String, Value)> = g.appearance.effects.iter().map(|e| (e.id.clone(), e.params.clone())).collect();
         assert_eq!(fx, &want, "{} applies the library's params", g.name);
     }
-    let b64 = run(&mut s, "document.serialize", json!({"format": "vectorcraft"}))["dataBase64"].as_str().unwrap().to_string();
-    run(&mut s, "document.open", json!({"name": "textures.vectorcraft", "dataBase64": b64}));
+    let b64 = run(&mut s, "document.serialize", json!({"format": "vansoncraft"}))["dataBase64"].as_str().unwrap().to_string();
+    run(&mut s, "document.open", json!({"name": "textures.vansoncraft", "dataBase64": b64}));
     assert_eq!(effects(&s), applied, "the params survive a save and open");
     for g in &lib.styles {
         let saved = doc(&s).graphic_style(&g.name).unwrap();
@@ -303,7 +303,7 @@ fn textures_styles_apply_their_texture_effects_and_keep_their_params_through_sav
 /// A document with pattern `name` (a dot) and its swatch.
 fn add_pattern(s: &mut Session, name: &str, radius: f64) {
     s.edit("Pattern", |d, _| {
-        let dot = Node::path(d.alloc_id(), shapes::ellipse(Rect::new(0.0, 0.0, radius, radius)), vectorcraft_doc::Appearance::default_art());
+        let dot = Node::path(d.alloc_id(), shapes::ellipse(Rect::new(0.0, 0.0, radius, radius)), vansoncraft_doc::Appearance::default_art());
         d.patterns.push(PatternDef { tile: Rect::new(0.0, 0.0, 10.0, 10.0), ..PatternDef::new(name, vec![Arc::new(dot)]) });
         d.swatches.push(Swatch { name: name.into(), paint: pattern(name), global: false, spot: false });
         Ok(())
@@ -390,7 +390,7 @@ fn user_libraries_and_other_documents_styles() {
     let id = rect(&mut s, 0.0, 0.0, 10.0, 10.0);
     run(&mut s, "graphicStyle.new", json!({"name": "Poster Look", "id": id.0}));
     let b64 = run(&mut s, "document.serialize", json!({}))["dataBase64"].as_str().unwrap().to_string();
-    let r = run(&mut s, "graphicStyle.loadLibrary", json!({"dataBase64": b64, "name": "Poster.vectorcraft"}));
+    let r = run(&mut s, "graphicStyle.loadLibrary", json!({"dataBase64": b64, "name": "Poster.vansoncraft"}));
     assert_eq!(r["name"], "Poster");
     let (_, lib) = cmd::stylelib::library(&s, r["library"].as_str().unwrap()).unwrap();
     assert!(lib.style("Poster Look").is_some_and(|g: &GraphicStyle| g.id == 0));
@@ -400,8 +400,8 @@ fn user_libraries_and_other_documents_styles() {
 #[test]
 fn every_builtin_style_paints_visibly_on_a_rectangle() {
     let mut s = session();
-    let mut renderer = vectorcraft_render::Renderer::new();
-    for b in vectorcraft_doc::style_libs::STYLE_LIBRARIES {
+    let mut renderer = vansoncraft_render::Renderer::new();
+    for b in vansoncraft_doc::style_libs::STYLE_LIBRARIES {
         let (_, lib) = cmd::stylelib::library(&s, b.id).unwrap();
         for g in &lib.styles {
             run(&mut s, "file.new", json!({"width": 100, "height": 100}));

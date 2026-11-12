@@ -1,46 +1,46 @@
-# VectorCraft MCP server
+# VansonCraft MCP server
 
 > **Last updated:** 2026-11-12 · **Change:** drawing-method resources and prompts (docs/speed/), `render_preview` regions and value views, `doc_inspect` backend, headless-fallback notice, atomic `command_batch` rollback; previously: Save location-refusal error (#6146); existing response shapes retained.
 
-`vectorcraft-cli mcp` runs a [Model Context Protocol](https://modelcontextprotocol.io) server on stdio
+`vansoncraft-cli mcp` runs a [Model Context Protocol](https://modelcontextprotocol.io) server on stdio
 (newline-delimited JSON-RPC 2.0; see [Protocol](#protocol) for version negotiation). Agents use it to
-draw, inspect and look at VectorCraft documents.
+draw, inspect and look at VansonCraft documents.
 
 It has two backends:
 
 | Mode | How | What works |
 |---|---|---|
-| **Remote** | `vectorcraft-cli mcp --connect 127.0.0.1:7979` (the app must run with `vectorcraft --control 7979`) | Everything. Tool calls are forwarded over the [control protocol](control-protocol.md), so you watch the app change live. |
-| **Headless** | `vectorcraft-cli mcp --headless` | An in-process engine session with a CPU renderer. Everything except the UI-only tools (`inspect_ui` or `ui_inspect`, `type_text`, `answer_dialog`, `open_panel`, `screenshot {window:true}` or `ui_screenshot`). |
+| **Remote** | `vansoncraft-cli mcp --connect 127.0.0.1:7979` (the app must run with `vansoncraft --control 7979`) | Everything. Tool calls are forwarded over the [control protocol](control-protocol.md), so you watch the app change live. |
+| **Headless** | `vansoncraft-cli mcp --headless` | An in-process engine session with a CPU renderer. Everything except the UI-only tools (`inspect_ui` or `ui_inspect`, `type_text`, `answer_dialog`, `open_panel`, `screenshot {window:true}` or `ui_screenshot`). |
 
 With no flag, the server tries `127.0.0.1:7979` and falls back to headless. Logs go to stderr; stdout carries
 only protocol messages.
 
 ### Command catalogue (headless vs remote)
 
-`command_list` / `list_commands` / `vectorcraft://commands` return the live catalogue for the backend in use:
+`command_list` / `list_commands` / `vansoncraft://commands` return the live catalogue for the backend in use:
 
 - **Headless:** engine and plug-in commands, plus the desktop menu catalogue (`UI_COMMANDS`) marked `"ui": true` so agents can discover ids such as `view.fitArtboard`, `file.newDialog` and `window.*`. Running a UI-only command that the headless host does not implement returns an error that points at `--connect`.
   The catalogue is mirrored in `crates/mcp/src/ui_catalog.rs` (mcp does not depend on ui-egui). Regenerate with `cargo xtask ui-commands`; `cargo xtask ci` runs `ui-commands --check` so the mirror cannot drift.
 - **Remote:** the same lists, with each UI entry's `enabled` taken from the live app. Run UI commands with `command_run` / `run_command` or `invoke_menu`.
 
-Effect ids from `effect.list` / `apply_effect` / `vectorcraft://effect/{id}` (for example `warp.arc`, `blur.gaussian`, `threeD.revolve`, `adjust.hueSaturation`, `addon.path.dashes`, `addon.color.halftone`) are not command ids. Apply one with `effect.apply` or the `apply_effect` tool; do not pass an effect id to `command_run`. Path Effects keep the `addon.path.*` effect ids; the Path Tools add-on's *commands* are `addon.pathtools.*`.
+Effect ids from `effect.list` / `apply_effect` / `vansoncraft://effect/{id}` (for example `warp.arc`, `blur.gaussian`, `threeD.revolve`, `adjust.hueSaturation`, `addon.path.dashes`, `addon.color.halftone`) are not command ids. Apply one with `effect.apply` or the `apply_effect` tool; do not pass an effect id to `command_run`. Path Effects keep the `addon.path.*` effect ids; the Path Tools add-on's *commands* are `addon.pathtools.*`.
 
-A release `vectorcraft-cli` on `PATH` can lag the checkout. Prefer `cargo install --path apps/vectorcraft-cli --locked` and put `$CARGO_HOME/bin` first in the MCP client's environment, or set the client's `command` to that binary's absolute path (#6460).
+A release `vansoncraft-cli` on `PATH` can lag the checkout. Prefer `cargo install --path apps/vansoncraft-cli --locked` and put `$CARGO_HOME/bin` first in the MCP client's environment, or set the client's `command` to that binary's absolute path (#6460).
 
 ## Install and register
 
 From the repository root, with Rust 1.95+ and the platform's source-build prerequisites installed:
 
 ```sh
-cargo install --path apps/vectorcraft-cli --locked
+cargo install --path apps/vansoncraft-cli --locked
 # POSIX shells, for Cargo's default install location:
 export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
-vectorcraft-cli --help
-claude mcp add vectorcraft -- vectorcraft-cli mcp
+vansoncraft-cli --help
+claude mcp add vansoncraft -- vansoncraft-cli mcp
 # or pin a mode:
-claude mcp add vectorcraft-headless -- vectorcraft-cli mcp --headless
-claude mcp add vectorcraft-app -- vectorcraft-cli mcp --connect 127.0.0.1:7979
+claude mcp add vansoncraft-headless -- vansoncraft-cli mcp --headless
+claude mcp add vansoncraft-app -- vansoncraft-cli mcp --connect 127.0.0.1:7979
 ```
 
 Cargo installs a binary, not a symlink into `target/`, so it survives `cargo clean`.
@@ -54,69 +54,68 @@ the client after changing its environment. Installing does not start or register
 Other clients use the same command in their JSON config:
 
 ```json
-{"mcpServers": {"vectorcraft": {"command": "vectorcraft-cli", "args": ["mcp"]}}}
+{"mcpServers": {"vansoncraft": {"command": "vansoncraft-cli", "args": ["mcp"]}}}
 ```
 
 If a client reports `ENOENT` or "Executable not found in $PATH", verify the install with
-`command -v vectorcraft-cli` (PowerShell: `Get-Command vectorcraft-cli`) in the client's
+`command -v vansoncraft-cli` (PowerShell: `Get-Command vansoncraft-cli`) in the client's
 environment. If that environment cannot be changed, set JSON `command` to the absolute
 installed binary path, not a literal `~` or `$HOME` expression. Avoid symlinks into
 `target/release`: cleaning the build directory breaks them. A source build alone does
 not put the CLI on `PATH`.
 
-For a live session, start the app first: `cargo run --release -p vectorcraft -- --control 7979`.
+For a live session, start the app first: `cargo run --release -p vansoncraft -- --control 7979`.
 
 ### From an installed release
 
-The release packages ship `vectorcraft-cli` alongside the desktop app, so no build is needed:
+The release packages ship `vansoncraft-cli` alongside the desktop app, so no build is needed:
 
 | Install | CLI |
 |---|---|
-| Windows (MSI) | `%LOCALAPPDATA%\Programs\ArtCraft\VectorCraft\vectorcraft-cli.exe` by default (`C:\Program Files\ArtCraft\VectorCraft\vectorcraft-cli.exe` for an all-users install, under `Program Files (x86)` instead for the 32-bit build, or wherever you installed it otherwise), not on `PATH` |
-| Linux (deb, rpm) | `/usr/bin/vectorcraft-cli` |
-| macOS | the separate `vectorcraft-cli-<version>-macos-<arch>.zip` release asset (the `.app` holds only the desktop app) |
+| Windows (MSI) | `%LOCALAPPDATA%\Programs\VansonCraft\vansoncraft-cli.exe` by default (`C:\Program Files\VansonCraft\vansoncraft-cli.exe` for an all-users install, under `Program Files (x86)` instead for the 32-bit build, or wherever you installed it otherwise), not on `PATH` |
+| Linux (deb, rpm) | `/usr/bin/vansoncraft-cli` |
+| macOS | the separate `vansoncraft-cli-<version>-macos-<arch>.zip` release asset (the `.app` holds only the desktop app) |
 
 ```sh
 # Windows (PowerShell), default install folder
-claude mcp add vectorcraft -- "$env:LOCALAPPDATA\Programs\ArtCraft\VectorCraft\vectorcraft-cli.exe" mcp
+claude mcp add vansoncraft -- "$env:LOCALAPPDATA\Programs\VansonCraft\vansoncraft-cli.exe" mcp
 # Linux, or macOS with the CLI unzipped onto PATH
-claude mcp add vectorcraft -- vectorcraft-cli mcp
+claude mcp add vansoncraft -- vansoncraft-cli mcp
 ```
 
 For a live session, start the installed app with the control port before the MCP client starts the server:
 
 ```sh
-# macOS: quit VectorCraft first, since `open -a` passes no arguments to an app that is already running
-open -a VectorCraft --args --control 7979
+# macOS: quit VansonCraft first, since `open -a` passes no arguments to an app that is already running
+open -a VansonCraft --args --control 7979
 # Windows (PowerShell), default install folder
-& "$env:LOCALAPPDATA\Programs\ArtCraft\VectorCraft\vectorcraft.exe" --control 7979
+& "$env:LOCALAPPDATA\Programs\VansonCraft\vansoncraft.exe" --control 7979
 # Linux (deb, rpm)
-vectorcraft --control 7979
+vansoncraft --control 7979
 ```
 
 The Dock, Start menu and desktop launchers start the app without `--control`, so the app opens no control
-port unless `VECTORCRAFT_CONTROL_PORT` is set. `vectorcraft-cli mcp` with no flag tries `127.0.0.1:7979`
+port unless `VANSONCRAFT_CONTROL_PORT` is set. `vansoncraft-cli mcp` with no flag tries `127.0.0.1:7979`
 once, when it starts: a server that started before the app stays headless until the MCP client restarts
-it. `open -a` and PowerShell's `&` return before the app opens the port, so wait until the VectorCraft
+it. `open -a` and PowerShell's `&` return before the app opens the port, so wait until the VansonCraft
 window is open before you start the MCP client. With `--connect`, a server that finds no app stops and
-prints `vectorcraft-cli: cannot connect to 127.0.0.1:7979: ` followed by the system's connection error, for
+prints `vansoncraft-cli: cannot connect to 127.0.0.1:7979: ` followed by the system's connection error, for
 example `connection timed out`.
 
 ## Confining file access
 
 ```sh
-vectorcraft-cli mcp --automation-read-root /work/project --automation-write-root /work/project/out
-vectorcraft-cli mcp --automation-read-root /work/project --automation-read-root /work/shared-assets \
+vansoncraft-cli mcp --automation-read-root /work/project --automation-write-root /work/project/out
+vansoncraft-cli mcp --automation-read-root /work/project --automation-read-root /work/shared-assets \
   --automation-write-root /work/project/out --automation-write-root /tmp/scratch
 ```
 
 ```json
-{"mcpServers": {"vectorcraft": {"command": "vectorcraft-cli",
+{"mcpServers": {"vansoncraft": {"command": "vansoncraft-cli",
   "args": ["mcp", "--automation-read-root", "/work/project", "--automation-write-root", "/work/project/out"]}}}
 ```
 
-The two flags (PhotoCraft and the other Craft apps take the same ones, so one client config works across
-the suite) keep the agent to the folders you give it:
+The two flags keep the agent to the folders you give it:
 
 - Every file a command reads must lie inside a **read root**: `open_file`, `file.place`, relinking and
   updating links, the images an SVG links to, swatch library, graphic style library, symbol library, brush library and colour-profile loads, plug-ins,
@@ -175,7 +174,7 @@ the suite) keep the agent to the folders you give it:
   roots (with their `size` and `match`), a sought link's `path` outside them, and `folder` when the folder searched
   is outside them; `error` then gives the reason without the path (for example `the folder can't be read`). The
   rows keep their `name`, `ids`, family, style and status, and the counts stay. `text.addFontFiles` gives
-  `folder: null` when VectorCraft's Fonts folder is outside the read roots, and only the file name in `copied` and
+  `folder: null` when VansonCraft's Fonts folder is outside the read roots, and only the file name in `copied` and
   `kept` `to` and in `skipped` `file` for a path outside them; the fonts are still copied.
 - `prefs.get`, `prefs.list`, `prefs.set` and `prefs.reset` show a folder preference outside the read roots
   (`fontsFolder`, `pluginsFolder`, `scratchPrimary`, `scratchSecondary`, `recoveryFolder`, `templatesFolder`) as
@@ -219,14 +218,14 @@ the suite) keep the agent to the folders you give it:
   Links in an opened document that point outside the read roots show as missing.
 - The preferences that move folders the app reads or writes on its own (`fontsFolder`,
   `pluginsFolder`, `recoveryFolder`, `templatesFolder`) can only be set inside the roots. The app's own folders
-  (preferences, Data Recovery, the User Defined library folders, VectorCraft's Fonts folder) are not
+  (preferences, Data Recovery, the User Defined library folders, VansonCraft's Fonts folder) are not
   confined: no agent names a path there.
 - The roots must be existing folders; a missing one stops the server with an error. Each flag takes one
   folder per use (`--flag <dir>` or `--flag=<dir>`) and may be used again for more.
 
 The flags confine the headless server and imply `--headless`; `--connect` with them is an error, since
 the server would otherwise talk to an app that isn't confined. A running app confines itself: start it
-with the same flags, `vectorcraft --control 7979 --automation-read-root <dir> --automation-write-root
+with the same flags, `vansoncraft --control 7979 --automation-read-root <dir> --automation-write-root
 <dir>`, and connect as usual (see [Control protocol](control-protocol.md#confining-file-access)). The
 server then writes nothing itself: `screenshot {path}` asks the app to write the file.
 
@@ -291,27 +290,27 @@ arguments filled in. A missing required argument is `-32602`.
 | `revise-locally` | `request`, `target` |
 | `memory-exercise` | `reference` |
 
-The last four follow Harold Speed's method; `vectorcraft://method` (index) and `vectorcraft://method/{topic}` (`procedure`, `line`, `mass`, `rhythm`, `balance`, `proportion`, `portrait`, `memory`, `materials`, `limits`) are their Markdown notes, compiled into the server. See [docs/speed/](speed/README.md).
+The last four follow Harold Speed's method; `vansoncraft://method` (index) and `vansoncraft://method/{topic}` (`procedure`, `line`, `mass`, `rhythm`, `balance`, `proportion`, `portrait`, `memory`, `materials`, `limits`) are their Markdown notes, compiled into the server. See [docs/speed/](speed/README.md).
 
 ```sh
 echo '{"jsonrpc":"2.0","id":1,"method":"prompts/get","params":{"name":"poster","arguments":{"brief":"a jazz festival"}}}' \
-  | vectorcraft-cli mcp --headless
+  | vansoncraft-cli mcp --headless
 ```
 
 ### Resource templates
 
-`vectorcraft://document` (summary), `vectorcraft://document/json` (the whole model),
-`vectorcraft://commands` (the live command catalog with enabled state) and `vectorcraft://commands/reference` (the
+`vansoncraft://document` (summary), `vansoncraft://document/json` (the whole model),
+`vansoncraft://commands` (the live command catalog with enabled state) and `vansoncraft://commands/reference` (the
 command API reference in Markdown, `text/markdown; charset=utf-8`; see [Parameter schemas](#parameter-schemas)) are
 the fixed resources. The templates read one thing at a time, which matters on a real document: the full model
 is thousands of lines an agent pays for again on every change.
 
 | `uriTemplate` | Reads |
 |---|---|
-| `vectorcraft://object/{id}` | One layer or object with its children, bounds and paint: `document.node {id, summary: true}`, the node as `document.inspect` lists it. A large container can be sliced with `run_command document.node {id, summary: true, depth?, childLimit?}` (a level that shows fewer children reports `childCount`) |
-| `vectorcraft://command/{id}` | One command: label, menu path, shortcut, parameter description, enablement |
-| `vectorcraft://effect/{id}` | One live effect with its parameters and defaults |
-| `vectorcraft://swatch/{name}` | One swatch, colour, gradient or pattern swatch (percent-encode spaces) |
+| `vansoncraft://object/{id}` | One layer or object with its children, bounds and paint: `document.node {id, summary: true}`, the node as `document.inspect` lists it. A large container can be sliced with `run_command document.node {id, summary: true, depth?, childLimit?}` (a level that shows fewer children reports `childCount`) |
+| `vansoncraft://command/{id}` | One command: label, menu path, shortcut, parameter description, enablement |
+| `vansoncraft://effect/{id}` | One live effect with its parameters and defaults |
+| `vansoncraft://swatch/{name}` | One swatch, colour, gradient or pattern swatch (percent-encode spaces) |
 
 An unknown URI is `-32002`; a template with no value, or a value that names nothing, is `-32602`.
 
@@ -394,9 +393,9 @@ place. From then on the engine's own `log` records arrive as `notifications/mess
 `logger` and `data`. A `null` level turns it back off. Nothing is sent before the client asks, and
 records queued at the old level are dropped rather than replayed at the new one.
 
-Installing the logger that receives those records is `vectorcraft-cli`'s job, not the library's: a
+Installing the logger that receives those records is `vansoncraft-cli`'s job, not the library's: a
 crate that installed one would override whatever logger an embedder had already set up. Embedding
-`vectorcraft-mcp` directly means calling `vectorcraft_mcp::logging::install()` yourself if you want
+`vansoncraft-mcp` directly means calling `vansoncraft_mcp::logging::install()` yourself if you want
 log records to reach your client.
 
 ### Long calls: cancellation, progress and a busy engine
@@ -430,7 +429,7 @@ while an export runs (#2165, #2171, #2172):
   that sends a few quick calls together sees no difference. At most 64 lines wait; past that the
   server stops reading until the engine catches up.
 
-`vectorcraft_mcp::Server::serve` takes the input and the output on separate threads (`Send`), and
+`vansoncraft_mcp::Server::serve` takes the input and the output on separate threads (`Send`), and
 `Server::with_busy_after` changes the two seconds. Calling `handle_line` directly is as before:
 one line in, one reply out, no threads.
 
@@ -509,7 +508,7 @@ Paint values (`fill`, `stroke`) accept `"#rrggbb"`, `"none"`, `[r,g,b]` (0..1), 
 or a full `paint.setFill` params object (`{"gradient": …}`, `{"swatch": "name"}`).
 A color read this way (a fill or stroke color, a swatch's, an artboard's or new type's color, and the other colors
 commands read in these forms) that is given as a hex color with an alpha part (`#rrggbbaa` or `#rgba`, with or without
-the `#`) is an error and changes nothing, as VectorCraft's own rule. The `color` of Drop Shadow, Inner Glow, Outer Glow
+the `#`) is an error and changes nothing, as VansonCraft's own rule. The `color` of Drop Shadow, Inner Glow, Outer Glow
 and Shift to Color is read differently and takes `#rrggbbaa`, as described below.
 For `draw_shape` and `draw_path`, omitted paint fields inherit the current [new-art appearance](#new-art). Both
 also style the new object in the same call: `dash` (lengths, or null for solid), `cap`
@@ -551,7 +550,7 @@ waits. The picked sRGB color is converted into the working RGB space and becomes
 active proxy in one undo step; `stroke: true` picks the stroke, and `picker: true` sends the color to the open
 Color Picker. A cancel leaves the colors as they were. On Linux, a session without a portal that has PickColor
 shows "this system has no screen color sampler" in the status bar, a portal that does not return from the call
-within 25 seconds (VectorCraft's own limit) or leaves the bus before it answers shows "the screen color sampler
+within 25 seconds (VansonCraft's own limit) or leaves the bus before it answers shows "the screen color sampler
 did not answer", and a portal that ends the request in another way shows "the screen color sampler failed"; each
 ends the wait, so the sampler can be shown again. Windows, the BSDs and headless sessions have no screen color
 sampler.
@@ -574,9 +573,9 @@ sampler.
 | `invoke_menu` | `{command, params?}` | Invokes a menu item by command id. UI commands such as `view.*` and `window.*` are in `command_list` with `ui: true`; running them needs the desktop app (`--connect`). |
 | `open_panel` | `{panel}` | Remote only. `panel` is a panel id (`layers`, `swatches`, `colorGuide`, …, as `window.panel` takes) or its display label (`"Color Guide"`), in any case. |
 | `screenshot` | `{path?, scale?, artboard?, window?, max_side?, traceViews?}` | Returns MCP image content (`image/png`, base64) plus a text block. Renders the artboard with the pixels of a PNG `export` with `background: "white"` at the same scale; `traceViews:true` draws Image Trace objects in the view set with `imageTrace.setView`, as in the app's window; `window:true` captures the app window (remote only), as `ui_screenshot` does, and `max_side` (1–4096, window captures only) scales the returned image down as described for `ui_screenshot`. With `path` the backend (the headless session or the app) writes the PNG there too; a window capture written there keeps its full size with `max_side`. |
-| `open_file` | `{path, importer?, params?}` | Opens any readable file as a new active document: `.vectorcraft`/`.drawcraft`, `.vctemplate`, `.svg`/`.svgz`, `.pdf`/`.ai`, `.ait`, `.eps`/`.epsf`, `.ps`, `.dxf`, `.emf`, `.wmf`, HP-GL (`.plt`/`.hpgl`/`.hgl`/`.hpg`, and a file of an extension no other format reads that starts with plotter instructions), PNG (`.png`/`.pns`), JPEG, GIF, WebP, TIFF, BMP (`.bmp`/`.dib`/`.rle`), Targa (`.tga`/`.vda`/`.icb`/`.vst`), PCX, Pixar (`.pxr`), JPEG 2000 (`.jpf`/`.jpx`/`.jp2`/`.j2k`/`.j2c`/`.jpc`), HEIC/HEIF (`.heic`/`.heif`), JPEG XL (`.jxl`), PSD (`.psd`/`.pdd`)/PSB (an image opens as a document of its pixel size; a PSD or PSB file with its layers as layers, or as its merged image through `run_command document.open` with `layers: false`; a JPEG XL file as its first frame). Templates (`.vctemplate`, `.ait`) open as a new untitled document. PDF, `.ai` and SVG files saved with Preserve Editing reopen as the document they carry. The reply is `document.open`'s: its `warnings` say what didn't come in as it was (an EPS whose PostScript can't be read opens as its preview, and the warning names the PostScript error, the operator and the procedure). A file of an extension only an installed importer plug-in lists opens with that importer ([Plug-ins](#plug-ins)); `importer: "plugin.<id>"` opens the file with the importer it names, which must list the file's extension, also one a built-in format reads (in the app, as File › Open With does), and `params` gives that importer's parameters (their defaults when omitted). `run_command document.formats` lists the formats. |
-| `save_file` | `{path?, compress?, version?, preview?, precision?, options?}` | Runs `document.save`: the document's own file in its own format (native `.vectorcraft` unless it was opened from or saved as SVG, PDF or a restorable `.ai`; then `warnings` say what that format loses). A path's extension picks the format (`.vectorcraft`, `.vctemplate`, `.pdf`, `.svg`, `.svgz`, `.ai`: a PDF carrying the native document, which reopens editable; `.eps`: by default one file whose bounding box fits the visible art, the first artboard when no art shows; `options.useArtboards: true` makes the chosen artboard the page and, with two or more chosen, the file at the path is the central file of the visible art and each artboard is also written to `<name>_<artboard>.eps` beside it, listed in the reply's `files`). For a native file, `compress: true` gzips it (default: the `useCompression` preference, Preferences › File Handling › Use Compression), `version` (1 to 4) writes it for an older VectorCraft (1 and 2 are never compressed, and `version: 2` with `compress: true` is an error), `preview: true` embeds a PNG of the first artboard, and `precision` (0 to 9) rounds path anchors and handles to that many decimal places for that save only (colors, transforms and type stay exact). `options` passes the format's save options as `run_command document.formats` lists them. When `compress`, `version`, `preview` or `precision` is given both at the top level and in `options` with different values, the call is an error (`` `compress: true` and `options.compress: false` disagree: give the option once ``) and nothing is written. A key in `options` that no save format takes is an error, and nothing is written (see Parameter keys). The save drops each option the written format doesn't read. The reply's `warnings` then name each such option given (for example `` `compress` was not used: SVG files don't read it `` for an `.svg` path, and `` `options.preview` was not used: … `` for a key in `options`; a `.ai` file reads `compress` but not `version`, `preview` or `precision`). For a `.ai` file, these warnings name the kind of `.ai` written: a legacy .ai (version 7) for `aiVersion: "7"`, a non-PDF-compatible .ai for `pdfCompatible: false`, and a PDF-compatible .ai otherwise, including a save that reuses the options the document was last saved with. `run_command document.save` and the other save commands refuse any option given beside the path and in `options` with different values, and give the same warnings for a top-level `compress`, `version`, `preview` or `precision` and for each key in `options` that the format doesn't read. The headless session and the app receive the same `app.save` params, and the app is also sent `wait: true`: the call returns once the file is written, or with the error (such as a path outside the write root), even with Background Save on. When the save asks first (the question before replacing a file that opened with losses, or on macOS and Linux the file dialog for an untitled document without `path`), the reply is `{pending}` or `"cancelled"` as before, and the save that runs after the answer uses the Background Save preference. Location refusals return `READ_ONLY_LOCATION: <reason>` without a fallback panel for automation; see [Save location errors](#save-location-errors). |
-| `export` | `{path?, format?, scale?, artboard?, range?, selection?, outlineText?, options?}` | `svg`, `svgz`, `pdf`, `ai` (the PDF-compatible `.ai` that Save writes, which carries the document when every artboard is written in order), `eps`, `dxf`, `emf`, `wmf`, `hpgl` (a `.plt` plot file for plotters and cutters), `png`, `jpg`, `webp`, `gif`, `png8` (an indexed `.png`), `tiff`, `bmp`, `tga`, `psd` (layered), `txt` (the document's text), `vectorcraft` or `template` (a native template). The tool's `format` enum and `document.formats` list them, generated from the engine's format table. When `format` is omitted, it comes from the path's extension. PDF and `.ai` write one page per artboard: all of them, or `artboard` (0-based) / `range` (`"1-3, 5"`, 1-based). SVG and SVGZ write one file per chosen artboard. EPS writes one file of the visible art; with `artboard`, `range`, `options.artboards` or `options: {"useArtboards": true}` it writes one file per chosen artboard, after a central file of the visible art when there are two or more, and `useArtboards: false` keeps the one file. Rasters, DXF, EMF, WMF and HP-GL write one artboard, or one file per chosen artboard with `options: {"useArtboards": true}`. Rasters also take `options: {"rect": [x, y, width, height]}` (page points, y down): that area of the page at the given `ppi`/`scale`, without an artboard and without changing the document; it is refused with `artboard`, `artboards`, `range` or `useArtboards`, with a non-positive or non-finite size, and for non-raster formats. `options` carries more format options (e.g. `{"quality": 80}` for JPEG). `selection: true` exports the selected objects cropped to their bounds (the reply adds their `bounds`, and reports `format` and the encoder's `warnings` as a whole-document export does); `outlineText: true` writes SVG text as paths. Template layers are left out, live effects are kept, and exporting `vectorcraft` never changes the document's path. Without `path` the bytes come back as `dataBase64`. Both backends run the same `document.export` call. |
+| `open_file` | `{path, importer?, params?}` | Opens any readable file as a new active document: `.vansoncraft`/`.drawcraft`, `.vctemplate`, `.svg`/`.svgz`, `.pdf`/`.ai`, `.ait`, `.eps`/`.epsf`, `.ps`, `.dxf`, `.emf`, `.wmf`, HP-GL (`.plt`/`.hpgl`/`.hgl`/`.hpg`, and a file of an extension no other format reads that starts with plotter instructions), PNG (`.png`/`.pns`), JPEG, GIF, WebP, TIFF, BMP (`.bmp`/`.dib`/`.rle`), Targa (`.tga`/`.vda`/`.icb`/`.vst`), PCX, Pixar (`.pxr`), JPEG 2000 (`.jpf`/`.jpx`/`.jp2`/`.j2k`/`.j2c`/`.jpc`), HEIC/HEIF (`.heic`/`.heif`), JPEG XL (`.jxl`), PSD (`.psd`/`.pdd`)/PSB (an image opens as a document of its pixel size; a PSD or PSB file with its layers as layers, or as its merged image through `run_command document.open` with `layers: false`; a JPEG XL file as its first frame). Templates (`.vctemplate`, `.ait`) open as a new untitled document. PDF, `.ai` and SVG files saved with Preserve Editing reopen as the document they carry. The reply is `document.open`'s: its `warnings` say what didn't come in as it was (an EPS whose PostScript can't be read opens as its preview, and the warning names the PostScript error, the operator and the procedure). A file of an extension only an installed importer plug-in lists opens with that importer ([Plug-ins](#plug-ins)); `importer: "plugin.<id>"` opens the file with the importer it names, which must list the file's extension, also one a built-in format reads (in the app, as File › Open With does), and `params` gives that importer's parameters (their defaults when omitted). `run_command document.formats` lists the formats. |
+| `save_file` | `{path?, compress?, version?, preview?, precision?, options?}` | Runs `document.save`: the document's own file in its own format (native `.vansoncraft` unless it was opened from or saved as SVG, PDF or a restorable `.ai`; then `warnings` say what that format loses). A path's extension picks the format (`.vansoncraft`, `.vctemplate`, `.pdf`, `.svg`, `.svgz`, `.ai`: a PDF carrying the native document, which reopens editable; `.eps`: by default one file whose bounding box fits the visible art, the first artboard when no art shows; `options.useArtboards: true` makes the chosen artboard the page and, with two or more chosen, the file at the path is the central file of the visible art and each artboard is also written to `<name>_<artboard>.eps` beside it, listed in the reply's `files`). For a native file, `compress: true` gzips it (default: the `useCompression` preference, Preferences › File Handling › Use Compression), `version` (1 to 4) writes it for an older VansonCraft (1 and 2 are never compressed, and `version: 2` with `compress: true` is an error), `preview: true` embeds a PNG of the first artboard, and `precision` (0 to 9) rounds path anchors and handles to that many decimal places for that save only (colors, transforms and type stay exact). `options` passes the format's save options as `run_command document.formats` lists them. When `compress`, `version`, `preview` or `precision` is given both at the top level and in `options` with different values, the call is an error (`` `compress: true` and `options.compress: false` disagree: give the option once ``) and nothing is written. A key in `options` that no save format takes is an error, and nothing is written (see Parameter keys). The save drops each option the written format doesn't read. The reply's `warnings` then name each such option given (for example `` `compress` was not used: SVG files don't read it `` for an `.svg` path, and `` `options.preview` was not used: … `` for a key in `options`; a `.ai` file reads `compress` but not `version`, `preview` or `precision`). For a `.ai` file, these warnings name the kind of `.ai` written: a legacy .ai (version 7) for `aiVersion: "7"`, a non-PDF-compatible .ai for `pdfCompatible: false`, and a PDF-compatible .ai otherwise, including a save that reuses the options the document was last saved with. `run_command document.save` and the other save commands refuse any option given beside the path and in `options` with different values, and give the same warnings for a top-level `compress`, `version`, `preview` or `precision` and for each key in `options` that the format doesn't read. The headless session and the app receive the same `app.save` params, and the app is also sent `wait: true`: the call returns once the file is written, or with the error (such as a path outside the write root), even with Background Save on. When the save asks first (the question before replacing a file that opened with losses, or on macOS and Linux the file dialog for an untitled document without `path`), the reply is `{pending}` or `"cancelled"` as before, and the save that runs after the answer uses the Background Save preference. Location refusals return `READ_ONLY_LOCATION: <reason>` without a fallback panel for automation; see [Save location errors](#save-location-errors). |
+| `export` | `{path?, format?, scale?, artboard?, range?, selection?, outlineText?, options?}` | `svg`, `svgz`, `pdf`, `ai` (the PDF-compatible `.ai` that Save writes, which carries the document when every artboard is written in order), `eps`, `dxf`, `emf`, `wmf`, `hpgl` (a `.plt` plot file for plotters and cutters), `png`, `jpg`, `webp`, `gif`, `png8` (an indexed `.png`), `tiff`, `bmp`, `tga`, `psd` (layered), `txt` (the document's text), `vansoncraft` or `template` (a native template). The tool's `format` enum and `document.formats` list them, generated from the engine's format table. When `format` is omitted, it comes from the path's extension. PDF and `.ai` write one page per artboard: all of them, or `artboard` (0-based) / `range` (`"1-3, 5"`, 1-based). SVG and SVGZ write one file per chosen artboard. EPS writes one file of the visible art; with `artboard`, `range`, `options.artboards` or `options: {"useArtboards": true}` it writes one file per chosen artboard, after a central file of the visible art when there are two or more, and `useArtboards: false` keeps the one file. Rasters, DXF, EMF, WMF and HP-GL write one artboard, or one file per chosen artboard with `options: {"useArtboards": true}`. Rasters also take `options: {"rect": [x, y, width, height]}` (page points, y down): that area of the page at the given `ppi`/`scale`, without an artboard and without changing the document; it is refused with `artboard`, `artboards`, `range` or `useArtboards`, with a non-positive or non-finite size, and for non-raster formats. `options` carries more format options (e.g. `{"quality": 80}` for JPEG). `selection: true` exports the selected objects cropped to their bounds (the reply adds their `bounds`, and reports `format` and the encoder's `warnings` as a whole-document export does); `outlineText: true` writes SVG text as paths. Template layers are left out, live effects are kept, and exporting `vansoncraft` never changes the document's path. Without `path` the bytes come back as `dataBase64`. Both backends run the same `document.export` call. |
 | `add_text` | `{text, x?, y?, width?, height?, fit?, fitMinPercent?, path?, mode?, pathEffect?, size?, font?, color?, justify?, vertical?}` | Point type at (x, y) (`justify`: `left`, `center` or `right` starts, centres or ends each line on x); area type with `width`/`height` (`fit`: `none`, `autoHeight`, `shrinkText`, as `text.areaOptions`); or `path` + `mode` (`area`/`onPath`) to flow text in or along a path, with `pathEffect` (`rainbow`, `skew`, `3dRibbon`, `stairStep`, `gravity`; SVG export writes type on a path with any effect other than `rainbow` as outlines, with a warning); `justify` (also `auto`, `justifyAll`) aligns the paragraphs of every kind, as `text.setStyle` does later. `vertical: true` uses the existing vertical writing mode for every kind (default `false`, horizontal). Returns `{id}`, with `overflow: true` when the text doesn't fit its frame or path. |
 | `apply_effect` | `{effect?, params?, ids?}` | Appends a live effect. Without `effect`, returns the effect catalogue with parameters and defaults. |
 | `pathfinder` | `{operation, ids?}` | `unite`, `minusFront`, `intersect`, `exclude`, `divide`, `trim`, `merge`, `crop`, `outline`, `minusBack`. For a live version, apply the `pathfinder.*` effect to a group (`effect.apply` groups several loose selected objects first). In remote desktop mode, `run_command` and `invoke_menu` can both call `pathfinder.repeat` with `{}`. Successful panel operations, direct `object.pathfinder.*` commands, and `command.batch` steps (including Actions panel playback) set its history. Repeat applies it to the current selection using current Pathfinder Options. Trap, compound-shape edits, live effects and `action.batch` do not set history. With no history it returns "no Pathfinder operation applied yet". |
@@ -809,7 +808,7 @@ it replaced by the template's extension, and any other path that does not end in
 come back without a path), `file.newFromTemplate {path}`, `file.revert` and `file.formatOptions {format?}` (a format's options
 with the values a save would use). Without a path the save commands return `{dataBase64, name, folder?, warnings}`. A document saved as SVG or PDF
 remembers its options, so the next save reuses them; a document not yet saved as a native file is offered the
-VectorCraft Options the last native Save or Save As used (not its artboards, nor Use Compression). A PDF opened with `pages`, `cropTo` or `password` is only part
+VansonCraft Options the last native Save or Save As used (not its artboards, nor Use Compression). A PDF opened with `pages`, `cropTo` or `password` is only part
 of the file, so Save asks for a new name instead of writing it back.
 `file.documentColorMode {mode, convert?, intent?, grays?}` switches the document color mode, converting the colors of
 the art (opacity masks, effect colors and the series paints and label styles that graphs keep included), symbols,
@@ -841,9 +840,9 @@ found in the SVG's folder; only files on this computer or the SVG's network shar
 absolute paths) stay linked images (see Linked images); SVG files and `data:` SVGs become art; a file that
 can't be read becomes a placeholder in its box, named in `warnings` and `missingLinks`.
 
-Native files: `run_command document.save {compress: true}` writes a gzip-compressed `.vectorcraft` (the
+Native files: `run_command document.save {compress: true}` writes a gzip-compressed `.vansoncraft` (the
 `useCompression` preference makes that the default for saves; compressed files open like any other, told apart by
-their content). `version: 2` or `1` writes a file older VectorCraft versions open (format name `drawcraft`, never
+their content). `version: 2` or `1` writes a file older VansonCraft versions open (format name `drawcraft`, never
 compressed), and `preview: true` embeds a PNG of the first artboard, at most 256 px on its longer side.
 `precision: 4` (0 to 9) rounds the anchors and handles of paths to that many decimal places (in the layers, symbols,
 graph designs, patterns, opacity masks and brushes); colors, transforms, opacity and type are written exactly.
@@ -863,14 +862,14 @@ Fixed resources and the four templates (same as [Resource templates](#resource-t
 
 | URI | Content |
 |---|---|
-| `vectorcraft://document` | `document.inspect` summary (JSON) |
-| `vectorcraft://document/json` | The complete document model (JSON) |
-| `vectorcraft://commands` | Live command catalog with enabled state |
-| `vectorcraft://commands/reference` | The command API reference (`engine.apiReference`), as Markdown (`text/markdown; charset=utf-8`) |
-| `vectorcraft://object/{id}` | One layer or object (`document.node {id, summary: true}`) |
-| `vectorcraft://command/{id}` | One command's metadata and enablement |
-| `vectorcraft://effect/{id}` | One live effect with parameters and defaults |
-| `vectorcraft://swatch/{name}` | One swatch (percent-encode spaces) |
+| `vansoncraft://document` | `document.inspect` summary (JSON) |
+| `vansoncraft://document/json` | The complete document model (JSON) |
+| `vansoncraft://commands` | Live command catalog with enabled state |
+| `vansoncraft://commands/reference` | The command API reference (`engine.apiReference`), as Markdown (`text/markdown; charset=utf-8`) |
+| `vansoncraft://object/{id}` | One layer or object (`document.node {id, summary: true}`) |
+| `vansoncraft://command/{id}` | One command's metadata and enablement |
+| `vansoncraft://effect/{id}` | One live effect with parameters and defaults |
+| `vansoncraft://swatch/{name}` | One swatch (percent-encode spaces) |
 
 ## Examples
 
@@ -1020,7 +1019,7 @@ Names in the editing data that aren't UTF-8 (layers, objects, artboards, colors,
 swatches, brushes, symbols, variables and data sets, and the text values of data sets) are read as Windows-1252 unless
 `document.open` takes `legacyNameEncoding`: `macintosh`, `windows-949` (also `euc-kr`), `shift_jis`, `gbk` or `big5`. An
 unknown label is refused. The `warnings` of the result name the first three such names as read and count the rest.
-`vectorcraft-cli convert --legacy-name-encoding ENC` passes it on.
+`vansoncraft-cli convert --legacy-name-encoding ENC` passes it on.
 
 Opening a PDF (or `.ai`) imports every page as an artboard and layer; `document.open` takes `pages` ("2-3, 5", 1-based),
 `cropTo` (`bounding` (the art's bounds), `art`, `crop` (default), `trim`, `bleed`, `media`: the box each artboard gets;
@@ -1082,8 +1081,8 @@ paints under its layers, which isn't art). `layers: false` gives one layer per p
 {"name":"run_command","arguments":{"command":"document.open","params":{"path":"/tmp/map.pdf","textAs":"outlines","layers":false}}}
 ```
 
-Preserve Editing (`preserveEditing`, on in the `VectorCraft Default` preset) embeds the native document in the PDF as
-an embedded file (`vectorcraft-editing.vectorcraft`; files named `drawcraft-editing.drawcraft` are read too) with a
+Preserve Editing (`preserveEditing`, on in the `VansonCraft Default` preset) embeds the native document in the PDF as
+an embedded file (`vansoncraft-editing.vansoncraft`; files named `drawcraft-editing.drawcraft` are read too) with a
 hash of the pages it was written with. `open_file` / `document.open` of such a PDF, `.ai` or `.ait` (no `pages` picked) restores the
 document exactly (`restored: true`); when another app changed the pages, or the data can't be read, the artwork is
 imported instead and the first warning says why. Choosing a standard turns it off (PDF/A refuses it). Save to a `.ai`
@@ -1104,7 +1103,7 @@ Rotation) is always written as outlines, which keep the rotation; without `outli
 written as outlines, which keep the rotation, and is no longer editable text (legacy .ai text can't rotate
 characters)". An image that can't be decoded is left out of
 the file and does not show in art that is flattened or whose raster effects are expanded; `warnings` carries "an image
-couldn't be decoded and is missing from the picture" once for all such images. From the CLI: `vectorcraft-cli convert in.svg
+couldn't be decoded and is missing from the picture" once for all such images. From the CLI: `vansoncraft-cli convert in.svg
 out.ai --ai-version 7 [--hidden-objects layer|omit|visible] [--transparent-images flatten|omit] [--outline-text]
 [--range R]`. `document.export`, `serialize`, `exportSelection` and `exportForScreens` refuse a `.ait` path or
 `format: "ait"` with an error that names `file.saveAsTemplate`, which writes it. The CLI's `run --export x.ait` and
@@ -1187,7 +1186,7 @@ another form gives a warning:
 
 Spread (the Gradient panel's menu, beside a Repeats field) says what a linear, radial, conic or diamond gradient
 paints past the ends of its stops. `pad` (the default) carries the first and last colors on. `repeat` and `reflect`
-run the stops `repeats` times along the vector (1 to 100, VectorCraft's own limit; default 1) and keep going past
+run the stops `repeats` times along the vector (1 to 100, VansonCraft's own limit; default 1) and keep going past
 both ends of it, `repeat` starting the stops again each time and `reflect` running every other run backwards. A
 radial or diamond gradient repeats in rings or squares out from its center (an off-center radial's rings grow about
 its focal point), and a conic one repeats around the turn. A freeform gradient has no ends, so a `spread` other
@@ -1283,25 +1282,25 @@ printf '%s\n' \
   '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
   '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"draw_shape","arguments":{"shape":"ellipse","x":10,"y":10,"width":100,"height":80,"fill":"#ff0000"}}}' \
   '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"inspect_document","arguments":{}}}' \
-  | target/release/vectorcraft-cli mcp --headless
+  | target/release/vansoncraft-cli mcp --headless
 ```
 
 ## Headless batch CLI
 
 ```sh
-vectorcraft-cli commands                          # command catalogue (JSON)
-vectorcraft-cli run --in in.svg \
+vansoncraft-cli commands                          # command catalogue (JSON)
+vansoncraft-cli run --in in.svg \
   --cmd select.all --cmd paint.setFill --params '{"color":"#ff0000"}' \
   --export out.svg --export out.png --scale 2
-vectorcraft-cli run --cmd file.new --params '{"width":800,"height":600}' \
+vansoncraft-cli run --cmd file.new --params '{"width":800,"height":600}' \
   --cmd shape.star --params '{"cx":400,"cy":300,"radius1":200,"radius2":90}' \
-  --export star.vectorcraft
+  --export star.vansoncraft
 ```
 
 `run` prints one JSON line per step (`open`, `cmd`, `export`) and exits non-zero on the first failure, naming the step
 (counting from 0, as `"$N"` references do) and its command. `--params` applies to the `--cmd` just before it. `run`
 also accepts the host commands `file.open`, `file.save`, `file.export`, `file.exportForScreens` and `tool.select`.
-`run --in`, `convert` and `info` read every format `document.open` reads (`vectorcraft-cli --help` lists them).
+`run --in`, `convert` and `info` read every format `document.open` reads (`vansoncraft-cli --help` lists them).
 
 ### Steps from a file or standard input
 
@@ -1310,7 +1309,7 @@ A command line has a length limit (32,767 characters on Windows), which long par
 `--commands -` from standard input:
 
 ```sh
-vectorcraft-cli run --in sheet.vectorcraft --commands steps.json --export out.pdf
+vansoncraft-cli run --in sheet.vansoncraft --commands steps.json --export out.pdf
 ```
 
 ```json
@@ -1330,8 +1329,8 @@ before anything runs, with the step's number and its entry (`entry 3`) or line (
 
 ### What a headless session remembers
 
-`vectorcraft-cli run` and the headless `mcp` server keep these between runs, in folders and files next to the
-preferences (the folder the desktop app uses, so both see the same ones; `VECTORCRAFT_CONFIG_DIR` moves it):
+`vansoncraft-cli run` and the headless `mcp` server keep these between runs, in folders and files next to the
+preferences (the folder the desktop app uses, so both see the same ones; `VANSONCRAFT_CONFIG_DIR` moves it):
 
 - **Saved PDF presets** (`pdf.preset.save`, `.delete`, `.import`): one `.vcpdfpresets` file per preset in
   `PDF Presets`, written as the command runs. Presets saved earlier are there at the next start and work as
@@ -1347,15 +1346,15 @@ preferences (the folder the desktop app uses, so both see the same ones; `VECTOR
   there, or a damaged file, leave the defaults (logged), and the next change writes over the file.
 
 Not remembered: the document, anything else. Nothing is read or written when
-`VECTORCRAFT_NO_PREFS` is set, and a server confined with `--automation-read-root` or
+`VANSONCRAFT_NO_PREFS` is set, and a server confined with `--automation-read-root` or
 `--automation-write-root` keeps nothing either (the folders are outside its roots). A file that is damaged, too large
 (a profile over 32 MB, a presets file over 1 MB) or not a valid preset or profile is skipped and logged. When the
 desktop app starts, the presets it kept in its preferences file before this folder existed are moved into it; after
-that the folder is the one place they live, so a preset deleted by `vectorcraft-cli` is gone in the app too.
+that the folder is the one place they live, so a preset deleted by `vansoncraft-cli` is gone in the app too.
 
 ### Reproducible output
 
-PNG, PDF, EPS, legacy `.ai`, packaged zips and saved `.vectorcraft` files record the time they were
+PNG, PDF, EPS, legacy `.ai`, packaged zips and saved `.vansoncraft` files record the time they were
 made in (PDF `CreationDate` and `ModDate`, the PNG `Creation Time` entry, a zip entry's date, a
 document's `created` and `modified`), so the same commands run twice gave different bytes though the
 pixels matched (#2880). Setting **`SOURCE_DATE_EPOCH`** to a non-negative whole number of seconds
@@ -1363,7 +1362,7 @@ since the epoch records that instant instead of the clock, and the bytes repeat
 (<https://reproducible-builds.org/specs/source-date-epoch/>):
 
 ```sh
-SOURCE_DATE_EPOCH=1791208980 vectorcraft-cli run --cmd file.new --params '{}' --export out.pdf
+SOURCE_DATE_EPOCH=1791208980 vansoncraft-cli run --cmd file.new --params '{}' --export out.pdf
 ```
 
 A command that takes its own date (`file.new {created}`, a save's `modified`) still wins over the
@@ -1654,7 +1653,7 @@ open isn't a step), and `$last…` from the step before. A path goes into object
 reference that names no value fails the step, so a command never runs with one left in it:
 
 ```sh
-vectorcraft-cli run --cmd file.new --params '{"width":600,"height":200}'   --cmd text.create --params '{"x":10,"y":60,"text":"plain and bold words","size":30}'   --cmd text.setRangeStyle --params '{"id":"$1.id","start":10,"end":14,"style":"Bold"}'
+vansoncraft-cli run --cmd file.new --params '{"width":600,"height":200}'   --cmd text.create --params '{"x":10,"y":60,"text":"plain and bold words","size":30}'   --cmd text.setRangeStyle --params '{"id":"$1.id","start":10,"end":14,"style":"Bold"}'
 ```
 
 ### Parameter schemas
@@ -1669,7 +1668,7 @@ command has a summary, and `deprecated: true` when the command is deprecated. Th
 `enum` for a list of names; `items` for the values of a list; `prefixItems`, `items: false` and `minItems: 2` for a
 point; `anyOf` and `minItems: 3` for a color, which is a string, a list of at least three numbers or an object;
 `description` for a parameter's doc text; `default` for a default the engine fills in; and `deprecated: true` for a
-deprecated parameter. VectorCraft's own fields are `x-since` (the API level that added the command or the parameter), `x-deprecatedSince`, `x-lenient`,
+deprecated parameter. VansonCraft's own fields are `x-since` (the API level that added the command or the parameter), `x-deprecatedSince`, `x-lenient`,
 `x-unit`, `x-kind` (`id`, `color` or `point`), `x-default` (a default the command works out, such as `toggle`),
 `x-cost`, `x-writes` (`nothing`, `session`, `preferences` or `document`) and `x-returns`. A parameter that reads null
 as left out is an `anyOf` with `{"type": "null"}`. Null params read as `{}`, so a schema with no required parameter has
@@ -1704,7 +1703,7 @@ path to a value inside a list or an object, and the document and its undo histor
 An omitted value with a `default` takes it (`rotation` 0 in `view.saved.new`); the journal keeps the params as they
 were given. Saved steps played from a journal or an action keep a key the schema does not name, unless its value nests
 more than 16 levels deep, and the values of the parameters it names are checked as in a new call. The schemas of built-in commands belong to API level 3
-(`vectorcraft_engine::schemas::API_VERSION`); a change to any of them raises the level. Level 2 added
+(`vansoncraft_engine::schemas::API_VERSION`); a change to any of them raises the level. Level 2 added
 `engine.apiReference`; level 3 says that `rotation` in `view.saved.new` and `view.saved.list` turns clockwise. Commands that plug-ins add have no schema here.
 
 `engine.apiReference {}` → `{markdown}` returns the command API reference, written from these schemas each time it
@@ -1721,7 +1720,7 @@ parameter). Text from a schema is escaped as Markdown text: each of `` \ | [ ] <
 after `www` get a backslash, and line breaks, tabs and other control characters become spaces, so a description cannot
 end a table cell or make a link, an image or HTML. A reference larger than 1 MiB (1,048,576 bytes) is an error naming
 `engine.apiReference`, and no part of it is returned. MCP serves the same text as the resource
-`vectorcraft://commands/reference`.
+`vansoncraft://commands/reference`.
 
 ## Checking scripts written for the reference app
 
@@ -1793,7 +1792,7 @@ the included files too.
 ```
 
 ```sh
-vectorcraft-cli run --cmd script.check --params '{"path": "Tidy Layers.jsx"}'
+vansoncraft-cli run --cmd script.check --params '{"path": "Tidy Layers.jsx"}'
 ```
 
 `script.run {path? | source?, name?, args?, answers?, maxFuel?}` runs a JavaScript file against the open documents.
@@ -1822,7 +1821,7 @@ app through the global object `vc`, and writes to the Script Console and runs ot
   missing file and a refused path throw errors the script can catch.
 - `$.fileName` is the file being run, which is the file `$.evalFile` is running while it runs, and is empty for a
   script given as `source`. `$.includePath` is the current `#includepath` list, separated by `;`. `$.engineName` is
-  the name `#targetengine` gave the engine the script runs in (`VectorCraft` without the line) and is read-only.
+  the name `#targetengine` gave the engine the script runs in (`VansonCraft` without the line) and is read-only.
 - `alert(message[, title, errorIcon])`, `confirm(message[, noAsDflt, title])` and `prompt(message, preset[, title])`
   open a dialog, described below. `vc.api.has("dialogs")` is true.
 - `vc.args` gives a read-only copy of the `args` object each time it is read.
@@ -1832,7 +1831,7 @@ Before any of the script runs, its preprocessor lines are read. The help page
 https://extendscript.docsforadobe.dev/extendscript-tools-features/preprocessor-directives/ describes these lines, and
 https://extendscript.docsforadobe.dev/extendscript-tools-features/dollar-object/ describes `$.evalFile`, `$.fileName`
 and `$.includePath`. A line counts when it starts with `#` or `//@`, after blanks only, outside strings and comments.
-VectorCraft reads them by these rules of its own:
+VansonCraft reads them by these rules of its own:
 
 - `#include "file"` and `//@include "file"` put the text of that file in place of the line. A value with spaces or
   punctuation goes in single or double quotes. The file is looked for beside the file that includes it, then in each
@@ -1845,7 +1844,7 @@ VectorCraft reads them by these rules of its own:
   included file does not rename the run.
 - `#target` takes any value and does not change how the script runs.
 - `#strict on` turns on the checks the dollar-object help page gives for `$.strict`: an assignment to a read-only
-  property throws a `TypeError`, and so does adding a property to an object that takes no new ones. By VectorCraft's
+  property throws a `TypeError`, and so does adding a property to an object that takes no new ones. By VansonCraft's
   own rules, an assignment to a property with only a getter is checked as a read-only one, and the objects that take
   no new properties are those that are not extensible: objects passed to `Object.preventExtensions`, `Object.seal` or
   `Object.freeze`, and the frozen `vc` and `$` objects. Other objects take new properties as before. The rest of ES5
@@ -1858,7 +1857,7 @@ VectorCraft reads them by these rules of its own:
 - `#targetengine name` and `//@targetengine name` run the script in the named engine. The help page above describes
   the line: the engine it names lasts for the application session, and a later script that names it sees the globals
   and functions earlier ones left. A script without the line, and `#targetengine main`, get a new engine for each
-  run, as before. The rest are VectorCraft's own rules, described under Script engines below.
+  run, as before. The rest are VansonCraft's own rules, described under Script engines below.
 - `#engine` ends the run with an unsupported-directive error, and any other `#name` with an unknown-directive error.
   A `//@` line with another name is a comment.
 - A script run from a file reads its included files and the files `$.evalFile` runs only in that file's folder and
@@ -1873,17 +1872,17 @@ VectorCraft reads them by these rules of its own:
 `$` also has the other members the Dollar object page lists, besides `$.evalFile`, `$.fileName` and `$.includePath`
 above. Each run
 starts with its own `$`: what a script changes there lasts until the run ends. The values and rules below are
-VectorCraft's own, and `vc.api.has("dollar")` is true where they are available:
+VansonCraft's own, and `vc.api.has("dollar")` is true where they are available:
 
-| Member | In VectorCraft |
+| Member | In VansonCraft |
 |--------|----------------|
-| `about()` | `"VectorCraft script engine <version>"`; no window opens |
+| `about()` | `"VansonCraft script engine <version>"`; no window opens |
 | `appEncoding` | `"UTF-8"`; setting `"UTF-8"` is accepted, any other encoding throws a `RangeError` |
 | `bp()`, `colorPicker()` | throw an `Error`: scripts have no debugger and cannot show a dialog |
-| `build`, `version` | VectorCraft's version |
+| `build`, `version` | VansonCraft's version |
 | `buildDate` | `null` |
 | `decimalPoint` | `","` for a locale whose language writes a decimal comma (such as `de`, `fr`, `ru`), otherwise `"."` |
-| `engineName` | `"VectorCraft"` |
+| `engineName` | `"VansonCraft"` |
 | `error` | the last `Error` object the run threw, caught or not, or `null` before one |
 | `flags` | `0`, or `512` while localization is on; only `0` and `512` can be set, and setting `512` turns `$.localize` on |
 | `gc()` | does nothing; the interpreter collects its own garbage |
@@ -1915,7 +1914,7 @@ date, a regular expression, an error, a host object such as `vc`, an array with 
 object whose prototype is not `Object.prototype`, a property that is not enumerable, or an object that contains
 itself throws a `TypeError`. So does a property that is not writable or not configurable, an object or array after
 `Object.preventExtensions`, `Object.seal` or `Object.freeze`, and an array whose `length` is read-only, since the text
-would make each of them writable, configurable and extensible again (VectorCraft's own rule). A value deeper than 64 levels, with more than 1,048,576 entries or with text longer than 16,777,216
+would make each of them writable, configurable and extensible again (VansonCraft's own rule). A value deeper than 64 levels, with more than 1,048,576 entries or with text longer than 16,777,216
 characters throws a `RangeError`.
 
 The run is one transaction. When the script ends, each document it changed gets one undo step named Run Script. A
@@ -1944,7 +1943,7 @@ has unsaved changes.
 
 A named engine (`#targetengine`) keeps its globals and functions between the runs that name it, until it is dropped
 or the session ends. Engines stay on the thread that made them: a session used on another thread starts there with
-no engines, and the engines it left are dropped when their own thread next uses engines. These are VectorCraft's own rules:
+no engines, and the engines it left are dropped when their own thread next uses engines. These are VansonCraft's own rules:
 
 - The name is either a name of ASCII letters, digits and `_` that does not start with a digit, or a name in single or
   double quotes of 1 to 64 bytes of UTF-8 without control characters. Names are matched as written: `Session` and
@@ -1979,7 +1978,7 @@ no engines, and the engines it left are dropped when their own thread next uses 
 - A script cannot run `script.engines` or `script.engine.drop`.
 - The web build has no named engines: a run that names one other than `main` ends with an error before any of it runs.
 
-VectorCraft sets these limits itself:
+VansonCraft sets these limits itself:
 
 | Limit | Value |
 |-------|-------|
@@ -2028,7 +2027,7 @@ another file than the script) and `fuelLeft`.
 ```
 
 ```sh
-vectorcraft-cli run --cmd script.run --params '{"path": "Tidy Layers.js", "args": {"margin": 12}}'
+vansoncraft-cli run --cmd script.run --params '{"path": "Tidy Layers.js", "args": {"margin": 12}}'
 ```
 
 The help page https://extendscript.docsforadobe.dev/extendscript-tools-features/user-notification-dialogs/
@@ -2069,7 +2068,7 @@ and refuses any answers for a run in the app, where the person answers. An omitt
 empty object are the same.
 
 ```sh
-vectorcraft-cli run --cmd script.run --params '{"source": "if (confirm(\"Add a frame?\")) vc.log(prompt(\"Name\", \"Frame\"));", "answers": [{"kind": "confirm", "value": true}, {"kind": "prompt", "value": "Border"}]}'
+vansoncraft-cli run --cmd script.run --params '{"source": "if (confirm(\"Add a frame?\")) vc.log(prompt(\"Name\", \"Frame\"));", "answers": [{"kind": "confirm", "value": true}, {"kind": "prompt", "value": "Border"}]}'
 ```
 
 The help pages https://extendscript.docsforadobe.dev/file-system-access/file-object/ and
@@ -2096,7 +2095,7 @@ script reads files with them:
   denied`, `Script file does not exist` or `Script file is not open`. A count or a position that is not a finite
   number, or a negative count, throws a `RangeError`.
 
-VectorCraft reads files by these rules of its own:
+VansonCraft reads files by these rules of its own:
 
 - A script run from a file reads only in that file's folder and the folders below it, as its includes are read, and
   a script given as `source` reads no files. When automation read roots are set, as for a run over MCP or the command
@@ -2150,12 +2149,12 @@ at the bottom of the panel and in its menu. Output goes on while the panel is cl
   line that counts them. Pass both or neither. It returns `{lines}`, which does not count that line.
 
 ```sh
-vectorcraft-cli run --cmd script.run --params '{"source": "$.writeln(\"layers: \", 3);"}'
+vansoncraft-cli run --cmd script.run --params '{"source": "$.writeln(\"layers: \", 3);"}'
 ```
 
 File › Scripts lists the scripts of the `Scripts` folder next to the preferences: `~/Library/Application
-Support/VectorCraft/Scripts` on macOS, `%APPDATA%\VectorCraft\Scripts` on Windows, and
-`$XDG_CONFIG_HOME/vectorcraft/Scripts` or `~/.config/vectorcraft/Scripts` on Linux and BSD. VectorCraft does not make
+Support/VansonCraft/Scripts` on macOS, `%APPDATA%\VansonCraft\Scripts` on Windows, and
+`$XDG_CONFIG_HOME/vansoncraft/Scripts` or `~/.config/vansoncraft/Scripts` on Linux and BSD. VansonCraft does not make
 the folder: create it, and put `.js` or `.jsx` files in it. Each file is a menu item named after the file without its
 extension, and each subfolder is a submenu that holds the scripts in it. The help page
 https://helpx.adobe.com/illustrator/desktop/automate-visualize-data/automate-actions/install-and-run-scripts.html and
@@ -2163,11 +2162,11 @@ the page https://ai-scripting.docsforadobe.dev/introduction/executingScripts/ de
 way. The listed scripts come first in the menu, above Check Script… and Other Script…. Choosing one runs the file as
 `script.run` runs a file, without the warning that Other Script… shows.
 
-The rest of this section is VectorCraft's own rules:
+The rest of this section is VansonCraft's own rules:
 
 - The folder is read when the app starts, each time its window becomes the active one, each time the File menu opens
   where the menus are in the window (Windows, Linux and BSD), and each time a menu of the macOS menu bar opens. A
-  script added while VectorCraft runs is listed after the next of these; in the macOS menu bar it shows the next time
+  script added while VansonCraft runs is listed after the next of these; in the macOS menu bar it shows the next time
   the menu opens. A read takes names only, never a script's text, and runs off the UI thread, one read at a
   time.
 - Each level is sorted by label without regard to case, with scripts and subfolders mixed. A script whose label
@@ -2181,12 +2180,12 @@ The rest of this section is VectorCraft's own rules:
   most 250 ms. A label longer than 128 characters is cut, and control and bidirectional formatting characters in a
   name are shown as `\u{…}` escapes. When a read stops at a limit or cannot read a subfolder, the menu keeps what it
   found and shows `Some scripts were not listed`. The menu also shows that note, and leaves the rows out, when a
-  read finds new names after the menus have shown 16,384 different script and folder names since VectorCraft started.
+  read finds new names after the menus have shown 16,384 different script and folder names since VansonCraft started.
   When the folder is there and cannot be read, the menu shows
   `The Scripts folder cannot be read`.
 - A listed file is checked again when it is chosen. A file that is gone, is no longer a `.js` or `.jsx` file under
   the folder, or is or lies behind a link ends with `the script is no longer in the Scripts folder`, and nothing runs.
-- The web build has no Scripts folder, and neither has a run with `VECTORCRAFT_NO_PREFS` set.
+- The web build has no Scripts folder, and neither has a run with `VANSONCRAFT_NO_PREFS` set.
 
 `script.listInstalled {}` returns the same listing: `{folder, scripts: [{path, label, folders}], truncated,
 unreadable}`, with the scripts in menu order and `folders` the labels of the subfolders a script is in. `folder` is
@@ -2200,7 +2199,7 @@ leaves out the listed scripts outside the read roots.
 ```
 
 ```sh
-vectorcraft-cli run --cmd script.listInstalled --params '{}'
+vansoncraft-cli run --cmd script.listInstalled --params '{}'
 ```
 
 ## Transparency and opacity masks
@@ -2519,7 +2518,7 @@ dropped.
 The Navigator panel menu's Panel Options… opens the `navigatorPanelOptions` dialog (fields `color`, `solidDashes`),
 and `ui.navigatorPanelOptions {color?, solidDashes?}` sets the options without it → `{color, solidDashes}`; with
 neither key it opens the dialog. `color` is the color the panel's view box is drawn in: `#rrggbb` or a preset name.
-The presets are VectorCraft's own list: Light Red (`#ff3030`, the default), then the layer colors ("Light Blue",
+The presets are VansonCraft's own list: Light Red (`#ff3030`, the default), then the layer colors ("Light Blue",
 "Red", "Green" and the rest). `solidDashes` (Draw Dashed Lines as Solid Lines, off by default) makes the panel's
 thumbnail draw dashed strokes without their dashes; the canvas, printing and exports keep the dashes. Both are kept
 with the UI state. A `color` that is not a color, or a `solidDashes` that is not true or false, is an error and
@@ -2537,7 +2536,7 @@ docks it between those panels and the canvas instead (`on: true`), back at the w
 toggles it (`on` omitted or null), and answers the new state. Any other value of `on` is an error and changes
 nothing. With the setting on, a floating Tools panel docks when it is dropped on the canvas's left edge as well as
 on the window's left edge, and `window.panel.dock {panel: "tools"}` docks it beside the canvas. A floating Tools
-panel stays floating when the setting changes. The setting is VectorCraft's own layout option, off by default; it is
+panel stays floating when the setting changes. The setting is VansonCraft's own layout option, off by default; it is
 kept with the workspace, and built-in workspaces and workspaces saved without it keep Tools at the window's edge.
 
 ```json
@@ -2548,7 +2547,7 @@ kept with the workspace, and built-in workspaces and workspaces saved without it
 
 Window › Learn and the Explore tutorials button beside the search icon at the right end of the app bar show and hide
 the Learn panel. Its For you tab holds a Get started section with a Quick skill guide card; choosing the card opens
-the Skills tab. The Skills tab lists VectorCraft's own skills, each with its number of tutorials and an empty progress
+the Skills tab. The Skills tab lists VansonCraft's own skills, each with its number of tutorials and an empty progress
 ring. Choosing a skill lists its tutorials, choosing a tutorial shows its numbered steps, and Back goes up one level.
 The tutorial text is English. `window.learn {show?}` shows the panel (`show: true`), hides it (`show: false`) or
 toggles it (`show` omitted or null), and answers whether it shows; Window › Learn and Explore tutorials run it.
@@ -2611,7 +2610,7 @@ same way and is made where it is released over the canvas (with the Artboard too
 active artboard), a guide dropped off the canvas onto its ruler is deleted, and hidden guides (View › Guides › Hide
 Guides) can't be picked. An artboard guide is picked, drawn and snapped to across its artboard only.
 Preferences › Guides & Grid › Artboard Guides with Cmd/Ctrl + Ruler Drag (`cmdRulerDragArtboardGuides`, off by
-default) is VectorCraft's own option. With it on, Cmd/Ctrl held when a drag leaves a ruler makes the guide an artboard
+default) is VansonCraft's own option. With it on, Cmd/Ctrl held when a drag leaves a ruler makes the guide an artboard
 guide of the active artboard, with any tool but the Artboard tool, and with the Artboard tool a canvas guide. The key
 is read when the drag starts, so letting it go during the drag keeps the kind of guide. Such an artboard guide shows,
 and is made, only where it lies within the active artboard: a vertical guide between its left and right edges, a
@@ -2626,7 +2625,7 @@ horizontal guide between its top and bottom. Released anywhere else, it makes no
 
 ## Symbols, brushes, variables and Image Trace
 
-These families are in the live catalog (`command_list` / `vectorcraft://commands`); the prompt `trace-and-style`
+These families are in the live catalog (`command_list` / `vansoncraft://commands`); the prompt `trace-and-style`
 already walks Image Trace. Short agent entry points:
 
 - Symbols: `symbol.list` (each row includes `registration` 0..8, `exportType`: `movieClip`|`graphic` and `type`:
@@ -2651,7 +2650,7 @@ already walks Image Trace. Short agent entry points:
   name they are given, as `symbol.options` trims `newName`; a blank one gives "New Symbol" or "<name> copy".
 - Reset Transformation (the Symbols panel menu, and Reset on the Control bar while symbol instances are selected):
   `symbol.instance.resetTransform {ids?}` gives the selected symbol instances, in groups too, their symbol's own
-  scale again, without rotation, shear or reflection, as one undo step. VectorCraft's own rules: each instance keeps
+  scale again, without rotation, shear or reflection, as one undo step. VansonCraft's own rules: each instance keeps
   the center of its bounding box in place; other objects, instances in perspective and instances already at their
   symbol's scale are left as they are, and no undo step is added when nothing changes; an id that names no object, or
   objects without a symbol instance, is an error. It returns `{ids}`, the instances it changed. The menu item and the
@@ -2664,10 +2663,10 @@ already walks Image Trace. Short agent entry points:
   compound paths, type, groups and layers take both. A symbol instance takes a solid color or `none` as its fill,
   which stains its art, and no gradient or pattern fill and no stroke. An image takes a fill or stroke only when that
   fill or stroke has a Convert to Shape or Outline Object effect. A guide, blend, envelope, Repeat, Intertwine group,
-  gradient mesh or placed document takes neither. A refused fill or stroke (VectorCraft's own rule) gives an error
+  gradient mesh or placed document takes neither. A refused fill or stroke (VansonCraft's own rule) gives an error
   that names the key and the object, and nothing of the call is applied; `opacity`, `blend` and `null` are taken for
   every object, so a stored change can be taken back. `opacity` is 0..100 and `blend` a blend mode name; `null` gives
-  one back to the symbol. It is refused for a static symbol and for a path that names no object. On the canvas (VectorCraft's own rule), a Direct Selection click on an instance of a
+  one back to the symbol. It is refused for a static symbol and for a path that names no object. On the canvas (VansonCraft's own rule), a Direct Selection click on an instance of a
   dynamic symbol selects the path, compound path or type object of its art under the pointer and outlines it
   (`symbol.instance.selectPart {id, path}`; Alt or Shift selects the instance whole). While it is selected,
   `paint.setFill` and `paint.setStroke` (solid, none, gradient or pattern) and `paint.invert` and `paint.complement`
@@ -2779,7 +2778,7 @@ already walks Image Trace. Short agent entry points:
   `variable.loadLibrary` that would delete or define a variable (below) fail with "variables are locked";
   `variable.bind`, `variable.unbind` and the `dataset.*` commands still run (except a `dataset.import` whose header
   would define a variable, below), and `variable.list` reports `locked`. A variable that an opened `.ai` declares
-  without a kind VectorCraft reads is listed with `kind: "unknown"`: it takes no values, and `variable.bind`
+  without a kind VansonCraft reads is listed with `kind: "unknown"`: it takes no values, and `variable.bind`
   refuses it. When an opened `.ai`'s layers are read, the objects it binds to its text, visibility and image
   variables come in bound when they are of the variable's kind, locked and hidden objects included, and
   `variable.list` counts them in `bindings`.
@@ -2846,7 +2845,7 @@ already walks Image Trace. Short agent entry points:
   Export end the file name of a step with `format` in that `format`, in lower case and without a leading dot, when it
   is one of the format's extensions (`.svg` and `SVG` give `.svg`, `.JPEG` gives `.jpeg`), and otherwise in the
   format's first extension (`png8` gives `.png`, `template` gives `.vctemplate`). A step without `format` keeps the
-  source file's extension (`.vectorcraft` over data sets). Override Export gives a `document.exportForScreens` or
+  source file's extension (`.vansoncraft` over data sets). Override Export gives a `document.exportForScreens` or
   `assets.export` step the `folder` `destinationFolder/<stem>`, in place of the step's own folder or an export
   preset's: one folder for each source file, named after the file without its extension, or for each data set,
   named as its files are (`datasetFileNaming`). Both names drop trailing periods and spaces (`a..svg` gives `a`). The export names
@@ -2858,7 +2857,7 @@ already walks Image Trace. Short agent entry points:
   `destinationFolder` holds source files, only a file's own output takes its name, and no export folder takes the
   name of a subfolder that holds source files: with `a..svg` and `a.svg` saved in place, `a..svg` is saved as
   `a-2.svg` and `a.svg` over itself. A file's artboard files count as its files, as for data sets: with
-  `a.vectorcraft` and `a-Artboard-1.vectorcraft` saved in place with `separateArtboards`, `a.vectorcraft` is saved
+  `a.vansoncraft` and `a-Artboard-1.vansoncraft` saved in place with `separateArtboards`, `a.vansoncraft` is saved
   as `a-2`.
 - Action set files: `ui.actionSet.save {set?: index, id?, path?}` writes the Actions panel's set at `set` (0 is the
   top set; by default the current set) with its actions to an action set file at `path`, else a picked file named
@@ -2928,7 +2927,7 @@ already walks Image Trace. Short agent entry points:
   `{set, action, step}`. Without them it goes into the recording in progress, after the steps recorded so far, and
   returns `{recording: true}`. `message` is the text playback shows (default: none), and `allowContinue` (default:
   false) offers Continue in the message box. An action with an empty message still waits at the stop, which is
-  VectorCraft's own rule. A stop in an action becomes the panel's selected step, and its action and set become the
+  VansonCraft's own rule. A stop in an action becomes the panel's selected step, and its action and set become the
   selected ones. An index past the last set, action or step, a param of another type, params that are not an
   object, no action and no recording, or a stop that would give the action more than 10,000 steps or its set's file
   more than 8 MiB is an error, and then nothing changes. The limits count the steps that the recording in progress
@@ -2963,7 +2962,7 @@ already walks Image Trace. Short agent entry points:
 - Actions: `ui.action.playbackOptions {speed?, seconds?}` sets how the Actions panel plays actions and returns
   `{speed, seconds}`. `speed` is `accelerated` (the default: every step at once), `step` (one step at a time, with the
   window drawn after each step before the next runs) or `pause` (a pause of `seconds` between steps). `seconds` is a
-  whole number from 1 to 60, VectorCraft's own range, and stays set while another speed is chosen. A param left out
+  whole number from 1 to 60, VansonCraft's own range, and stays set while another speed is chosen. A param left out
   keeps its value. Any other `speed` or `seconds` is an error, and then nothing changes. The setting is kept with the UI
   preferences. The panel menu's Playback Options… opens the `actionPlayback` dialog (`speed`, `seconds`), whose OK runs
   this. Batch… (`action.batch`) plays every step at once whatever the setting.
@@ -3280,9 +3279,9 @@ limits the plane to a square about the foot of the object's center, four times t
 at 100%. No shadow is drawn when `shade` is false, when the first light's intensity is 0, or when it does not
 reach the plane (a light behind the object for a shadow behind it); a fill, stroke or group member at 0% opacity
 casts none. Values out of range, another `shadowPosition` and a `shadow` that is not a boolean are refused before
-the document changes. A shadow is cast from at most 327,680 faces, the solids of one object together (VectorCraft's
+the document changes. A shadow is cast from at most 327,680 faces, the solids of one object together (VansonCraft's
 own limit); past that, a command is refused with "The 3D shadow is too complex; turn Shadows off or simplify the
-art", and a loaded file draws the source path, as it does for a solid past its limits. The color, the opacity and how Distance and Bounds scale are VectorCraft's own; the public
+art", and a loaded file draws the source path, as it does for a solid past its limits. The color, the opacity and how Distance and Bounds scale are VansonCraft's own; the public
 documentation names the controls and their ranges
 ([3D and Materials panel options](https://helpx.adobe.com/illustrator/desktop/special-effects-styles/create-3d-graphics/3d-materials-panel-options.html)).
 The settings are saved in the native file; SVG and PDF exports draw the shadow, and `effect.expandAppearance` keeps
@@ -3329,7 +3328,7 @@ All three take `rotationX/Y/Z` (degrees, -180..180, default the Off-Axis Front p
 `perspectiveAngle` and the lighting parameters as Revolve. See [three-d.md](three-d.md) for the Position presets,
 the scope and what differs from the public documentation.
 `threeD.extrude` and `threeD.inflate` take up to 65,536 outline points and build up to 163,840 faces for each solid
-(VectorCraft's own limits); with more faces than that, each curve takes fewer pieces, down to 4. A shape past the
+(VansonCraft's own limits); with more faces than that, each curve takes fewer pieces, down to 4. A shape past the
 points returns "The shape is too complex for a 3D effect", and one whose faces do not fit at 4 pieces a curve returns
 "The 3D surface is too complex; simplify the shape". `threeD.inflate` also returns the surface error when its outline
 has so many points across so many of its grid's cells that filling the grid would pass its work limit. `threeD.rotate`
@@ -3355,7 +3354,7 @@ is tall), `bevelInside` (false adds the bevel around the shape, true carves it i
   paint is kept and only the highlight lightens it). `drawHiddenFaces` also draws the faces turned away from the
   viewer, behind the others.
 
-The defaults are VectorCraft's own. An unknown parameter, a number out of range, a flag that is not true or false, or
+The defaults are VansonCraft's own. An unknown parameter, a number out of range, a flag that is not true or false, or
 an unknown surface or shading color is refused with an error and the document is not changed.
 
 ```json
@@ -3376,7 +3375,7 @@ or layer, whose members turn about one shared axis, or on a fill or stroke. The 
 dialog ([Create 3D objects](https://helpx.adobe.com/illustrator/desktop/special-effects-styles/create-3d-graphics/create-3d-objects.html))
 and its Angle (0 to 360), Cap, Offset (0 to 1000) and Left Edge or Right Edge settings
 ([Revolve options](https://helpx.adobe.com/pdf/cs6/illustrator_reference.pdf#page=283));
-the defaults are VectorCraft's own. An unknown parameter (`segments` included), a number out of range, a flag that
+the defaults are VansonCraft's own. An unknown parameter (`segments` included), a number out of range, a flag that
 is not true or false, another `edge`, surface or shading color is refused with an error and the document is not
 changed.
 
@@ -3399,7 +3398,7 @@ the Position presets, rotations from -180 to 180 and Perspective from 0 to 160
 ([Set 3D rotation position options](https://help.adobe.com/archive/en_US/illustrator/cs5/illustrator_cs5_help.pdf#page=270)),
 and No Shading and Diffuse Shading as the only surfaces for an object that uses only this effect
 ([Surface shading options](https://help.adobe.com/archive/en_US/illustrator/cs5/illustrator_cs5_help.pdf#page=271)).
-The defaults and the shading are VectorCraft's own. An unknown parameter (`highlightSize` and `drawHiddenFaces`
+The defaults and the shading are VansonCraft's own. An unknown parameter (`highlightSize` and `drawHiddenFaces`
 included), a number out of range, a flag that is not true or false, a surface other than `none` or `diffuse`, or
 another shading color is refused with an error and the document is not changed.
 
@@ -3533,7 +3532,7 @@ image.
 Use Preview Bounds measures an image by its frame.
 A Warp effect (`warp.arc` … `warp.twist`) on an image, or on a group that holds one, bends the image's pixels with its
 frame: after the last effect in the list, the image is cut into 10 × 10 cells of two triangles, each a clipped piece of
-the image under its own affine map. The cell count is VectorCraft's own. Effects after the Warp reshape only the frame,
+the image under its own affine map. The cell count is VansonCraft's own. Effects after the Warp reshape only the frame,
 a second Warp bends the same pieces, and a Transform effect moves them. A placed gradient on a group that holds the
 image follows the group's bounds as the pieces draw them. The pieces keep the
 image's fill color when it colorizes a grayscale image, and so do the pieces an envelope cuts. Under any geometry
@@ -3560,7 +3559,7 @@ no names the whole library; swatches the document already has (same name and pai
 and not added again. `apply: "fill"|"stroke"` also applies the first one, in the same undo step (what clicking a
 swatch in the library panel does). The pattern libraries Geometric Patterns (`geometric-patterns`), Grit Textures
 (`grit-textures`: seamless black grain, grit, sand, speckle, stipple, scratch and fleck tiles) and Optical Effects
-(`optical-effects`: VectorCraft's own black wave, ring, warped-check, pinched-stripe, chevron and lens tiles),
+(`optical-effects`: VansonCraft's own black wave, ring, warped-check, pinched-stripe, chevron and lens tiles),
 category `patterns`, hold pattern swatches drawn in code; adding one also adds its pattern, as pasting art painted with it does
 (the same pattern the document has is reused, and a name another pattern or swatch has gets a number).
 `swatch.resetDefaults {replace?}` brings back the missing default swatches.
@@ -3626,7 +3625,7 @@ Painted and Sketched (`painted-sketched`) holds Washed Blue, Bristle Ochre, Past
 Contour, Wet Ink and Fine Pen. Each is a solid fill (Bristle Ochre and Ink Contour add a 1 pt stroke) under one object
 effect that repaints fill and stroke together: `artistic.watercolor`, `artistic.dryBrush`, `artistic.roughPastels`,
 `sketch.charcoal`, `brushStrokes.inkOutlines`, `brushStrokes.sumiE` and `sketch.graphicPen`, in that order. The
-colors and effect settings are VectorCraft's own. These are raster effects, so the document's raster effects
+colors and effect settings are VansonCraft's own. These are raster effects, so the document's raster effects
 resolution sets how fine they draw.
 
 ```json
@@ -3644,7 +3643,7 @@ with the same extension and bytes as one there, loads as that User Defined libra
 ## Symbol libraries
 
 Symbol libraries are read-only sets of symbols: five generated in code (Basic Shapes, UI Frames, Map Markers,
-Inventory Icons, Skill Icons), the `.vectorcraft` files in
+Inventory Icons, Skill Icons), the `.vansoncraft` files in
 the user library folder of the desktop app (User Defined) and the symbols of any document loaded with
 `symbol.loadLibrary`. `symbol.libraries` lists them (`id`, `name`, `category`: `builtIn`, `user` or `loaded`, `count`)
 and `symbol.library {library}` returns one's symbols (`name`, `size`, `registration`, `exportType`; `library` is an
@@ -3659,10 +3658,10 @@ what dragging a symbol out of the library panel onto the canvas does.
 ```json
 {"name":"run_command","arguments":{"command":"symbol.addFromLibrary","params":{"library":"basic-shapes","name":"Star","place":true,"x":120,"y":80}}}
 ```
-`symbol.saveLibrary {path?, names?, name?, user?}` writes the document's symbols as a symbol library: a `.vectorcraft`
+`symbol.saveLibrary {path?, names?, name?, user?}` writes the document's symbols as a symbol library: a `.vansoncraft`
 document holding only them and what they use; without `path` it returns `{dataBase64}`, and `user: true` saves into
 the user library folder (category `user`, User Defined). `symbol.loadLibrary {path? | data? | dataBase64?, name?}`
-loads the symbols of any document VectorCraft opens as a library to add from (a `.ai` or EPS whose editing data holds
+loads the symbols of any document VansonCraft opens as a library to add from (a `.ai` or EPS whose editing data holds
 symbols and no layers gives the symbols it defines, in the order of its symbol list); a file it can't read is an
 error.
 
@@ -3670,7 +3669,7 @@ error.
 
 Brush libraries are read-only sets of brushes: eight generated in code (Art Ribbons, Calligraphic Nibs, Bristle
 Brushes with one bristle brush for each tip shape, Pattern Borders, Scatter Shapes, Game Trails, Energy Beams, and Dry Media with the Chalk Grain, Graphite Pencil, Wax Crayon and
-Charcoal Dust art brushes, id `dry-media`), the `.vectorcraft` files in the user library folder of the desktop app (User
+Charcoal Dust art brushes, id `dry-media`), the `.vansoncraft` files in the user library folder of the desktop app (User
 Defined) and the brushes of any document loaded with `brush.loadLibrary` (a document without brushes of its own has
 the default ones). `brush.libraries` lists them (`id`, `name`, `category`: `builtIn`, `user` or `loaded`, `count`) and
 `brush.library {library}` returns one's brushes (`name`, `type`; `library` is an id or a name).
@@ -3686,10 +3685,10 @@ path, does.
 {"name":"run_command","arguments":{"command":"brush.addFromLibrary","params":{"library":"art-ribbons","name":"Striped Ribbon","apply":true}}}
 ```
 
-`brush.saveLibrary {path?, names?, name?, user?}` writes the document's brushes as a brush library: a `.vectorcraft`
+`brush.saveLibrary {path?, names?, name?, user?}` writes the document's brushes as a brush library: a `.vansoncraft`
 document holding only them and what their art uses; without `path` it returns `{dataBase64}`, and `user: true`
 saves into the user library folder (category `user`, User Defined). `brush.loadLibrary {path? | data? |
-dataBase64?, name?}` loads the brushes of any document VectorCraft opens as a library to add from; a file it can't
+dataBase64?, name?}` loads the brushes of any document VansonCraft opens as a library to add from; a file it can't
 read is an error.
 
 ## Library panels
@@ -4361,7 +4360,7 @@ filter is drawn and written rebuilt from its filter elements and their filter at
 text, descriptions or other attributes. An image in a filter is drawn only when its bytes are a PNG, JPEG, GIF or WebP
 within the pixel limit. A filter region in user space given in percentages is measured against the object's box (x
 and y from its top-left corner), and one in em or ex or left out takes the default region of that box (10% beyond
-each side); these are VectorCraft's own rules. Scale Strokes & Effects scales
+each side); these are VansonCraft's own rules. Scale Strokes & Effects scales
 `scale`. SVG export writes the filter as a `<filter>` element when it is the object's last effect, its only pixel
 effect and `scale` is 1 (with a region measured against the object's box, its only raster effect), with the object in a
 group that places the filter's user space and such a region written in user units. The filter is written in SVG 1.1
@@ -4451,7 +4450,7 @@ anchor there unless one lies within `tol` (3 by default), and moves that point b
 [Adjust path segments](https://helpx.adobe.com/illustrator/desktop/draw-shapes-and-paths/modify-paths/adjust-path-segments.html)
 has the Reshape tool stretch part of a path from the dragged point without losing the path's general form, with every
 highlighted focal point pulling the path. Which anchors stay, how far the stretch reaches and the share of the drag each
-point takes are VectorCraft's own rule. When `focal` is given (an empty list included), the grabbed point and the
+point takes are VansonCraft's own rule. When `focal` is given (an empty list included), the grabbed point and the
 anchors that `focal` lists as `[subpath, anchor]` pairs are focal points and move by the whole drag; a pair that names no anchor of the path is refused ("`focal` names [0, 7], which is
 not an anchor of the path"). Anchors that are not direct-selected stay in place (on a path selected whole, or not
 selected, every anchor is selected), and so do the two ends of an open path unless they are focal points. A selected
@@ -4473,7 +4472,7 @@ bounding box follow with the smooth falloff. The Reshape tool always sends `foca
 
 With the Reshape tool, a click on an anchor of a selected path makes it the focal point, and a click on a segment adds
 an anchor there (one undo step) that becomes the focal point. Shift-click adds an anchor or a point on a segment to the
-focal points. The rest of the tool's behavior is VectorCraft's own rule: Shift-click on a focal point removes it, and
+focal points. The rest of the tool's behavior is VansonCraft's own rule: Shift-click on a focal point removes it, and
 the focal points belong to one path, so a click on another selected path starts again there. Each focal point shows a
 filled anchor square in a larger hollow one. A drag from a focal point moves all of them; a drag from another point
 moves that point alone as the focal point, with or without Shift (Shift keeps the drag's angle). After a drag the
@@ -4652,7 +4651,7 @@ copies would number more than 10,000 or take more than 20,000,000 bytes of docum
 effect is written as outlines.
 
 ```json
-{"name":"run_command","arguments":{"command":"document.exportPdf","params":{"path":"/tmp/press.pdf","output":{"conversion":"preserveNumbers","destination":"VectorCraft Generic CMYK (SWOP-like)","profiles":"destination","outputIntent":"VectorCraft Generic CMYK (SWOP-like)","trapped":true},"advanced":{"outlineText":false}}}}
+{"name":"run_command","arguments":{"command":"document.exportPdf","params":{"path":"/tmp/press.pdf","output":{"conversion":"preserveNumbers","destination":"VansonCraft Generic CMYK (SWOP-like)","profiles":"destination","outputIntent":"VansonCraft Generic CMYK (SWOP-like)","trapped":true},"advanced":{"outlineText":false}}}}
 ```
 
 ## Scale Strokes & Effects
@@ -4729,7 +4728,7 @@ It returns `{ids}`, the objects whose property changed. While the property is on
   Release Compound Path gives each released path the property of the compound path. A path pasted into a compound
   path, alone or from a pasted compound path, drops its own property and snaps with the compound path.
 
-Turning the property on snaps the objects at once; turning it off keeps their geometry. These rules are VectorCraft's
+Turning the property on snaps the objects at once; turning it off keeps their geometry. These rules are VansonCraft's
 own: only paths and compound paths can be aligned, and type, images, groups, guides and other objects are an error
 that leaves the document as it was. The change is one undo step, and when every object already has the value nothing
 changes and no undo step is made. The property is saved in the native file (`pixel_aligned` in `document.node`), and
@@ -4749,7 +4748,7 @@ do (described on the help page,
 `document.setup` with no params reports it. While it is on, every path and compound path drawn in the document (the
 shape, line, arc, spiral, Pen, Curvature, Pencil, Paintbrush, Blob Brush and `addon.shapes.*` commands, and the paths
 in a new rectangular grid, polar grid or flare) takes the pixel-aligned property and is snapped in the undo step that
-makes it. These rules are VectorCraft's own: type, images, groups and guides do not take it; art already in the document stays as it is when the setting changes; objects that Paste, Duplicate, Place and
+makes it. These rules are VansonCraft's own: type, images, groups and guides do not take it; art already in the document stays as it is when the setting changes; objects that Paste, Duplicate, Place and
 import bring in keep their own property; and `object.setPixelAligned` turns one object's property off without changing
 the document's setting. `file.new {alignNewObjectsToPixelGrid}` sets it for the new document. The Mobile and Web presets
 start with it on and the other built-in presets with it off; saved presets and Recent entries keep the value they were
@@ -4915,7 +4914,7 @@ and a "Set:" line with the set's name, followed by a Tools section and a Menu Co
 rows Edit › Keyboard Shortcuts lists, in its order and with names as it shows them: one line per row, with the name, a
 tab and the shortcuts as the dialog shows them on the current platform. A row with no shortcut ends after the tab.
 Without `path` a save dialog asks for the file. A `path` that is not a string, or a file that cannot be written,
-returns an error, and nothing is written. The layout is VectorCraft's own. The reference app's [Export keyboard
+returns an error, and nothing is written. The layout is VansonCraft's own. The reference app's [Export keyboard
 shortcuts list as a text document](https://helpx.adobe.com/illustrator/desktop/get-started/preferences-and-settings/export-keyboard-shortcuts-list.html)
 page describes saving the list from the Keyboard Shortcuts dialog as a text file, and does not describe its layout.
 
@@ -4955,11 +4954,11 @@ destination and overridden Save/Export paths use the chosen stem with the output
 set name under Data Set Name falls back to the document stem plus its three-digit ordinal. Batch writes `/`, `\`,
 `:`, `<`, `>`, `"`, `|`, `?`, `*` and control characters in the data set's name as `-`, and adds the next free `-2`,
 `-3` suffix to a stem already used in the batch (compared without case). An output already in a destination folder
-gets the next free suffix only when the batch may read and write that folder before it starts. A save in VectorCraft,
+gets the next free suffix only when the batch may read and write that folder before it starts. A save in VansonCraft,
 template, AI or AIT format counts artboard file names when the document has any artboard; a per-artboard export
 counts them when the document has several artboards.
-Under Data Set Name, VectorCraft makes Windows device names safe (`CON` becomes `CON-`). This is
-VectorCraft's naming behavior. Caps: 500
+Under Data Set Name, VansonCraft makes Windows device names safe (`CON` becomes `CON-`). This is
+VansonCraft's naming behavior. Caps: 500
 files or data sets, 8 folder levels, 256 steps. `action.batch` refuses `includeSubdirs`, `overrideOpen`,
 `overrideSave`, `overrideExport` or `stopOnError` given as anything but true or false, such as `"false"`, with
 `` `stopOnError` must be true or false ``, and `source`, `folder`, `destination`, `destinationFolder`,
@@ -5053,7 +5052,7 @@ bounding box and its handles, the Transform panel's, Control bar's and Propertie
 `object.setBounds`, the Scale, Rotate and Reflect tools' reference point, and Swap Objects, Replace with Top Object,
 Set Size of Each and Sort Objects measure point type, horizontal or vertical, by the ink of its glyphs: its glyph
 outlines and its underline and strikethrough bars. This applies to each point type object that is selected as an object
-(not inside a selected group), in a selection with other objects too. The option is VectorCraft's own and is off by
+(not inside a selected group), in a selection with other objects too. The option is VansonCraft's own and is off by
 default.
 
 A width or height typed with the option on scales the type until its ink has that size. The type stays live type: its
@@ -5118,7 +5117,7 @@ The Selection & Anchor Display and General preferences apply to `pointer_gesture
 {"name":"pointer_gesture","arguments":{"tool":"selection","mods":{"cmd":true},"events":[{"kind":"down","x":175,"y":125},{"kind":"up","x":175,"y":125}]}}
 ```
 
-The preferences for the view need the desktop app (`vectorcraft-cli mcp --connect`): `zoomWithMouseWheel` (the
+The preferences for the view need the desktop app (`vansoncraft-cli mcp --connect`): `zoomWithMouseWheel` (the
 wheel zooms about the pointer, Shift-wheel scrolls up and down, Cmd/Ctrl-wheel sideways; the control channel's
 `ui.wheel` turns the wheel), `trackpadRotateView` (on by default: a two-finger rotation on a Mac trackpad, in the
 macOS app or in Safari, turns the view about the pointer once it reaches 5°; with it off, the gesture does not turn
@@ -5331,7 +5330,7 @@ Pen's second anchor at (150, 431), in line with the square's centre.
 
 File Handling › `appendConverted` (on by default): an older native file (the former `.drawcraft` extension or an
 older format version) opens titled `<name> [Converted]`, and Save doesn't write over it: `document.save` without a
-`path` answers with a suggested `.vectorcraft` name (the app asks for one). Off, it opens under its own name and Save
+`path` answers with a suggested `.vansoncraft` name (the app asks for one). Off, it opens under its own name and Save
 writes over it.
 
 ## Width points
@@ -5403,7 +5402,7 @@ path's direction; an inside or outside stroke spans the side it shows on). `pain
 strokeMode: "within"|"along"|"across"}` sets it (the Gradient panel's Stroke buttons), and `document.inspect` reports it
 as `strokeOptions.gradientMode`. Width profiles, dashes and arrowheads keep working: the gradient runs on through gaps
 and into the heads. Outline Stroke and Expand turn such a stroke into gradient meshes clipped to its outline; SVG and PDF
-write it as slices of linear gradients clipped to the outline (`vectorcraft_svg::export_with_report` and the PDF
+write it as slices of linear gradients clipped to the outline (`vansoncraft_svg::export_with_report` and the PDF
 report warn about it).
 
 ```json
@@ -5456,7 +5455,7 @@ Preferences. `prefs.reset` resets the preferences at once, without the question.
 {"name":"run_command","arguments":{"command":"prefs.set","params":{"key":"unitsGeneral","value":"millimeters"}}}
 ```
 
-`prefs.export {path?}` writes the preferences as a JSON file, `{"format": "vectorcraft-preferences", "version": 1,
+`prefs.export {path?}` writes the preferences as a JSON file, `{"format": "vansoncraft-preferences", "version": 1,
 "prefs": {…}}`, and replies `{path, count}`; without `path` it replies `{data, count}` with the file's text. The file
 holds every preference `prefs.list` lists and the `eyedropper`, `perspectiveWidget`, `pathfinder` and `glyphSnap`
 groups. It leaves out the folder preferences (`fontsFolder`, `pluginsFolder`, `recoveryFolder`, `templatesFolder`) and
@@ -5468,10 +5467,10 @@ is an error, and nothing changes. Preferences the file leaves out keep their val
 document's units as they are, records no undo step, and is saved with the other preferences. An open Preferences
 dialog shows the imported values. `prefs.import` is refused as a `command.batch` step. The dialog's Export Preferences… and Import Preferences… buttons run the two
 commands with a save or open dialog; the web build downloads the exported file and has no Import Preferences… button.
-Exporting and importing preferences is an optional VectorCraft feature.
+Exporting and importing preferences is an optional VansonCraft feature.
 
 ```json
-{"name":"run_command","arguments":{"command":"prefs.import","params":{"data":"{\"format\":\"vectorcraft-preferences\",\"version\":1,\"prefs\":{\"uiAccent\":\"green\"}}"}}}
+{"name":"run_command","arguments":{"command":"prefs.import","params":{"data":"{\"format\":\"vansoncraft-preferences\",\"version\":1,\"prefs\":{\"uiAccent\":\"green\"}}"}}}
 ```
 
 ## Document Setup
@@ -5580,7 +5579,7 @@ that is on shows only while the selection or the tool calls for it. With an imag
 is kept with the preferences and with the workspace; a workspace or preferences saved without them show every group,
 and a group id the bar does not have is dropped when they are read. Another `group`, or none, fails with "`group` must
 be one of …", and a `visible` that is not true or false fails with "`visible` must be true or false"; either leaves
-every group as it is. The groups and their contents are VectorCraft's own.
+every group as it is. The groups and their contents are VansonCraft's own.
 
 ```json
 {"name":"run_command","arguments":{"command":"file.new","params":{"preset":"A4","orientation":"landscape","artboards":4,"artboardLayout":{"columns":2},"bleed":9}}}
@@ -5591,7 +5590,7 @@ every group as it is. The groups and their contents are VectorCraft's own.
 `file.place` puts another file's art into the active document as one undo step without touching the clipboard:
 a raster image at 100% of its physical size (the resolution its file declares, else 72 ppi; linked to its `path`
 unless `link: false`; a Photoshop document as its merged image), an SVG as one group (fitted by its art's bounds; with `crop: "crop"` given, framed and clipped by its viewBox, #788), a PDF/.ai page as one clipped group, with the images, symbols, patterns
-and swatches it uses. A VectorCraft document read from `path` is a placed document: one locked object showing its
+and swatches it uses. A VansonCraft document read from `path` is a placed document: one locked object showing its
 artboard `page` (or, with `crop: "bounding"`, its art's bounds), linked to the file and read again when it changes
 (see Linked images), and vectors in every output; with `link: false` (or from `dataBase64`) it is an editable copy
 of its art, as one clipped group. A PDF, `.ai` or `.ait` page read from `path` (with neither `password` nor
@@ -5751,7 +5750,7 @@ records no undo step → `{renamed: [index…]}`. With no params, a menu click o
 
 Switch Orientation: `artboard.switchOrientation {index? | indices?, scaleArt?, patterns?, lockedAndHidden?}` swaps the width and height of each
 artboard in one undo step, by default those the Artboard tool has selected, else its active one. Each top-left corner
-stays put, as with the Properties panel's Portrait and Landscape buttons. This rule for several artboards is VectorCraft's
+stays put, as with the Properties panel's Portrait and Landscape buttons. This rule for several artboards is VansonCraft's
 own. A square artboard and a locked one stay as they are, and the call fails with `the artboard is locked` when every
 artboard it names is locked. When no artboard changes, the command records no undo step → `{switched: [index…]}`.
 `scaleArt` scales the art with each artboard and defaults to the Artboard tool's Scale Artwork with Artboard option.
@@ -5853,7 +5852,7 @@ guides (`guide.add {artboard}`) in the label's color instead of the guide color 
 canvas guides, guides of an artboard without a label and guides whose artboard is gone keep the preference's color, and
 selected guides are still drawn in the selection color. The value is a layer color's name, spelled exactly as Layer
 Options lists it (`"Light Blue"`, `"Red"`, …), or `#rrggbb`; null clears it, and new artboards and older files have none.
-The label is VectorCraft's own (no public documentation describes one): it is screen-only, so exports and print leave
+The label is VansonCraft's own (no public documentation describes one): it is screen-only, so exports and print leave
 it out, the paper and the artboard's background color stay as they are, and a locked artboard's label can change.
 Anything else (a preset's index, another letter case, `#rrggbbaa`) is refused with "`guideLabel` is null, a layer
 color's name or #rrggbb", and a list with a bad value anywhere changes nothing. Duplicates and copies keep it, the
@@ -5865,7 +5864,7 @@ Artboard Options' Global checkboxes are application preferences, not artboard pr
 (Fade Region Outside Artboard) and `artboardUpdateWhileDragging` (Update While Dragging), both on by default
 (`prefs.set {values: {fadeRegionOutsideArtboard: false}}`; also Edit › Preferences › General › Artboard Options). With
 the first on, the canvas draws everything outside the artboards darker while the Artboard tool is active, the pasteboard
-and the art on it: each color channel at 60% of its value, VectorCraft's own amount. With the second off, that area
+and the art on it: each color channel at 60% of its value, VansonCraft's own amount. With the second off, that area
 draws as usual while the Artboard tool moves or resizes an artboard and darker again when the drag ends. When crossing
 artboards would leave more than 4,096 separate rectangles in view, only the area outside the box around all the
 artboards draws darker. Presentation Mode, exports and print do not change. The user guide describes both checkboxes under Artboard options
@@ -5992,7 +5991,7 @@ is mixed with middle gray by its alpha.
 ## Linked images
 
 A placed image linked to its file (`file.place {path}`, Link on) records the file's absolute path, its size,
-modification time and hash, and keeps a low-resolution preview (at most 256 px a side): a `.vectorcraft` save writes
+modification time and hash, and keeps a low-resolution preview (at most 256 px a side): a `.vansoncraft` save writes
 the preview instead of the pixels, plus the path relative to the saved file. Links inside symbols, graph designs,
 patterns and opacity masks are saved with their relative paths too. `document.open` reads
 the linked files again, looking for each at its path, then at its relative path and by name in the document's folder
@@ -6055,11 +6054,11 @@ that includes a placed document fails and relinks nothing; placed documents are 
 files are. Find in Folder… in the Linked File Not Found dialog and in the Links panel menu (`ui.findLinksInFolder`) runs
 both. The web build has no folder search.
 
-Placed documents (a `.vectorcraft` file, or a PDF or `.ai` page, placed linked)
+Placed documents (a `.vansoncraft` file, or a PDF or `.ai` page, placed linked)
 work the same way: the document keeps the file's bytes and a preview (JPEG or PNG, 1 px per point, at most 1024 px
 a side), and a save writes the preview (Include Linked Files: the file); output reads the file again, or uses the
 preview with a warning when it is gone or changed.
-`links.list` and `links.info` give them `document: true`, the file's `format` (`VectorCraft`, `PDF`,
+`links.list` and `links.info` give them `document: true`, the file's `format` (`VansonCraft`, `PDF`,
 `PDF-compatible .ai`) and the artboard's or page's `pageWidth` and `pageHeight` (pt). A relinked PDF shows the same
 page and box of the new file. File › Package copies a placed PDF or `.ai` file as it is. For a `.ai` file read from
 its editing data, Package also copies the files its art places into the same folder. That file finds them by name,
@@ -6124,7 +6123,7 @@ other in a loop.
 
 ## PDF presets
 
-`pdf.preset.list` lists the built-in presets (`VectorCraft Default`, which preserves editing, then High Quality Print,
+`pdf.preset.list` lists the built-in presets (`VansonCraft Default`, which preserves editing, then High Quality Print,
 Press Quality, Smallest File Size and the PDF/X presets, `builtIn: true`; `supported` says the writer produces the
 preset's standard) and the saved ones, each with its `description` and `settings`. `pdf.preset.save {name?,
 newName?, description?, preset?, …document.exportPdf options}` creates or changes a saved preset (a change starts from
@@ -6133,7 +6132,7 @@ the preset's own settings; `newName` renames it; built-in presets are read-only;
 (without `path` it returns `data`), and `pdf.preset.import {path? | data? | dataBase64?, replace?}` adds a file's
 presets (names in use get a number unless `replace`). Saved presets work as `preset`
 in `document.exportPdf`, `document.pdfSettings`, `document.export`/`serialize` with format `pdf` and `.ai` saves.
-They are kept across restarts, in the desktop app and in `vectorcraft-cli` alike (see
+They are kept across restarts, in the desktop app and in `vansoncraft-cli` alike (see
 [What a headless session remembers](#what-a-headless-session-remembers)).
 
 ```json
@@ -6170,7 +6169,7 @@ Cut publish the formats to the system clipboard, and a Paste outside text editin
 copied (SVG, then PDF, then text, then a bitmap; SVG markup in text counts as SVG). A background thread makes the
 formats and they are published when they are ready. While that thread has a save, an export, a print or a recovery
 copy to finish, Copy and Cut make and publish them at once. When another Copy or Cut, or a copy of text in
-VectorCraft, comes first, they are dropped. Pasting what VectorCraft copied keeps the lossless internal clipboard,
+VansonCraft, comes first, they are dropped. Pasting what VansonCraft copied keeps the lossless internal clipboard,
 also before its formats are published. While a text field or the Type tool has the keyboard, the app waits for
 them. Windows carries every format both ways and pastes a bitmap from PNG, else
 from the device-independent bitmap screenshots copy (`CF_DIBV5`, then `CF_DIB`; alpha kept, opaque when it is zero
@@ -6209,7 +6208,7 @@ alone; an open path's fill outline is closed, as the fill is), strokes lines wit
 to PNG or JPEG files (`rasterFormat`) written next to the drawing (`linked` in the result). `includeImages: false`
 leaves placed images out, with no image entity, no linked file and no decoding of their pixels, and `includeHatches:
 false` writes each filled area as its outlines alone, without its solid hatch (both default to `true`; these two
-options are VectorCraft's own). Either one, when it leaves something out, adds one note to `warnings`. Coordinates are y up
+options are VansonCraft's own). Either one, when it leaves something out, adds one note to `warnings`. Coordinates are y up
 from the bottom-left corner of the first artboard (or `artboard`), in drawing units: `scale` units per `unit` (default
 1 mm = 1 unit, which sets `$INSUNITS`); `scaleLineweights` scales the lineweights with them. `colors` is `8`, `16` or
 `256` indexed colours, or `true` (default; true colour with the nearest index, DXF 2004 and later). `preserve:
@@ -6295,10 +6294,10 @@ that made it, PhotoCraft, where it is installed, and anything else in the system
 ## Package and Document Info
 
 `file.package {folder?, name?, copyLinks?, linksFolder?, relink?, copyFonts?, report?}` copies a saved document (an
-unsaved one is an error) into `folder/name` (default name `<document> Folder`): `<document>.vectorcraft`, its linked
+unsaved one is an error) into `folder/name` (default name `<document> Folder`): `<document>.vansoncraft`, its linked
 files in `Links/` (relinked: the packaged document points at the copies; the open one doesn't change), the fonts its
 type uses in `Fonts/` (fonts whose licence doesn't allow embedding are listed in `skippedFonts` instead) and
-`<document> Report.txt`. A placed `.vectorcraft` document is packaged with its own linked files and fonts, relinked to
+`<document> Report.txt`. A placed `.vansoncraft` document is packaged with its own linked files and fonts, relinked to
 the copies (each file copied once); one that can't be read is copied as it is, and a cycle of placed documents or one
 past the nesting limit stops there, each with a line in `warnings` and the report. A `folder/name` where a packaged file
 would replace the document or one of its linked files (the document's own folder, say) is an error, and nothing is
@@ -6418,7 +6417,7 @@ Batch exports (#1935):
   suffix ends the name; `date` sets the day the pattern uses). Different files it names alike get `-2`, `-3`….
 - **Folders:** `folders: "none" | "rows" | "format" | "item" | "itemFormat"` (all in one, a folder per row, per
   extension, per item, or item then extension).
-- **Formats:** rows may also be `eps`, `ai` and `vectorcraft` (a document of the item alone). A PDF row with
+- **Formats:** rows may also be `eps`, `ai` and `vansoncraft` (a document of the item alone). A PDF row with
   `marks` (`{trim, registration, colorBars, pageInfo}`) and a suffix such as `-print` sits next to a plain PDF row.
 - **Presets:** `document.exportPresets.list` (built-in: Logo Package, Print-Ready PDF), `.save {name, settings}`
   (kept with the preferences; a saved name is replaced) and `.delete {name}`; `exportPreset: "<name>"` uses one under
@@ -6541,7 +6540,7 @@ Modified documents get recovery copies (`file.recovery.save`; the app runs it ev
 `autosaveRecovery` is on, skipping documents of more than 20,000 objects while `recoveryOffForComplex` is on). A copy
 goes when its document is saved, reverted or closed, so copies still there after the app quits were left by a crash.
 The copies live in the `recoveryFolder` preference's folder (default: `Data Recovery` beside the app's preferences;
-none when the app runs with `VECTORCRAFT_NO_PREFS`) or, on the web, in browser storage. `prefs.set` returns an error
+none when the app runs with `VANSONCRAFT_NO_PREFS`) or, on the web, in browser storage. `prefs.set` returns an error
 and changes nothing when a new `recoveryFolder` is missing, is not a folder, can't be listed, or is a folder that a
 folder can't be created in. It does not check an empty value or the folder the preference already holds, and the web
 build does not check folders. The folder in the example below must exist before the call.
@@ -6556,7 +6555,7 @@ again. Several apps running at once (agents' instances included) never see each 
 and an area being restored or discarded is held, so two apps launched together never both take it.
 
 `file.recovery.list` → `{copies: [{file, title, path, format, saved, open, running}], location}` (`open`: the copy of a
-document open here; `running`: kept by another VectorCraft that is running). `file.recovery.restore {file?}` opens
+document open here; `running`: kept by another VansonCraft that is running). `file.recovery.restore {file?}` opens
 copies left behind (default: all) as `"<name> [Recovered]"`: modified, and Save asks where to save them (suggesting
 their original file); the copy moves into this app's area. `file.recovery.discard {file?}` deletes them. Without a
 folder or browser storage the commands are disabled and say how to set one.
@@ -6569,7 +6568,7 @@ folder or browser storage the commands are disabled and say how to set one.
 
 ## Native save options
 
-`document.save` / `file.saveAs` / `file.saveCopy` to a native (`.vectorcraft`, `.vctemplate`) or `.ai` file take, flat
+`document.save` / `file.saveAs` / `file.saveCopy` to a native (`.vansoncraft`, `.vctemplate`) or `.ai` file take, flat
 or in `options` (`file.formatOptions {format}` lists them with their values):
 
 - `separateArtboards: true` also writes each artboard of `range` (`"1-3, 5"`, default `"all"`) to
@@ -6590,11 +6589,11 @@ or in `options` (`file.formatOptions {format}` lists them with their values):
   active artboard of the `.ai` file it was opened from), else the first. A `.ai` file read from its editing copy
   opens on that artboard, and so does a `.ai` file restored from the native document it carries.
 
-File → Save As asks for these in the save options dialog (VectorCraft Options) after the save panel, and Save a Copy
+File → Save As asks for these in the save options dialog (VansonCraft Options) after the save panel, and Save a Copy
 does too for a `.ai` file; Save, Save a Copy to a native file and Save as Template reuse the options as last saved (or Use Compression).
 
 ```json
-{"name":"run_command","arguments":{"command":"file.saveAs","params":{"path":"/tmp/set.vectorcraft","separateArtboards":true,"range":"2-3","includeLinked":true}}}
+{"name":"run_command","arguments":{"command":"file.saveAs","params":{"path":"/tmp/set.vansoncraft","separateArtboards":true,"range":"2-3","includeLinked":true}}}
 {"name":"run_command","arguments":{"command":"file.saveAs","params":{"path":"/tmp/set.ai","pdfCompatible":false}}}
 ```
 
@@ -6614,7 +6613,7 @@ and is missing from the picture" once for all such images.
 
 `document.open` and `file.place` read `.emf` and `.wmf` (placeable or not) into one artboard, the picture's frame, and
 one layer: paths with their fills and strokes (pens become strokes with caps, joins and dashes), clipping groups,
-images and point type in the font the file names. Records VectorCraft doesn't read (EMF+ drawing among them) are
+images and point type in the font the file names. Records VansonCraft doesn't read (EMF+ drawing among them) are
 skipped with one warning. `clipboard.importEmf {dataBase64, center?}` loads an EMF or WMF picture into the clipboard
 for `edit.paste`; the app pastes `image/emf` from the system clipboard ahead of text and bitmaps when the platform's
 clipboard service offers it (the Windows desktop service doesn't read metafiles yet).
@@ -6640,7 +6639,7 @@ and width (`PW`, `WU`; 0.35 mm by default), with the line type (`LT`, `UL`) as a
 paths, and edged ones (`EA`, `ER`, `EW`, `EP`) become stroked paths. Encoded polylines (`PE`) are read, and printer
 escape sequences and PJL lines around the instructions are skipped.
 
-Two rules are VectorCraft's own: before the first `SP` the pen is pen 1, and the hard-clip limits are 11 × 8.5 in
+Two rules are VansonCraft's own: before the first `SP` the pen is pen 1, and the hard-clip limits are 11 × 8.5 in
 from the origin, so P2 lies there when the file sets no scaling points.
 `SP0` draws nothing. Labels, the symbols of symbol mode (`SM`) and raster images are not drawn, the input window
 (`IW`) does not clip the art, the art of later pages is drawn over the first page, and hatched and patterned fills are
@@ -6686,13 +6685,13 @@ crossing it or leaving it through a corner is not, and copies of one outline are
 `sortPaths` the paths otherwise keep paint order; with it, the next path is the nearest of those free to draw.
 Curves become straight moves no further than `curveTolerance` points from the curve (default 0.1, from 0.01 to 10).
 These defaults, the 255-pen limit and the rules for pen numbers, colors and the order of paths above are
-VectorCraft's own.
+VansonCraft's own.
 
 `hpglVersion: "hpgl"` (the default) writes `IN;`, then for each pen `PU;SP<n>;` and each path `PUx,y;PDx,y,…;`, and
 ends with `PU;SP0;`. `"hpgl2"` also writes the palette (`NP` and a `PC` color for each pen) and draws each pen's
 paths as one encoded polyline (`PE`, base 64), which takes fewer bytes than the same moves as text. An `"hpgl"` plot
 with a coordinate outside −32,768 to 32,767 units (about 82 cm from the origin, the range of 16-bit numbers) is written
-as it is, with a warning that older devices may not read it; this check is VectorCraft's own. `warnings` names
+as it is, with a warning that older devices may not read it; this check is VansonCraft's own. `warnings` names
 type drawn as outlines, inline graphics in type (left out), placed images, opacity masks, raster effects, stroke
 looks that are not drawn, art past the plotter's range, HP-GL coordinates past 16-bit numbers, colors past 255 pens,
 and the limits on points, clipping work, symbols, live art, nesting depth and sorting. Sorting and finding which paths lie inside which share one
@@ -6809,7 +6808,7 @@ With `zip`, the files go into one ZIP named after the document with `-3D` added 
 `3D Assets.zip` when the document's title gives no file name.
 An object whose face has a hole that crosses the face's outline or another hole is refused, by `assets.add3D` and
 `assets.export3D` alike, rather than exported with the hole filled. So is an object whose meshes would hold more than
-2,000,000 triangles together, VectorCraft's own limit.
+2,000,000 triangles together, VansonCraft's own limit.
 `assets.export` leaves 3D assets out and refuses one named in its `assets`. On the 3D export page
 (<https://helpx.adobe.com/illustrator/desktop/special-effects-styles/create-3d-graphics/export-3d-vector-artwork.html>)
 the 3D asset's Format is picked in Asset Export, with USDA first; the file layouts follow the glTF 2.0 specification
@@ -6873,7 +6872,7 @@ adjustment layers, layers with a knockout option, and layers that hold transpare
 the layers below them. `document.open` applies neither adjustments nor knockouts, and it merges a layer by its blend
 mode alone, as the rules below say.
 
-The rest are VectorCraft's own rules:
+The rest are VansonCraft's own rules:
 
 - Each layer becomes a layer of the document holding its pixels as an image, with the layer's name, visibility,
   opacity and blend mode.
@@ -6923,7 +6922,7 @@ orientation their header gives, decoded with jxl-oxide and stored as PNG. 16-bit
 bits, and alpha is kept. Colors are converted to sRGB in XYB-encoded images and when the header names the color space
 or the embedded ICC profile describes one the decoder knows; other images with an embedded ICC profile keep their
 samples as stored. CMYK files are refused, and an image past the pixel allowance is refused from its header, before
-its pixels are decoded. `file.place {path}` links the file like any image. VectorCraft doesn't write JPEG XL.
+its pixels are decoded. `file.place {path}` links the file like any image. VansonCraft doesn't write JPEG XL.
 
 ```json
 {"name":"export","arguments":{"path":"/tmp/poster.psd","options":{"ppi":300,"maxEditability":true}}}
@@ -6971,7 +6970,7 @@ refused with the list of presets.
 
 `document.open` and `file.place` read `.eps`, `.epsf` and `.ps` files, and PostScript by any name (an `.ai` saved
 without PDF compatibility opens as artwork; an `.ait` one as a new untitled document). A `.ps` file reports the format
-`ps`, which `document.export` doesn't write (`file.print` writes PostScript). An EPS file VectorCraft wrote restores the
+`ps`, which `document.export` doesn't write (`file.print` writes PostScript). An EPS file VansonCraft wrote restores the
 document it carries (`restored: true`, as Preserve Editing does for PDF and SVG); when that document can't be read the
 PostScript is read instead and the first warning says why.
 
@@ -7021,7 +7020,7 @@ its standard: what it still breaks (transparency, RGB in PDF/X-1a, a font not em
 writing a file that only claims the standard.
 
 ```json
-{"name":"run_command","arguments":{"command":"document.exportPdf","params":{"path":"/tmp/press.pdf","preset":"PDF/X-1a:2001","output":{"outputIntent":"VectorCraft Generic CMYK (SWOP-like)","outputCondition":"Coated","trapped":false}}}}
+{"name":"run_command","arguments":{"command":"document.exportPdf","params":{"path":"/tmp/press.pdf","preset":"PDF/X-1a:2001","output":{"outputIntent":"VansonCraft Generic CMYK (SWOP-like)","outputCondition":"Coated","trapped":false}}}}
 ```
 
 ## Print tiling
@@ -7065,7 +7064,7 @@ colours keep their numbers with `preserveNumbers`), so a CMYK profile writes dev
 CMYK one. Settings saved before these options load with their defaults.
 
 ```json
-{"name":"run_command","arguments":{"command":"file.print","params":{"path":"/tmp/proof.pdf","settings":{"advanced":{"overprints":"simulate","flattenerPreset":"High Resolution"},"color":{"profile":"VectorCraft Generic CMYK (SWOP-like)","intent":"perceptual"}}}}}
+{"name":"run_command","arguments":{"command":"file.print","params":{"path":"/tmp/proof.pdf","settings":{"advanced":{"overprints":"simulate","flattenerPreset":"High Resolution"},"color":{"profile":"VansonCraft Generic CMYK (SWOP-like)","intent":"perceptual"}}}}}
 ```
 
 ### Rotated bounding boxes
@@ -7234,7 +7233,7 @@ selected area type, and turning it on makes point type area type with Block on (
 Options › Block is the same setting, and the Properties panel's Paragraph section has a Dynamic Text checkbox, which
 shows Word Gap and Line Gap while it is on. The [Dynamic Text overview](https://helpx.adobe.com/photoshop/desktop/text-typography/work-with-dynamic-text/dynamic-text-overview.html)
 describes Block as text that scales to fill a rectangular box, with settings for the spacing between words and between
-lines. The rest are VectorCraft's own rules:
+lines. The rest are VansonCraft's own rules:
 
 - Each line as typed (each paragraph, and each forced line break, Shift+Enter, in one) is one line; lines are not
   broken again. Each line is set to the frame's width, less the inset, the gutters between columns and the paragraph's
@@ -7262,7 +7261,7 @@ lines. The rest are VectorCraft's own rules:
 
 Turning it on also takes point type, in the same undo step (the Contextual Task Bar offers it beside Convert To Area
 Type). [Adjust formatting and resize text](https://helpx.adobe.com/photoshop/desktop/text-typography/work-with-dynamic-text/adjust-formatting-and-resize-text-with-dynamic-text.html)
-applies Dynamic Text, Block among its shapes, to existing text. VectorCraft's own rules for point type:
+applies Dynamic Text, Block among its shapes, to existing text. VansonCraft's own rules for point type:
 
 - It becomes area type with Block on and the default Area Type Options, keeping only its gaps: options it kept from
   an earlier frame (columns, inset, vertical alignment, first baseline) do not carry over. Along its lines, the frame
@@ -7412,8 +7411,8 @@ The custom dictionary holds words every check takes as right, in every language.
 adds one (Check Spelling's Add; one word of at most 64 characters, kept in lower case) and says whether it was new;
 `text.spelling.removeWord {word}` deletes one and `text.spelling.changeWord {word, to}` replaces one (Edit Custom
 Dictionary's Delete and Change; an error when `word` isn't there); `text.spelling.dictionary` lists them, sorted. The
-desktop app and `vectorcraft-cli` (its `mcp` and `run` sessions) keep them in `Custom Dictionary.txt` next to the
-preferences, one word per line; without preferences (`VECTORCRAFT_NO_PREFS`, the web app) they last until the app
+desktop app and `vansoncraft-cli` (its `mcp` and `run` sessions) keep them in `Custom Dictionary.txt` next to the
+preferences, one word per line; without preferences (`VANSONCRAFT_NO_PREFS`, the web app) they last until the app
 closes. `text.spelling.ignoreAll {word}` is Ignore All: the active document's checks skip the word, in
 any case, while the document is open. It is not saved and not an undo step.
 
@@ -7423,7 +7422,7 @@ the words that differ, which deletes and adds them and saves once, all or none (
 and Cancel changes nothing.
 
 ```json
-{"name":"run_command","arguments":{"command":"text.spelling.addWord","params":{"word":"VectorCraft"}}}
+{"name":"run_command","arguments":{"command":"text.spelling.addWord","params":{"word":"VansonCraft"}}}
 {"name":"run_command","arguments":{"command":"text.spelling.ignoreAll","params":{"word":"Zqvwkx"}}}
 ```
 
@@ -7579,13 +7578,13 @@ A composite font sets each class of character in a font of its own
 `type.compositeFonts.set {fonts: [{name, parts}]}` replaces the active document's composite fonts as one undo step,
 and adds no step when nothing changes. `parts` holds `kanji` (the base font), `kana`, `punctuation`, `symbols`, `roman`
 and `numerals`, each `{font, style?, size?, baseline?, hScale?, vScale?, scaleAtCenter?}`; a part left out copies the
-`kanji` part. Which characters fall in each class is VectorCraft's own rule: Kanji takes ideographs, full-width
+`kanji` part. Which characters fall in each class is VansonCraft's own rule: Kanji takes ideographs, full-width
 letters and digits and every character no other class takes; Kana takes hiragana and katakana of both widths;
 Punctuation takes East Asian and full-width punctuation, quotes and dashes; Symbols takes arrows, math, shapes and
 other symbols; Roman takes half-width letters, their punctuation and spaces; Numerals takes the digits 0 to 9.
 
 `size` (10 to 400, 100 by default) and `baseline` (-100 to 100, 0 by default; positive raises) are percentages of the
-type's size, VectorCraft's own ranges. `hScale` and `vScale` (10 to 400, 100 by default) scale Kana, Roman and
+type's size, VansonCraft's own ranges. `hScale` and `vScale` (10 to 400, 100 by default) scale Kana, Roman and
 Numerals only, and `scaleAtCenter` (Kana only) scales kana from the center of the em box instead of the baseline. A
 value out of range, a scale on another class, an unknown class or key, a name that is empty, longer than 255
 characters, shared by two fonts (in any case) or the name of an installed font, and a part set in a composite font are
@@ -7859,7 +7858,7 @@ Anti-aliasing Method, which decides how the edges of the characters are drawn as
 (Export As PNG, JPEG and the other raster formats, Export for Screens, Save for Web) and when Object › Rasterize or
 Effect › Rasterize draws the type. The method belongs to the whole type object, and each frame of a thread keeps its
 own method: a `start`/`end` range sets the whole frame, and threading frames or opening a file keeps each frame's
-method. VectorCraft defines what each method does, on the pixels of the picture being drawn (the canvas at its zoom,
+method. VansonCraft defines what each method does, on the pixels of the picture being drawn (the canvas at its zoom,
 an export at its resolution):
 
 - `sharp`, the default, draws each edge pixel with the share of it the type covers, as before.
@@ -7875,7 +7874,7 @@ stroke or a blend mode other than Normal, when it overprints while Overprint Pre
 shows a substitution highlight.
 With Preferences › General › Anti-aliased Artwork off, the canvas draws all its art with hard edges, type included, and
 so does an export whose own Anti-aliasing option is None. SVG, PDF and EPS export draw the type unchanged. The native
-document such a file carries (an EPS VectorCraft wrote, or an SVG or PDF saved with Preserve Editing) keeps each frame's
+document such a file carries (an EPS VansonCraft wrote, or an SVG or PDF saved with Preserve Editing) keeps each frame's
 method, and opening the file restores it.
 A graph label given a method keeps it for every label of its kind (value axis numbers, category labels or legend
 labels) when the graph is drawn again; the graph saves it as `valuesAntiAlias`, `categoriesAntiAlias` or
@@ -8132,7 +8131,7 @@ begins or ends, dragging the centre bracket slides the type along its path and, 
 `type.pathCenter.top {ids?|id?}` and `type.pathCenter.bottom {ids?|id?}` (Type › Type on a Path › Center on Top and
 Center on Bottom, and the Contextual Task Bar for type on a closed path) slide the selected type on a closed path along
 it so that the middle of the span between its brackets lands on the path's topmost or bottommost point. This is
-VectorCraft's own behavior. The path is measured as the object is drawn, after its transform, so a rotated, scaled or
+VansonCraft's own behavior. The path is measured as the object is drawn, after its transform, so a rotated, scaled or
 skewed circle centers on its drawn top. On a level stretch, such as a rectangle's top edge, the middle of the stretch
 is used; with several separate topmost points, the middle of the shortest part of the path that holds them all is
 used. The span keeps its length, and type that runs once round stays once round. The first paragraph's alignment
@@ -8157,7 +8156,7 @@ setting. With Dynamic Text on, the text spans the stretch between its start and 
 the text, growing or shrinking to fill it, and it fits again after each edit to the text and each move of a bracket
 ([Dynamic Text overview](https://helpx.adobe.com/photoshop/desktop/text-typography/work-with-dynamic-text/dynamic-text-overview.html),
 [start and end points](https://helpx.adobe.com/photoshop/desktop/text-typography/work-with-dynamic-text/reposition-start-and-end-points.html)).
-The rest of this entry is VectorCraft's own rules. The layout scales every character's size, leading, baseline shift
+The rest of this entry is VansonCraft's own rules. The layout scales every character's size, leading, baseline shift
 and tate-chu-yoko offsets by one factor, so runs keep their proportions; Type on a Path Options › Spacing is not
 scaled. The first character's size, in document points, moves in steps of 0.1 pt within 0.1 to 1,296 pt; text that
 still runs past the end bracket at 0.1 pt overflows. Reshaping or scaling the path fits the text again. The stored
@@ -8183,7 +8182,7 @@ of the preset's shape and turns Dynamic Text on, so the text is sized to fill it
 path, Arch on an upward-curving path and Bow on a downward-curving one; `position` sets where the text sits against
 the path (above, center or below) and `flip` turns its direction
 ([Dynamic Text overview](https://helpx.adobe.com/photoshop/desktop/text-typography/work-with-dynamic-text/dynamic-text-overview.html)).
-The shapes and the rest of this entry are VectorCraft's own rules. The circle is as wide as the text, and the text
+The shapes and the rest of this entry are VansonCraft's own rules. The circle is as wide as the text, and the text
 runs clockwise round all of it from its bottom. Arch and Bow are a 120° arc of a circle whose chord is as wide as the
 text, bulging up or down, and the text runs along it from left to right. The width is, for point type, the length on the
 page of the longer side of the text's bounds, and for type on a path the longer side of its path's bounds on the
@@ -8225,7 +8224,7 @@ the layers, opacity masks, symbols, graph designs, pattern tiles and the art of 
 uses, in panel order and never the Normal style, and the panel highlights them; `charStyle.delete` and
 `paraStyle.delete` take `{names}` to delete several styles in one undo step. `charStyle.load` and `paraStyle.load`
 (Load Character Styles… and Load Paragraph Styles… in the panel menus, where `ui.loadCharStyles` and
-`ui.loadParaStyles` pick the file) copy the styles of that kind from another document VectorCraft opens (`path`, `data`
+`ui.loadParaStyles` pick the file) copy the styles of that kind from another document VansonCraft opens (`path`, `data`
 or `dataBase64`), and `textStyle.loadAll` (Load All Styles…, `ui.loadAllStyles`) copies both kinds, each in one undo
 step. The swatches and patterns the styles paint with, the symbols and brushes those patterns use, and the styles of
 either kind that type in those patterns and symbols is set in, come along as Paste brings those of pasted type; a global or spot color whose name the document gives another color
@@ -8387,7 +8386,7 @@ and turn, shear and flip about it (`origin`).
 ## Plug-ins
 
 WebAssembly plug-ins ([plugins.md](plugins.md)) are reached through commands; the desktop app and an unconfined
-`vectorcraft-cli` keep the ones `plugin.install` installs in a `Plug-ins` folder next to the preferences and install
+`vansoncraft-cli` keep the ones `plugin.install` installs in a `Plug-ins` folder next to the preferences and install
 them again at startup (`plugin.remove` deletes them there):
 `plugin.install {path | dataBase64}` installs one, `plugin.list` / `plugin.info {id}` describe them (parameters,
 schema, defaults). An object filter runs on the selected paths and compound paths with `plugin.run {id, params}` (one
@@ -8414,7 +8413,7 @@ id `plugin.<id>`: `effect.apply`, `effect.setParams` and `effect.expandAppearanc
 and `paintOutput: true`) draws the pieces it returns with paints of their own, and `effect.expandAppearance` writes them
 as ordinary paths with those paints; a result it refuses is drawn as if the effect weren't there, and `plugin.info`'s
 `lastError` names the plug-in and the refused field. While the app draws a document on screen, the live-effect plug-ins
-of its first view share a 2,000 ms budget (VectorCraft's own value), and each run also keeps to its own 5,000 ms limit:
+of its first view share a 2,000 ms budget (VansonCraft's own value), and each run also keeps to its own 5,000 ms limit:
 once the budget is spent no run starts, and a result that comes back after it is not used. A stage left out for want
 of time, or one that times out, fails or has no plug-in, draws its input art unchanged and is deferred; the status bar
 then says how many (`Opened with 3 plug-in effects deferred. Effect › Refresh Deferred Effects runs them.`). Later
@@ -8462,12 +8461,12 @@ in the focused window for half a second, counted again for every new question an
 back. A question that a request asked, directly or through a file dialog it opened, can't be approved by the person
 either: the reply adds `approval: "personMustStartInstall"`, OK stays disabled, and the person installs the plug-in
 with Object › Plug-ins › Install Plug-in… themselves. A request's `replace: true` doesn't skip the question about
-taking another module's place. A `vectorcraft-cli mcp` started with `--allow-plugin-grants`
+taking another module's place. A `vansoncraft-cli mcp` started with `--allow-plugin-grants`
 accepts `grant` and `allowHeavy` from any request, in that session only (headless; it can't be combined with
 `--connect`, `--automation-read-root` or `--automation-write-root`). A server confined to folders has no plug-in
 store, so it reads no `grants.json`, and a module that lists permissions or asks for a heavy budget does not install
 there. Without `--allow-plugin-grants` and without a recorded grant for the module, `plugin.install` returns an error
-naming the permissions needed. With `VECTORCRAFT_NO_PREFS` set there is no store, and a `grant` accepted under the
+naming the permissions needed. With `VANSONCRAFT_NO_PREFS` set there is no store, and a `grant` accepted under the
 flag lasts for that session only. In other sessions the approval, or a `grant` accepted under the flag, is kept with the module's
 hash, counts as approved in later sessions and in the desktop app, and covers only that module: the
 same bytes install again without one, also from a headless session that reads the same `grants.json`, and a module
@@ -8484,7 +8483,7 @@ log lines: `notifications/cancelled` makes its `vc_cancelled` return 1, and its 
 under its id. With a desktop app connected, `plugin.dialog` runs such a filter (one without a `commandAllowlist`) in the
 background when it runs at once or OK runs it with Preview off, and returns `{background: true, status}`;
 `plugin.cancelRuns` stops it. One that lists `settings` or `cache` keeps settings or a cache of its own in the `Plug-ins` folder
-(VectorCraft's own caps: 256 settings and 1 MiB, 512 MiB of cache): `plugin.list` and `plugin.info` give the cache's
+(VansonCraft's own caps: 256 settings and 1 MiB, 512 MiB of cache): `plugin.list` and `plugin.info` give the cache's
 size as `cacheBytes`, `plugin.clearCache {id?}` empties the cache of one plug-in or of all of them and returns
 `{cleared: [id], bytesFreed}`, replacing a plug-in keeps both, and `plugin.remove` deletes both (also for an id that
 isn't installed but still has them). Files it can't delete stay in the plug-in's folder renamed with `.removed`, where
@@ -8510,19 +8509,19 @@ command, and a run that traps or runs out of its instruction budget returns an e
 name and the command's label and leaves the document and the undo history as they were. For `plugin.run` and plug-in
 commands, `ids` left out or null means the selection, and an `ids` that is not a list of object ids is an error.
 
-Safe Mode starts VectorCraft without plug-ins: `vectorcraft --safe-mode`, `vectorcraft-cli --safe-mode <subcommand>`, or
+Safe Mode starts VansonCraft without plug-ins: `vansoncraft --safe-mode`, `vansoncraft-cli --safe-mode <subcommand>`, or
 the choice the desktop app offers when the last launch stopped while a plug-in was loading (Disable and Continue, Start
 Normally, Start in Safe Mode). It names that plug-in without saying it caused the stop. Until the user picks Disable and
 Continue or Start Normally, the next launch asks again, also after a `--safe-mode` launch, which asks nothing.
-`vectorcraft --safe-mode` opens its files in a window of its own, and on Windows and Linux a file opened from the file
+`vansoncraft --safe-mode` opens its files in a window of its own, and on Windows and Linux a file opened from the file
 manager while the app is in Safe Mode starts a window with plug-ins. Files given on the command line, or opened from
 the file manager while the choice is up, open after the user picks. On Windows and Linux, when the choice is Start in Safe
-Mode, the files from the file manager open in a new window with plug-ins. `vectorcraft-cli --safe-mode mcp` serves a headless
+Mode, the files from the file manager open in a new window with plug-ins. `vansoncraft-cli --safe-mode mcp` serves a headless
 session and refuses `--connect`. In Safe Mode no plug-in loads or
 runs: `plugin.install`, `plugin.run`, `plugin.reload` and exporters return an error, and a live-effect plug-in draws its
 object's geometry unchanged while the object keeps the effect: `effect.list` gives that effect `skipped: true`, and the
 Appearance panel shows "(Safe Mode)" after its name and the plug-in's id in its tooltip. `effect.expandAppearance` returns an
-error and changes nothing when an object it would expand holds such an effect, in it or in a symbol it places. `vectorcraft` rejects an option it does not know (such as
+error and changes nothing when an object it would expand holds such an effect, in it or in a symbol it places. `vansoncraft` rejects an option it does not know (such as
 `--safe-mod`) instead of opening it as a file; `--` before a file name that starts with `-` opens it. The web build keeps
 no installed plug-ins from one page load to the next and has no launch marker, so it never offers the choice. `plugin.safeMode` returns `{active, source, disabled,
 pendingItem}`; a command does not turn Safe Mode on or off. `plugin.setEnabled {id | file, enabled}` turns a plug-in on or
@@ -8545,7 +8544,7 @@ Disable and Continue can't save the plug-in it turns off, this launch skips it a
 {"name":"run_command","arguments":{"command":"plugin.safeMode","params":{}}}
 {"name":"run_command","arguments":{"command":"plugin.setEnabled","params":{"id":"org.example.wobble","enabled":true}}}
 {"name":"run_command","arguments":{"command":"plugin.install","params":{"path":"/plugins/desaturate.wasm"}}}
-{"name":"run_command","arguments":{"command":"plugin.run","params":{"id":"org.vectorcraft.example.desaturate","params":{"amount":60}}}}
+{"name":"run_command","arguments":{"command":"plugin.run","params":{"id":"org.vansoncraft.example.desaturate","params":{"amount":60}}}}
 {"name":"run_command","arguments":{"command":"effect.apply","params":{"effect":"plugin.org.example.wobble","params":{"size":4}}}}
 {"name":"run_command","arguments":{"command":"document.open","params":{"path":"/tmp/plot.hpgl","importer":"plugin.org.example.hpgl"}}}
 {"name":"run_command","arguments":{"command":"plugin.org.example.tidy.grow","params":{"by":3}}}
@@ -8579,18 +8578,18 @@ art that can't be decoded is sampled as blank (no dots, or full dots with `inver
 
 Type can use the bundled fonts, fonts added to the session and the fonts installed on the system (none on the web):
 the system's and the user's font folders (Windows: `Fonts` and `%LOCALAPPDATA%\Microsoft\Windows\Fonts`, plus fonts
-registered outside them, such as fonts installed as shortcuts, and in the desktop app and `vectorcraft-cli` (MCP
+registered outside them, such as fonts installed as shortcuts, and in the desktop app and `vansoncraft-cli` (MCP
 included) the fonts in DirectWrite's system font collection, such as those Adobe Fonts activates while Creative Cloud runs; macOS: `/System/Library/Fonts`, `/Library/Fonts`,
-`/Network/Library/Fonts`, `~/Library/Fonts` and downloaded system fonts, plus in the desktop app and `vectorcraft-cli`
+`/Network/Library/Fonts`, `~/Library/Fonts` and downloaded system fonts, plus in the desktop app and `vansoncraft-cli`
 the fonts CoreText's font manager lists outside them, such as those apps and font managers register from their own
 folders; Linux and BSD: `/usr/share/fonts`,
 `/usr/local/share/fonts`, `~/.fonts` and the XDG data folders' `fonts`, `~/.local/share/fonts` among them, in a
 Flatpak sandbox the host's fonts, and the folders fontconfig's configuration lists (`<dir>` in `/etc/fonts/fonts.conf`
-and the files it includes: where packages add theirs, such as TeX fonts under `/usr/share/texmf/fonts`)). Faces without outlines VectorCraft draws (no `glyf`, `CFF`, `CFF2` or `VARC` table, such
+and the files it includes: where packages add theirs, such as TeX fonts under `/usr/share/texmf/fonts`)). Faces without outlines VansonCraft draws (no `glyf`, `CFF`, `CFF2` or `VARC` table, such
 as bitmap-only fonts) are left out. The scan also reads the folder the `fontsFolder` preference names (Preferences › Type ›
-Additional Fonts Folder) with its subfolders and, in the desktop app and `vectorcraft-cli`, VectorCraft's own `Fonts` folder
-next to the preferences: `~/Library/Application Support/VectorCraft/Fonts` on macOS, `%APPDATA%\VectorCraft\Fonts` on
-Windows, and `$XDG_CONFIG_HOME/vectorcraft/Fonts` or `~/.config/vectorcraft/Fonts` on Linux and BSD. `text.addFontFiles`
+Additional Fonts Folder) with its subfolders and, in the desktop app and `vansoncraft-cli`, VansonCraft's own `Fonts` folder
+next to the preferences: `~/Library/Application Support/VansonCraft/Fonts` on macOS, `%APPDATA%\VansonCraft\Fonts` on
+Windows, and `$XDG_CONFIG_HOME/vansoncraft/Fonts` or `~/.config/vansoncraft/Fonts` on Linux and BSD. `text.addFontFiles`
 copies fonts into that folder. The installed fonts are cataloged once per session (in the background when the app starts, else on the first lookup
 by family name), so opening, placing, pasting and importing files find them whatever ran before. `text.fontList`
 lists every family available, the installed ones included, each by its English (canonical) name — the same string
@@ -8641,13 +8640,13 @@ folders whose contents are in the cloud, and it follows no links; a picked folde
 that goes through a link is searched at its target. Programs installed in other folders, such as a folder on another
 drive, are searched as any other folder is.
 
-`text.addFontFiles {files}` copies files that the session's last search found into VectorCraft's `Fonts` folder, then
+`text.addFontFiles {files}` copies files that the session's last search found into VansonCraft's `Fonts` folder, then
 scans the fonts again, and type set in them redraws. It copies only regular `.ttf`, `.otf`, `.ttc`, `.otc`, `.woff`
 and `.woff2` files and suitcase fonts (with their resource fork), at most 256 MB a file and 1 GB in all, and lists any
 other file in `skipped`. It never replaces a file: the names `Name.otf`, `Name 2.otf` up to `Name 99.otf` are tried in
 turn until one is free, which gets the copy, or is a file with the same contents, which is kept (`kept`).
 Copy only fonts you own or are licensed to install. `command.batch` returns before a search ends; later requests over MCP or the control channel poll
-`text.findFontFiles {}`. `vectorcraft-cli run` stops the search when its last step ends. The web build has no Fonts
+`text.findFontFiles {}`. `vansoncraft-cli run` stops the search when its last step ends. The web build has no Fonts
 folder and no folder search.
 
 ```json
@@ -8824,20 +8823,20 @@ its segment when within 0.5% of the segment's parameter. Each piece of a side be
 share of the content's width or height in proportion to the length of its control polygon, spread along the piece by
 its curve parameter, so content spreads evenly along a segment without handles. An envelope opened from an `.ai` file
 keeps the corners the file saves, and they stay on the same anchors when the envelope is moved, rotated or
-reflected. These are VectorCraft's own rules, and existing top-object envelopes redraw by them.
+reflected. These are VansonCraft's own rules, and existing top-object envelopes redraw by them.
 A warp bends the content's bounds as one Bézier patch. The style sets the patch's control points from the bend and
 the size of the bounds (Arc's top and bottom edges, for example, are cubic curves close to arcs around one center), then
 the horizontal distortion scales each column of control points about its middle, and the vertical distortion scales
 each row. Content with no width or no height takes the middle of the patch along that side. New warp envelopes, and
 those opened from `.ai` files, carry `version` 1 for this map, and `object.envelope.info` reports it. Envelopes in
-`.vectorcraft` documents saved before the version existed read as `version` 0, the earlier map, and keep their look,
+`.vansoncraft` documents saved before the version existed read as `version` 0, the earlier map, and keep their look,
 and editing an envelope keeps its version. `version` (0 or 1) on `object.envelope.makeWithWarp`,
 `object.envelope.resetWithWarp` and `object.envelope.options` sets the map. The Warp effects (`warp.arc` …
 `warp.twist`) take the same map through the same `version` param: `effect.apply` gives a new Warp `version` 1 unless
 `params.version` is 0, the built-in graphic styles' Warps have 1, and Effect › Warp edits keep each Warp's own version.
 These commands refuse any other value with `` `version` must be 0 or 1 ``; `1.0` counts as 1. An `.ai` file holds a
 warp's settings and not its version, so a `version` 0 warp saved to `.ai` and opened again draws with `version` 1.
-These patches are VectorCraft's own rules; the styles and the ranges of Bend and the distortions are those of the Warp
+These patches are VansonCraft's own rules; the styles and the ranges of Bend and the distortions are those of the Warp
 options (https://helpx.adobe.com/illustrator/desktop/manage-objects/reshape-transform-objects/distort-and-transform-effects-in-illustrator.html).
 `object.envelope.info` reads the selected envelope's settings (`type`, the warp's or mesh's values, `fidelity` and
 the options, `editing`), or with no envelope selected the options new envelopes get. With an envelope selected,
@@ -8871,7 +8870,7 @@ path. Inline graphics in the type count by their boxes. Rotated type and type in
 their outlines as they are drawn. `object.envelope.makeWithMesh`, `object.envelope.makeWithTopObject` and
 `object.envelope.resetWithMesh` with `maintainShape: false` use those bounds. Type that draws nothing keeps its
 laid-out box, and so does type inside any other object, such as a blend, a repeat or a symbol instance. This is
-VectorCraft's own rule, and envelopes of type in saved files redraw by it.
+VansonCraft's own rule, and envelopes of type in saved files redraw by it.
 Everything inside bends with the envelope: images as a raster mesh warp (cut into pieces by Fidelity, each a clipped
 image under its own affine map; SVG shares the pixels between the pieces), symbol instances as their symbol's art,
 and with Distort Appearance the strokes of paths (as their filled outlines) and geometry effects; with it, Distort
@@ -8880,7 +8879,7 @@ and those on its own appearance) don't bend, with Distort Appearance or without:
 outlines at their own weight, as `.ai` files draw type in an envelope, so a squeezed or stretched envelope keeps them
 as wide as they are, also in an envelope inside an envelope (#6644). Their geometry effects and an opacity mask on
 the type still bend, and Expand gives the bent outlines with the strokes on them, which Object › Expand or Outline
-Stroke outlines later. Before #6644, VectorCraft bent type's strokes too, so envelopes of stroked type made earlier
+Stroke outlines later. Before #6644, VansonCraft bent type's strokes too, so envelopes of stroked type made earlier
 now draw their strokes at their own weight. A transformed envelope keeps its warp in its own
 frame (`kind.frame` in `document.inspect`; rotating a warp envelope turns the warp with it), and move and scale keep
 it square to the page.
@@ -9005,7 +9004,7 @@ shows, and so do the click-to-size dialogs (`perspective.draw` with `at`: the cl
 `object.blend.make` blends the selected objects (or `ids`) into a live blend. Spacing and orientation default to
 what `object.blend.options` set with no blend selected (`object.blend.info` reads them: `target: "defaults"`),
 else Smooth Color and Align to Page. Smooth Color counts the steps between each pair of keys on its own, from the
-keys' colors and visible bounds rather than along the spine. The counts below are VectorCraft's own values. The
+keys' colors and visible bounds rather than along the spine. The counts below are VansonCraft's own values. The
 colors compared are each key's solid fill and stroke, the fills and strokes of two text objects' runs at the same fraction of their characters, and
 those of two groups' members paired in order. When they differ, the count is 255 times the largest change of one
 channel as a fraction of its range, a half step rounding down, from 1 to 254. An RGB channel's range is 256 values,
@@ -9251,9 +9250,9 @@ entry, listed with its `name`, its `section` (the names of the blocks around it)
 (`key`, `modifiers`, `context`, `represent`) and its `line`. `codes` counts the entries that use each key and modifier
 code, and `unread` lists the tokens the reader skipped, with their lines. The reader stops at 4 MiB, 16 open blocks,
 20,000 entries and 8 MiB of names over the entries and their sections, cuts names at 1,024 bytes, and sets `truncated` when it reaches one of these limits. An XML shortcut
-file fails with "This shortcut file is in a form VectorCraft can't read."
+file fails with "This shortcut file is in a form VansonCraft can't read."
 
-The import matches record what the names and codes in such files stand for in VectorCraft. They are kept with the
+The import matches record what the names and codes in such files stand for in VansonCraft. They are kept with the
 preferences, and resetting the preferences keeps them. `importMatches.set {matches: [{kind, name, target, label?}]}`
 records them: kind `name` maps an entry name to a command id, `tool:<id>` or `panel:<id>`, and kinds `key` and
 `modifiers` map a code, written in decimal, to a key or to modifiers as Edit › Keyboard Shortcuts writes them (`K`,
@@ -9264,7 +9263,7 @@ the saved `key` or `mods` to each code.
 
 In the desktop app, Edit › Keyboard Shortcuts › Import… and File › Open show such a file in Import Shortcut Set
 (`ui.shortcutImportDialog {path? | dataBase64?, name?}` over the control channel). The dialog proposes targets from
-the entry names and decodes the codes that VectorCraft's default shortcuts agree on.
+the entry names and decodes the codes that VansonCraft's default shortcuts agree on.
 
 ```json
 {"name":"run_command","arguments":{"command":"shortcutSet.read","params":{"path":"/Users/me/Studio.kys"}}}
@@ -9288,7 +9287,7 @@ number is an error.
 
 `ui.actionSet.load` (the Actions panel menu's Load Actions…) reads such a file too, from `path`, a picked file or
 `data`, and adds its set after the other sets with all its actions. The set's name is the file's `/name`, else the
-file's name, else `Actions`. A step with a label and no recorded values comes in as the VectorCraft command with that
+file's name, else `Actions`. A step with a label and no recorded values comes in as the VansonCraft command with that
 label, in English or in the interface language, in any case and without a final `…`, when exactly one menu command has
 that label and that command is directly in a top menu, can be recorded in actions, is what its menu bar item runs with
 no values and opens no dialog (Group, Ungroup). A submenu's items, file and document commands, Paste, Undo, Redo and
@@ -9710,7 +9709,7 @@ Lines….
 `addon.cutting.bridges` cuts bridges out of the selected art so that a stencil cut from it holds together. An island is
 an area the art encloses, such as the inside of an O, A or 8 or a hole in a shape; cut out of a sheet, it would fall
 away. A bridge is a strip of the sheet left uncut across the art, which keeps the island attached
-([stencil islands and bridges](https://en.wikipedia.org/wiki/Stencil)). The rules below are VectorCraft's own.
+([stencil islands and bridges](https://en.wikipedia.org/wiki/Stencil)). The rules below are VansonCraft's own.
 
 - The art is measured by the area its outlines enclose, whatever their paint: paths and compound paths with their fill
   rule (open paths closed as a fill closes them), groups by their members, and type by its glyph outlines. Hidden
@@ -9759,7 +9758,7 @@ Crossing) and Keep Original.
 `addon.cutting.weed {margin?, box?, direction?, count?, spacing?, gap?, weight?, swatch?}` adds a weed box around the
 selected art and weeding lines across the box, so the waste vinyl around the art lifts off in pieces
 ([what a weeding border is](https://help.arlon.com/what-is-a-weeding-border)). The ranges, defaults and rules below are
-VectorCraft's own. The weed box is a rectangle `margin` points (0 to 100000, default 9) outside the art's bounds;
+VansonCraft's own. The weed box is a rectangle `margin` points (0 to 100000, default 9) outside the art's bounds;
 `box: false` leaves it out. The weeding lines run `"horizontal"`, `"vertical"` or `"both"` ways (default `"both"`) from
 one side of the box to the other and divide it evenly: `count` lines each way (a whole number from 0 to 1000, default 1),
 or with `spacing` instead, as few lines as keep them at most that far apart. A line is left out over the art's area and
@@ -10024,7 +10023,7 @@ app it lives in Object › Plug-ins › Document Tools.
 `addon.document.saveTimestampedCopy {folder?, format?, time?}` writes a copy of the document named
 `<name>_YYYY-MM-DD_HH-MM.<ext>`, with `-2`, `-3`… added when that name is taken. The date and time are `time` (Unix
 seconds; now by default) in UTC. The copy goes in the document's own folder, or in `folder`, which a document never
-saved needs (the desktop app asks for one with the folder picker); `format` is a save format (`vectorcraft`, `pdf`,
+saved needs (the desktop app asks for one with the folder picker); `format` is a save format (`vansoncraft`, `pdf`,
 `svg`, `svgz`, `ai`, `eps`; the document's own by default). It is written as `file.saveCopy` writes, inside the
 automation roots in force: the document keeps its path, title and modified state, and no undo step is made. The
 command is off where there is no clock (the web). → `{path, format, bytes, warnings}`
@@ -10036,7 +10035,7 @@ command is off where there is no clock (the web). → `{path, format, bytes, war
 
 `addon.document.exportAllOpen {folder, format?}` writes a copy of every open document, in tab order, to `folder`,
 each named after its document (`<name>.<ext>`, with `-2`, `-3`… added when that name is taken there or by another
-copy, so no file is replaced). `format` is a save format (`pdf` by default; `svg`, `svgz`, `vectorcraft`, `ai`,
+copy, so no file is replaced). `format` is a save format (`pdf` by default; `svg`, `svgz`, `vansoncraft`, `ai`,
 `eps`). Each copy is written as `file.saveCopy` writes it, inside the automation roots in force: every document keeps
 its path, title and modified state, no undo step is made, and the active document stays active. A document that
 can't be written is listed in `failed` and the others are still written (#4920). The desktop app's Export All Open
@@ -10049,7 +10048,7 @@ Documents as PDF and as SVG ask for the folder. → `{files: [{title, path, warn
 `addon.document.batchTraceFolder {folder, destinationFolder, preset?, expand?, format?, includeSubdirs?}` opens each
 image in `folder` (PNG, JPEG, TIFF, BMP, GIF, WebP, PSD; with `includeSubdirs`, in its subfolders too), traces it with
 `preset` (an `imageTrace.presets` name; Default by default; with `expand`, as Make and Expand), saves it into
-`destinationFolder` as `<name>.<ext>` in `format` (`vectorcraft` by default; `svg`, `pdf`, `ai`, `eps`), with `-2`,
+`destinationFolder` as `<name>.<ext>` in `format` (`vansoncraft` by default; `svg`, `pdf`, `ai`, `eps`), with `-2`,
 `-3`… added when the name is taken so no file is replaced, and closes it again whether it traced or not; the active
 document stays active. Images that can't be traced are listed in `failed` and the others are still traced. Optional
 `format` and `preset` accept strings; `expand` and `includeSubdirs` accept true or false. Null and values of another
@@ -10076,7 +10075,7 @@ there is no step. → `{symbols: [name…], ids: [instance id…], skipped: [{la
 ## Image Tools add-on
 
 Image Tools is a built-in add-on for placed images: its command is `addon.image.removeBackground`, and in the desktop
-app it lives in Object › Plug-ins › Image Tools. It is a VectorCraft addition.
+app it lives in Object › Plug-ins › Image Tools. It is a VansonCraft addition.
 
 ### Remove Background
 
@@ -10097,7 +10096,7 @@ lowering the alpha of their own pixels. The work runs in the app, and no service
   `match: "channels"`, it is a percentage of 255 steps on the one of red, green and blue that differs most, so a
   tolerance of `t / 255 × 100` clears the colors within `t` 8-bit steps on every channel. `softness` (0 to 100,
   default 10) is the band past the tolerance over which pixels fade from cleared to kept. These ranges and defaults
-  are VectorCraft's own.
+  are VansonCraft's own.
 - A value outside 0 to 100, a `background` other than `edges`, `corners` or `colors`, a `match` other than `distance`
   or `channels`, a `contiguous` that is not true or false, or a `colors` that lists no color, more than 16, or one that
   is not a color or has an alpha part is refused, and the document stays as it was.
@@ -10154,7 +10153,7 @@ default values, and the seed starts new whenever the document has changed.
 
 `addon.type.releasePath` splits each type on a path (`text.createInPath` with `mode: "onPath"`) into point type that
 holds the same text and the plain path it was set on (#5532). The reference app has no command for this, so it is a
-VectorCraft addition and changes no parity score.
+VansonCraft addition and changes no parity score.
 
 - **The path** keeps its exact shape (open or closed, every anchor and handle, the object's transform) and goes in the
   type's layer at its place in the stacking order. Type paths carry no paint of their own (making type on a path drops
@@ -10206,5 +10205,5 @@ the error text. The interactive fallback applies only to ordinary File > Save, n
 
 | Date | Change |
 |---|---|
-| 2026-11-12 | Drawing-method resources (`vectorcraft://method`, `vectorcraft://method/{topic}`) and prompts (`speed-drawing`, `composition-variants`, `revise-locally`, `memory-exercise`); `render_preview` regions, grey and value views, small artboards drawn larger; `doc_inspect` reports `backend`; the headless fallback is announced; a failed atomic `command_batch` rolls back (`rolledBack`, `keep_on_error`); stale resource and prompt counts corrected. |
+| 2026-11-12 | Drawing-method resources (`vansoncraft://method`, `vansoncraft://method/{topic}`) and prompts (`speed-drawing`, `composition-variants`, `revise-locally`, `memory-exercise`); `render_preview` regions, grey and value views, small artboards drawn larger; `doc_inspect` reports `backend`; the headless fallback is announced; a failed atomic `command_batch` rolls back (`rolledBack`, `keep_on_error`); stale resource and prompt counts corrected. |
 | 2026-11-11 | Document READ_ONLY_LOCATION for saves (#6146); no response-shape change. |

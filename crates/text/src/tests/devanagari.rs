@@ -6,8 +6,8 @@
 use crate::*;
 use kurbo::{BezPath, Point};
 use std::sync::Arc;
-use vectorcraft_doc::{CharStyle, TextKind};
-use vectorcraft_geom::PathData;
+use vansoncraft_doc::{CharStyle, TextKind};
+use vansoncraft_geom::PathData;
 
 pub(super) fn devanagari_test_face(test: &str) -> Option<Arc<FontFace>> {
     let db = FontDb::global();

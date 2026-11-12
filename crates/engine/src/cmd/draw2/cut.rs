@@ -202,7 +202,7 @@ pub(super) fn split(s: &mut Session, p: &Value) -> Result<Value> {
         let mut pieces = sp.cut_at(&std::collections::BTreeSet::from([k]));
         // The cut leaves one of its two coincident end points selected, as `path.cutAtAnchors`
         // does, so a Direct Selection drag pulls the path apart there.
-        let pick = |sel: &mut vectorcraft_doc::Selection, id: NodeId, si: usize| {
+        let pick = |sel: &mut vansoncraft_doc::Selection, id: NodeId, si: usize| {
             sel.clear();
             sel.add(id);
             sel.anchors.entry(id).or_default().insert((si, 0));
@@ -282,7 +282,7 @@ pub(super) fn erase_region(s: &mut Session, p: &Value) -> Result<Value> {
     let pts: Vec<Point> = samples.into_iter().map(|s| s.pt).collect();
     let r = size / 2.0;
     // The tip's short axis (its narrowest with Pressure): an open path is sampled at least every half of it.
-    let narrowest = pressure.as_ref().map_or(size, |(_, v)| vectorcraft_tools::draw2::pressure_size(size, *v, 0.0));
+    let narrowest = pressure.as_ref().map_or(size, |(_, v)| vansoncraft_tools::draw2::pressure_size(size, *v, 0.0));
     let short = narrowest * roundness.clamp(1.0, 100.0) / 100.0;
     let st = s.doc()?;
     // A point is under the tip when, with the tip squashed back into a circle, it is within the
@@ -294,7 +294,7 @@ pub(super) fn erase_region(s: &mut Session, p: &Value) -> Result<Value> {
     // drag outlined at those widths, stretched back, and a point is under it when the area holds it.
     let pressed = match (&pressure, round.len() > 1) {
         (Some((prof, v)), true) => Some(pressure_region(&PathData::single(SubPath::polyline(&round, false)), size, *v, prof)?.transformed(stretch)),
-        (Some((prof, v)), false) => Some(eraser_area(&pts, vectorcraft_tools::draw2::pressure_size(size, *v, prof.at(0.0)), angle, roundness)),
+        (Some((prof, v)), false) => Some(eraser_area(&pts, vansoncraft_tools::draw2::pressure_size(size, *v, prof.at(0.0)), angle, roundness)),
         (None, _) => None,
     };
     let reach = pressure.as_ref().map_or(r, |(_, v)| (size + v) / 2.0);

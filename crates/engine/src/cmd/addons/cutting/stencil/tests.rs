@@ -3,7 +3,7 @@
 
 use kurbo::Shape;
 use serde_json::{Value, json};
-use vectorcraft_doc::NodeKind;
+use vansoncraft_doc::NodeKind;
 
 use super::super::super::super::pathops::node_path;
 use crate::*;
@@ -45,7 +45,7 @@ fn id_of(r: &Value) -> NodeId {
     NodeId(r["id"].as_u64().unwrap())
 }
 
-fn node(s: &Session, id: NodeId) -> vectorcraft_doc::Node {
+fn node(s: &Session, id: NodeId) -> vansoncraft_doc::Node {
     s.doc().unwrap().doc.node(id).cloned().unwrap()
 }
 
@@ -54,8 +54,8 @@ fn fills(s: &Session, id: NodeId, x: f64, y: f64) -> bool {
     let (path, rule) = node_path(&node(s, id)).unwrap();
     let w = path.to_bezpath().winding(kurbo::Point::new(x, y));
     match rule {
-        vectorcraft_geom::FillRule::EvenOdd => w % 2 != 0,
-        vectorcraft_geom::FillRule::NonZero => w != 0,
+        vansoncraft_geom::FillRule::EvenOdd => w % 2 != 0,
+        vansoncraft_geom::FillRule::NonZero => w != 0,
     }
 }
 
@@ -286,12 +286,12 @@ fn art_too_detailed_to_bridge_is_refused_with_a_message_that_says_so() {
             // More anchors than Stencil Bridges measures.
             let mut zigzag = kurbo::BezPath::new();
             zigzag.move_to((100.0, 100.0));
-            for i in 1..=vectorcraft_pathops::addons::stencil::MAX_STENCIL_SEGMENTS {
+            for i in 1..=vansoncraft_pathops::addons::stencil::MAX_STENCIL_SEGMENTS {
                 zigzag.line_to((100.0 + i as f64 * 0.001, if i % 2 == 0 { 100.0 } else { 101.0 }));
             }
             zigzag.close_path();
-            let huge = vectorcraft_geom::PathData::from_bezpath(&zigzag);
-            let n = vectorcraft_doc::Node::path(d.alloc_id(), huge, vectorcraft_doc::Appearance::default());
+            let huge = vansoncraft_geom::PathData::from_bezpath(&zigzag);
+            let n = vansoncraft_doc::Node::path(d.alloc_id(), huge, vansoncraft_doc::Appearance::default());
             let id = n.id;
             d.insert(parent, usize::MAX, n)?;
             sel.set([id]);

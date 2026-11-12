@@ -2,7 +2,7 @@
 //! touching the objects they start from.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{NodeId, NodeKind};
+use vansoncraft_doc::{NodeId, NodeKind};
 
 use super::raster::{grey_for, lstar_of_rgb};
 use crate::Session;
@@ -108,7 +108,7 @@ fn render_zooms_into_a_region_and_paints_value_groups() {
     let v = s.execute("study.render", &json!({"region": [10, 10, 20, 20], "maxSide": 400, "mode": "values"})).unwrap();
     assert_eq!(v["width"], 400);
     assert!(near(v["scale"].as_f64().unwrap(), 20.0, 1e-6));
-    let png = vectorcraft_format::base64_decode(v["pngBase64"].as_str().unwrap()).unwrap();
+    let png = vansoncraft_format::base64_decode(v["pngBase64"].as_str().unwrap()).unwrap();
     let img = image::load_from_memory(&png).unwrap().to_rgb8();
     // Values mode paints two greys only: the ellipse's group and the paper's.
     let mut greys: Vec<u8> = img.pixels().map(|p| p.0[0]).collect();
@@ -120,7 +120,7 @@ fn render_zooms_into_a_region_and_paints_value_groups() {
     // Turned upside down, the dark disc at the top left is at the bottom left.
     let up = s.execute("study.render", &json!({"maxSide": 200})).unwrap();
     let down = s.execute("study.render", &json!({"maxSide": 200, "flip": "vertical"})).unwrap();
-    let px = |v: &Value| image::load_from_memory(&vectorcraft_format::base64_decode(v["pngBase64"].as_str().unwrap()).unwrap()).unwrap().to_rgb8();
+    let px = |v: &Value| image::load_from_memory(&vansoncraft_format::base64_decode(v["pngBase64"].as_str().unwrap()).unwrap()).unwrap().to_rgb8();
     let (up, down) = (px(&up), px(&down));
     assert!(up.get_pixel(30, 30).0[0] < 80 && down.get_pixel(30, 69).0[0] < 80 && down.get_pixel(30, 30).0[0] > 200);
     assert!(s.execute("study.render", &json!({"flip": "sideways"})).is_err());
@@ -252,7 +252,7 @@ fn block_in_draws_construction_lines_on_a_template_layer_as_one_step() {
     assert!(s.execute("study.blockIn", &json!({"ids": [e], "stroke": "#11223344"})).is_err());
 }
 
-fn hatch_lines(s: &Session, group: u64) -> Vec<vectorcraft_geom::Rect> {
+fn hatch_lines(s: &Session, group: u64) -> Vec<vansoncraft_geom::Rect> {
     let st = s.doc().unwrap();
     st.doc.node(NodeId(group)).unwrap().children().unwrap().iter().map(|c| c.geometric_bounds().unwrap()).collect()
 }
@@ -347,8 +347,8 @@ fn studies_survive_a_native_round_trip() {
     s.execute("study.hatch", &json!({"ids": [r], "spacing": 8, "seed": 3, "jitter": 0.2})).unwrap();
     s.execute("study.blockIn", &json!({"ids": [r]})).unwrap();
     let doc = s.doc().unwrap().doc.clone();
-    let bytes = vectorcraft_format::save_file(&doc);
-    let back = vectorcraft_format::load(&bytes).unwrap();
+    let bytes = vansoncraft_format::save_file(&doc);
+    let back = vansoncraft_format::load(&bytes).unwrap();
     assert_eq!(serde_json::to_value(&back).unwrap(), serde_json::to_value(&*doc).unwrap());
 }
 
@@ -418,7 +418,7 @@ fn a_groups_members_keep_their_own_fill_rules_and_clip_groups_are_refused() {
         s.execute("path.setFillRule", &json!({"ids": [id], "rule": "evenodd"})).ok();
         let mut d = (*s.doc().unwrap().doc).clone();
         if let Some(NodeKind::Path { rule, .. }) = d.node_mut(NodeId(id)).map(|n| &mut n.kind) {
-            *rule = vectorcraft_geom::FillRule::EvenOdd;
+            *rule = vansoncraft_geom::FillRule::EvenOdd;
         }
         s.doc_mut().unwrap().doc = std::sync::Arc::new(d);
     }

@@ -90,7 +90,7 @@ const STYLES: Kind = Kind {
     get: "graphicStyle.library",
     save: "graphicStyle.saveLibrary",
     load: "graphicStyle.loadLibrary",
-    ext: vectorcraft_doc::style_libs::STYLES_EXT,
+    ext: vansoncraft_doc::style_libs::STYLES_EXT,
     add: |s, name| {
         let id = rectangle(s);
         run(s, "graphicStyle.new", json!({"name": name, "id": id}));

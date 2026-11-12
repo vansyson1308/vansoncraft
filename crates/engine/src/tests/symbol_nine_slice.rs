@@ -2,9 +2,9 @@
 //! their size; Break Link to Symbol gives the art as it draws, in one step.
 
 use serde_json::json;
-use vectorcraft_doc::{EditedNineSlice, NineSliceGuide, Node, NodeKind};
-use vectorcraft_geom::{Point, Rect};
-use vectorcraft_tools::{PointerEvent, PointerKind};
+use vansoncraft_doc::{EditedNineSlice, NineSliceGuide, Node, NodeKind};
+use vansoncraft_geom::{Point, Rect};
+use vansoncraft_tools::{PointerEvent, PointerKind};
 
 use crate::*;
 
@@ -120,11 +120,11 @@ fn an_instance_that_slices_into_too_many_objects_stays_an_instance() {
     let doc = std::sync::Arc::make_mut(&mut s.doc_mut().unwrap().doc);
     let art = doc.symbols.iter().find(|s| s.name == "Panel").unwrap().art.clone();
     let frame = art.geometric_bounds().unwrap();
-    let gradient = vectorcraft_color::Paint::Gradient(Box::new(vectorcraft_color::GradientPaint::new(vectorcraft_color::Gradient::default())));
+    let gradient = vansoncraft_color::Paint::Gradient(Box::new(vansoncraft_color::GradientPaint::new(vansoncraft_color::Gradient::default())));
     let mut kids = art.children().unwrap().to_vec();
     for _ in 0..36_000 {
-        let look = vectorcraft_doc::Appearance::basic(gradient.clone(), vectorcraft_color::Paint::None, 0.0);
-        kids.push(std::sync::Arc::new(Node::path(doc.alloc_id(), vectorcraft_geom::shapes::rectangle(frame), look)));
+        let look = vansoncraft_doc::Appearance::basic(gradient.clone(), vansoncraft_color::Paint::None, 0.0);
+        kids.push(std::sync::Arc::new(Node::path(doc.alloc_id(), vansoncraft_geom::shapes::rectangle(frame), look)));
     }
     let big = Node::group(doc.alloc_id(), kids);
     doc.symbols.iter_mut().find(|s| s.name == "Panel").unwrap().art = std::sync::Arc::new(big);
@@ -141,11 +141,11 @@ fn break_link_counts_the_pieces_of_every_selected_instance_together() {
     let doc = std::sync::Arc::make_mut(&mut s.doc_mut().unwrap().doc);
     let art = doc.symbols.iter().find(|s| s.name == "Panel").unwrap().art.clone();
     let frame = art.geometric_bounds().unwrap();
-    let gradient = vectorcraft_color::Paint::Gradient(Box::new(vectorcraft_color::GradientPaint::new(vectorcraft_color::Gradient::default())));
+    let gradient = vansoncraft_color::Paint::Gradient(Box::new(vansoncraft_color::GradientPaint::new(vansoncraft_color::Gradient::default())));
     let mut kids = art.children().unwrap().to_vec();
     for _ in 0..20_000 {
-        let look = vectorcraft_doc::Appearance::basic(gradient.clone(), vectorcraft_color::Paint::None, 0.0);
-        kids.push(std::sync::Arc::new(Node::path(doc.alloc_id(), vectorcraft_geom::shapes::rectangle(frame), look)));
+        let look = vansoncraft_doc::Appearance::basic(gradient.clone(), vansoncraft_color::Paint::None, 0.0);
+        kids.push(std::sync::Arc::new(Node::path(doc.alloc_id(), vansoncraft_geom::shapes::rectangle(frame), look)));
     }
     let big = std::sync::Arc::new(Node::group(doc.alloc_id(), kids));
     doc.symbols.iter_mut().find(|s| s.name == "Panel").unwrap().art = big.clone();
@@ -179,7 +179,7 @@ fn an_instance_whose_masks_hold_too_many_objects_stays_an_instance() {
     let square = doc.symbols.iter().find(|s| s.name == "Masked").unwrap().art.clone();
     let mask_art = Node::group(doc.alloc_id(), vec![square.clone(); 1_000]);
     let mut masked = (*square).clone();
-    masked.extras_mut().mask = Some(Box::new(vectorcraft_doc::OpacityMask::new(mask_art, true)));
+    masked.extras_mut().mask = Some(Box::new(vansoncraft_doc::OpacityMask::new(mask_art, true)));
     let masked = std::sync::Arc::new(masked);
     let big = Node::group(doc.alloc_id(), vec![masked; 1_000]);
     assert!(big.count() < 1_000_000 && big.count_with_masks() > 1_000_000);

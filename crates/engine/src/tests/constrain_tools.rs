@@ -3,9 +3,9 @@
 //! Rounded Rectangle tool's radius (G12, #394, first batch).
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{LiveShape, NodeKind};
-use vectorcraft_geom::{Point, Vec2};
-use vectorcraft_tools::{Mods, PointerEvent, PointerKind, ToolKey};
+use vansoncraft_doc::{LiveShape, NodeKind};
+use vansoncraft_geom::{Point, Vec2};
+use vansoncraft_tools::{Mods, PointerEvent, PointerKind, ToolKey};
 
 use crate::*;
 

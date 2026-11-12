@@ -9,7 +9,7 @@ SP-XIII-11); vary edges between sharp and soft (SP-XIII-9). Plan a few large, si
 (SP-V-2, SP-XIII-6); small spots may cross them for variety (SP-XIV-13). When a picture is muddled,
 reduce it to flat tones (SP-XV-4). Review with half-closed eyes or a black glass (SP-IX-7).
 
-**With VectorCraft.**
+**With VansonCraft.**
 1. Three values first: a light, a half tone and a dark (e.g. L* 85, 55, 20). Make the half tone
    the ground (a rectangle the size of the artboard on a bottom layer), then the light shapes and
    the dark shapes as separate filled paths on named layers.

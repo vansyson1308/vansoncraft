@@ -2,7 +2,7 @@
 //! and Refresh Font List (`text.rescanFonts`).
 
 use serde_json::{Value, json};
-use vectorcraft_text::{FontDb, system_font_dirs};
+use vansoncraft_text::{FontDb, system_font_dirs};
 
 use crate::*;
 
@@ -58,7 +58,7 @@ fn refreshing_the_font_list_during_a_save_leaves_the_document_saved() {
     s.execute("file.new", &json!({"width": 200, "height": 200})).unwrap();
     s.execute("text.create", &json!({"x": 10, "y": 40, "text": "Type", "font": "No Such Font"})).unwrap();
     let uid = s.doc().unwrap().uid;
-    let plan = save_plan(&s, SaveMode::SaveAs, &json!({"path": "/x/type.vectorcraft", "modified": 777})).unwrap();
+    let plan = save_plan(&s, SaveMode::SaveAs, &json!({"path": "/x/type.vansoncraft", "modified": 777})).unwrap();
     let job = save_job(&mut s, plan).unwrap();
     s.execute("text.rescanFonts", &json!({})).unwrap();
     job.write(|_, _| Ok(())).unwrap();

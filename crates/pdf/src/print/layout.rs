@@ -9,9 +9,9 @@
 
 use kurbo::{Affine, Rect, Vec2};
 use serde::Serialize;
-use vectorcraft_doc::marks::outset;
-use vectorcraft_doc::range::parse_range;
-use vectorcraft_doc::{Document, Node, NodeKind, SymbolBoxes};
+use vansoncraft_doc::marks::outset;
+use vansoncraft_doc::range::parse_range;
+use vansoncraft_doc::{Document, Node, NodeKind, SymbolBoxes};
 
 use super::{Emulsion, Orientation, PrintArtboards, PrintScaling, PrintSettings};
 use crate::PdfError;

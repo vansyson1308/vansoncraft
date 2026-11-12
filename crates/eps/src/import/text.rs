@@ -5,11 +5,11 @@
 use std::rc::Rc;
 
 use std::sync::Arc;
-use vectorcraft_color::Paint;
+use vansoncraft_color::Paint;
 
-use vectorcraft_doc::{CharStyle, Node, NodeId, NodeKind, TextObject};
-use vectorcraft_geom::{Affine, Point, Vec2};
-use vectorcraft_text::TextLayout;
+use vansoncraft_doc::{CharStyle, Node, NodeId, NodeKind, TextObject};
+use vansoncraft_geom::{Affine, Point, Vec2};
+use vansoncraft_text::TextLayout;
 
 use super::cid::Base;
 use super::graphics::MAX_APART;
@@ -56,7 +56,7 @@ pub fn family_style(name: &str) -> (String, String) {
         Some((base, n)) if !base.is_empty() && !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()) => base,
         _ => name,
     };
-    if let Some(face) = vectorcraft_text::FontDb::global().find_postscript(name) {
+    if let Some(face) = vansoncraft_text::FontDb::global().find_postscript(name) {
         return (face.family.clone(), face.style.clone());
     }
     let (family, style) = name.split_once('-').unwrap_or((name, ""));
@@ -461,7 +461,7 @@ impl Interp<'_> {
     /// strings read byte by byte.
     fn predefined_split<'a>(&mut self, name: &'a str) -> Option<(&'a str, &'a str)> {
         let (cid_font, cmap) = super::predefined_cmap::composite_font(name)?;
-        let db = vectorcraft_text::FontDb::global();
+        let db = vansoncraft_text::FontDb::global();
         if db.find_postscript(name).is_some() {
             return None;
         }
@@ -555,12 +555,12 @@ impl Interp<'_> {
         }
         let (family, font_style) = family_style(&name);
         // The available family's own spelling: `MicrosoftYaHei` is Microsoft YaHei, not "Microsoft Ya Hei".
-        let font_family = vectorcraft_text::FontDb::global().find_family(&family).unwrap_or(family);
-        let fill = if self.g.paint.is_none() { Paint::solid(vectorcraft_color::Color::BLACK) } else { self.g.paint.clone() };
+        let font_family = vansoncraft_text::FontDb::global().find_family(&family).unwrap_or(family);
+        let fill = if self.g.paint.is_none() { Paint::solid(vansoncraft_color::Color::BLACK) } else { self.g.paint.clone() };
         let style = CharStyle { font_family, font_style, size, fill, stroke: Paint::None, ..CharStyle::default() };
         let mut t = TextObject::point(Point::ZERO, text, style);
         t.vertical = vertical;
-        let layout = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &t);
+        let layout = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &t);
         t.xf = m * Affine::scale_non_uniform(1.0 / size, -1.0 / size);
         t.cached_bounds = Some(layout.bounds);
         let adv: f64 = layout.glyphs.iter().map(|g| g.advance).sum();
@@ -578,7 +578,7 @@ impl Interp<'_> {
             for run in &mut t.runs {
                 run.style.features.push("-liga".into());
             }
-            layout = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &t);
+            layout = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &t);
             t.cached_bounds = Some(layout.bounds);
         }
         Ok((t, layout))
@@ -729,11 +729,11 @@ impl Interp<'_> {
             if tracking.iter().any(|t| *t != 0.0)
                 && let Some(run) = t.runs.first().cloned()
             {
-                let mut runs: Vec<vectorcraft_doc::TextRun> = Vec::new();
+                let mut runs: Vec<vansoncraft_doc::TextRun> = Vec::new();
                 for (c, tr) in text.chars().zip(&tracking) {
                     match runs.last_mut() {
                         Some(last) if last.style.tracking == *tr => last.text.push(c),
-                        _ => runs.push(vectorcraft_doc::TextRun {
+                        _ => runs.push(vansoncraft_doc::TextRun {
                             text: c.to_string(),
                             style: CharStyle { tracking: *tr, ..run.style.clone() },
                             inline: run.inline.clone(),
@@ -741,7 +741,7 @@ impl Interp<'_> {
                     }
                 }
                 t.runs = runs;
-                t.cached_bounds = Some(vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &t).bounds);
+                t.cached_bounds = Some(vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &t).bounds);
             }
             if lead != Vec2::ZERO {
                 t.xf = Affine::translate(self.xf() * Point::new(lead.x, lead.y) - self.xf() * Point::ZERO) * t.xf;
@@ -763,7 +763,7 @@ impl Interp<'_> {
 
     /// The glyph outlines of point type `t` added to the current path (`charpath`).
     fn type_path(&mut self, t: &TextObject) -> Res {
-        let layout = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t);
+        let layout = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), t);
         for g in &layout.glyphs {
             let mut o = g.outline.clone();
             o.apply_affine(t.xf);
@@ -773,7 +773,7 @@ impl Interp<'_> {
     }
 
     /// Glyph outline `o` added to the current path, unless the path would pass its most points.
-    fn extend_path(&mut self, o: vectorcraft_geom::BezPath) -> Res {
+    fn extend_path(&mut self, o: vansoncraft_geom::BezPath) -> Res {
         if self.g.path.elements().len().saturating_add(o.elements().len()) > super::graphics::MAX_PATH {
             return Err(PsError::Limit("a path has too many points"));
         }
@@ -844,7 +844,7 @@ impl Interp<'_> {
 
     /// Glyph outline `outline` (glyph space) under font matrix `fm` at user point `at`: filled, or
     /// added to the current path (`charpath`).
-    fn type42_paint(&mut self, mut outline: vectorcraft_geom::BezPath, at: Point, fm: Affine, paint: Draw) -> Res {
+    fn type42_paint(&mut self, mut outline: vansoncraft_geom::BezPath, at: Point, fm: Affine, paint: Draw) -> Res {
         // Measuring a glyph reads its outline too, so `stringwidth` in a loop pays for it.
         self.spend((outline.elements().len() as u64).saturating_add(16))?;
         if paint == Draw::No {
@@ -852,7 +852,7 @@ impl Interp<'_> {
         }
         outline.apply_affine(self.xf() * Affine::translate(at.to_vec2()) * fm);
         if paint == Draw::Fill {
-            return self.fill_path(outline, vectorcraft_geom::FillRule::NonZero);
+            return self.fill_path(outline, vansoncraft_geom::FillRule::NonZero);
         }
         self.extend_path(outline)
     }
@@ -952,7 +952,7 @@ struct Mapped {
 
 /// Type in a CIDFont only named, over a predefined CMap ([`Interp::named_cid_type`]): its codes
 /// with their characters, the font it is set in, whether it runs down a column, and whether each
-/// code moves the point one em (down a column, or in a CMap VectorCraft can't read).
+/// code moves the point one em (down a column, or in a CMap VansonCraft can't read).
 struct NamedCid {
     codes: Decoded,
     font: DictRef,
@@ -1090,7 +1090,7 @@ impl Interp<'_> {
     /// doesn't give: a Unicode CMap's codes are the characters, another CMap's are read by the CMap
     /// of that name and its character collection's CID → Unicode CMap (a code it doesn't map
     /// stands for none), set as type in the font of its CIDFont's name, vertical over a vertical
-    /// CMap (`WMode` 1). Control codes stand for no character. Type in a CMap VectorCraft can't
+    /// CMap (`WMode` 1). Control codes stand for no character. Type in a CMap VansonCraft can't
     /// read is left out, with a warning, each of its codes moving the point one em.
     fn named_cid_type(&mut self, s: &[u8]) -> Res<Option<NamedCid>> {
         let Some(cmap) = self.named_cid_parts().map(|(cmap, ..)| cmap) else { return Ok(None) };
@@ -1158,7 +1158,7 @@ impl Interp<'_> {
     }
 
     /// How strings in predefined CMap `cmap` decode (a CMap other than a Unicode CMap read once a
-    /// file); `None` when VectorCraft can't read it.
+    /// file); `None` when VansonCraft can't read it.
     fn predefined_codes(&mut self, cmap: &str) -> Option<Rc<super::predefined_cmap::CMapCodes>> {
         if let Some(form) = super::predefined_cmap::unicode_cmap(cmap) {
             return Some(Rc::new(super::predefined_cmap::CMapCodes::Unicode(form)));
@@ -1178,7 +1178,7 @@ impl Interp<'_> {
     /// says, as [`Self::show_codes`] shows codes. `widthshow` and `awidthshow` match a code by its
     /// value (font number 0 times 256 plus the code: PLRM 3rd ed., `widthshow` in chapter 8), and
     /// `kshow`'s procedure gets the values of the two codes it runs between. Down a column, and in
-    /// a CMap VectorCraft can't read, each code moves the point one em, the default displacement
+    /// a CMap VansonCraft can't read, each code moves the point one em, the default displacement
     /// of a CIDFont whose metrics the file doesn't give (PDF Reference 1.7, §5.6.3, `DW` and
     /// `DW2`). With `draw` [`Draw::Path`] the outlines go on the current path (`charpath`).
     fn show_named_cid(&mut self, named: &NamedCid, spacing: &Spacing, draw: Draw) -> Res {
@@ -1324,7 +1324,7 @@ impl Interp<'_> {
             Some(g) => g,
             None => {
                 self.out.warn(MISSING_CID_FONT);
-                (vectorcraft_geom::BezPath::new(), em)
+                (vansoncraft_geom::BezPath::new(), em)
             }
         };
         if g.vertical {
@@ -1337,7 +1337,7 @@ impl Interp<'_> {
 
     /// Glyph `code` (or the glyph named `name`) of font `font` from the font program it carries
     /// (a Type 42 or Type 1 font): its outline and width in ems, or `None` when it carries none.
-    fn type42_glyph(&mut self, font: &DictRef, code: u8, name: Option<&str>) -> Res<Option<(vectorcraft_geom::BezPath, f64)>> {
+    fn type42_glyph(&mut self, font: &DictRef, code: u8, name: Option<&str>) -> Res<Option<(vansoncraft_geom::BezPath, f64)>> {
         let Some(data) = self.embedded(font)? else { return Ok(None) };
         let standard = font.borrow().get(&Key::name("Encoding")).and_then(|e| self.standard_encoding(e));
         let gid = match name {
@@ -1526,7 +1526,7 @@ const MISSING_CID_FONT: &str = "CID-keyed type in a font the file doesn't carry 
 /// bytes a code) and their characters (up to 4 bytes a character, a few characters a code).
 const DECODED_BYTES: usize = 64;
 
-/// The warning for type in a predefined CMap whose mappings VectorCraft doesn't have.
+/// The warning for type in a predefined CMap whose mappings VansonCraft doesn't have.
 pub(super) const UNREAD_CMAP: &str = "type in a CMap that couldn't be read was left out";
 
 /// Most Type 42 fonts whose TrueType data is kept between glyphs.

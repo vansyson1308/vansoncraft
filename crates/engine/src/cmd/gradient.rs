@@ -1,12 +1,12 @@
 //! The Gradient panel and the Gradient tool: in-place gradient edits and the gradient vector.
 
 use serde_json::{Value, json};
-use vectorcraft_color::gradient::MAX_REPEATS;
-use vectorcraft_color::{Gradient, GradientGeom, GradientKind, GradientMethod, GradientPaint, GradientSpread, GradientStop, Paint};
-use vectorcraft_doc::appearance::stroke_paint_bounds;
-use vectorcraft_doc::{Document, Node, NodeKind, StrokeGradientMode};
-use vectorcraft_geom::{Affine, Point, Rect};
-use vectorcraft_tools::params::color_json;
+use vansoncraft_color::gradient::MAX_REPEATS;
+use vansoncraft_color::{Gradient, GradientGeom, GradientKind, GradientMethod, GradientPaint, GradientSpread, GradientStop, Paint};
+use vansoncraft_doc::appearance::stroke_paint_bounds;
+use vansoncraft_doc::{Document, Node, NodeKind, StrokeGradientMode};
+use vansoncraft_geom::{Affine, Point, Rect};
+use vansoncraft_tools::params::color_json;
 
 use super::appearance::{ItemTarget, edit_items, edits_stroke, item_target};
 use super::edit::{outermost, selected_roots};
@@ -24,7 +24,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Gradient",
             ["Window", "Gradient"],
             None,
-            "{stroke?: bool (default: the targeted item's kind, else the active proxy), kind?: linear|radial|conic|diamond|freeform (conic, also accepted as angle or conical, sweeps the stops once around the center, clockwise from the vector, with a seam where the last stop meets the first; diamond runs the stops from the center out to a square with a corner at the end of the vector; freeform places points on each object, coloured along the stops), mode?: points|lines (freeform: how the Gradient tool adds points), method?: classic|perceptual (how the colours between the stops mix: in display RGB, or perceptually (OKLab) so the steps look even; SVG exports draw a Perceptual gradient as an image, and PDF exports do too unless it is linear, radial, conic or diamond, has spot color stops, every other stop is paper white or written in CMYK or gray (an export that converts colors to a CMYK destination profile writes RGB and Lab stops in CMYK, and so does a CMYK document unless the export converts colors to an RGB destination profile), it is not a dithered fill and its curve does not have too many stops: then PDF writes tints of one spot ink as a Separation shading in that ink, and spot inks mixed with other spot, CMYK or gray inks as a DeviceN shading; freeform gradients mix their own way), spread?: pad|repeat|reflect (linear, radial, conic and diamond: what the gradient paints past the ends of its stops: pad carries the end colors on; repeat and reflect run the stops `repeats` times along the vector (around the circle, for a conic) and on past both ends, reflect mirroring every other run; an error on a freeform gradient), repeats?: 1..100 (a whole number: how many times repeat and reflect run the stops along the vector; VectorCraft's own limit; pad keeps it unused), stops?: [{offset 0..1, color? (needed without swatch; #rrggbbaa and #rgba are refused), opacity? 0..1 (or 0..100), midpoint? 0.13..0.87, swatch?: colour swatch name (a global or spot colour or tint swatch links the stop, so swatch edits recolour it and a spot stop prints on its plate; a process colour just gives its colour), tint?: 0..100 (% of the linked swatch; default 100, or a tint swatch's own)}] (at least 2; a freeform gradient's points are recoloured along them), keepModel?: bool (as paint.setFill; a stop color the gradient already has keeps its model), angle?: deg counter-clockwise (0: the gradient runs left to right; radial, conic and diamond: the vector turns about the center), aspect?: % (radial, conic and diamond; a negative one mirrors a conic's sweep and is an error for the other kinds), reverse?: bool, dither?: bool (fills only: a linear, radial, conic or diamond gradient fill is drawn with fine noise that hides banding, and as pixels in SVG and PDF exports), item?: fill/stroke item index|null (omitted: the Appearance panel's active item when it is of the edited kind), ids?|id?, strokeMode?: within|along|across (strokes only: the gradient lies on the page and shows through the stroke, runs from the start of each subpath to its end, or runs from the stroke's left edge to its right all along it; with nothing selected, for the next object drawn; type characters' own strokes always paint within), target?: \"object\"|\"contents\"} edit the gradient in place (keeps its placement); solid/none paints become the default gradient",
+            "{stroke?: bool (default: the targeted item's kind, else the active proxy), kind?: linear|radial|conic|diamond|freeform (conic, also accepted as angle or conical, sweeps the stops once around the center, clockwise from the vector, with a seam where the last stop meets the first; diamond runs the stops from the center out to a square with a corner at the end of the vector; freeform places points on each object, coloured along the stops), mode?: points|lines (freeform: how the Gradient tool adds points), method?: classic|perceptual (how the colours between the stops mix: in display RGB, or perceptually (OKLab) so the steps look even; SVG exports draw a Perceptual gradient as an image, and PDF exports do too unless it is linear, radial, conic or diamond, has spot color stops, every other stop is paper white or written in CMYK or gray (an export that converts colors to a CMYK destination profile writes RGB and Lab stops in CMYK, and so does a CMYK document unless the export converts colors to an RGB destination profile), it is not a dithered fill and its curve does not have too many stops: then PDF writes tints of one spot ink as a Separation shading in that ink, and spot inks mixed with other spot, CMYK or gray inks as a DeviceN shading; freeform gradients mix their own way), spread?: pad|repeat|reflect (linear, radial, conic and diamond: what the gradient paints past the ends of its stops: pad carries the end colors on; repeat and reflect run the stops `repeats` times along the vector (around the circle, for a conic) and on past both ends, reflect mirroring every other run; an error on a freeform gradient), repeats?: 1..100 (a whole number: how many times repeat and reflect run the stops along the vector; VansonCraft's own limit; pad keeps it unused), stops?: [{offset 0..1, color? (needed without swatch; #rrggbbaa and #rgba are refused), opacity? 0..1 (or 0..100), midpoint? 0.13..0.87, swatch?: colour swatch name (a global or spot colour or tint swatch links the stop, so swatch edits recolour it and a spot stop prints on its plate; a process colour just gives its colour), tint?: 0..100 (% of the linked swatch; default 100, or a tint swatch's own)}] (at least 2; a freeform gradient's points are recoloured along them), keepModel?: bool (as paint.setFill; a stop color the gradient already has keeps its model), angle?: deg counter-clockwise (0: the gradient runs left to right; radial, conic and diamond: the vector turns about the center), aspect?: % (radial, conic and diamond; a negative one mirrors a conic's sweep and is an error for the other kinds), reverse?: bool, dither?: bool (fills only: a linear, radial, conic or diamond gradient fill is drawn with fine noise that hides banding, and as pixels in SVG and PDF exports), item?: fill/stroke item index|null (omitted: the Appearance panel's active item when it is of the edited kind), ids?|id?, strokeMode?: within|along|across (strokes only: the gradient lies on the page and shows through the stroke, runs from the start of each subpath to its end, or runs from the stroke's left edge to its right all along it; with nothing selected, for the next object drawn; type characters' own strokes always paint within), target?: \"object\"|\"contents\"} edit the gradient in place (keeps its placement); solid/none paints become the default gradient",
             has_doc,
             edit_gradient
         ),
@@ -202,7 +202,7 @@ pub(crate) fn link_stops(d: &Document, v: &Value) -> Parsed<Value> {
 /// RGB color in a CMYK document becoming CMYK through the color settings
 /// ([`super::paint::new_color`], with `p`'s `keepModel`). `None` for a stop that names a swatch,
 /// which gives its color in the swatch's model, and for a color stored as given.
-pub(crate) type StopColors = Vec<Option<(vectorcraft_color::Color, vectorcraft_color::Color)>>;
+pub(crate) type StopColors = Vec<Option<(vansoncraft_color::Color, vansoncraft_color::Color)>>;
 
 /// The [`StopColors`] of `g`'s stops.
 pub(crate) fn stop_colors(s: &Session, p: &Value, g: &Value) -> StopColors {
@@ -224,7 +224,7 @@ pub(crate) fn with_stored_stops<'a>(g: &'a Value, old: &Paint, stored: &StopColo
     if stored.iter().all(Option::is_none) {
         return Cow::Borrowed(g);
     }
-    let had = |c: &vectorcraft_color::Color| matches!(old, Paint::Gradient(o) if o.gradient.stops.iter().any(|st| st.color == *c));
+    let had = |c: &vansoncraft_color::Color| matches!(old, Paint::Gradient(o) if o.gradient.stops.iter().any(|st| st.color == *c));
     let mut v = g.clone();
     let Some(stops) = v.get_mut("stops").and_then(Value::as_array_mut) else { return Cow::Borrowed(g) };
     for (st, sc) in stops.iter_mut().zip(stored) {
@@ -289,7 +289,7 @@ fn plates_param(v: &Value) -> Option<[f32; 4]> {
 }
 
 /// Parse a gradient paint object (the `gradient` param of `paint.setFill`). Lossless for everything
-/// `vectorcraft_tools::params::gradient_params` writes.
+/// `vansoncraft_tools::params::gradient_params` writes.
 pub(crate) fn parse_gradient(g: &Value) -> Parsed<GradientPaint> {
     if !g.is_object() {
         return Err("`gradient` must be an object".into());
@@ -410,7 +410,7 @@ pub(crate) fn apply_gradient_edit_in(
 }
 
 /// New implicit stops use the document's model; existing gradients retain their own colors.
-fn gradient_for_edit(paint: &Paint, model: Option<vectorcraft_color::cms::Model>) -> GradientPaint {
+fn gradient_for_edit(paint: &Paint, model: Option<vansoncraft_color::cms::Model>) -> GradientPaint {
     match paint {
         Paint::Gradient(g) => (**g).clone(),
         _ => {
@@ -428,7 +428,7 @@ fn apply_gradient_edit_in_model(
     p: &Value,
     bounds: Option<Rect>,
     inside: &dyn Fn(Point) -> bool,
-    model: Option<vectorcraft_color::cms::Model>,
+    model: Option<vansoncraft_color::cms::Model>,
 ) -> std::result::Result<Paint, String> {
     let mut gp = gradient_for_edit(paint, model);
     let mut switched = false;
@@ -470,7 +470,7 @@ fn apply_gradient_edit_in_model(
         gp.angle = a;
         if let Some(g) = &mut gp.geom {
             let r = a.to_radians();
-            let dir = vectorcraft_geom::Vec2::new(r.cos(), -r.sin());
+            let dir = vansoncraft_geom::Vec2::new(r.cos(), -r.sin());
             if gp.gradient.kind.is_centered() {
                 g.end = g.start + dir * g.length();
             } else {
@@ -624,7 +624,7 @@ fn edit_gradient(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 /// A painted stroke on a type run without a weight gets 1 pt.
-pub(crate) fn run_stroke_weight(style: &mut vectorcraft_doc::CharStyle) {
+pub(crate) fn run_stroke_weight(style: &mut vansoncraft_doc::CharStyle) {
     if style.stroke_width == 0.0 {
         style.stroke_width = 1.0;
     }
@@ -632,7 +632,7 @@ pub(crate) fn run_stroke_weight(style: &mut vectorcraft_doc::CharStyle) {
 
 /// A type run's fill or stroke paint and the box (text space) an unplaced gradient on it fits:
 /// the layout bounds `lb`, grown by half the run's stroke weight for strokes.
-pub(crate) fn run_paint_mut(r: &mut vectorcraft_doc::TextRun, stroke: bool, lb: Rect) -> (&mut Paint, Rect) {
+pub(crate) fn run_paint_mut(r: &mut vansoncraft_doc::TextRun, stroke: bool, lb: Rect) -> (&mut Paint, Rect) {
     if stroke {
         let b = stroke_paint_bounds(lb, r.style.stroke_width);
         (&mut r.style.stroke, b)
@@ -704,7 +704,7 @@ fn vector_paint(
     e: &GeomEdit,
     to_doc: Affine,
     bounds: Option<Rect>,
-    model: Option<vectorcraft_color::cms::Model>,
+    model: Option<vansoncraft_color::cms::Model>,
 ) -> Parsed<Option<Paint>> {
     let mut gp = gradient_for_edit(cur, model);
     let kind = gp.gradient.kind;

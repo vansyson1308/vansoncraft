@@ -20,7 +20,7 @@ another.
 
 Each solid follows its shape as it is filled. Separate and nested contours are built as drawn. Contours that cross,
 touch or run along each other or themselves, as type often draws a glyph, are first merged into one outline by
-[`vectorcraft-pathops`](../crates/pathops/README.md), keeping every contour but the numerical debris a boolean leaves.
+[`vansoncraft-pathops`](../crates/pathops/README.md), keeping every contour but the numerical debris a boolean leaves.
 Whether contours meet is judged on the outline as it is followed (see the curve tolerance below), so curves that
 overlap by less than that are built as drawn. All three effects share pathops'
 [limits](../crates/pathops/README.md#limits): a shape it refuses is built from its contours as drawn, where it can be.
@@ -146,7 +146,7 @@ group, a blend or a symbol instance, alone or inside a group or layer. The help 
 objects, groups or layers ([Apply and modify effects](https://helpx.adobe.com/illustrator/desktop/special-effects-styles/apply-filter-effects/apply-and-modify-effects.html)),
 that a clipping mask hides everything outside its shape ([Clipping masks](https://helpx.adobe.com/illustrator/using/clipping-masks.html)),
 and that a blend is treated as one object ([Blending objects](https://helpx.adobe.com/illustrator/using/blending-objects.html)).
-How the solid is built from each is VectorCraft's own rule: it is built from what the object shows, as a group's
+How the solid is built from each is VansonCraft's own rule: it is built from what the object shows, as a group's
 solids are ([Groups](#groups)), turned about one shared axis.
 
 - A clipping group (or a layer with a clipping mask) builds from its art inside the clipping path: each shape's fill
@@ -208,7 +208,7 @@ remain available; the list shows **Custom** whenever the effective lighting matc
 presets, including when there is more than one light. An equivalent explicit single light is
 recognized too. Reset all returns to Standard. Preview, Cancel and Undo work as for other options.
 
-These are original VectorCraft settings based on the public preset names and directions. Adobe's
+These are original VansonCraft settings based on the public preset names and directions. Adobe's
 documentation does not publish numeric rigs; the values are not copied from its software or files
 and are not claimed to reproduce its presets exactly. Standard retains the existing default.
 
@@ -315,7 +315,7 @@ out, perspective). No Adobe software, assets, presets or bevel shapes were used.
 - Curves are followed within 1/2000 of the shape's size (at least 0.05 pt), so a small curve takes a few points
   and a large one up to 32. Extrude & Bevel and Inflate take up to 65,536 outline points and 163,840 faces for each
   solid (a stroke's outline is counted on its own), and Rotate (which only turns the outline) takes 65,536 points.
-  These limits are VectorCraft's own values. Before any point is sampled, Extrude & Bevel counts the faces its walls,
+  These limits are VansonCraft's own values. Before any point is sampled, Extrude & Bevel counts the faces its walls,
   bevels and caps need, and Inflate counts the faces of its sides; when they do not fit, every curve of the shape
   takes fewer pieces, down to 4 (a curve that needs fewer takes fewer). A shape that does not fit at 4 pieces a
   curve is refused because the 3D surface is too complex. Inflate counts the faces of its front and back as it
@@ -330,7 +330,7 @@ out, perspective). No Adobe software, assets, presets or bevel shapes were used.
   sampled outline within the sampling tolerance above, one curve for each sampled edge through its two sampled
   points, so the cap and the walls next to it draw the edge they share as the same curves. The edges between two bevel steps or two wall slices, a
   piece of curve that does not fit after 8 halvings, an edge of a twisted wall cut into pieces, and the curves
-  past 1,048,576 for one solid stay straight. The tolerances and limits are VectorCraft's own values. Inflate's
+  past 1,048,576 for one solid stay straight. The tolerances and limits are VansonCraft's own values. Inflate's
   faces are polygons.
 - Inflate also limits the work of filling its grid, which grows with the outline's points times the grid cells its
   outline crosses. An outline of tens of thousands of points that crosses nearly every cell (a comb of 4,000 teeth
@@ -348,7 +348,7 @@ Release measurements and a repeatable CLI scene are in [3D lighting performance]
 
 | Date | Change |
 |---|---|
-| 2026-11-08 | Contours that cross, touch or overlap are merged by vectorcraft-pathops before Extrude & Bevel, Inflate and Rotate build a solid, sharing its limits; others are built as drawn. |
+| 2026-11-08 | Contours that cross, touch or overlap are merged by vansoncraft-pathops before Extrude & Bevel, Inflate and Rotate build a solid, sharing its limits; others are built as drawn. |
 | 2026-11-06 | Extrude & Bevel, Inflate and Rotate apply to groups and layers: every path, compound path and type in them turns about one shared axis (#4506). |
 | 2026-10-21 | Four original lighting presets, shared by all four 3D effects and commands, with effective-setting recognition and existing preview/history behavior. |
 | 2026-10-17 | Smooth colored Inflate lighting and surface batching; legacy white-light appearance and the 0.05 seam minimum preserved; shared light Color and multiple lights remain vector output. |

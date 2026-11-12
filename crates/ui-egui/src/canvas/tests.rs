@@ -1,6 +1,6 @@
 use super::*;
-use vectorcraft_engine::Session;
-use vectorcraft_geom::Shape as _;
+use vansoncraft_engine::Session;
+use vansoncraft_geom::Shape as _;
 
 /// The marquee explains E without depending on color. At the canvas edge the hint stays in
 /// view, in every brightness, and the two rules have visibly different outlines.
@@ -9,7 +9,7 @@ fn marquee_feedback_explains_the_rule_and_stays_on_canvas() {
     let draw = |ui: &mut egui::Ui| {
         let t = Tokens::get(ui.ctx());
         let xf = Xf { rect: ui.max_rect(), zoom: 1.0, center: Point::new(160.0, 100.0), rot: 0.0 };
-        let prefs = vectorcraft_engine::Prefs::default();
+        let prefs = vansoncraft_engine::Prefs::default();
         for (enclosed, y) in [(false, 80.0), (true, 180.0)] {
             overlays::draw_overlays(
                 ui.painter(),
@@ -45,7 +45,7 @@ fn marquee_feedback_explains_the_rule_and_stays_on_canvas() {
         }
     }
     // Optional visual QA of our own UI. Captures never enter the repository.
-    if let Some(path) = std::env::var_os("VECTORCRAFT_MARQUEE_CAPTURE") {
+    if let Some(path) = std::env::var_os("VANSONCRAFT_MARQUEE_CAPTURE") {
         let mut ready = false;
         let mut harness = egui_kittest::Harness::builder().with_size(vec2(320.0, 200.0)).wgpu().build_ui(move |ui| {
             if !ready {
@@ -65,7 +65,7 @@ fn marquee_feedback_explains_the_rule_and_stays_on_canvas() {
 fn subpixel_dock_layout_does_not_change_pointer_document_coordinates() {
     let mut observed = Vec::new();
     for width in [1324.0 + 29.0 / 32.0, 1324.875, 1325.875] {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 800, "height": 600, "created": 0})).unwrap();
         let ctx = egui::Context::default();
         ctx.set_pixels_per_point(2.0);
@@ -96,7 +96,7 @@ fn subpixel_dock_layout_does_not_change_pointer_document_coordinates() {
 fn the_opening_fit_follows_the_canvas_until_the_view_moves_or_the_user_acts() {
     // A frame that shows the canvas `width` points wide, which limits the fit of the 800 × 600
     // artboard, with `events`: the view after it.
-    fn frame(app: &mut VectorcraftApp, ctx: &egui::Context, width: f32, events: Vec<egui::Event>) -> View {
+    fn frame(app: &mut VansoncraftApp, ctx: &egui::Context, width: f32, events: Vec<egui::Event>) -> View {
         let raw = egui::RawInput {
             screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(1800.0, 900.0))),
             max_texture_side: Some(8192),
@@ -111,8 +111,8 @@ fn the_opening_fit_follows_the_canvas_until_the_view_moves_or_the_user_acts() {
         out.textures_delta.clear();
         *app.view().unwrap()
     }
-    fn opened() -> (VectorcraftApp, egui::Context) {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    fn opened() -> (VansoncraftApp, egui::Context) {
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 800, "height": 600, "created": 0})).unwrap();
         (app, egui::Context::default())
     }
@@ -150,17 +150,17 @@ fn rendered_rasters_become_the_same_egui_images() {
     s.execute("shape.ellipse", &serde_json::json!({"x": 10, "y": 10, "width": 60, "height": 40})).unwrap();
     s.execute("paint.setFill", &serde_json::json!({"color": "#3366cc"})).unwrap();
     let doc = s.active().unwrap().doc.clone();
-    let img = vectorcraft_render::Renderer::new().render(&doc, 97, 61, Affine::IDENTITY, &vectorcraft_render::RenderOptions::default());
+    let img = vansoncraft_render::Renderer::new().render(&doc, 97, 61, Affine::IDENTITY, &vansoncraft_render::RenderOptions::default());
     assert!(img.pixels.as_chunks::<4>().0.iter().any(|p| p[3] != 0 && p[3] != 255), "partly covered pixels");
     let egui = egui::ColorImage::from_rgba_premultiplied([97, 61], &img.pixels);
     assert_eq!(color_image(&img), egui);
     assert_eq!(color_image_owned(img), egui);
-    let short = vectorcraft_render::Rendered { width: 3, height: 2, pixels: vec![255; 5] };
+    let short = vansoncraft_render::Rendered { width: 3, height: 2, pixels: vec![255; 5] };
     assert_eq!(color_image(&short), egui::ColorImage::new([3, 2], vec![egui::Color32::TRANSPARENT; 6]));
     assert_eq!(color_image_owned(short), egui::ColorImage::new([3, 2], vec![egui::Color32::TRANSPARENT; 6]));
 }
 
-/// With VECTORCRAFT_SYSTEM_CURSORS set the glyphs aren't drawn and the system's cursors stand in: those of
+/// With VANSONCRAFT_SYSTEM_CURSORS set the glyphs aren't drawn and the system's cursors stand in: those of
 /// the Pen and the other drawing tools are the system crosshair already, so Use Precise Cursors makes no
 /// difference to them there.
 #[test]
@@ -194,12 +194,12 @@ fn system_cursors_show_the_same_crosshair_with_precise_cursors_on_or_off() {
 /// MCP) refreshes the pointer over the canvas without the pointer moving.
 #[test]
 fn command_cursor_settings_refresh_hover_cursor_while_view_moves() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
-    app.session.select_tool("pen", vectorcraft_engine::ViewInfo::default()).unwrap();
+    app.session.select_tool("pen", vansoncraft_engine::ViewInfo::default()).unwrap();
     app.hover_doc = Some(Point::new(200.0, 150.0));
     let mods = Mods::default();
-    let view = vectorcraft_engine::ViewInfo::default();
+    let view = vansoncraft_engine::ViewInfo::default();
     assert_eq!(hover_cursor(&mut app, mods, view, false), Some(Cursor::Pen));
 
     app.run("view.capsLock", json!({"on": true})).unwrap();
@@ -213,12 +213,12 @@ fn command_cursor_settings_refresh_hover_cursor_while_view_moves() {
 /// A script that changes Caps Lock refreshes the pointer when its run ends.
 #[test]
 fn a_script_run_refreshes_hover_cursor_while_view_moves() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
-    app.session.select_tool("pen", vectorcraft_engine::ViewInfo::default()).unwrap();
+    app.session.select_tool("pen", vansoncraft_engine::ViewInfo::default()).unwrap();
     app.hover_doc = Some(Point::new(200.0, 150.0));
     let mods = Mods::default();
-    let view = vectorcraft_engine::ViewInfo::default();
+    let view = vansoncraft_engine::ViewInfo::default();
     assert_eq!(hover_cursor(&mut app, mods, view, false), Some(Cursor::Pen));
     app.run("script.run", json!({"source": "vc.run('view.capsLock', {on: true});"})).unwrap();
     for _ in 0..1_000 {
@@ -324,7 +324,7 @@ fn video_rulers_count_the_artboard_in_pixels_of_its_aspect_ratio() {
     let ab = s.active().unwrap().doc.artboards[0].clone();
     let r = ab.rect;
     let scale = RulerScale::video(&ab);
-    let (x, y) = (vectorcraft_geom::Vec2::new(1.0, 0.0), vectorcraft_geom::Vec2::new(0.0, 1.0));
+    let (x, y) = (vansoncraft_geom::Vec2::new(1.0, 0.0), vansoncraft_geom::Vec2::new(0.0, 1.0));
     let close = |a: f64, b: f64| (a - b).abs() < 1e-9;
     assert_eq!((scale.unit, scale.origin), (Unit::Pixels, Point::new(r.x0, r.y0)));
     assert!(close(scale.along(Point::new(r.x1, r.y1), x), 800.0) && close(scale.along(Point::new(r.x1, r.y1), y), 480.0));
@@ -375,7 +375,7 @@ fn shaper_selection_highlights_only_the_visible_result() {
     let mut s = Session::new();
     s.execute("file.new", &json!({})).unwrap();
     s.execute("shape.ellipse", &json!({"x":100,"y":100,"width":100,"height":100})).unwrap();
-    let line = vectorcraft_doc::NodeId(s.execute("shape.line", &json!({"x1":50,"y1":150,"x2":250,"y2":150})).unwrap()["id"].as_u64().unwrap());
+    let line = vansoncraft_doc::NodeId(s.execute("shape.line", &json!({"x1":50,"y1":150,"x2":250,"y2":150})).unwrap()["id"].as_u64().unwrap());
     for x in [0.0, 150.0] {
         s.execute("shaper.scribble", &json!({"points":[[60.0+x,140],[70.0+x,160],[80.0+x,140],[90.0+x,160]]})).unwrap();
     }
@@ -391,15 +391,15 @@ fn shaper_selection_highlights_only_the_visible_result() {
 /// A clip group made from scratch: a 320 × 40 image and a 300 × 200 ellipse, both reaching
 /// outside a 100 × 100 square at (100, 100) that clips them, and a rectangle beside them. The
 /// task bar and rulers are off. → the app, the clip group, the ellipse and the rectangle.
-fn clip_group_app() -> (VectorcraftApp, serde_json::Value, serde_json::Value, serde_json::Value) {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+fn clip_group_app() -> (VansoncraftApp, serde_json::Value, serde_json::Value, serde_json::Value) {
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     app.ui.task_bar = false;
     app.ui.view.rulers = false;
     let img = image::RgbaImage::from_pixel(320, 40, image::Rgba([200, 120, 40, 255]));
     let mut png = vec![];
     img.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
-    let data = vectorcraft_format::base64_encode(&png);
+    let data = vansoncraft_format::base64_encode(&png);
     app.run("file.place", json!({"name": "texture.png", "dataBase64": data, "link": false, "at": [150, 150]})).unwrap();
     let image = json!(app.session.active().unwrap().selection.objects[0].0);
     let ellipse = app.run("shape.ellipse", json!({"x": 0, "y": 50, "width": 300, "height": 200})).unwrap()["id"].clone();
@@ -412,7 +412,7 @@ fn clip_group_app() -> (VectorcraftApp, serde_json::Value, serde_json::Value, se
 
 /// The screen points of what one frame draws in `color` with lines `width` px wide: outlines and
 /// the bounding box, and with `width` 1 the anchors and the bounding box's handles too.
-fn drawn_in(app: &mut VectorcraftApp, ctx: &egui::Context, color: Color32, width: f32) -> Vec<Pos2> {
+fn drawn_in(app: &mut VansoncraftApp, ctx: &egui::Context, color: Color32, width: f32) -> Vec<Pos2> {
     let solid = egui::epaint::ColorMode::Solid(color);
     let mut at = vec![];
     for s in shapes(app, ctx) {
@@ -436,7 +436,7 @@ fn a_selected_clip_group_shows_its_clipping_path_not_its_hidden_art() {
     let ctx = egui::Context::default();
     frame(&mut app, &ctx, vec![]);
     let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
-    let color = c32(app.session.active().unwrap().doc.layer_color(vectorcraft_doc::NodeId(group.as_u64().unwrap())));
+    let color = c32(app.session.active().unwrap().doc.layer_color(vansoncraft_doc::NodeId(group.as_u64().unwrap())));
     // The square on screen. `inside` allows 8 px around it for the anchors and the bounding box's handles.
     let clip = egui::Rect::from_two_pos(xf.to_screen(Point::new(100.0, 100.0)), xf.to_screen(Point::new(200.0, 200.0)));
     // Each case that draws nothing, or draws outside the square.
@@ -466,14 +466,14 @@ fn a_selected_clip_group_shows_its_clipping_path_not_its_hidden_art() {
 /// outlines and no image's rectangle, and a bounding box that is the union of the squares.
 #[test]
 fn a_group_of_clipped_images_shows_its_masks_and_their_bounds() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 600, "height": 300})).unwrap();
     app.ui.task_bar = false;
     app.ui.view.rulers = false;
     let img = image::RgbaImage::from_pixel(160, 160, image::Rgba([40, 120, 200, 255]));
     let mut png = vec![];
     img.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
-    let data = vectorcraft_format::base64_encode(&png);
+    let data = vansoncraft_format::base64_encode(&png);
     // Masks 100 × 100 at x = 20, 150, 280, 410; each image reaches 30 past its mask on every side.
     let masks: Vec<Rect> = (0..4).map(|i| Rect::new(20.0 + 130.0 * i as f64, 100.0, 120.0 + 130.0 * i as f64, 200.0)).collect();
     let mut clips = vec![];
@@ -485,7 +485,7 @@ fn a_group_of_clipped_images_shows_its_masks_and_their_bounds() {
         clips.push(app.run("object.clippingMask.make", json!({})).unwrap()["id"].clone());
     }
     app.run("select.set", json!({"ids": clips})).unwrap();
-    let group = vectorcraft_doc::NodeId(app.run("object.group", json!({})).unwrap()["id"].as_u64().unwrap());
+    let group = vansoncraft_doc::NodeId(app.run("object.group", json!({})).unwrap()["id"].as_u64().unwrap());
     app.run("select.none", json!({})).unwrap();
     let union = masks.iter().copied().reduce(|a, b| a.union(b)).unwrap();
     let ctx = egui::Context::default();
@@ -532,7 +532,7 @@ fn a_group_of_clipped_images_shows_its_masks_and_their_bounds() {
 /// shows its clipping path's anchors and hover highlight.
 #[test]
 fn a_clip_group_over_a_huge_path_shows_its_clipping_path() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     app.ui.task_bar = false;
     app.ui.view.rulers = false;
@@ -542,7 +542,7 @@ fn a_clip_group_over_a_huge_path_shows_its_clipping_path() {
     let square = app.run("shape.rectangle", json!({"x": 100, "y": 100, "width": 100, "height": 100})).unwrap()["id"].clone();
     app.run("select.set", json!({"ids": [huge, square]})).unwrap();
     let group = app.run("object.clippingMask.make", json!({})).unwrap()["id"].clone();
-    let color = c32(app.session.active().unwrap().doc.layer_color(vectorcraft_doc::NodeId(group.as_u64().unwrap())));
+    let color = c32(app.session.active().unwrap().doc.layer_color(vansoncraft_doc::NodeId(group.as_u64().unwrap())));
     let ctx = egui::Context::default();
     frame(&mut app, &ctx, vec![]);
     let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
@@ -564,7 +564,7 @@ fn the_art_a_clip_group_clips_shows_whole_when_picked() {
     let ctx = egui::Context::default();
     frame(&mut app, &ctx, vec![]);
     let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
-    let color = c32(app.session.active().unwrap().doc.layer_color(vectorcraft_doc::NodeId(group.as_u64().unwrap())));
+    let color = c32(app.session.active().unwrap().doc.layer_color(vansoncraft_doc::NodeId(group.as_u64().unwrap())));
     // Something is drawn at the ellipse's left and right ends, outside the square.
     let reaches = |at: &[Pos2], what: &str| {
         let (left, right) = (xf.to_screen(Point::new(0.0, 150.0)).x, xf.to_screen(Point::new(300.0, 150.0)).x);
@@ -580,7 +580,7 @@ fn the_art_a_clip_group_clips_shows_whole_when_picked() {
     for kind in [PointerKind::Down, PointerKind::Up] {
         app.session.pointer(&PointerEvent::new(kind, 150.0, 120.0), view).unwrap();
     }
-    assert_eq!(app.session.active().unwrap().selection.objects, vec![vectorcraft_doc::NodeId(ellipse.as_u64().unwrap())]);
+    assert_eq!(app.session.active().unwrap().selection.objects, vec![vansoncraft_doc::NodeId(ellipse.as_u64().unwrap())]);
     reaches(&drawn_in(&mut app, &ctx, color, 1.0), "a Direct Selection click");
     app.run("select.none", json!({})).unwrap();
     app.select_tool("groupSelection");
@@ -589,7 +589,7 @@ fn the_art_a_clip_group_clips_shows_whole_when_picked() {
     for kind in [PointerKind::Down, PointerKind::Up] {
         app.session.pointer(&PointerEvent::new(kind, 150.0, 120.0), view).unwrap();
     }
-    assert_eq!(app.session.active().unwrap().selection.objects, vec![vectorcraft_doc::NodeId(ellipse.as_u64().unwrap())]);
+    assert_eq!(app.session.active().unwrap().selection.objects, vec![vansoncraft_doc::NodeId(ellipse.as_u64().unwrap())]);
     reaches(&drawn_in(&mut app, &ctx, color, 1.0), "a Group Selection click");
     app.select_tool("selection");
     app.run("object.isolate", json!({"id": group})).unwrap();
@@ -601,7 +601,7 @@ fn the_art_a_clip_group_clips_shows_whole_when_picked() {
 /// shown or hidden: its arrow points right in Face Selection mode and left in Construction mode.
 #[test]
 fn the_shaper_widget_points_to_the_other_mode() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     for x in [0, 50] {
         app.session.execute("shape.rectangle", &json!({"x": x, "y": 0, "width": 100, "height": 100})).unwrap();
@@ -610,9 +610,9 @@ fn the_shaper_widget_points_to_the_other_mode() {
     let g = app.session.execute("shaper.scribble", &points).unwrap()["id"].as_u64().unwrap();
     let ctx = egui::Context::default();
     // For each widget drawn, whether its arrow's tip is right of the circle's center.
-    let right = |app: &mut VectorcraftApp| -> Vec<bool> {
+    let right = |app: &mut VansoncraftApp| -> Vec<bool> {
         let drawn = shapes(app, &ctx);
-        let r = vectorcraft_tools::shaperwidget::RADIUS_PX;
+        let r = vansoncraft_tools::shaperwidget::RADIUS_PX;
         let centers: Vec<egui::Pos2> = drawn
             .iter()
             .filter_map(|s| if let Shape::Circle(c) = s { (c.radius == r && c.fill == Color32::WHITE).then_some(c.center) } else { None })
@@ -644,7 +644,7 @@ fn a_symbol_instance_is_outlined_around_its_art() {
     // and an instance of it at (20, 30).
     let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120"><defs><symbol id="Star"><path d="M0 0H20V20H0Z" fill="#e0a000"/></symbol></defs><use href="#Star" x="20" y="30"/></svg>"##;
     let mut s = Session::new();
-    s.execute("document.open", &json!({"name": "star.svg", "dataBase64": vectorcraft_format::base64_encode(svg.as_bytes())})).unwrap();
+    s.execute("document.open", &json!({"name": "star.svg", "dataBase64": vansoncraft_format::base64_encode(svg.as_bytes())})).unwrap();
     let st = s.active().unwrap();
     let mut inst = None;
     st.doc.walk(|n| {
@@ -656,7 +656,7 @@ fn a_symbol_instance_is_outlined_around_its_art() {
 }
 
 /// One headless canvas frame on an 800 × 600 window.
-fn frame(app: &mut VectorcraftApp, ctx: &egui::Context, events: Vec<egui::Event>) {
+fn frame(app: &mut VansoncraftApp, ctx: &egui::Context, events: Vec<egui::Event>) {
     let raw = egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0))), events, ..Default::default() };
     let mut out = ctx.run_ui(raw, |ui| show(app, ui));
     out.textures_delta.clear();
@@ -665,15 +665,15 @@ fn frame(app: &mut VectorcraftApp, ctx: &egui::Context, events: Vec<egui::Event>
 #[test]
 fn bucket_modifier_only_hover_updates_the_visible_cursor() {
     use egui::{Event, Modifiers};
-    use vectorcraft_tools::Cursor;
+    use vansoncraft_tools::Cursor;
 
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     app.select_tool("livePaintBucket");
     let ctx = egui::Context::default();
     frame(&mut app, &ctx, vec![]);
     let at = app.canvas_rect.unwrap().center();
-    let shown = |app: &mut VectorcraftApp, events| {
+    let shown = |app: &mut VansoncraftApp, events| {
         frame(app, &ctx, events);
         app.canvas.hover_cursor.map(|(_, _, cursor)| cursor)
     };
@@ -687,10 +687,10 @@ fn bucket_modifier_only_hover_updates_the_visible_cursor() {
 /// show the source image.
 #[test]
 fn a_release_ends_the_image_trace_hold_without_the_panel() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 200, "height": 200})).unwrap();
     let made = app.run("shape.rectangle", json!({"x": 10, "y": 10, "width": 50, "height": 50})).unwrap();
-    let id = vectorcraft_doc::NodeId(made["id"].as_u64().unwrap());
+    let id = vansoncraft_doc::NodeId(made["id"].as_u64().unwrap());
     let ctx = egui::Context::default();
     let at = pos2(400.0, 300.0);
     let press = |pressed| egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
@@ -711,12 +711,12 @@ fn a_release_ends_the_image_trace_hold_without_the_panel() {
 #[test]
 fn point_type_baselines_run_under_the_line_whatever_its_alignment() {
     for justify in ["left", "center", "right"] {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.run("file.new", json!({"width": 600, "height": 300})).unwrap();
         app.ui.task_bar = false;
         app.ui.view.rulers = false;
         let made = app.run("text.create", json!({"x": 300, "y": 150, "text": "Baseline marker", "size": 24, "justify": justify})).unwrap();
-        let id = vectorcraft_doc::NodeId(made["id"].as_u64().unwrap());
+        let id = vansoncraft_doc::NodeId(made["id"].as_u64().unwrap());
         app.run("select.set", json!({"ids": [id.0]})).unwrap();
         let ctx = egui::Context::default();
         frame(&mut app, &ctx, vec![]);
@@ -745,7 +745,7 @@ fn point_type_baselines_run_under_the_line_whatever_its_alignment() {
 /// Place then pastes onto it, where the objects were on their own artboard (#693).
 #[test]
 fn a_click_activates_its_artboard_and_paste_in_place_goes_onto_it() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 200, "height": 100, "artboards": 3})).unwrap();
     let boards: Vec<_> = app.session.active().unwrap().doc.artboards.iter().map(|a| a.rect).collect();
     app.session.execute("shape.rectangle", &json!({"x": boards[0].x0 + 10.0, "y": boards[0].y0 + 15.0, "width": 20, "height": 20})).unwrap();
@@ -759,11 +759,11 @@ fn a_click_activates_its_artboard_and_paste_in_place_goes_onto_it() {
         dispatch(&mut app, &PointerEvent { kind, pos: at, mods: Default::default(), backquote: false, pressure: 1.0, pen: None }, view);
     }
     assert_eq!(app.view().unwrap().artboard, 2, "the clicked artboard is the active one");
-    let ids: Vec<vectorcraft_doc::NodeId> = app.run("edit.pasteInPlace", json!({})).unwrap()["ids"]
+    let ids: Vec<vansoncraft_doc::NodeId> = app.run("edit.pasteInPlace", json!({})).unwrap()["ids"]
         .as_array()
         .unwrap()
         .iter()
-        .map(|v| vectorcraft_doc::NodeId(v.as_u64().unwrap()))
+        .map(|v| vansoncraft_doc::NodeId(v.as_u64().unwrap()))
         .collect();
     let b = app.session.active().unwrap().doc.bounds_of(&ids, false).unwrap();
     assert_eq!((b.x0, b.y0), (boards[2].x0 + 10.0, boards[2].y0 + 15.0));
@@ -774,12 +774,12 @@ fn a_click_activates_its_artboard_and_paste_in_place_goes_onto_it() {
 /// call names another artboard.
 #[test]
 fn a_shift_click_activates_its_artboard_and_align_to_artboard_aligns_to_it() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 200, "height": 100, "artboards": 3})).unwrap();
     let boards: Vec<_> = app.session.active().unwrap().doc.artboards.iter().map(|a| a.rect).collect();
     let mut rect = |x: f64, y: f64| {
         let r = app.session.execute("shape.rectangle", &json!({"x": boards[0].x0 + x, "y": boards[0].y0 + y, "width": 20, "height": 20}));
-        vectorcraft_doc::NodeId(r.unwrap()["id"].as_u64().unwrap())
+        vansoncraft_doc::NodeId(r.unwrap()["id"].as_u64().unwrap())
     };
     let ids = [rect(10.0, 15.0), rect(50.0, 40.0)];
     app.session.execute("select.set", &json!({"ids": [ids[0].0, ids[1].0]})).unwrap();
@@ -793,7 +793,7 @@ fn a_shift_click_activates_its_artboard_and_align_to_artboard_aligns_to_it() {
     }
     assert_eq!(app.view().unwrap().artboard, 2, "the clicked artboard is the active one");
     assert_eq!(app.session.active().unwrap().selection.objects, ids, "the selection stays");
-    let lefts = |app: &VectorcraftApp| ids.map(|id| app.session.active().unwrap().doc.node(id).unwrap().geometric_bounds().unwrap().x0);
+    let lefts = |app: &VansoncraftApp| ids.map(|id| app.session.active().unwrap().doc.node(id).unwrap().geometric_bounds().unwrap().x0);
     app.run("object.align", json!({"horizontal": "left", "to": "artboard"})).unwrap();
     assert_eq!(lefts(&app), [boards[2].x0; 2], "the left edges are on the active artboard's");
     app.run("object.align", json!({"horizontal": "left", "to": "artboard", "artboard": 1})).unwrap();
@@ -806,11 +806,11 @@ fn a_shift_click_activates_its_artboard_and_align_to_artboard_aligns_to_it() {
 /// Artboard tool, the tool's active one (the one Shift-clicked last).
 #[test]
 fn the_active_artboard_is_outlined_in_black() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 200, "height": 100, "artboards": 3})).unwrap();
     let ctx = egui::Context::default();
     // → each artboard's edge as drawn: (width, color).
-    let edges = |app: &mut VectorcraftApp| {
+    let edges = |app: &mut VansoncraftApp| {
         let s = shapes(app, &ctx);
         let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
         let on = |p: &[Pos2], q: &[Pos2]| p.len() == q.len() && p.iter().zip(q).all(|(a, b)| (*a - *b).length() < 0.01);
@@ -855,7 +855,7 @@ fn the_active_artboard_is_outlined_in_black() {
 // Now each artboard is named once, and the active one's name sits where the others' do.
 #[test]
 fn the_artboard_tool_names_its_active_artboard_once() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 200, "height": 100, "artboards": 2})).unwrap();
     app.select_tool("artboard");
     let ctx = egui::Context::default();
@@ -883,7 +883,7 @@ fn the_artboard_tool_names_its_active_artboard_once() {
 
 #[test]
 fn shift_clicking_canvas_artboard_label_toggles_multi_selection() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 200, "height": 100, "artboards": 3})).unwrap();
     app.select_tool("artboard");
     if let Some(v) = app.view_mut() {
@@ -936,19 +936,19 @@ fn shift_clicking_canvas_artboard_label_toggles_multi_selection() {
 /// first finger's press (the pointer egui makes of it) draws nothing. Off, a tap does nothing.
 #[test]
 fn two_finger_tap_undoes_and_three_finger_tap_redoes() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.session.execute("shape.rectangle", &json!({"x": 50, "y": 50, "width": 40, "height": 40})).unwrap();
     app.select_tool("rectangle");
     let ctx = egui::Context::default();
     frame(&mut app, &ctx, vec![]);
-    let count = |app: &VectorcraftApp| app.session.active().unwrap().doc.layers[0].children().unwrap().len();
+    let count = |app: &VansoncraftApp| app.session.active().unwrap().doc.layers[0].children().unwrap().len();
     let c = app.canvas_rect.unwrap().center();
     let touch = |n: u64, phase, pos| egui::Event::Touch { device_id: egui::TouchDeviceId(1), id: egui::TouchId(n), phase, pos, force: None };
     let button = |pos, pressed| egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
     // `fingers` fingers tap at the centre, the first also pressing as the pointer and moving a
     // little (as a rectangle drag would begin).
-    let tap = |app: &mut VectorcraftApp, fingers: u64| {
+    let tap = |app: &mut VansoncraftApp, fingers: u64| {
         let at = |n: u64| c + vec2(n as f32 * 50.0, 0.0);
         frame(app, &ctx, vec![touch(0, egui::TouchPhase::Start, at(0)), egui::Event::PointerMoved(at(0)), button(at(0), true)]);
         frame(app, &ctx, vec![touch(0, egui::TouchPhase::Move, at(0) + vec2(6.0, 6.0)), egui::Event::PointerMoved(at(0) + vec2(6.0, 6.0))]);
@@ -978,7 +978,7 @@ fn artboard_labels_name_the_artboard() {
 /// artboard or open Artboard Options.
 #[test]
 fn double_clicking_an_artboard_name_edits_it() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.session.execute("artboard.new", &json!({"x": 500, "y": 0, "width": 100, "height": 80, "name": "Far"})).unwrap();
     app.session.execute("shape.rectangle", &json!({"x": 40, "y": 40, "width": 30, "height": 20})).unwrap();
@@ -996,7 +996,7 @@ fn double_clicking_an_artboard_name_edits_it() {
     assert!(rect.contains(at), "the name is in the working area, at {at:?} canvas {rect:?}");
     let before = app.session.active().unwrap().doc.artboards.len();
     let button = |pressed| egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
-    let click = |app: &mut VectorcraftApp| {
+    let click = |app: &mut VansoncraftApp| {
         frame(app, &ctx, vec![egui::Event::PointerMoved(at)]);
         frame(app, &ctx, vec![button(true)]);
         frame(app, &ctx, vec![button(false)]);
@@ -1016,7 +1016,7 @@ fn double_clicking_an_artboard_name_edits_it() {
 /// still renames the artboard), fit an artboard or open Artboard Options.
 #[test]
 fn double_clicking_a_locked_artboards_name_leaves_it() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.session.execute("shape.rectangle", &json!({"x": 40, "y": 40, "width": 30, "height": 20})).unwrap();
     app.session.execute("artboard.setProps", &json!({"index": 0, "locked": true})).unwrap();
@@ -1065,7 +1065,7 @@ fn artboard_name_field_glyphs_stay_put_when_button_padding_changes() {
     /// The name field's text origin relative to its rectangle with the theme's button padding `padding`: the
     /// field opened as a double click opens it, measured in the steady frame after it takes focus.
     fn editor_inset(padding: Vec2) -> Vec2 {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         app.session.execute("artboard.setProps", &json!({"index": 0, "name": "Inset"})).unwrap();
         app.select_tool("artboard");
@@ -1139,7 +1139,7 @@ fn middle(pos: Pos2, pressed: bool) -> egui::Event {
 }
 
 /// One headless frame with the canvas under a 40-point bar, as it is under the document tabs.
-fn frame_under_bar(app: &mut VectorcraftApp, ctx: &egui::Context, events: Vec<egui::Event>) {
+fn frame_under_bar(app: &mut VansoncraftApp, ctx: &egui::Context, events: Vec<egui::Event>) {
     let raw = egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0))), events, ..Default::default() };
     let mut out = ctx.run_ui(raw, |ui| {
         ui.add_space(40.0);
@@ -1150,7 +1150,7 @@ fn frame_under_bar(app: &mut VectorcraftApp, ctx: &egui::Context, events: Vec<eg
 
 #[test]
 fn a_click_just_outside_the_canvas_does_not_reach_the_tool() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     // A square in the middle of the artboard, where the view is centred.
     let id = app.session.execute("shape.rectangle", &json!({"x": 180, "y": 130, "width": 40, "height": 40})).unwrap()["id"].as_u64().unwrap();
@@ -1158,19 +1158,19 @@ fn a_click_just_outside_the_canvas_does_not_reach_the_tool() {
     let ctx = egui::Context::default();
     frame_under_bar(&mut app, &ctx, vec![]);
     let rect = app.canvas_rect.unwrap();
-    let click = |app: &mut VectorcraftApp, p: Pos2| {
+    let click = |app: &mut VansoncraftApp, p: Pos2| {
         let button = |pressed| egui::Event::PointerButton { pos: p, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
         frame_under_bar(app, &ctx, vec![egui::Event::PointerMoved(p)]);
         frame_under_bar(app, &ctx, vec![button(true)]);
         frame_under_bar(app, &ctx, vec![button(false)]);
     };
-    let selected = |app: &VectorcraftApp| app.session.active().unwrap().selection.objects.clone();
+    let selected = |app: &VansoncraftApp| app.session.active().unwrap().selection.objects.clone();
     // Two pixels above the canvas, within egui's interaction radius: nothing happens.
     click(&mut app, pos2(rect.center().x, rect.top() - 2.0));
     assert!(selected(&app).is_empty(), "a click above the canvas selected {:?}", selected(&app));
     // At the canvas's centre: the square.
     click(&mut app, rect.center());
-    assert_eq!(selected(&app), vec![vectorcraft_doc::NodeId(id)]);
+    assert_eq!(selected(&app), vec![vansoncraft_doc::NodeId(id)]);
 }
 
 /// The box-drawing shape tools show the bounding box of the shape just drawn (#5477). A drag of
@@ -1180,12 +1180,12 @@ fn a_click_just_outside_the_canvas_does_not_reach_the_tool() {
 fn a_shape_tool_scales_the_shape_just_drawn_by_its_bounding_box_handle() {
     let button = |pos, pressed| egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
     for tool in ["rectangle", "roundedRectangle", "ellipse", "polygon", "star"] {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         app.select_tool(tool);
         let ctx = egui::Context::default();
         frame(&mut app, &ctx, vec![]);
-        let drag = |app: &mut VectorcraftApp, a: Pos2, b: Pos2| {
+        let drag = |app: &mut VansoncraftApp, a: Pos2, b: Pos2| {
             for ev in [
                 egui::Event::PointerMoved(a),
                 button(a, true),
@@ -1199,7 +1199,7 @@ fn a_shape_tool_scales_the_shape_just_drawn_by_its_bounding_box_handle() {
         };
         let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
         drag(&mut app, xf.to_screen(Point::new(150.0, 120.0)), xf.to_screen(Point::new(210.0, 170.0)));
-        let objects = |app: &VectorcraftApp| {
+        let objects = |app: &VansoncraftApp| {
             let mut n = 0;
             app.session.active().unwrap().doc.walk(|node| n += usize::from(node.path_data().is_some()));
             n
@@ -1225,7 +1225,7 @@ fn a_shape_tool_scales_the_shape_just_drawn_by_its_bounding_box_handle() {
 
 #[test]
 fn a_drag_from_a_ruler_onto_the_canvas_makes_a_guide() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.ui.view.rulers = true;
     app.ui.view.guides = false;
@@ -1236,13 +1236,13 @@ fn a_drag_from_a_ruler_onto_the_canvas_makes_a_guide() {
     let rect = app.canvas_rect.unwrap();
     let xf = Xf::new(rect, app.view().unwrap());
     let button = |pos, pressed| egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
-    let drag = |app: &mut VectorcraftApp, from: Pos2, to: Pos2| {
+    let drag = |app: &mut VansoncraftApp, from: Pos2, to: Pos2| {
         frame(app, &ctx, vec![egui::Event::PointerMoved(from)]);
         frame(app, &ctx, vec![button(from, true)]);
         frame(app, &ctx, vec![egui::Event::PointerMoved(to)]);
         frame(app, &ctx, vec![button(to, false)]);
     };
-    let guides = |app: &VectorcraftApp| app.session.active().unwrap().doc.ruler_guides().iter().map(|g| (g.vertical, g.pos)).collect::<Vec<_>>();
+    let guides = |app: &VansoncraftApp| app.session.active().unwrap().doc.ruler_guides().iter().map(|g| (g.vertical, g.pos)).collect::<Vec<_>>();
     // From the top ruler: a horizontal guide where the button was released.
     let to = pos2(rect.center().x, rect.top() + 120.0);
     drag(&mut app, pos2(rect.center().x, rect.top() - RULER / 2.0), to);
@@ -1263,7 +1263,7 @@ fn a_drag_from_a_ruler_onto_the_canvas_makes_a_guide() {
 /// selected labeled guide takes the selection color. Hide Guides hides labeled guides too.
 #[test]
 fn artboard_guide_label_colors_only_its_own_guides() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.session.execute("artboard.new", &json!({})).unwrap();
     app.session.execute("artboard.new", &json!({})).unwrap();
@@ -1293,7 +1293,7 @@ fn artboard_guide_label_colors_only_its_own_guides() {
     let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
     let t = Tokens::get(&ctx);
     let pref = LineLook::guides(&app.session.prefs, &t).color;
-    let colors = |app: &mut VectorcraftApp, at: f64, vertical: bool| -> Vec<Color32> {
+    let colors = |app: &mut VansoncraftApp, at: f64, vertical: bool| -> Vec<Color32> {
         shapes(app, &ctx)
             .iter()
             .filter_map(|s| match s {
@@ -1331,7 +1331,7 @@ fn artboard_guide_label_colors_only_its_own_guides() {
 #[test]
 fn a_guide_dragged_out_of_a_ruler_shows_while_dragged() {
     for real_time in [true, false] {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         app.session.execute("prefs.set", &json!({"key": "realTimeDrawing", "value": real_time})).unwrap();
         app.ui.view.rulers = true;
@@ -1364,7 +1364,7 @@ fn a_guide_dragged_out_of_a_ruler_shows_while_dragged() {
 #[test]
 fn real_time_drawing_off_moves_the_bounding_box_with_a_move_drag() {
     for real_time in [true, false] {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         app.session.execute("prefs.set", &json!({"key": "realTimeDrawing", "value": real_time})).unwrap();
         app.ui.task_bar = false;
@@ -1378,12 +1378,12 @@ fn real_time_drawing_off_moves_the_bounding_box_with_a_move_drag() {
         frame(&mut app, &ctx, vec![]);
         let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
         let is_handle = |s: &Shape| matches!(s, Shape::Rect(r) if (r.rect.width() - 6.0).abs() < 1.0 && (r.rect.height() - 6.0).abs() < 1.0 && r.fill == Color32::WHITE);
-        let handles = |app: &mut VectorcraftApp| {
+        let handles = |app: &mut VansoncraftApp| {
             shapes(app, &ctx).iter().filter(|s| is_handle(s)).map(|s| s.visual_bounding_rect().center()).collect::<Vec<_>>()
         };
         let at_rest = handles(&mut app);
         assert_eq!(at_rest.len(), 8, "real-time drawing {real_time}: the box's handles at rest");
-        let left = |app: &VectorcraftApp| app.session.active().unwrap().doc.art_bounds().unwrap().x0;
+        let left = |app: &VansoncraftApp| app.session.active().unwrap().doc.art_bounds().unwrap().x0;
         let start = left(&app);
         let view = app.view_info();
         app.session.pointer(&PointerEvent::new(PointerKind::Down, 150.0, 130.0), view).unwrap();
@@ -1410,7 +1410,7 @@ fn new_ruler_guides_follow_alt_through_preview_release_and_undo() {
     use egui::{Event, Modifiers};
     for source_vertical in [false, true] {
         for initially_alt in [false, true] {
-            let mut app = VectorcraftApp::new(Session::new(), Default::default());
+            let mut app = VansoncraftApp::new(Session::new(), Default::default());
             app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
             app.session.execute("document.setRulerOrigin", &json!({"x": 17, "y": 23})).unwrap();
             app.ui.view.rulers = true;
@@ -1432,7 +1432,7 @@ fn new_ruler_guides_follow_alt_through_preview_release_and_undo() {
             frame(&mut app, &ctx, vec![Event::ModifiersChanged(held(initially_alt)), Event::PointerMoved(from)]);
             frame(&mut app, &ctx, vec![button(from, true, initially_alt)]);
             frame(&mut app, &ctx, vec![Event::PointerMoved(at)]);
-            let assert_guide = |app: &VectorcraftApp, alt: bool, pos: Point| {
+            let assert_guide = |app: &VansoncraftApp, alt: bool, pos: Point| {
                 let guides = &app.session.active().unwrap().doc.ruler_guides();
                 assert_eq!(guides.len(), 1);
                 assert_eq!(guides[0].vertical, source_vertical != alt);
@@ -1486,7 +1486,7 @@ fn new_ruler_guide_alt_cancel_keeps_document_and_redo() {
     use egui::{Event, Modifiers};
     for source_vertical in [false, true] {
         for tool in ["rectangle", "artboard"] {
-            let mut app = VectorcraftApp::new(Session::new(), Default::default());
+            let mut app = VansoncraftApp::new(Session::new(), Default::default());
             app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
             app.session.execute("document.setRulerOrigin", &json!({"x": 17, "y": 23})).unwrap();
             app.session.execute("shape.rectangle", &json!({"x": 40, "y": 50, "width": 20, "height": 30})).unwrap();
@@ -1504,7 +1504,7 @@ fn new_ruler_guide_alt_cancel_keeps_document_and_redo() {
             let at = xf.to_screen(Point::new(80.0, 120.0));
             let button = |pos, pressed| Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Modifiers::ALT };
             let before = app.session.active().unwrap().doc.clone();
-            let history = |app: &VectorcraftApp| {
+            let history = |app: &VansoncraftApp| {
                 let st = app.session.active().unwrap();
                 (st.history.undo.len(), st.history.redo.len(), st.is_dirty())
             };
@@ -1538,7 +1538,7 @@ fn cmd_ruler_drags_make_artboard_guides_with_the_preference_on() {
     use egui::{Event, Modifiers};
     for source_vertical in [false, true] {
         for on in [false, true] {
-            let mut app = VectorcraftApp::new(Session::new(), Default::default());
+            let mut app = VansoncraftApp::new(Session::new(), Default::default());
             app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
             app.session.execute("prefs.set", &json!({"key": "cmdRulerDragArtboardGuides", "value": on})).unwrap();
             app.ui.view.rulers = true;
@@ -1551,7 +1551,7 @@ fn cmd_ruler_drags_make_artboard_guides_with_the_preference_on() {
             let xf = Xf::new(rect, app.view().unwrap());
             let from =
                 if source_vertical { pos2(rect.left() - RULER / 2.0, rect.center().y) } else { pos2(rect.center().x, rect.top() - RULER / 2.0) };
-            let drag = |app: &mut VectorcraftApp, to: Point| {
+            let drag = |app: &mut VansoncraftApp, to: Point| {
                 let at = xf.to_screen(to);
                 assert!(rect.contains(at));
                 let button = |pos, pressed, modifiers| Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers };
@@ -1580,7 +1580,7 @@ fn cmd_ruler_drags_make_artboard_guides_with_the_preference_on() {
 /// its artboard only.
 #[test]
 fn guides_from_the_rulers_snap_and_artboard_guides_span_their_artboard() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.session.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 400, "height": 300})).unwrap();
     app.session.execute("select.none", &json!({})).unwrap();
@@ -1591,13 +1591,13 @@ fn guides_from_the_rulers_snap_and_artboard_guides_span_their_artboard() {
     let rect = app.canvas_rect.unwrap();
     let xf = Xf::new(rect, app.view().unwrap());
     let button = |pos, pressed| egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
-    let drag = |app: &mut VectorcraftApp, from: Pos2, to: Pos2| {
+    let drag = |app: &mut VansoncraftApp, from: Pos2, to: Pos2| {
         frame(app, &ctx, vec![egui::Event::PointerMoved(from)]);
         frame(app, &ctx, vec![button(from, true)]);
         frame(app, &ctx, vec![egui::Event::PointerMoved(to)]);
         frame(app, &ctx, vec![button(to, false)]);
     };
-    let guides = |app: &VectorcraftApp| app.session.active().unwrap().doc.ruler_guides().iter().map(|g| (g.vertical, g.pos)).collect::<Vec<_>>();
+    let guides = |app: &VansoncraftApp| app.session.active().unwrap().doc.ruler_guides().iter().map(|g| (g.vertical, g.pos)).collect::<Vec<_>>();
     // 3 px off the middle of the top and bottom sides: onto the line through them.
     let mid = xf.to_screen(Point::new(200.0, 150.0));
     drag(&mut app, pos2(rect.left() - RULER / 2.0, mid.y), mid + vec2(3.0, 40.0));
@@ -1627,7 +1627,7 @@ fn guides_from_the_rulers_snap_and_artboard_guides_span_their_artboard() {
 /// ruler.
 #[test]
 fn the_selection_tool_moves_and_deletes_ruler_guides() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     // A square under the guides: the press takes the guide.
     app.session.execute("shape.rectangle", &json!({"x": 50, "y": 50, "width": 300, "height": 200})).unwrap();
@@ -1640,13 +1640,13 @@ fn the_selection_tool_moves_and_deletes_ruler_guides() {
     let rect = app.canvas_rect.unwrap();
     let xf = Xf::new(rect, app.view().unwrap());
     let button = |pos, pressed| egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
-    let drag = |app: &mut VectorcraftApp, from: Pos2, to: Pos2| {
+    let drag = |app: &mut VansoncraftApp, from: Pos2, to: Pos2| {
         frame(app, &ctx, vec![egui::Event::PointerMoved(from)]);
         frame(app, &ctx, vec![button(from, true)]);
         frame(app, &ctx, vec![egui::Event::PointerMoved(to)]);
         frame(app, &ctx, vec![button(to, false)]);
     };
-    let guides = |app: &VectorcraftApp| app.session.active().unwrap().doc.ruler_guides().iter().map(|g| (g.vertical, g.pos)).collect::<Vec<_>>();
+    let guides = |app: &VansoncraftApp| app.session.active().unwrap().doc.ruler_guides().iter().map(|g| (g.vertical, g.pos)).collect::<Vec<_>>();
     // Two guides out of the rulers.
     let (h, v) = (pos2(rect.center().x + 30.0, rect.center().y + 20.0), pos2(rect.center().x - 40.0, rect.center().y));
     drag(&mut app, pos2(h.x, rect.top() - RULER / 2.0), h);
@@ -1657,13 +1657,13 @@ fn the_selection_tool_moves_and_deletes_ruler_guides() {
     drag(&mut app, h, to);
     let st = app.session.active().unwrap();
     assert_eq!(guides(&app), [(false, xf.to_doc(to).y), (true, xf.to_doc(v).x)]);
-    assert_eq!((vectorcraft_engine::cmd::guide_indexes(&st.doc, &st.selection.guides), st.selection.objects.clone()), (vec![0], vec![]));
+    assert_eq!((vansoncraft_engine::cmd::guide_indexes(&st.doc, &st.selection.guides), st.selection.objects.clone()), (vec![0], vec![]));
     assert_eq!(st.history.undo.last().unwrap().label, "Move Guide");
     let picked = Tokens::get(&ctx).selection;
     let s = shapes(&mut app, &ctx);
     assert!(s.iter().any(|s| matches!(s, Shape::LineSegment { points, stroke } if stroke.color == picked && points[0].y == to.y)), "highlighted");
     // Backspace deletes the selected guide; Delete too.
-    let press = |app: &mut VectorcraftApp, key| {
+    let press = |app: &mut VansoncraftApp, key| {
         let ev = egui::Event::Key { key, physical_key: None, pressed: true, repeat: false, modifiers: egui::Modifiers::NONE };
         let mut out = ctx.run_ui(egui::RawInput { events: vec![ev], ..Default::default() }, |ui| crate::shortcuts::handle(app, ui.ctx()));
         out.textures_delta.clear();
@@ -1687,13 +1687,13 @@ fn the_selection_tool_moves_and_deletes_ruler_guides() {
 
 #[test]
 fn cmd_with_another_tool_drags_with_the_selection_tool_used_last() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let id = app.session.execute("shape.rectangle", &json!({"x": 100, "y": 100, "width": 100, "height": 50})).unwrap()["id"].as_u64().unwrap();
     let ctx = egui::Context::default();
     frame(&mut app, &ctx, vec![]);
     let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
-    let cmd_frame = |app: &mut VectorcraftApp, events: Vec<egui::Event>| {
+    let cmd_frame = |app: &mut VansoncraftApp, events: Vec<egui::Event>| {
         let screen = egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0));
         let events = std::iter::once(egui::Event::ModifiersChanged(egui::Modifiers::COMMAND)).chain(events).collect();
         let raw = egui::RawInput { screen_rect: Some(screen), events, ..Default::default() };
@@ -1703,7 +1703,7 @@ fn cmd_with_another_tool_drags_with_the_selection_tool_used_last() {
     let button =
         |pos, pressed| egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: egui::Modifiers::COMMAND };
     // A Cmd drag from `a` to `b` with the Pen tool; → the tool that did it.
-    let cmd_drag = |app: &mut VectorcraftApp, a: Pos2, b: Pos2| {
+    let cmd_drag = |app: &mut VansoncraftApp, a: Pos2, b: Pos2| {
         app.select_tool("pen");
         cmd_frame(app, vec![egui::Event::PointerMoved(a), button(a, true)]);
         let used = app.session.tool_id().to_string();
@@ -1712,7 +1712,7 @@ fn cmd_with_another_tool_drags_with_the_selection_tool_used_last() {
         assert_eq!(app.session.tool_id(), "pen", "back to the Pen tool");
         used
     };
-    let bounds = |app: &VectorcraftApp| app.session.active().unwrap().doc.node(vectorcraft_doc::NodeId(id)).unwrap().geometric_bounds().unwrap();
+    let bounds = |app: &VansoncraftApp| app.session.active().unwrap().doc.node(vansoncraft_doc::NodeId(id)).unwrap().geometric_bounds().unwrap();
     // Direct Selection used last: the drag moves the rectangle's bottom-right corner only (once
     // the rectangle isn't selected whole, which would move all its anchors).
     app.select_tool("directSelection");
@@ -1734,22 +1734,22 @@ fn cmd_with_another_tool_drags_with_the_selection_tool_used_last() {
 /// selection's marks come back when Preview is turned off or the dialog is cancelled.
 #[test]
 fn halftone_preview_hides_dot_outlines_and_keeps_selection_bounds() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     app.ui.task_bar = false;
     app.ui.view.rulers = false;
     app.ui.view.bounding_box = true;
     let original = app.run("shape.ellipse", json!({"x": 50, "y": 50, "width": 120, "height": 100})).unwrap()["id"].as_u64().unwrap();
-    let original = vectorcraft_doc::NodeId(original);
+    let original = vansoncraft_doc::NodeId(original);
     app.run("paint.setFill", json!({"color": "#000000"})).unwrap();
     let canvas = egui::Context::default();
     let dialog = egui::Context::default();
-    let dialog_frame = |app: &mut VectorcraftApp| {
+    let dialog_frame = |app: &mut VansoncraftApp| {
         let raw = egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0))), ..Default::default() };
         let mut out = dialog.run_ui(raw, |ui| crate::dialogs::show(app, ui.ctx()));
         out.textures_delta.clear();
     };
-    let has_interior_marks = |app: &mut VectorcraftApp| {
+    let has_interior_marks = |app: &mut VansoncraftApp| {
         frame(app, &canvas, vec![]);
         let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
         let corners = app.selection_box().unwrap().corners().map(|p| xf.to_screen(p));
@@ -1768,7 +1768,7 @@ fn halftone_preview_hides_dot_outlines_and_keeps_selection_bounds() {
     assert_ne!(app.session.active().unwrap().selection.objects, vec![original], "the halftone is previewed and selected");
     assert!(!has_interior_marks(&mut app), "selection marks cover the halftone dots");
 
-    let set_preview = |app: &mut VectorcraftApp, on| {
+    let set_preview = |app: &mut VansoncraftApp, on| {
         crate::dialogs::set_field(app.ui.dialog.as_mut().unwrap(), "preview".into(), json!(on));
         dialog_frame(app);
     };
@@ -1802,7 +1802,7 @@ fn halftone_preview_hides_dot_outlines_and_keeps_selection_bounds() {
 /// still shows its outline and anchors.
 #[test]
 fn a_huge_selection_shows_its_bounds_instead_of_every_outline() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let points = |n: usize| (0..n).map(|i| format!("L{} {}", 20.0 + 360.0 * i as f64 / n as f64, 100 + (i % 2) * 50)).collect::<String>();
     let ctx = egui::Context::default();
@@ -1827,7 +1827,7 @@ fn a_huge_selection_shows_its_bounds_instead_of_every_outline() {
 #[test]
 fn a_huge_selection_of_type_images_symbols_or_meshes_shows_its_bounds() {
     for kind in ["point type", "area type", "type on a path", "image", "symbol", "mesh", "envelope"] {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         app.ui.task_bar = false;
         // The Line Segment tool draws nothing of its own (no bounding box, no type on a path
@@ -1847,7 +1847,7 @@ fn a_huge_selection_of_type_images_symbols_or_meshes_shows_its_bounds() {
                 app.session.execute("text.createInPath", &json!({"path": path, "mode": "onPath", "text": "Type"})).unwrap();
             }
             "image" => {
-                let data = vectorcraft_format::base64_encode(&crate::tests_sysclip::blue_png());
+                let data = vansoncraft_format::base64_encode(&crate::tests_sysclip::blue_png());
                 app.run("file.place", json!({"name": "blue.png", "dataBase64": data, "link": false, "at": [200, 150]})).unwrap();
             }
             "symbol" => {
@@ -1865,7 +1865,7 @@ fn a_huge_selection_of_type_images_symbols_or_meshes_shows_its_bounds() {
         }
         let ctx = egui::Context::default();
         // The vertices that selecting everything adds to the frame's mesh.
-        let overlay = |app: &mut VectorcraftApp| {
+        let overlay = |app: &mut VansoncraftApp| {
             app.session.execute("select.none", &json!({})).unwrap();
             let none = frame_vertices(app, &ctx);
             app.session.execute("select.all", &json!({})).unwrap();
@@ -1887,9 +1887,9 @@ fn a_huge_selection_of_type_images_symbols_or_meshes_shows_its_bounds() {
 /// highlighted, and as the key object its outline is its bounds.
 #[test]
 fn a_group_of_too_many_images_has_no_hover_outline_and_a_key_outline_of_its_bounds() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
-    let data = vectorcraft_format::base64_encode(&crate::tests_sysclip::blue_png());
+    let data = vansoncraft_format::base64_encode(&crate::tests_sysclip::blue_png());
     app.run("file.place", json!({"name": "blue.png", "dataBase64": data, "link": false, "at": [200, 150]})).unwrap();
     for _ in 0..15 {
         app.session.execute("select.all", &json!({})).unwrap();
@@ -1903,7 +1903,7 @@ fn a_group_of_too_many_images_has_no_hover_outline_and_a_key_outline_of_its_boun
     let ctx = egui::Context::default();
     frame(&mut app, &ctx, vec![]);
     let over = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap()).to_screen(Point::new(200.0, 150.0));
-    let lines = |app: &mut VectorcraftApp, width: f32| {
+    let lines = |app: &mut VansoncraftApp, width: f32| {
         frame(app, &ctx, vec![egui::Event::PointerMoved(over)]);
         shapes(app, &ctx).iter().filter(|s| matches!(s, Shape::Path(ps) if ps.stroke.width == width)).count()
     };
@@ -1917,12 +1917,12 @@ fn a_group_of_too_many_images_has_no_hover_outline_and_a_key_outline_of_its_boun
 /// only to the Mesh tool.
 #[test]
 fn a_selected_gradient_mesh_shows_its_lines_and_points() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.session.execute("shape.rectangle", &json!({"x": 20, "y": 20, "width": 200, "height": 100})).unwrap();
     app.session.execute("object.mesh.create", &json!({"rows": 2, "cols": 2})).unwrap();
     let ctx = egui::Context::default();
-    let drawn = |app: &mut VectorcraftApp| {
+    let drawn = |app: &mut VansoncraftApp| {
         frame(app, &ctx, vec![]);
         let shapes = shapes(app, &ctx);
         let lines = shapes.iter().filter(|s| matches!(s, Shape::Path(ps) if ps.points.len() > 1)).count();
@@ -1944,7 +1944,7 @@ fn a_selected_gradient_mesh_shows_its_lines_and_points() {
 /// #541: the key object's outline is drawn thicker than the rest of the selection's.
 #[test]
 fn the_key_object_has_a_thicker_outline() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let a = app.session.execute("shape.rectangle", &json!({"x": 20, "y": 20, "width": 50, "height": 50})).unwrap()["id"].clone();
     let b = app.session.execute("shape.ellipse", &json!({"x": 200, "y": 100, "width": 60, "height": 40})).unwrap()["id"].clone();
@@ -1952,14 +1952,14 @@ fn the_key_object_has_a_thicker_outline() {
     let ctx = egui::Context::default();
     frame(&mut app, &ctx, vec![]);
     let thick =
-        |app: &mut VectorcraftApp| shapes(app, &ctx).iter().filter(|s| matches!(s, Shape::Path(ps) if ps.stroke.width == KEY_OUTLINE)).count();
+        |app: &mut VansoncraftApp| shapes(app, &ctx).iter().filter(|s| matches!(s, Shape::Path(ps) if ps.stroke.width == KEY_OUTLINE)).count();
     assert_eq!(thick(&mut app), 0, "no key yet");
     app.session.execute("select.key", &json!({"id": b})).unwrap();
     assert!(thick(&mut app) > 0, "the key's outline");
 }
 
 /// One headless canvas frame → the shapes drawn, `Shape::Vec`s flattened.
-fn shapes(app: &mut VectorcraftApp, ctx: &egui::Context) -> Vec<Shape> {
+fn shapes(app: &mut VansoncraftApp, ctx: &egui::Context) -> Vec<Shape> {
     let (shapes, mut delta) = frame_output(app, ctx);
     delta.clear();
     shapes
@@ -1968,7 +1968,7 @@ fn shapes(app: &mut VectorcraftApp, ctx: &egui::Context) -> Vec<Shape> {
 /// Two headless canvas frames → the vertices of the second one's tessellated mesh, which the
 /// GPU takes in one buffer, without the art's raster: the render worker's frame can land in
 /// either frame of a comparison.
-fn frame_vertices(app: &mut VectorcraftApp, ctx: &egui::Context) -> usize {
+fn frame_vertices(app: &mut VansoncraftApp, ctx: &egui::Context) -> usize {
     frame(app, ctx, vec![]);
     let raw = egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0))), ..Default::default() };
     let mut out = ctx.run_ui(raw, |ui| show(app, ui));
@@ -1983,7 +1983,7 @@ fn frame_vertices(app: &mut VectorcraftApp, ctx: &egui::Context) -> usize {
 
 /// One headless canvas frame → the shapes drawn (`Shape::Vec`s flattened) and the textures
 /// uploaded by it (the art's raster among them, when it was re-rendered).
-fn frame_output(app: &mut VectorcraftApp, ctx: &egui::Context) -> (Vec<Shape>, egui::TexturesDelta) {
+fn frame_output(app: &mut VansoncraftApp, ctx: &egui::Context) -> (Vec<Shape>, egui::TexturesDelta) {
     fn flat(s: Shape, out: &mut Vec<Shape>) {
         match s {
             Shape::Vec(v) => v.into_iter().for_each(|s| flat(s, out)),
@@ -2004,7 +2004,7 @@ fn frame_output(app: &mut VectorcraftApp, ctx: &egui::Context) -> (Vec<Shape>, e
 /// change of the view renders all of it.
 #[test]
 fn an_edit_renders_only_its_part_of_the_canvas() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width":400,"height":300})).unwrap();
     app.ui.task_bar = false;
     app.ui.view.rulers = false;
@@ -2014,7 +2014,7 @@ fn an_edit_renders_only_its_part_of_the_canvas() {
     app.run("select.none", json!({})).unwrap();
     let ctx = egui::Context::default();
     // Where the canvas texture changed in a frame, and how much of it.
-    let canvas = |app: &VectorcraftApp, mut delta: egui::TexturesDelta| {
+    let canvas = |app: &VansoncraftApp, mut delta: egui::TexturesDelta| {
         let tex = app.canvas.texture.as_ref().map(|t| t.id());
         let set = delta.set.iter().find(|(t, _)| tex == Some(**t)).and_then(|(_, d)| d.last()).map(|d| (d.pos, d.image.size()));
         delta.clear();
@@ -2041,7 +2041,7 @@ fn an_edit_renders_only_its_part_of_the_canvas() {
 /// objects showing its file are: both copies of the file are in the part rendered again.
 #[test]
 fn a_ready_placed_document_bitmap_renders_only_its_part_of_the_canvas() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width":400,"height":300})).unwrap();
     app.ui.task_bar = false;
     app.ui.view.rulers = false;
@@ -2050,10 +2050,10 @@ fn a_ready_placed_document_bitmap_renders_only_its_part_of_the_canvas() {
     let mut src = Session::new();
     src.execute("file.new", &json!({"width": 60, "height": 30})).unwrap();
     src.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 60, "height": 30})).unwrap();
-    let dir = std::env::temp_dir().join(format!("vectorcraft-placed-redraw-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("vansoncraft-placed-redraw-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
-    let path = dir.join("card.vectorcraft");
-    std::fs::write(&path, vectorcraft_format::save_file(&src.active().unwrap().doc)).unwrap();
+    let path = dir.join("card.vansoncraft");
+    std::fs::write(&path, vansoncraft_format::save_file(&src.active().unwrap().doc)).unwrap();
     let path = path.to_string_lossy().into_owned();
     let ids: Vec<u64> = [[60, 50], [140, 50]]
         .iter()
@@ -2067,7 +2067,7 @@ fn a_ready_placed_document_bitmap_renders_only_its_part_of_the_canvas() {
     app.run("select.none", json!({})).unwrap();
     let ctx = egui::Context::default();
     // Where the canvas texture changed in a frame, and how much of it.
-    let canvas = |app: &VectorcraftApp, mut delta: egui::TexturesDelta| {
+    let canvas = |app: &VansoncraftApp, mut delta: egui::TexturesDelta| {
         let tex = app.canvas.texture.as_ref().map(|t| t.id());
         let set = delta.set.iter().find(|(t, _)| tex == Some(**t)).and_then(|(_, d)| d.last()).map(|d| (d.pos, d.image.size()));
         delta.clear();
@@ -2076,7 +2076,7 @@ fn a_ready_placed_document_bitmap_renders_only_its_part_of_the_canvas() {
     let (_, delta) = frame_output(&mut app, &ctx);
     assert!(canvas(&app, delta).is_some_and(|(pos, _)| pos.is_none()), "the first frame renders all of it");
     let t = std::time::Instant::now();
-    while vectorcraft_render::placed_document::busy() && t.elapsed().as_secs() < 20 {
+    while vansoncraft_render::placed_document::busy() && t.elapsed().as_secs() < 20 {
         std::thread::sleep(std::time::Duration::from_millis(5));
     }
     let (_, delta) = frame_output(&mut app, &ctx);
@@ -2089,8 +2089,8 @@ fn a_ready_placed_document_bitmap_renders_only_its_part_of_the_canvas() {
         * Affine::translate((-key.cx, -key.cy));
     let doc = &app.session.active().unwrap().doc;
     for id in ids {
-        let b = doc.node(vectorcraft_doc::NodeId(id)).unwrap().geometric_bounds().unwrap();
-        let [x0, y0, x1, y1] = vectorcraft_render::view_pixels(b, view, key.w, key.h).unwrap();
+        let b = doc.node(vansoncraft_doc::NodeId(id)).unwrap().geometric_bounds().unwrap();
+        let [x0, y0, x1, y1] = vansoncraft_render::view_pixels(b, view, key.w, key.h).unwrap();
         let inside = x0 as usize >= px && y0 as usize >= py && x1 as usize <= px + size[0] && y1 as usize <= py + size[1];
         assert!(inside, "object {id} at {:?} in the part at {:?} of size {size:?}", [x0, y0, x1, y1], [px, py]);
     }
@@ -2102,13 +2102,13 @@ fn a_ready_placed_document_bitmap_renders_only_its_part_of_the_canvas() {
 /// mask's coverage wherever its art reaches, past its object's bounds.
 #[test]
 fn an_edit_while_a_mask_is_viewed_renders_all_of_the_canvas() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width":400,"height":300})).unwrap();
     app.ui.task_bar = false;
     app.ui.view.rulers = false;
     app.canvas.worker_started = true; // every frame on this thread, however long it takes
     let rect =
-        |app: &mut VectorcraftApp, x: f64| app.run("shape.rectangle", json!({"x": x, "y": 50, "width": 60, "height": 40})).unwrap()["id"].clone();
+        |app: &mut VansoncraftApp, x: f64| app.run("shape.rectangle", json!({"x": x, "y": 50, "width": 60, "height": 40})).unwrap()["id"].clone();
     let (obj, mask) = (rect(&mut app, 50.0), rect(&mut app, 70.0));
     app.run("select.set", json!({"ids": [obj, mask]})).unwrap();
     app.run("transparency.makeOpacityMask", json!({})).unwrap();
@@ -2127,7 +2127,7 @@ fn an_edit_while_a_mask_is_viewed_renders_all_of_the_canvas() {
 /// #1278: a segment click marks the edge, not its endpoint anchors or neighboring handles.
 #[test]
 fn a_segment_pick_has_hollow_anchors_and_only_its_own_handles() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width":400,"height":300})).unwrap();
     app.ui.task_bar = false;
     app.ui.view.rulers = false;
@@ -2139,7 +2139,7 @@ fn a_segment_pick_has_hollow_anchors_and_only_its_own_handles() {
         app.session.pointer(&PointerEvent::new(kind, 150.0, 50.0), view).unwrap();
     }
     let before = app.session.doc().unwrap().doc.clone();
-    let color = c32(before.layer_color(vectorcraft_doc::NodeId(id)));
+    let color = c32(before.layer_color(vansoncraft_doc::NodeId(id)));
     let selected = selected_anchor(color);
     let ctx = egui::Context::default();
     let painted = shapes(&mut app, &ctx);
@@ -2182,11 +2182,11 @@ fn a_segment_pick_has_hollow_anchors_and_only_its_own_handles() {
 /// Direction handles still show only on a path selected itself.
 #[test]
 fn the_anchors_of_a_container_selected_whole_draw_selected() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     app.ui.task_bar = false;
     app.ui.view.rulers = false;
-    let rect = |app: &mut VectorcraftApp, x: i32, y: i32| {
+    let rect = |app: &mut VansoncraftApp, x: i32, y: i32| {
         app.run("shape.rectangle", json!({"x": x, "y": y, "width": 60, "height": 60})).unwrap()["id"].clone()
     };
     let in_group = rect(&mut app, 20, 20);
@@ -2201,10 +2201,10 @@ fn the_anchors_of_a_container_selected_whole_draw_selected() {
     app.run("select.set", json!({"ids": [hidden, square]})).unwrap();
     let clip = app.run("object.clippingMask.make", json!({})).unwrap()["id"].clone();
     let lone = app.run("shape.ellipse", json!({"x": 300, "y": 150, "width": 60, "height": 60})).unwrap()["id"].clone();
-    let color = c32(app.session.active().unwrap().doc.layer_color(vectorcraft_doc::NodeId(lone.as_u64().unwrap())));
+    let color = c32(app.session.active().unwrap().doc.layer_color(vansoncraft_doc::NodeId(lone.as_u64().unwrap())));
     let ctx = egui::Context::default();
     // Filled and hollow anchor squares, and direction handle lines, drawn in the layer color.
-    let looks = |app: &mut VectorcraftApp| {
+    let looks = |app: &mut VansoncraftApp| {
         let painted = shapes(app, &ctx);
         let small = |r: &egui::epaint::RectShape| r.rect.width() < 12.0;
         let filled = painted.iter().filter(|s| matches!(s, Shape::Rect(r) if small(r) && r.fill == color)).count();
@@ -2238,7 +2238,7 @@ fn the_anchors_of_a_container_selected_whole_draw_selected() {
             app.session.pointer(&PointerEvent::new(kind, 20.0, 50.0), view).unwrap();
         }
     }
-    let id = |v: &serde_json::Value| vectorcraft_doc::NodeId(v.as_u64().unwrap());
+    let id = |v: &serde_json::Value| vansoncraft_doc::NodeId(v.as_u64().unwrap());
     assert_eq!(app.session.active().unwrap().selection.objects, vec![id(&in_group), id(&group)]);
     app.select_tool("directSelection");
     // The rectangle's anchors and center point, then the group's eight anchors, four of them over the rectangle's.
@@ -2254,14 +2254,14 @@ fn the_anchors_of_a_container_selected_whole_draw_selected() {
 /// renders for the screen again.
 #[test]
 fn pixel_preview_shows_the_document_pixels() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     // Its 1 pt stroke covers a quarter of document pixel 99 and most of pixel 100.
     app.session.execute("shape.rectangle", &json!({"x": 100.25, "y": 50, "width": 200, "height": 200})).unwrap();
     app.canvas.worker_started = true; // render on this thread
     let ctx = egui::Context::default();
     // The art's raster uploaded by one frame: (width, height, hard-edged, pixels).
-    let upload = |app: &mut VectorcraftApp| {
+    let upload = |app: &mut VansoncraftApp| {
         let (_, mut delta) = frame_output(app, &ctx);
         let art = app.canvas.texture.as_ref().unwrap().id();
         let up = delta.set.iter().find(|e| e.0.eq(&art)).and_then(|e| e.1.last()).map(|d| {
@@ -2303,7 +2303,7 @@ fn pixel_preview_shows_the_document_pixels() {
 /// draws it again, dimmed as before; each re-renders at once.
 #[test]
 fn hide_template_leaves_template_layers_off_the_canvas() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.canvas.worker_started = true; // render on this thread
     app.session.execute("shape.rectangle", &json!({"x": 100, "y": 50, "width": 200, "height": 200})).unwrap();
@@ -2312,7 +2312,7 @@ fn hide_template_leaves_template_layers_off_the_canvas() {
     let ctx = egui::Context::default();
     // How many pixels of the art's raster one frame uploads are painted, None when it was not
     // re-rendered.
-    let painted = |app: &mut VectorcraftApp| -> Option<usize> {
+    let painted = |app: &mut VansoncraftApp| -> Option<usize> {
         let (_, mut delta) = frame_output(app, &ctx);
         let art = app.canvas.texture.as_ref().unwrap().id();
         let n = delta.set.iter().find(|e| e.0.eq(&art)).and_then(|e| e.1.last()).map(|d| {
@@ -2335,7 +2335,7 @@ fn hide_template_leaves_template_layers_off_the_canvas() {
 /// screen; off, every pixel is either painted or not, and turning it either way re-renders.
 #[test]
 fn anti_aliased_artwork_preference_smooths_the_canvas() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     // Render on this thread: the worker's frame would land later than the test looks.
     app.canvas.worker_started = true;
@@ -2343,7 +2343,7 @@ fn anti_aliased_artwork_preference_smooths_the_canvas() {
     app.session.execute("shape.ellipse", &json!({"x": 100, "y": 50, "width": 200, "height": 200})).unwrap();
     let ctx = egui::Context::default();
     // The alphas of the art's raster uploaded by one frame, None when it was not re-rendered.
-    let alphas = |app: &mut VectorcraftApp| -> Option<Vec<u8>> {
+    let alphas = |app: &mut VansoncraftApp| -> Option<Vec<u8>> {
         let (_, mut delta) = frame_output(app, &ctx);
         let art = app.canvas.texture.as_ref().unwrap().id();
         let alphas = delta.set.iter().find(|e| e.0.eq(&art)).and_then(|e| e.1.last()).map(|d| {
@@ -2369,14 +2369,14 @@ fn anti_aliased_artwork_preference_smooths_the_canvas() {
 /// behind it on the canvas; off, it does not, and turning it either way re-renders.
 #[test]
 fn highlight_substituted_fonts_preference_reaches_the_canvas() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.canvas.worker_started = true; // render on this thread
     app.session.execute("text.create", &json!({"x": 20, "y": 120, "text": "Hamburg", "size": 60, "font": "Missing Family"})).unwrap();
     let ctx = egui::Context::default();
     // How many pink pixels the art's raster uploaded by one frame has, None when it was not
     // re-rendered.
-    let pink = |app: &mut VectorcraftApp| -> Option<usize> {
+    let pink = |app: &mut VansoncraftApp| -> Option<usize> {
         let (_, mut delta) = frame_output(app, &ctx);
         let art = app.canvas.texture.as_ref().unwrap().id();
         let n = delta.set.iter().find(|e| e.0.eq(&art)).and_then(|e| e.1.last()).map(|d| {
@@ -2401,8 +2401,8 @@ fn highlight_substituted_fonts_preference_reaches_the_canvas() {
 /// draw them again give none.
 #[test]
 fn undecodable_images_are_marked_and_reported_once() {
-    use vectorcraft_doc::{ImageBlob, ImageObject, NodeKind};
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    use vansoncraft_doc::{ImageBlob, ImageObject, NodeKind};
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.canvas.worker_started = true; // render on this thread
     // PNGs of noisy pixels cut off halfway: their headers read, their pixels don't decode.
@@ -2451,11 +2451,11 @@ fn undecodable_images_are_marked_and_reported_once() {
 #[test]
 fn the_first_view_reports_the_plug_in_effects_it_deferred() {
     use std::sync::atomic::{AtomicU64, Ordering};
-    use vectorcraft_plugins::wat as tpl;
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    use vansoncraft_plugins::wat as tpl;
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.canvas.worker_started = true; // render on this thread
     let module = tpl::module(&tpl::manifest("test.ui.deferred", "effect", "{}"), tpl::ECHO, "", 1);
-    app.session.execute("plugin.install", &json!({"dataBase64": vectorcraft_format::base64_encode(&wat::parse_str(module).unwrap())})).unwrap();
+    app.session.execute("plugin.install", &json!({"dataBase64": vansoncraft_format::base64_encode(&wat::parse_str(module).unwrap())})).unwrap();
     // Each reading of the clock is 3 s later: the first run's result comes back after the budget,
     // and no later run starts.
     let step = std::sync::Arc::new(AtomicU64::new(3_000));
@@ -2473,9 +2473,9 @@ fn the_first_view_reports_the_plug_in_effects_it_deferred() {
         }
         app.session.execute("select.none", &json!({})).unwrap();
         let (now, by) = (std::sync::Arc::new(AtomicU64::new(0)), step.clone());
-        let clock: vectorcraft_plugins::deferred::Clock =
+        let clock: vansoncraft_plugins::deferred::Clock =
             std::sync::Arc::new(move || Some(now.fetch_add(by.load(Ordering::Relaxed), Ordering::Relaxed)));
-        app.session.doc_mut().unwrap().plugin_effects = vectorcraft_plugins::deferred::Deferrals::with_clock(clock);
+        app.session.doc_mut().unwrap().plugin_effects = vansoncraft_plugins::deferred::Deferrals::with_clock(clock);
         step.store(3_000, Ordering::Relaxed);
         app.status("");
         frame(&mut app, &ctx, vec![]);
@@ -2497,7 +2497,7 @@ fn the_first_view_reports_the_plug_in_effects_it_deferred() {
 /// and draws what a fresh renderer draws.
 #[test]
 fn dragging_an_object_with_raster_effects_draws_its_rasters_moved() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.canvas.worker_started = true; // render on this thread
     let id = app.run("shape.rectangle", json!({"x": 100, "y": 80, "width": 120, "height": 90})).unwrap()["id"].clone();
@@ -2506,7 +2506,7 @@ fn dragging_an_object_with_raster_effects_draws_its_rasters_moved() {
     }
     let ctx = egui::Context::default();
     // The art's raster uploaded by one frame, None when it was not re-rendered.
-    let upload = |app: &mut VectorcraftApp| -> Option<Vec<Color32>> {
+    let upload = |app: &mut VansoncraftApp| -> Option<Vec<Color32>> {
         let (_, mut delta) = frame_output(app, &ctx);
         let art = app.canvas.texture.as_ref().unwrap().id();
         let px = delta.set.iter().find(|e| e.0.eq(&art)).and_then(|e| e.1.last()).map(|d| {
@@ -2543,7 +2543,7 @@ fn dragging_an_object_with_raster_effects_draws_its_rasters_moved() {
     assert!(app.canvas.key.as_ref().is_some_and(|k| !k.interacting));
     assert!(!app.canvas.moved);
     app.canvas.worker = None;
-    app.canvas.renderer = vectorcraft_render::Renderer::new();
+    app.canvas.renderer = vansoncraft_render::Renderer::new();
     app.canvas.key = None;
     assert!(upload(&mut app) == Some(after), "the frame after the drag is what a fresh renderer draws");
 }
@@ -2555,7 +2555,7 @@ fn dragging_an_object_with_raster_effects_draws_its_rasters_moved() {
 /// without a drag, renders without `dragging` and draws the same.
 #[test]
 fn a_drag_on_the_canvas_draws_raster_effects_at_a_lower_resolution() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.canvas.worker_started = true; // render on this thread
     let id = app.run("shape.rectangle", json!({"x": 100, "y": 80, "width": 200, "height": 150})).unwrap()["id"].clone();
@@ -2564,7 +2564,7 @@ fn a_drag_on_the_canvas_draws_raster_effects_at_a_lower_resolution() {
     let ctx = egui::Context::default();
     // One headless frame on a 1920 × 1200 window (a view larger than the drag's budget) with
     // `events` → the art's raster it uploaded, None when it was not re-rendered.
-    let run = |app: &mut VectorcraftApp, events: Vec<egui::Event>| -> Option<Vec<Color32>> {
+    let run = |app: &mut VansoncraftApp, events: Vec<egui::Event>| -> Option<Vec<Color32>> {
         let raw = egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(1920.0, 1200.0))), events, ..Default::default() };
         let mut out = ctx.run_ui(raw, |ui| show(app, ui));
         let art = app.canvas.texture.as_ref().map(|t| t.id());
@@ -2596,7 +2596,7 @@ fn a_drag_on_the_canvas_draws_raster_effects_at_a_lower_resolution() {
     assert!(app.canvas.key.as_ref().is_some_and(|k| !k.interacting && !k.dragging));
     assert_eq!(app.canvas.renderer.stats.previewed, 0, "the frame after the drag");
     assert!(!app.canvas.moved);
-    app.canvas.renderer = vectorcraft_render::Renderer::new();
+    app.canvas.renderer = vansoncraft_render::Renderer::new();
     app.canvas.key = None;
     assert!(run(&mut app, vec![]) == Some(after.clone()), "the frame after the drag is what a fresh renderer draws");
     // A dialog's preview: an interaction, and no drag.
@@ -2614,7 +2614,7 @@ fn a_drag_on_the_canvas_draws_raster_effects_at_a_lower_resolution() {
 #[test]
 fn a_drag_over_a_wide_blur_draws_the_blur_from_the_still_frame() {
     for on_worker in [false, true] {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 595, "height": 842})).unwrap();
         app.canvas.worker_started = true; // no worker unless `on_worker`
         let back = app.run("shape.rectangle", json!({"x": 0, "y": 0, "width": 595, "height": 842})).unwrap()["id"].clone();
@@ -2626,8 +2626,8 @@ fn a_drag_over_a_wide_blur_draws_the_blur_from_the_still_frame() {
         let ctx = egui::Context::default();
         // One headless frame with `events`, then, on the worker, frames until the frame it renders
         // for them is shown.
-        let run = |app: &mut VectorcraftApp, events: Vec<egui::Event>| {
-            let frame = |app: &mut VectorcraftApp, events| {
+        let run = |app: &mut VansoncraftApp, events: Vec<egui::Event>| {
+            let frame = |app: &mut VansoncraftApp, events| {
                 let raw =
                     egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(1440.0, 870.0))), events, ..Default::default() };
                 let mut out = ctx.run_ui(raw, |ui| show(app, ui));
@@ -2640,7 +2640,7 @@ fn a_drag_over_a_wide_blur_draws_the_blur_from_the_still_frame() {
                 frame(app, vec![]);
             }
         };
-        let moved = |app: &VectorcraftApp| if on_worker { app.canvas.moved } else { app.canvas.renderer.stats.moved > 0 };
+        let moved = |app: &VansoncraftApp| if on_worker { app.canvas.moved } else { app.canvas.renderer.stats.moved > 0 };
         run(&mut app, vec![]);
         if let Some(vm) = app.view_mut() {
             (vm.zoom, vm.center) = (2.0, Point::new(290.0, 410.0));
@@ -2681,7 +2681,7 @@ fn a_drag_over_a_wide_blur_draws_the_blur_from_the_still_frame() {
 /// worker, a fast frame renders on this thread as before.
 #[test]
 fn an_interaction_stays_on_the_worker_that_drew_the_frame_shown() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.session.execute("shape.rectangle", &json!({"x": 100, "y": 50, "width": 200, "height": 200})).unwrap();
     app.canvas.worker_started = true; // the first frame renders on this thread
@@ -2707,7 +2707,7 @@ fn an_interaction_stays_on_the_worker_that_drew_the_frame_shown() {
 /// leaves the document as it was (#1257): here a drag back to where it started.
 #[test]
 fn a_drag_back_to_its_start_renders_again_after_it() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.canvas.worker_started = true; // render on this thread
     let id = app.run("shape.rectangle", json!({"x": 100, "y": 80, "width": 120, "height": 90})).unwrap()["id"].clone();
@@ -2737,11 +2737,11 @@ fn a_drag_back_to_its_start_renders_again_after_it() {
 fn canvas_render_jobs_use_renderer_limited_dimensions() {
     let ctx = egui::Context::default();
     crate::theme::install_fonts(&ctx);
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.canvas.worker_started = true;
     app.ui.view.rulers = false;
-    let frame = |app: &mut VectorcraftApp, size, ppp| {
+    let frame = |app: &mut VansoncraftApp, size, ppp| {
         let mut input = egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(pos2(0.0, 0.0), size)), ..Default::default() };
         input.viewports.get_mut(&egui::ViewportId::ROOT).unwrap().native_pixels_per_point = Some(ppp);
         let mut output = ctx.run_ui(input, |ui| show(app, ui));
@@ -2781,11 +2781,11 @@ fn cached_frames_keep_their_scale_during_resize_rotation_and_dpi_changes() {
     ] {
         let ctx = egui::Context::default();
         crate::theme::install_fonts(&ctx);
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         app.canvas.worker_started = true;
         app.ui.view.pixel_preview = pixel;
-        let frame = |app: &mut VectorcraftApp, size: egui::Vec2, ppp: f32| {
+        let frame = |app: &mut VansoncraftApp, size: egui::Vec2, ppp: f32| {
             let mut input = egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(pos2(31.25, 19.5), size)), ..Default::default() };
             // Monitor DPI is viewport input, not egui's UI zoom (which rescales the last
             // screen rect and would override the simultaneous resize under test).
@@ -2869,7 +2869,7 @@ fn cached_frames_keep_their_scale_during_resize_rotation_and_dpi_changes() {
 /// they cover.
 #[test]
 fn a_turned_view_draws_the_last_frame_turned_until_its_own_arrives() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.session.execute("shape.rectangle", &json!({"x": 100, "y": 50, "width": 200, "height": 200})).unwrap();
     app.canvas.worker_started = true; // render on this thread
@@ -2880,7 +2880,7 @@ fn a_turned_view_draws_the_last_frame_turned_until_its_own_arrives() {
     let rect = app.canvas_rect.unwrap();
     let old = Xf::new(rect, app.view().unwrap());
     // `art` runs one frame and finds the mesh that draws the art's texture.
-    let art = |app: &mut VectorcraftApp| {
+    let art = |app: &mut VansoncraftApp| {
         let s = shapes(app, &ctx);
         let tex = app.canvas.texture.as_ref().unwrap().id();
         s.into_iter().find_map(|s| match s {
@@ -2940,10 +2940,10 @@ fn a_pan_fills_the_area_the_last_frame_leaves_until_the_worker_frame_arrives() {
     // move: a frame whose key changed by more than the view drops the fill. An attempt that fails
     // while the clock moved runs again; one that fails while it stood still is a real failure.
     for _ in 0..20 {
-        let clock = vectorcraft_render::placed_document::generation();
+        let clock = vansoncraft_render::placed_document::generation();
         match std::panic::catch_unwind(pan_fills_the_area_the_last_frame_leaves) {
             Ok(()) => return,
-            Err(_) if vectorcraft_render::placed_document::generation() != clock => {}
+            Err(_) if vansoncraft_render::placed_document::generation() != clock => {}
             Err(e) => std::panic::resume_unwind(e),
         }
     }
@@ -2952,14 +2952,14 @@ fn a_pan_fills_the_area_the_last_frame_leaves_until_the_worker_frame_arrives() {
 
 fn pan_fills_the_area_the_last_frame_leaves() {
     let ctx = egui::Context::default();
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.session.execute("shape.rectangle", &json!({"x": 300, "y": 100, "width": 80, "height": 100})).unwrap();
     app.canvas.worker_started = true; // render on this thread
     app.ui.view.rulers = false;
     app.ui.screen_mode = 2; // no scroll bars: the canvas is the window
     // One frame → the meshes drawn and the fill's pixels, when this frame uploaded them.
-    let frame = |app: &mut VectorcraftApp| {
+    let frame = |app: &mut VansoncraftApp| {
         let (shapes, mut delta) = frame_output(app, &ctx);
         let fill = app.canvas.fill.as_ref().map(|f| f.tex.id());
         let pixels = delta.set.iter().find(|(id, _)| Some(**id) == fill).and_then(|(_, d)| d.last()).map(|d| match &d.image {
@@ -3076,7 +3076,7 @@ fn pan_fills_the_area_the_last_frame_leaves() {
 /// before.
 #[test]
 fn without_a_worker_a_heavy_canvas_is_reprojected_until_the_view_is_still() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.session.execute("shape.rectangle", &json!({"x": 100, "y": 50, "width": 200, "height": 200})).unwrap();
     assert!(!app.canvas.waits_for_still, "off the web build");
@@ -3084,7 +3084,7 @@ fn without_a_worker_a_heavy_canvas_is_reprojected_until_the_view_is_still() {
     app.canvas.waits_for_still = true;
     let ctx = egui::Context::default();
     // One frame → (the bounds of the mesh that draws the art's texture, the repaint delay asked for).
-    let frame = |app: &mut VectorcraftApp| {
+    let frame = |app: &mut VansoncraftApp| {
         let raw = egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0))), ..Default::default() };
         let mut out = ctx.run_ui(raw, |ui| show(app, ui));
         out.textures_delta.clear();
@@ -3141,7 +3141,7 @@ fn without_a_worker_a_heavy_canvas_is_reprojected_until_the_view_is_still() {
     frame(&mut app);
     let k = app.canvas.key.clone().unwrap();
     assert_eq!((k.revision, k.cy), (app.session.active().unwrap().revision, app.view().unwrap().center.y), "rendered after the edit");
-    // With a worker's build settings and no worker (VECTORCRAFT_SYNC_RENDER), a heavy document
+    // With a worker's build settings and no worker (VANSONCRAFT_SYNC_RENDER), a heavy document
     // renders every change of view at once.
     app.canvas.waits_for_still = false;
     app.canvas.last_ms = 50.0;
@@ -3155,7 +3155,7 @@ fn without_a_worker_a_heavy_canvas_is_reprojected_until_the_view_is_still() {
 /// back, an edit, a switch into Pixel Preview or a canvas with no frame shown.
 #[test]
 fn the_canvas_waits_only_while_the_view_of_a_slow_frame_changes() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.canvas.worker_started = true; // render on this thread
     shapes(&mut app, &egui::Context::default());
@@ -3184,11 +3184,11 @@ fn the_canvas_waits_only_while_the_view_of_a_slow_frame_changes() {
 /// canvas always does out of Pixel Preview.
 #[test]
 fn pixel_preview_smooths_bitmaps_only_when_asked() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.canvas.worker_started = true; // render on this thread
     let ctx = egui::Context::default();
-    let smooth = |app: &mut VectorcraftApp| {
+    let smooth = |app: &mut VansoncraftApp| {
         let (_, mut delta) = frame_output(app, &ctx);
         delta.clear();
         app.canvas.key.as_ref().map(|k| k.smooth_images).unwrap()
@@ -3206,18 +3206,18 @@ fn pixel_preview_smooths_bitmaps_only_when_asked() {
 /// shows it as RGB black. A rich black shows the same either way.
 #[test]
 fn appearance_of_black_on_screen_shows_pure_black_as_rgb_black() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300, "colorMode": "cmyk"})).unwrap();
     app.canvas.worker_started = true; // render on this thread
     // Larger than the view: the middle of the art's raster is its fill.
     let id = app.run("shape.rectangle", json!({"x": -5000, "y": -5000, "width": 10000, "height": 10000})).unwrap()["id"].clone();
-    let fill = |app: &mut VectorcraftApp, cmyk: [u8; 4]| {
+    let fill = |app: &mut VansoncraftApp, cmyk: [u8; 4]| {
         let [c, m, y, k] = cmyk;
         app.run("paint.setFill", json!({"ids": [id], "color": {"c": c, "m": m, "y": y, "k": k}})).unwrap();
     };
     let ctx = egui::Context::default();
     // The middle pixel of the art's raster uploaded by one frame, None when it was not re-rendered.
-    let middle = |app: &mut VectorcraftApp| -> Option<[u8; 4]> {
+    let middle = |app: &mut VansoncraftApp| -> Option<[u8; 4]> {
         let (_, mut delta) = frame_output(app, &ctx);
         let art = app.canvas.texture.as_ref().unwrap().id();
         let px = delta.set.iter().find(|e| e.0.eq(&art)).and_then(|e| e.1.last()).map(|d| {
@@ -3228,7 +3228,7 @@ fn appearance_of_black_on_screen_shows_pure_black_as_rgb_black() {
         delta.clear();
         px
     };
-    let shown = |cmyk: [f32; 4]| vectorcraft_color::Color::cmyk(cmyk[0], cmyk[1], cmyk[2], cmyk[3]).to_rgba8(1.0);
+    let shown = |cmyk: [f32; 4]| vansoncraft_color::Color::cmyk(cmyk[0], cmyk[1], cmyk[2], cmyk[3]).to_rgba8(1.0);
     let near = |a: [u8; 4], b: [u8; 4]| a.iter().zip(b).all(|(x, y)| x.abs_diff(y) <= 1);
 
     fill(&mut app, [0, 0, 0, 100]);
@@ -3252,14 +3252,14 @@ fn appearance_of_black_on_screen_shows_pure_black_as_rgb_black() {
 /// or with the option off.
 #[test]
 fn pixel_grid_shows_in_pixel_preview_from_600_percent() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.session.execute("shape.rectangle", &json!({"x": 100, "y": 50, "width": 200, "height": 200})).unwrap();
     app.canvas.worker_started = true; // render on this thread
     let ctx = egui::Context::default();
     shapes(&mut app, &ctx); // the first frame fits the view to the artboard
     // → (the pixel grid's lines, whether the first of them is drawn over the art).
-    let pixel_lines = |app: &mut VectorcraftApp| {
+    let pixel_lines = |app: &mut VansoncraftApp| {
         let s = shapes(app, &ctx);
         let art = app.canvas.texture.as_ref().unwrap().id();
         let image = s.iter().position(|s| matches!(s, Shape::Mesh(m) if m.texture_id == art)).expect("the art");
@@ -3300,7 +3300,7 @@ fn pixel_grid_shows_in_pixel_preview_from_600_percent() {
 /// over it, as dots in the Dots style; the guides in Guides Color and Style.
 #[test]
 fn grid_and_guides_take_their_preferences() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.canvas.worker_started = true; // render on this thread
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.session.execute("guide.add", &json!({"vertical": true, "pos": 100})).unwrap();
@@ -3311,7 +3311,7 @@ fn grid_and_guides_take_their_preferences() {
     let ctx = egui::Context::default();
     let red_line = |s: &Shape| matches!(s, Shape::LineSegment { stroke, .. } if stroke.color == red);
     // → (index of the first red gridline, index of the art's image).
-    let order = |app: &mut VectorcraftApp| {
+    let order = |app: &mut VansoncraftApp| {
         let s = shapes(app, &ctx);
         let art = app.canvas.texture.as_ref().unwrap().id();
         let image = s.iter().position(|s| matches!(s, Shape::Mesh(m) if m.texture_id == art)).expect("the art");
@@ -3336,7 +3336,7 @@ fn grid_and_guides_take_their_preferences() {
 /// vertical one runs from the canvas's top to its bottom.
 #[test]
 fn canvas_guides_turn_with_the_view() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.session.execute("guide.add", &json!({"vertical": true, "pos": 100})).unwrap();
     app.session.execute("guide.add", &json!({"vertical": false, "pos": 120})).unwrap();
@@ -3344,7 +3344,7 @@ fn canvas_guides_turn_with_the_view() {
     app.ui.view.guides = true;
     let color = Color32::from_rgb(0x12, 0x34, 0x56);
     let ctx = egui::Context::default();
-    let lines = |app: &mut VectorcraftApp| -> Vec<[Pos2; 2]> {
+    let lines = |app: &mut VansoncraftApp| -> Vec<[Pos2; 2]> {
         shapes(app, &ctx)
             .into_iter()
             .filter_map(|s| if let Shape::LineSegment { points, stroke } = s { (stroke.color == color).then_some(points) } else { None })
@@ -3368,12 +3368,12 @@ fn canvas_guides_turn_with_the_view() {
 /// Selection & Anchor Display › Size (#394): anchors and the bounding box's handles grow.
 #[test]
 fn anchor_size_scales_anchors_and_handles() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.session.execute("shape.rectangle", &json!({"x": 150, "y": 100, "width": 100, "height": 100})).unwrap();
     let ctx = egui::Context::default();
     // The sizes of the squares drawn (anchors and handles are squares).
-    let sizes = |app: &mut VectorcraftApp| {
+    let sizes = |app: &mut VansoncraftApp| {
         let mut v: Vec<f32> = shapes(app, &ctx).iter().filter_map(|s| if let Shape::Rect(r) = s { Some(r.rect.width()) } else { None }).collect();
         v.sort_by(f32::total_cmp);
         v.dedup();
@@ -3388,12 +3388,12 @@ fn anchor_size_scales_anchors_and_handles() {
 
 #[test]
 fn mirror_axis_tracks_selection_options_and_view_without_editing_art() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     app.run("shape.rectangle", json!({"x": 100, "y": 100, "width": 60, "height": 80})).unwrap();
     let id = app.run("object.repeat.mirror", json!({})).unwrap()["id"].as_u64().unwrap();
     let ctx = egui::Context::default();
-    let axis = |app: &mut VectorcraftApp| {
+    let axis = |app: &mut VansoncraftApp| {
         let color = Tokens::get(&ctx).selection;
         shapes(app, &ctx)
             .into_iter()
@@ -3434,7 +3434,7 @@ fn mirror_axis_tracks_selection_options_and_view_without_editing_art() {
 #[test]
 fn egui_backtick_drag_uses_key_state_at_release() {
     use egui::Event;
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     let tile = app.run("shape.rectangle", json!({"x": 0, "y": 0, "width": 10, "height": 10})).unwrap()["id"].as_u64().unwrap();
     app.run("object.pattern.make", json!({"ids": [tile], "name": "Dots", "width": 20, "height": 20})).unwrap();
@@ -3452,14 +3452,14 @@ fn egui_backtick_drag_uses_key_state_at_release() {
     let to = xf.to_screen(Point::new(145.0, 125.0));
     let button = |pos, pressed| Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
     let key = |pressed| Event::Key { key: egui::Key::Backtick, physical_key: None, pressed, repeat: false, modifiers: Default::default() };
-    let node = |app: &VectorcraftApp| app.session.doc().unwrap().doc.node(vectorcraft_doc::NodeId(id)).unwrap().clone();
+    let node = |app: &VansoncraftApp| app.session.doc().unwrap().doc.node(vansoncraft_doc::NodeId(id)).unwrap().clone();
     let before = node(&app);
     frame(&mut app, &ctx, vec![Event::PointerMoved(from), button(from, true)]);
     frame(&mut app, &ctx, vec![key(true), Event::PointerMoved(to)]);
     frame(&mut app, &ctx, vec![button(to, false)]);
     let after = node(&app);
     assert_eq!(after.geometric_bounds(), before.geometric_bounds(), "backtick release keeps geometry still");
-    let vectorcraft_color::Paint::Pattern { xf, .. } = after.appearance.fill_paint() else { panic!("pattern fill expected") };
+    let vansoncraft_color::Paint::Pattern { xf, .. } = after.appearance.fill_paint() else { panic!("pattern fill expected") };
     assert!((xf.as_coeffs()[4] - 20.0).abs() < 0.001, "egui backtick reaches the active tool");
     app.run("edit.undo", json!({})).unwrap();
     assert_eq!(node(&app), before, "one Undo restores the pattern transform");
@@ -3480,7 +3480,7 @@ fn egui_backtick_drag_uses_key_state_at_release() {
 #[test]
 fn backtick_changed_after_the_button_up_in_its_frame_does_not_change_the_release() {
     use egui::Event;
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     let tile = app.run("shape.rectangle", json!({"x": 0, "y": 0, "width": 10, "height": 10})).unwrap()["id"].as_u64().unwrap();
     app.run("object.pattern.make", json!({"ids": [tile], "name": "Dots", "width": 20, "height": 20})).unwrap();
@@ -3500,9 +3500,9 @@ fn backtick_changed_after_the_button_up_in_its_frame_does_not_change_the_release
     let to = xf.to_screen(Point::new(145.0, 125.0));
     let button = |pos, pressed| Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
     let key = |pressed| Event::Key { key: egui::Key::Backtick, physical_key: None, pressed, repeat: false, modifiers: Default::default() };
-    let node = |app: &VectorcraftApp| app.session.doc().unwrap().doc.node(vectorcraft_doc::NodeId(id)).unwrap().clone();
-    let pattern_x = |node: &vectorcraft_doc::Node| {
-        let vectorcraft_color::Paint::Pattern { xf, .. } = node.appearance.fill_paint() else { panic!("pattern fill expected") };
+    let node = |app: &VansoncraftApp| app.session.doc().unwrap().doc.node(vansoncraft_doc::NodeId(id)).unwrap().clone();
+    let pattern_x = |node: &vansoncraft_doc::Node| {
+        let vansoncraft_color::Paint::Pattern { xf, .. } = node.appearance.fill_paint() else { panic!("pattern fill expected") };
         xf.as_coeffs()[4]
     };
     let before = node(&app);
@@ -3538,7 +3538,7 @@ fn backtick_changed_after_the_button_up_in_its_frame_does_not_change_the_release
 
 #[test]
 fn mirror_axis_drag_uses_canvas_coordinates_in_a_zoomed_rotated_view() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     app.run("shape.rectangle", json!({"x": 100, "y": 100, "width": 60, "height": 80})).unwrap();
     app.run("object.repeat.mirror", json!({})).unwrap();
@@ -3548,9 +3548,9 @@ fn mirror_axis_drag_uses_canvas_coordinates_in_a_zoomed_rotated_view() {
     app.view_mut().unwrap().rotation = 30.0;
     let ctx = egui::Context::default();
     frame(&mut app, &ctx, vec![]);
-    let axis = |app: &VectorcraftApp| {
+    let axis = |app: &VansoncraftApp| {
         let st = app.session.active().unwrap();
-        vectorcraft_tools::mirror::MirrorAxis::of(&st.doc, &st.selection, app.view().unwrap().zoom).unwrap()
+        vansoncraft_tools::mirror::MirrorAxis::of(&st.doc, &st.selection, app.view().unwrap().zoom).unwrap()
     };
     let initial = axis(&app);
     let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
@@ -3568,7 +3568,7 @@ fn mirror_axis_drag_uses_canvas_coordinates_in_a_zoomed_rotated_view() {
     let drawn = shapes(&mut app, &ctx);
     for end in initial.ends {
         assert!(drawn.iter().any(|s| matches!(s, Shape::Circle(c)
-            if c.center.distance(xf.to_screen(end)) < 0.01 && c.radius == vectorcraft_tools::mirror::HANDLE_RADIUS)));
+            if c.center.distance(xf.to_screen(end)) < 0.01 && c.radius == vansoncraft_tools::mirror::HANDLE_RADIUS)));
     }
 }
 
@@ -3578,8 +3578,8 @@ fn mirror_axis_drag_uses_canvas_coordinates_in_a_zoomed_rotated_view() {
 /// sets the horizontal spacing (#2691).
 #[test]
 fn grid_repeat_handles_set_rows_and_spacing_in_one_undo_step_each() {
-    use vectorcraft_tools::repeat_grid::{GridHandles, HANDLE_RADIUS};
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    use vansoncraft_tools::repeat_grid::{GridHandles, HANDLE_RADIUS};
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     app.run("shape.rectangle", json!({"x": 40, "y": 40, "width": 40, "height": 40})).unwrap();
     app.run("object.repeat.grid", json!({"hSpacing": 10, "vSpacing": 10})).unwrap();
@@ -3592,14 +3592,14 @@ fn grid_repeat_handles_set_rows_and_spacing_in_one_undo_step_each() {
     frame(&mut app, &ctx, vec![]);
     assert_eq!(app.view().unwrap().zoom, 1.5);
     // Rows, columns, horizontal spacing and the source's bounds.
-    let grid = |app: &VectorcraftApp| {
+    let grid = |app: &VansoncraftApp| {
         let st = app.session.active().unwrap();
         let n = st.doc.node(st.selection.objects[0]).unwrap();
-        let vectorcraft_doc::NodeKind::Repeat(spec) = &n.kind else { panic!("a repeat") };
-        let vectorcraft_doc::RepeatKind::Grid { rows, cols, h_spacing, .. } = spec.kind else { panic!("a grid repeat") };
+        let vansoncraft_doc::NodeKind::Repeat(spec) = &n.kind else { panic!("a repeat") };
+        let vansoncraft_doc::RepeatKind::Grid { rows, cols, h_spacing, .. } = spec.kind else { panic!("a grid repeat") };
         (rows, cols, h_spacing, spec.source_bounds().unwrap())
     };
-    let handles = |app: &mut VectorcraftApp| {
+    let handles = |app: &mut VansoncraftApp| {
         let frame = app.selection_box();
         let st = app.session.active().unwrap();
         GridHandles::of(&st.doc, &st.selection, frame, app.view().unwrap().zoom).unwrap()
@@ -3618,7 +3618,7 @@ fn grid_repeat_handles_set_rows_and_spacing_in_one_undo_step_each() {
     app.ui.view.bounding_box = true;
     frame(&mut app, &ctx, vec![]);
     let button = |pos, pressed| egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
-    let drag = |app: &mut VectorcraftApp, from: Pos2, by: egui::Vec2| {
+    let drag = |app: &mut VansoncraftApp, from: Pos2, by: egui::Vec2| {
         frame(app, &ctx, vec![egui::Event::PointerMoved(from), button(from, true)]);
         for k in 1..=4 {
             frame(app, &ctx, vec![egui::Event::PointerMoved(from + by * k as f32 / 4.0)]);
@@ -3649,7 +3649,7 @@ fn grid_repeat_handles_set_rows_and_spacing_in_one_undo_step_each() {
 /// a zoomed view moves that guide alone, as one undo step.
 #[test]
 fn the_edited_symbols_nine_slice_guides_are_drawn_and_dragged_on_the_canvas() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     app.run("shape.rectangle", json!({"x": 100, "y": 100, "width": 100, "height": 100})).unwrap();
     app.run("symbol.new", json!({"name": "Box", "nineSlice": true})).unwrap();
@@ -3662,7 +3662,7 @@ fn the_edited_symbols_nine_slice_guides_are_drawn_and_dragged_on_the_canvas() {
     frame(&mut app, &ctx, vec![]);
     let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
     // The dots drawn along the guide from document point `a` to `b`.
-    let dots = |app: &mut VectorcraftApp, a: Point, b: Point| {
+    let dots = |app: &mut VansoncraftApp, a: Point, b: Point| {
         let (a, b) = (xf.to_screen(a), xf.to_screen(b));
         let on = |q: Pos2| {
             let (d, len) = (b - a, (b - a).length());
@@ -3691,7 +3691,7 @@ fn the_edited_symbols_nine_slice_guides_are_drawn_and_dragged_on_the_canvas() {
         frame(&mut app, &ctx, vec![egui::Event::PointerMoved(from + (to - from) * k as f32 / 4.0)]);
     }
     frame(&mut app, &ctx, vec![button(to, false)]);
-    let guides_now = |app: &VectorcraftApp| app.session.active().unwrap().doc.symbol_nine_slice("Box").unwrap();
+    let guides_now = |app: &VansoncraftApp| app.session.active().unwrap().doc.symbol_nine_slice("Box").unwrap();
     let g = guides_now(&app);
     assert!((g.left - 0.1).abs() < 1e-3 && (g.top, g.right, g.bottom) == (0.25, 0.25, 0.25), "{g:?}");
     assert!(app.session.active().unwrap().doc.symbol_edit.is_some(), "still editing the symbol");
@@ -3705,7 +3705,7 @@ fn the_edited_symbols_nine_slice_guides_are_drawn_and_dragged_on_the_canvas() {
 
 #[test]
 fn top_bounding_box_handle_scales_a_default_mirror_repeat() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     app.run("shape.rectangle", json!({"x": 100, "y": 100, "width": 100, "height": 100})).unwrap();
     app.run("object.repeat.mirror", json!({})).unwrap();
@@ -3716,7 +3716,7 @@ fn top_bounding_box_handle_scales_a_default_mirror_repeat() {
 
     let initial = app.selection_bounds().unwrap();
     let bx = app.selection_box().unwrap();
-    let top = bx.to_doc() * vectorcraft_tools::bbox::Handle::Top.pos(bx.rect);
+    let top = bx.to_doc() * vansoncraft_tools::bbox::Handle::Top.pos(bx.rect);
     let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
     let from = xf.to_screen(top);
     let to = from + vec2(0.0, -30.0);
@@ -3735,9 +3735,9 @@ fn top_bounding_box_handle_scales_a_default_mirror_repeat() {
 /// no direction handles; switching back to Direct Selection keeps its normal handles.
 #[test]
 fn curvature_points_of_an_existing_path_have_no_direction_handles() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
-    let id = vectorcraft_doc::NodeId(
+    let id = vansoncraft_doc::NodeId(
         app.session
             .execute(
                 "path.curvature",
@@ -3786,15 +3786,15 @@ fn curvature_points_of_an_existing_path_have_no_direction_handles() {
 /// markers: no duplicate squares or handles, and the path is unchanged by drawing a frame.
 #[test]
 fn curvature_drawing_shows_its_points_once() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let ctx = egui::Context::default();
     shapes(&mut app, &ctx);
     app.select_tool("curvature");
     for (x, y) in [(60.0, 200.0), (120.0, 80.0), (210.0, 160.0), (280.0, 60.0), (350.0, 180.0)] {
         let view = app.view_info();
-        for kind in [vectorcraft_tools::PointerKind::Down, vectorcraft_tools::PointerKind::Up] {
-            app.session.pointer(&vectorcraft_tools::PointerEvent::new(kind, x, y), view).unwrap();
+        for kind in [vansoncraft_tools::PointerKind::Down, vansoncraft_tools::PointerKind::Up] {
+            app.session.pointer(&vansoncraft_tools::PointerEvent::new(kind, x, y), view).unwrap();
         }
     }
     let st = app.session.active().unwrap();
@@ -3837,16 +3837,16 @@ fn curvature_drawing_shows_its_points_once() {
 /// anchor hides the handles.
 #[test]
 fn handle_style_and_handles_of_multiple_anchors() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let id = app.session.execute("shape.ellipse", &json!({"x": 100, "y": 100, "width": 100, "height": 100})).unwrap()["id"].clone();
     app.session.select_tool("directSelection", app.view_info()).unwrap();
     let ctx = egui::Context::default();
-    let select = |app: &mut VectorcraftApp, anchors: serde_json::Value| {
+    let select = |app: &mut VansoncraftApp, anchors: serde_json::Value| {
         app.session.execute("select.anchors", &json!({"id": id, "anchors": anchors, "mode": "set"})).unwrap();
     };
     // The handle ends: (radius, filled white).
-    let dots = |app: &mut VectorcraftApp| -> Vec<(f32, bool)> {
+    let dots = |app: &mut VansoncraftApp| -> Vec<(f32, bool)> {
         shapes(app, &ctx)
             .iter()
             .filter_map(|s| match s {
@@ -3873,12 +3873,12 @@ fn handle_style_and_handles_of_multiple_anchors() {
 /// selection overlay cannot reveal the hidden path.
 #[test]
 fn hide_guides_deselects_selected_guide_paths() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     let id = app.run("shape.rectangle", json!({"x": 100, "y": 100, "width": 100, "height": 100})).unwrap()["id"].as_u64().unwrap();
     app.run("view.guides.make", json!({})).unwrap();
     app.run("select.set", json!({"ids": [id]})).unwrap();
-    assert_eq!(app.session.active().unwrap().selection.objects, vec![vectorcraft_doc::NodeId(id)]);
+    assert_eq!(app.session.active().unwrap().selection.objects, vec![vansoncraft_doc::NodeId(id)]);
 
     app.run("view.guides", json!({})).unwrap();
 
@@ -3891,7 +3891,7 @@ fn hide_guides_deselects_selected_guide_paths() {
 /// themselves through Smart Guides object highlighting.
 #[test]
 fn hidden_guide_paths_have_no_hover_highlight() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     let id = app.run("shape.rectangle", json!({"x": 100, "y": 100, "width": 100, "height": 100})).unwrap()["id"].as_u64().unwrap();
     app.run("view.guides.make", json!({})).unwrap();
@@ -3901,14 +3901,14 @@ fn hidden_guide_paths_have_no_hover_highlight() {
     let ctx = egui::Context::default();
     frame(&mut app, &ctx, vec![]);
     let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
-    let color = c32(app.session.active().unwrap().doc.layer_color(vectorcraft_doc::NodeId(id)));
+    let color = c32(app.session.active().unwrap().doc.layer_color(vansoncraft_doc::NodeId(id)));
     frame(&mut app, &ctx, vec![egui::Event::PointerMoved(xf.to_screen(Point::new(100.0, 150.0)))]);
     assert!(drawn_in(&mut app, &ctx, color, 1.5).is_empty(), "a hidden guide has no hover highlight");
 }
 
 #[test]
 fn snap_to_grid_and_pixel_preview_hide_the_hover_outline() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let id = app.session.execute("shape.rectangle", &json!({"x": 100, "y": 100, "width": 100, "height": 100})).unwrap()["id"].as_u64().unwrap();
     app.session.execute("select.none", &json!({})).unwrap();
@@ -3916,8 +3916,8 @@ fn snap_to_grid_and_pixel_preview_hide_the_hover_outline() {
     frame(&mut app, &ctx, vec![]);
     let rect = app.canvas_rect.unwrap();
     let over = Xf::new(rect, app.view().unwrap()).to_screen(Point::new(150.0, 150.0));
-    let layer = egui::epaint::ColorMode::Solid(c32(app.session.active().unwrap().doc.layer_color(vectorcraft_doc::NodeId(id))));
-    let outlines = |app: &mut VectorcraftApp| {
+    let layer = egui::epaint::ColorMode::Solid(c32(app.session.active().unwrap().doc.layer_color(vansoncraft_doc::NodeId(id))));
+    let outlines = |app: &mut VansoncraftApp| {
         frame(app, &ctx, vec![egui::Event::PointerMoved(over)]);
         shapes(app, &ctx).iter().filter(|s| matches!(s, Shape::Path(ps) if ps.stroke.width == 1.5 && ps.stroke.color == layer)).count()
     };
@@ -3940,7 +3940,7 @@ fn snap_to_grid_and_pixel_preview_hide_the_hover_outline() {
 #[test]
 fn pixel_preview_stops_smart_guides_snapping_a_move() {
     for pixel in [false, true] {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 800, "height": 600})).unwrap();
         app.session.execute("shape.rectangle", &json!({"x": 100, "y": 100, "width": 100, "height": 100})).unwrap();
         let id = app.session.execute("shape.rectangle", &json!({"x": 400, "y": 300, "width": 50, "height": 50})).unwrap()["id"].as_u64().unwrap();
@@ -3958,7 +3958,7 @@ fn pixel_preview_stops_smart_guides_snapping_a_move() {
             at(PointerKind::Drag, y);
         }
         at(PointerKind::Up, 128.0);
-        let top = app.session.active().unwrap().doc.node(vectorcraft_doc::NodeId(id)).unwrap().geometric_bounds().unwrap().y0;
+        let top = app.session.active().unwrap().doc.node(vansoncraft_doc::NodeId(id)).unwrap().geometric_bounds().unwrap().y0;
         assert_eq!(top, if pixel { 103.0 } else { 100.0 }, "Pixel Preview {pixel}");
     }
 }
@@ -3974,15 +3974,15 @@ fn a_moving_view_leaves_the_art_under_the_pointer_unhighlighted_until_it_stops()
             s => out.push(s.clone()),
         }
     }
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let id = app.session.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 400, "height": 300})).unwrap()["id"].as_u64().unwrap();
     app.session.execute("select.none", &json!({})).unwrap();
-    let layer = egui::epaint::ColorMode::Solid(c32(app.session.active().unwrap().doc.layer_color(vectorcraft_doc::NodeId(id))));
+    let layer = egui::epaint::ColorMode::Solid(c32(app.session.active().unwrap().doc.layer_color(vansoncraft_doc::NodeId(id))));
     let ctx = egui::Context::default();
     let screen = egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0));
     let mut time = 0.0;
-    let mut outlines = |app: &mut VectorcraftApp, events: Vec<egui::Event>, dt: f64| {
+    let mut outlines = |app: &mut VansoncraftApp, events: Vec<egui::Event>, dt: f64| {
         time += dt;
         let mut out = ctx.run_ui(egui::RawInput { time: Some(time), screen_rect: Some(screen), events, ..Default::default() }, |ui| show(app, ui));
         out.textures_delta.clear();
@@ -4012,7 +4012,7 @@ fn a_moving_view_leaves_the_art_under_the_pointer_unhighlighted_until_it_stops()
     // pointer, it stays the move cursor until the view stops, then the arrow.
     app.session.execute("select.all", &json!({})).unwrap();
     outlines(&mut app, vec![egui::Event::PointerMoved(at - vec2(0.0, 200.0))], 0.016);
-    let cursor = |app: &VectorcraftApp| app.canvas.hover_cursor.map(|(_, _, c)| c);
+    let cursor = |app: &VansoncraftApp| app.canvas.hover_cursor.map(|(_, _, c)| c);
     assert_eq!(cursor(&app), Some(Cursor::Move));
     for k in 0..12 {
         let before = app.view().unwrap().center;
@@ -4042,13 +4042,13 @@ fn a_moving_view_leaves_the_art_under_the_pointer_unhighlighted_until_it_stops()
 #[test]
 fn scrolls_and_pans_move_the_view_by_whole_device_pixels() {
     const PPP: f32 = 1.25;
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.session.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 400, "height": 300})).unwrap();
     let ctx = egui::Context::default();
     let screen = egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0));
     let mut time = 0.0;
-    let mut frame = |app: &mut VectorcraftApp, events: Vec<egui::Event>| {
+    let mut frame = |app: &mut VansoncraftApp, events: Vec<egui::Event>| {
         time += 0.016;
         let mut input = egui::RawInput { time: Some(time), screen_rect: Some(screen), events, ..Default::default() };
         input.viewports.get_mut(&egui::ViewportId::ROOT).unwrap().native_pixels_per_point = Some(PPP);
@@ -4064,7 +4064,7 @@ fn scrolls_and_pans_move_the_view_by_whole_device_pixels() {
     frame(&mut app, vec![]);
     // The pan of the canvas's render view (the translation of the view it renders through, less
     // the half of its size), in device pixels.
-    let pan = |app: &VectorcraftApp| {
+    let pan = |app: &VansoncraftApp| {
         let v = app.view().unwrap();
         (Affine::rotate(v.rotation.to_radians()) * Affine::scale(v.zoom * f64::from(PPP)) * Affine::translate(-v.center.to_vec2())).translation()
     };
@@ -4075,21 +4075,21 @@ fn scrolls_and_pans_move_the_view_by_whole_device_pixels() {
         modifiers: Default::default(),
         source: egui::MouseWheelSource::Unknown,
     };
-    let whole = |by: vectorcraft_geom::Vec2| (by - vectorcraft_geom::Vec2::new(by.x.round(), by.y.round())).hypot() < 1e-6;
+    let whole = |by: vansoncraft_geom::Vec2| (by - vansoncraft_geom::Vec2::new(by.x.round(), by.y.round())).hypot() < 1e-6;
     let rect = app.canvas_rect.unwrap();
     let track = scroll_tracks(rect, screen)[0].center();
     let deltas = [vec2(0.37, 11.13), vec2(-12.71, 0.0), vec2(0.0, 7.45), vec2(21.9, -3.83), vec2(0.21, 0.21)];
     for (name, at) in [("the wheel", rect.center()), ("the horizontal scroll bar", track)] {
         frame(&mut app, vec![egui::Event::PointerMoved(at)]);
         let start = pan(&app);
-        let mut given = vectorcraft_geom::Vec2::ZERO;
+        let mut given = vansoncraft_geom::Vec2::ZERO;
         for (k, d) in deltas.iter().enumerate() {
             frame(&mut app, vec![wheel(*d)]);
             // Over the scroll bar, the wheel scrolls along it.
             given += if at == track {
-                vectorcraft_geom::Vec2::new(f64::from(d.x + d.y), 0.0)
+                vansoncraft_geom::Vec2::new(f64::from(d.x + d.y), 0.0)
             } else {
-                vectorcraft_geom::Vec2::new(f64::from(d.x), f64::from(d.y))
+                vansoncraft_geom::Vec2::new(f64::from(d.x), f64::from(d.y))
             };
             let by = pan(&app) - start;
             assert!(whole(by), "{name}, scroll {k}: the view moved {by:?} device pixels");
@@ -4131,7 +4131,7 @@ fn scrolls_and_pans_move_the_view_by_whole_device_pixels() {
         frame(&mut app, vec![egui::Event::PointerMoved(p0 + d)]);
         let by = pan(&app) - start;
         assert!(whole(by), "drag {k}: the view moved {by:?} device pixels");
-        let want = vectorcraft_geom::Vec2::new(f64::from(d.x), f64::from(d.y)) * f64::from(PPP);
+        let want = vansoncraft_geom::Vec2::new(f64::from(d.x), f64::from(d.y)) * f64::from(PPP);
         assert!((by.x - want.x).abs() <= 1.0 && (by.y - want.y).abs() <= 1.0, "drag {k}: moved {by:?} device pixels for {want:?}");
     }
     frame(&mut app, vec![primary(p0 + vec2(-5.55, 22.71), false)]);
@@ -4168,7 +4168,7 @@ fn a_scrolls_leftover_pixel_part_carries_only_to_the_same_view() {
 /// View › Snap to Glyph toggles through the View menu command (#3124).
 #[test]
 fn snap_to_glyph_menu_command_toggles_the_view_flag() {
-    let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(vansoncraft_engine::Session::new(), Default::default());
     app.run("file.new", json!({"width": 200, "height": 200})).unwrap();
     assert!(!app.ui.view.snap_to_glyph);
     app.run("view.snapToGlyph", json!({})).unwrap();
@@ -4181,7 +4181,7 @@ fn snap_to_glyph_menu_command_toggles_the_view_flag() {
 /// shows with Smart Guides on and the option on, and not otherwise.
 #[test]
 fn object_highlighting_preference_hides_the_hover_outline() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let id = app.session.execute("shape.rectangle", &json!({"x": 100, "y": 100, "width": 100, "height": 100})).unwrap()["id"].as_u64().unwrap();
     app.session.execute("select.none", &json!({})).unwrap();
@@ -4189,9 +4189,9 @@ fn object_highlighting_preference_hides_the_hover_outline() {
     frame(&mut app, &ctx, vec![]);
     let rect = app.canvas_rect.unwrap();
     let over = Xf::new(rect, app.view().unwrap()).to_screen(Point::new(150.0, 150.0));
-    let layer = egui::epaint::ColorMode::Solid(c32(app.session.active().unwrap().doc.layer_color(vectorcraft_doc::NodeId(id))));
+    let layer = egui::epaint::ColorMode::Solid(c32(app.session.active().unwrap().doc.layer_color(vansoncraft_doc::NodeId(id))));
     // The hover outline: 1.5 px lines in the layer colour.
-    let outlines = |app: &mut VectorcraftApp| {
+    let outlines = |app: &mut VansoncraftApp| {
         frame(app, &ctx, vec![egui::Event::PointerMoved(over)]);
         shapes(app, &ctx).iter().filter(|s| matches!(s, Shape::Path(ps) if ps.stroke.width == 1.5 && ps.stroke.color == layer)).count()
     };
@@ -4207,11 +4207,11 @@ fn object_highlighting_preference_hides_the_hover_outline() {
 /// widgets below 90°.
 #[test]
 fn corner_widgets_hide_above_the_preference_angle() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.session.execute("shape.rectangle", &json!({"x": 100, "y": 100, "width": 100, "height": 100})).unwrap();
     let ctx = egui::Context::default();
-    let widgets = |app: &mut VectorcraftApp| {
+    let widgets = |app: &mut VansoncraftApp| {
         shapes(app, &ctx).iter().filter(|s| matches!(s, Shape::Circle(c) if c.radius == 3.0 && c.fill == Color32::WHITE)).count()
     };
     assert_eq!(widgets(&mut app), 4);
@@ -4224,23 +4224,23 @@ fn corner_widgets_hide_above_the_preference_angle() {
 /// edges shown, a drag from the same widget rounds them.
 #[test]
 fn hidden_corner_widgets_do_not_answer_the_pointer() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let id = app.session.execute("shape.rectangle", &json!({"x": 100, "y": 100, "width": 100, "height": 100})).unwrap()["id"].as_u64().unwrap();
-    let id = vectorcraft_doc::NodeId(id);
+    let id = vansoncraft_doc::NodeId(id);
     let ctx = egui::Context::default();
     frame(&mut app, &ctx, vec![]);
     app.select_tool("selection");
-    let widget = |app: &VectorcraftApp| {
+    let widget = |app: &VansoncraftApp| {
         let st = app.session.active().unwrap();
-        vectorcraft_tools::corners::CornerWidgets::of(&st.doc, &st.selection, app.view_info().zoom, false).unwrap().visible().next().unwrap()
+        vansoncraft_tools::corners::CornerWidgets::of(&st.doc, &st.selection, app.view_info().zoom, false).unwrap().visible().next().unwrap()
     };
-    let radius = |app: &VectorcraftApp| {
-        let c = vectorcraft_doc::LiveCorners::of(app.session.active().unwrap().doc.node(id).unwrap()).unwrap();
+    let radius = |app: &VansoncraftApp| {
+        let c = vansoncraft_doc::LiveCorners::of(app.session.active().unwrap().doc.node(id).unwrap()).unwrap();
         c.style(&c.all()).0
     };
-    let drag = |app: &mut VectorcraftApp, from: Point| {
-        let (view, to) = (app.view_info(), from + vectorcraft_geom::Vec2::new(10.0, 10.0));
+    let drag = |app: &mut VansoncraftApp, from: Point| {
+        let (view, to) = (app.view_info(), from + vansoncraft_geom::Vec2::new(10.0, 10.0));
         for (kind, at) in [(PointerKind::Down, from), (PointerKind::Drag, to), (PointerKind::Up, to)] {
             app.session.pointer(&PointerEvent::new(kind, at.x, at.y), view).unwrap();
         }
@@ -4262,7 +4262,7 @@ fn hidden_corner_widgets_do_not_answer_the_pointer() {
 /// One headless canvas frame → the bounding box drawn: its outline's corners on screen (the
 /// closed four-point line in the layer color; `None` when it is hidden) and the number of its
 /// handles (white 6 px squares).
-fn bounding_box_drawn(app: &mut VectorcraftApp, ctx: &egui::Context) -> (Option<Vec<Pos2>>, usize) {
+fn bounding_box_drawn(app: &mut VansoncraftApp, ctx: &egui::Context) -> (Option<Vec<Pos2>>, usize) {
     let st = app.session.active().unwrap();
     let layer = egui::epaint::ColorMode::Solid(c32(st.doc.layer_color(st.selection.objects[0])));
     let drawn = shapes(app, ctx);
@@ -4275,7 +4275,7 @@ fn bounding_box_drawn(app: &mut VectorcraftApp, ctx: &egui::Context) -> (Option<
 }
 
 /// The selection's bounding box corners on screen, as measured from the document.
-fn box_corners(app: &mut VectorcraftApp) -> Vec<Pos2> {
+fn box_corners(app: &mut VansoncraftApp) -> Vec<Pos2> {
     let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
     app.selection_box().unwrap().corners().iter().map(|q| xf.to_screen(*q)).collect()
 }
@@ -4291,7 +4291,7 @@ fn same_corners(a: &[Pos2], b: &[Pos2]) -> bool {
 #[test]
 fn a_resize_drag_keeps_the_bounding_box_at_the_new_bounds() {
     for real_time in [true, false] {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         app.session.execute("shape.ellipse", &json!({"x": 100, "y": 100, "width": 100, "height": 60})).unwrap();
         app.session.execute("prefs.set", &json!({"key": "realTimeDrawing", "value": real_time})).unwrap();
@@ -4320,13 +4320,13 @@ fn a_resize_drag_keeps_the_bounding_box_at_the_new_bounds() {
 /// the release (#712, #1229).
 #[test]
 fn a_move_rotate_or_corner_radius_drag_hides_the_bounding_box() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.session.execute("shape.rectangle", &json!({"x": 100, "y": 100, "width": 100, "height": 100})).unwrap();
     let ctx = egui::Context::default();
     frame(&mut app, &ctx, vec![]);
     app.select_tool("selection");
-    let drag = |app: &mut VectorcraftApp, from: Point, to: Point| {
+    let drag = |app: &mut VansoncraftApp, from: Point, to: Point| {
         let view = app.view_info();
         app.session.pointer(&PointerEvent::new(PointerKind::Down, from.x, from.y), view).unwrap();
         app.session.pointer(&PointerEvent::new(PointerKind::Drag, to.x, to.y), view).unwrap();
@@ -4343,9 +4343,9 @@ fn a_move_rotate_or_corner_radius_drag_hides_the_bounding_box() {
     assert_eq!(bounding_box_drawn(&mut app, &ctx).1, 8, "back after the rotation");
     let corner = {
         let st = app.session.active().unwrap();
-        vectorcraft_tools::corners::CornerWidgets::of(&st.doc, &st.selection, app.view_info().zoom, false).unwrap().visible().next().unwrap()
+        vansoncraft_tools::corners::CornerWidgets::of(&st.doc, &st.selection, app.view_info().zoom, false).unwrap().visible().next().unwrap()
     };
-    assert_eq!(drag(&mut app, corner, corner + vectorcraft_geom::Vec2::new(10.0, 10.0)), (None, 0), "a corner-radius drag");
+    assert_eq!(drag(&mut app, corner, corner + vansoncraft_geom::Vec2::new(10.0, 10.0)), (None, 0), "a corner-radius drag");
     assert_eq!(bounding_box_drawn(&mut app, &ctx).1, 8, "back after the corner-radius drag");
 }
 
@@ -4354,37 +4354,37 @@ fn a_move_rotate_or_corner_radius_drag_hides_the_bounding_box() {
 /// and a drag from a corner handle's place does not scale. With edges shown, both answer.
 #[test]
 fn a_hidden_bounding_box_and_type_widget_do_not_answer_the_pointer() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let id = app.session.execute("text.create", &json!({"x": 100, "y": 100, "text": "Type"})).unwrap()["id"].as_u64().unwrap();
-    let id = vectorcraft_doc::NodeId(id);
+    let id = vansoncraft_doc::NodeId(id);
     app.session.execute("select.set", &json!({"ids": [id.0]})).unwrap();
     let ctx = egui::Context::default();
     frame(&mut app, &ctx, vec![]);
     app.select_tool("selection");
-    let bx = |app: &VectorcraftApp| {
+    let bx = |app: &VansoncraftApp| {
         let st = app.session.active().unwrap();
         st.doc.oriented_bounds(&st.selection.objects, app.session.prefs.use_preview_bounds).unwrap()
     };
-    let widget = |app: &VectorcraftApp| {
+    let widget = |app: &VansoncraftApp| {
         let st = app.session.active().unwrap();
-        vectorcraft_tools::typewidget::TypeWidget::of(&st.doc, &st.selection, &bx(app), app.view_info().zoom).unwrap()
+        vansoncraft_tools::typewidget::TypeWidget::of(&st.doc, &st.selection, &bx(app), app.view_info().zoom).unwrap()
     };
-    let area = |app: &VectorcraftApp| match &app.session.active().unwrap().doc.node(id).unwrap().kind {
-        NodeKind::Text(t) => matches!(t.kind, vectorcraft_doc::TextKind::Area { .. }),
+    let area = |app: &VansoncraftApp| match &app.session.active().unwrap().doc.node(id).unwrap().kind {
+        NodeKind::Text(t) => matches!(t.kind, vansoncraft_doc::TextKind::Area { .. }),
         k => panic!("not type: {k:?}"),
     };
-    let double_click = |app: &mut VectorcraftApp, at: Point| {
+    let double_click = |app: &mut VansoncraftApp, at: Point| {
         let view = app.view_info();
         for kind in [PointerKind::Down, PointerKind::Up, PointerKind::Down, PointerKind::Up, PointerKind::DoubleClick] {
             app.session.pointer(&PointerEvent::new(kind, at.x, at.y), view).unwrap();
         }
     };
-    let width = |app: &VectorcraftApp| bx(app).rect.width();
-    let scale = |app: &mut VectorcraftApp| {
+    let width = |app: &VansoncraftApp| bx(app).rect.width();
+    let scale = |app: &mut VansoncraftApp| {
         let b = bx(app);
         let corner = b.to_doc() * Point::new(b.rect.x1, b.rect.y1);
-        let (view, to) = (app.view_info(), corner + vectorcraft_geom::Vec2::new(30.0, 0.0));
+        let (view, to) = (app.view_info(), corner + vansoncraft_geom::Vec2::new(30.0, 0.0));
         for (kind, at) in [(PointerKind::Down, corner), (PointerKind::Drag, to), (PointerKind::Up, to)] {
             app.session.pointer(&PointerEvent::new(kind, at.x, at.y), view).unwrap();
         }
@@ -4416,10 +4416,10 @@ fn a_hidden_bounding_box_and_type_widget_do_not_answer_the_pointer() {
 /// Hide Live Paint Gaps and Hide Edges hide them.
 #[test]
 fn show_live_paint_gaps_draws_the_selected_groups_gaps_in_their_preview_color() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     // Open paths round a square, each ending 2 pt short of its start: one Small Gap each.
-    let square = |app: &mut VectorcraftApp, x: i64| {
+    let square = |app: &mut VansoncraftApp, x: i64| {
         let anchors = [(0, 0), (100, 0), (100, 100), (0, 100), (0, 2)].map(|(dx, y)| json!({"x": x + dx, "y": y}));
         app.session.execute("path.create", &json!({ "anchors": anchors })).unwrap()["id"].as_u64().unwrap()
     };
@@ -4433,13 +4433,13 @@ fn show_live_paint_gaps_draws_the_selected_groups_gaps_in_their_preview_color() 
     }
     let plain = square(&mut app, 300);
     let ctx = egui::Context::default();
-    let gaps = |app: &mut VectorcraftApp, rgb: [u8; 3]| {
+    let gaps = |app: &mut VansoncraftApp, rgb: [u8; 3]| {
         let solid = egui::epaint::ColorMode::Solid(c32(rgb));
         shapes(app, &ctx).iter().filter(|s| matches!(s, Shape::Path(ps) if ps.stroke.color == solid && ps.stroke.width == 2.0)).count()
     };
     let (first, second) = ([0x12, 0x34, 0x56], [0x65, 0x43, 0x21]);
     // The color the plain path's gaps would be drawn in.
-    let plain_color = vectorcraft_doc::GapOptions::default().color;
+    let plain_color = vansoncraft_doc::GapOptions::default().color;
     app.session.execute("select.set", &json!({"ids": [groups[0], plain]})).unwrap();
     assert_eq!((gaps(&mut app, first), gaps(&mut app, second)), (0, 0), "off until the item is chosen");
     // View → Show Live Paint Gaps runs the command.
@@ -4481,12 +4481,12 @@ fn show_live_paint_gaps_draws_the_selected_groups_gaps_in_their_preview_color() 
 /// document keeps its own setting.
 #[test]
 fn outline_is_per_document_and_new_documents_start_in_preview() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 200, "height": 200})).unwrap();
     app.session.execute("shape.rectangle", &json!({"x": 20, "y": 20, "width": 100, "height": 100})).unwrap();
     app.sync_views();
     let inside = Point::new(70.0, 70.0);
-    let picks_fill = |app: &VectorcraftApp| super::outline::hit_at(app, inside, 1.0).is_some();
+    let picks_fill = |app: &VansoncraftApp| super::outline::hit_at(app, inside, 1.0).is_some();
     assert!(picks_fill(&app), "Preview picks the fill");
     app.run("view.outline", json!({})).unwrap();
     assert!(app.outline_view() && app.view_info().outline);
@@ -4520,7 +4520,7 @@ fn outline_is_per_document_and_new_documents_start_in_preview() {
 /// One headless canvas frame → (the colors of the filled rectangles that cover the canvas, the
 /// fills of the shapes laid over an artboard, the artboards' edges drawn, the colors of the
 /// artboards' names).
-fn canvas_look(app: &mut VectorcraftApp, ctx: &egui::Context) -> (Vec<Color32>, Vec<Color32>, usize, Vec<Color32>) {
+fn canvas_look(app: &mut VansoncraftApp, ctx: &egui::Context) -> (Vec<Color32>, Vec<Color32>, usize, Vec<Color32>) {
     let s = shapes(app, ctx);
     let canvas = app.canvas_rect.unwrap();
     let xf = Xf::new(canvas, app.view().unwrap());
@@ -4557,7 +4557,7 @@ fn canvas_look(app: &mut VectorcraftApp, ctx: &egui::Context) -> (Vec<Color32>, 
 /// Preview the pasteboard keeps its color and the artboards their white paper.
 #[test]
 fn outline_draws_on_a_white_canvas_with_artboards_as_edges() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 200, "height": 100, "artboards": 2})).unwrap();
     for brightness in crate::theme::Brightness::ALL {
         for scheme in crate::theme::Scheme::ALL {
@@ -4596,13 +4596,13 @@ fn outline_draws_on_a_white_canvas_with_artboards_as_edges() {
 /// artboard's color and the paper color over the whole canvas.
 #[test]
 fn outline_draws_no_colored_paper() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 200, "height": 100, "artboards": 2})).unwrap();
     {
         let doc = std::sync::Arc::make_mut(&mut app.session.active_mut().unwrap().doc);
         doc.setup.simulate_paper = true;
-        doc.setup.grid_colors = [vectorcraft_color::Color::rgb(0.9, 0.8, 0.6), vectorcraft_color::Color::rgb(0.5, 0.5, 0.5)];
-        doc.artboards[1].color = Some(vectorcraft_color::Color::rgb(0.6, 0.8, 1.0));
+        doc.setup.grid_colors = [vansoncraft_color::Color::rgb(0.9, 0.8, 0.6), vansoncraft_color::Color::rgb(0.5, 0.5, 0.5)];
+        doc.artboards[1].color = Some(vansoncraft_color::Color::rgb(0.6, 0.8, 1.0));
     }
     let paper = crate::panels::c32(&app.session.active().unwrap().doc.setup.paper());
     let ctx = egui::Context::default();
@@ -4635,7 +4635,7 @@ fn outline_draws_no_colored_paper() {
 /// theme's names in Preview.
 #[test]
 fn a_pane_draws_its_own_views_outline() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 200, "height": 100, "artboards": 2})).unwrap();
     crate::doc_windows::new_window(&mut app).unwrap();
     let ctx = egui::Context::default();
@@ -4677,7 +4677,7 @@ fn a_pane_draws_its_own_views_outline() {
 fn the_ruler_origin_crosshair_shows_on_the_outline_canvas() {
     use egui::Event;
     for outline in [false, true] {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
         app.ui.view.rulers = true;
         app.view_mut().unwrap().outline = outline;
@@ -4724,7 +4724,7 @@ fn old_outline_preference_loads_but_does_not_restore_outline() {
     saved["view"]["rulers"] = json!(true);
     let ui = serde_json::from_value::<crate::UiState>(saved).unwrap().sanitized();
     assert!(ui.view.rulers, "the other view settings load");
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.ui = ui;
     app.session.execute("file.new", &json!({"width": 200, "height": 200})).unwrap();
     app.sync_views();
@@ -4735,11 +4735,11 @@ fn old_outline_preference_loads_but_does_not_restore_outline() {
 /// the Selection tool: it isn't a live shape); View → Hide Corner Widget hides them.
 #[test]
 fn a_star_shows_corner_widgets_with_direct_selection() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.session.execute("shape.star", &json!({"cx": 200, "cy": 150, "radius1": 80, "radius2": 40})).unwrap();
     let ctx = egui::Context::default();
-    let widgets = |app: &mut VectorcraftApp| {
+    let widgets = |app: &mut VansoncraftApp| {
         shapes(app, &ctx).iter().filter(|s| matches!(s, Shape::Circle(c) if c.radius == 3.0 && c.fill == Color32::WHITE)).count()
     };
     app.select_tool("selection");
@@ -4754,14 +4754,14 @@ fn a_star_shows_corner_widgets_with_direct_selection() {
 /// in the layer colour on area type.
 #[test]
 fn the_type_widget_shows_which_kind_the_type_is() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let id = app.session.execute("text.create", &json!({"x": 100, "y": 100, "text": "Type"})).unwrap()["id"].as_u64().unwrap();
     app.session.execute("select.set", &json!({"ids": [id]})).unwrap();
-    let layer = c32(app.session.active().unwrap().doc.layer_color(vectorcraft_doc::NodeId(id)));
+    let layer = c32(app.session.active().unwrap().doc.layer_color(vansoncraft_doc::NodeId(id)));
     let ctx = egui::Context::default();
-    let widget = |app: &mut VectorcraftApp| -> Vec<Color32> {
-        let r = vectorcraft_tools::typewidget::RADIUS_PX;
+    let widget = |app: &mut VansoncraftApp| -> Vec<Color32> {
+        let r = vansoncraft_tools::typewidget::RADIUS_PX;
         shapes(app, &ctx)
             .iter()
             .filter_map(|s| if let Shape::Circle(c) = s { (c.radius == r && c.fill != Color32::TRANSPARENT).then_some(c.fill) } else { None })
@@ -4778,13 +4778,13 @@ fn the_type_widget_shows_which_kind_the_type_is() {
 /// bounding box shows.
 #[test]
 fn a_selected_ellipse_shows_its_pie_widgets() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.session.execute("shape.ellipse", &json!({"x": 100, "y": 100, "width": 200, "height": 100})).unwrap();
     app.session.execute("object.setLiveShape", &json!({"pieStart": 0, "pieEnd": 90})).unwrap();
     let ctx = egui::Context::default();
-    let widgets = |app: &mut VectorcraftApp| {
-        let r = vectorcraft_tools::pie::RADIUS_PX;
+    let widgets = |app: &mut VansoncraftApp| {
+        let r = vansoncraft_tools::pie::RADIUS_PX;
         shapes(app, &ctx).iter().filter(|s| matches!(s, Shape::Circle(c) if c.radius == r && c.fill == Color32::WHITE)).count()
     };
     app.select_tool("selection");
@@ -4800,7 +4800,7 @@ fn a_selected_ellipse_shows_its_pie_widgets() {
 /// Path tools.
 #[test]
 fn a_selected_objects_on_path_group_shows_its_rotate_all_widget() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let id = |v: serde_json::Value| v["id"].as_u64().unwrap();
     let line = id(app.session.execute("shape.line", &json!({"x1": 20, "y1": 200, "x2": 380, "y2": 200})).unwrap());
@@ -4809,8 +4809,8 @@ fn a_selected_objects_on_path_group_shows_its_rotate_all_widget() {
     app.run("select.set", json!({"ids": [a, b]})).unwrap();
     app.session.execute("object.objectsOnPath.attach", &json!({"path": line})).unwrap();
     let ctx = egui::Context::default();
-    let widgets = |app: &mut VectorcraftApp| {
-        let r = vectorcraft_tools::objects_on_path::ROTATE_ALL_RADIUS_PX;
+    let widgets = |app: &mut VansoncraftApp| {
+        let r = vansoncraft_tools::objects_on_path::ROTATE_ALL_RADIUS_PX;
         shapes(app, &ctx).iter().filter(|s| matches!(s, Shape::Circle(c) if c.radius == r && c.fill == Color32::WHITE)).count()
     };
     app.select_tool("selection");
@@ -4828,7 +4828,7 @@ fn a_selected_objects_on_path_group_shows_its_rotate_all_widget() {
 /// beyond its last object, with the Selection and Objects on Path tools.
 #[test]
 fn a_selected_objects_on_path_group_shows_its_space_widget() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let id = |v: serde_json::Value| v["id"].as_u64().unwrap();
     let line = id(app.session.execute("shape.line", &json!({"x1": 20, "y1": 200, "x2": 380, "y2": 200})).unwrap());
@@ -4837,8 +4837,8 @@ fn a_selected_objects_on_path_group_shows_its_space_widget() {
     app.run("select.set", json!({"ids": [a, b]})).unwrap();
     let g = id(app.session.execute("object.objectsOnPath.attach", &json!({"path": line})).unwrap());
     let ctx = egui::Context::default();
-    let widgets = |app: &mut VectorcraftApp| {
-        let side = 2.0 * vectorcraft_tools::objects_on_path::SPACE_HALF_PX;
+    let widgets = |app: &mut VansoncraftApp| {
+        let side = 2.0 * vansoncraft_tools::objects_on_path::SPACE_HALF_PX;
         shapes(app, &ctx)
             .iter()
             .filter(|s| matches!(s, Shape::Rect(r) if r.rect.width() == side && r.rect.height() == side && r.fill == Color32::WHITE))
@@ -4864,7 +4864,7 @@ fn a_selected_objects_on_path_group_shows_its_space_widget() {
 /// objects spread evenly to both ends of an open path have no room, and show none.
 #[test]
 fn a_selected_objects_on_path_group_shows_its_move_all_widget_when_it_has_room() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let id = |v: serde_json::Value| v["id"].as_u64().unwrap();
     let line = id(app.session.execute("shape.line", &json!({"x1": 20, "y1": 200, "x2": 380, "y2": 200})).unwrap());
@@ -4875,11 +4875,11 @@ fn a_selected_objects_on_path_group_shows_its_move_all_widget_when_it_has_room()
     let ctx = egui::Context::default();
     // A diamond: its top and bottom corners one above the other, its full height apart.
     let diamond = |d: &egui::epaint::PathShape| {
-        let h = 2.0 * vectorcraft_tools::objects_on_path::MOVE_ALL_HALF_PX;
+        let h = 2.0 * vansoncraft_tools::objects_on_path::MOVE_ALL_HALF_PX;
         let [top, _, bottom, _] = d.points[..] else { return false };
         d.closed && d.fill == Color32::WHITE && top.x == bottom.x && (bottom.y - top.y - h).abs() < 1e-3
     };
-    let widgets = |app: &mut VectorcraftApp| shapes(app, &ctx).iter().filter(|s| matches!(s, Shape::Path(d) if diamond(d))).count();
+    let widgets = |app: &mut VansoncraftApp| shapes(app, &ctx).iter().filter(|s| matches!(s, Shape::Path(d) if diamond(d))).count();
     app.select_tool("selection");
     assert_eq!(widgets(&mut app), 0, "Auto: the objects reach both ends");
     app.session.execute("object.objectsOnPath.options", &json!({"ids": [g], "spacing": 60})).unwrap();
@@ -4902,7 +4902,7 @@ fn a_selected_objects_on_path_group_shows_its_move_all_widget_when_it_has_room()
 /// with the Selection and Objects on Path tools, the chosen object's filled blue.
 #[test]
 fn a_selected_objects_on_path_group_shows_a_select_move_widget_per_object() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let id = |v: serde_json::Value| v["id"].as_u64().unwrap();
     let line = id(app.session.execute("shape.line", &json!({"x1": 20, "y1": 200, "x2": 380, "y2": 200})).unwrap());
@@ -4912,8 +4912,8 @@ fn a_selected_objects_on_path_group_shows_a_select_move_widget_per_object() {
     app.run("select.set", json!({"ids": [a, b, c]})).unwrap();
     app.session.execute("object.objectsOnPath.attach", &json!({"path": line})).unwrap();
     let ctx = egui::Context::default();
-    let r = vectorcraft_tools::objects_on_path::MEMBER_RADIUS_PX;
-    let widgets = |app: &mut VectorcraftApp, fill: Color32| {
+    let r = vansoncraft_tools::objects_on_path::MEMBER_RADIUS_PX;
+    let widgets = |app: &mut VansoncraftApp, fill: Color32| {
         shapes(app, &ctx).iter().filter(|s| matches!(s, Shape::Circle(k) if k.radius == r && k.fill == fill)).count()
     };
     let (ring, chosen) = (Color32::TRANSPARENT, super::overlays::MEMBER_CHOSEN);
@@ -4931,7 +4931,7 @@ fn a_selected_objects_on_path_group_shows_a_select_move_widget_per_object() {
 }
 
 /// The shapes Type → Show Hidden Characters draws in one frame, seen through `xf`.
-fn hidden_chars(app: &mut VectorcraftApp, ctx: &egui::Context, xf: &Xf) -> Vec<Shape> {
+fn hidden_chars(app: &mut VansoncraftApp, ctx: &egui::Context, xf: &Xf) -> Vec<Shape> {
     let raw = egui::RawInput { screen_rect: Some(xf.rect), ..Default::default() };
     let mut out = ctx.run_ui(raw, |ui| hidden_chars_overlay(app, ui.painter(), xf));
     out.textures_delta.clear();
@@ -4942,17 +4942,17 @@ fn hidden_chars(app: &mut VectorcraftApp, ctx: &egui::Context, xf: &Xf) -> Vec<S
 /// after an edit only the object edited is laid out again.
 #[test]
 fn show_hidden_characters_lays_out_only_type_that_changed() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let ids: Vec<_> = (0..3)
         .map(|i| app.session.execute("text.create", &json!({"x": 20, "y": 40 + 80 * i, "text": "a b\nc d"})).unwrap()["id"].as_u64().unwrap())
-        .map(vectorcraft_doc::NodeId)
+        .map(vansoncraft_doc::NodeId)
         .collect();
     let ctx = egui::Context::default();
     let xf = Xf { rect: egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0)), zoom: 1.0, center: Point::new(200.0, 150.0), rot: 0.0 };
     // `frame` draws one frame and returns each object's marks and whether that frame found the
     // fonts and hyphenation exceptions of the frame before.
-    let frame = |app: &mut VectorcraftApp| {
+    let frame = |app: &mut VansoncraftApp| {
         let inputs = app.canvas.hidden_chars.inputs.clone();
         hidden_chars(app, &ctx, &xf);
         let kept = &app.canvas.hidden_chars;
@@ -4961,7 +4961,7 @@ fn show_hidden_characters_lays_out_only_type_that_changed() {
     // `frames` draws a frame, runs `edit` and draws the next frame. Tests running alongside add
     // fonts and set hyphenation exceptions, which lays all type out again: `frames` draws both
     // frames again until neither the fonts nor the exceptions changed in between.
-    let frames = |app: &mut VectorcraftApp, edit: &dyn Fn(&mut VectorcraftApp)| {
+    let frames = |app: &mut VansoncraftApp, edit: &dyn Fn(&mut VansoncraftApp)| {
         (0..100)
             .find_map(|_| {
                 let (_, before) = frame(app);
@@ -4985,7 +4985,7 @@ fn show_hidden_characters_lays_out_only_type_that_changed() {
 /// that arrives, a frame draws what a new overlay draws, and the marks moved.
 #[test]
 fn show_hidden_characters_follows_edits_zooms_and_fonts() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     // The type is set in Bold of a family that is not installed and whose name starts with a
     // dot; the font menus do not list such names. Source Sans 3 Bold stands in for it until the
@@ -4995,7 +4995,7 @@ fn show_hidden_characters_follows_edits_zooms_and_fonts() {
     let ctx = egui::Context::default();
     let mut xf = Xf { rect: egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0)), zoom: 1.0, center: Point::new(200.0, 150.0), rot: 0.0 };
     // `drawn` draws a frame with what the overlay kept and checks it against a new overlay.
-    let drawn = |app: &mut VectorcraftApp, xf: &Xf| {
+    let drawn = |app: &mut VansoncraftApp, xf: &Xf| {
         let kept = hidden_chars(app, &ctx, xf);
         app.canvas.hidden_chars = Default::default();
         assert_eq!(hidden_chars(app, &ctx, xf), kept, "as a new overlay draws them");
@@ -5009,7 +5009,7 @@ fn show_hidden_characters_follows_edits_zooms_and_fonts() {
     xf.zoom = 2.0;
     let zoomed = drawn(&mut app, &xf);
     assert_ne!(zoomed, edited, "zoomed in");
-    assert!(vectorcraft_text::FontDb::global().add_font(vectorcraft_testkit::fonts::renamed(".Hidden Marks")) > 0, "the family is new");
+    assert!(vansoncraft_text::FontDb::global().add_font(vansoncraft_testkit::fonts::renamed(".Hidden Marks")) > 0, "the family is new");
     assert_ne!(drawn(&mut app, &xf), zoomed, "set in the family that arrived");
 }
 
@@ -5017,10 +5017,10 @@ fn show_hidden_characters_follows_edits_zooms_and_fonts() {
 /// into the canvas, also when the box between two of its corners on screen does not.
 #[test]
 fn show_hidden_characters_draws_type_partly_on_a_rotated_canvas() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let id = app.session.execute("text.create", &json!({"x": 20, "y": 60, "text": "a b c d e\nf g h"})).unwrap()["id"].as_u64().unwrap();
-    let b = app.session.active().unwrap().doc.node(vectorcraft_doc::NodeId(id)).unwrap().geometric_bounds().unwrap();
+    let b = app.session.active().unwrap().doc.node(vansoncraft_doc::NodeId(id)).unwrap().geometric_bounds().unwrap();
     let ctx = egui::Context::default();
     let mut xf = Xf { rect: egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0)), zoom: 2.0, center: b.center(), rot: 45f64.to_radians() };
     // The screen moves so that the canvas's left edge falls halfway between the right side of
@@ -5035,7 +5035,7 @@ fn show_hidden_characters_draws_type_partly_on_a_rotated_canvas() {
 }
 
 /// The shapes Type → Show Hidden Characters draws in one canvas frame ([`show`]).
-fn hidden_char_marks(app: &mut VectorcraftApp, ctx: &egui::Context) -> Vec<Shape> {
+fn hidden_char_marks(app: &mut VansoncraftApp, ctx: &egui::Context) -> Vec<Shape> {
     let blue = Color32::from_rgb(0x4f, 0x9d, 0xff);
     shapes(app, ctx)
         .into_iter()
@@ -5047,9 +5047,9 @@ fn hidden_char_marks(app: &mut VectorcraftApp, ctx: &egui::Context) -> Vec<Shape
 /// bullet, which stands for no character.
 #[test]
 fn hidden_characters_mark_no_space_at_a_bullet() {
-    let mut t = vectorcraft_doc::TextObject::point(vectorcraft_geom::Point::ZERO, " Item two", vectorcraft_doc::CharStyle::default());
+    let mut t = vansoncraft_doc::TextObject::point(vansoncraft_geom::Point::ZERO, " Item two", vansoncraft_doc::CharStyle::default());
     let plain = HiddenMarks::of(&t).spaces.len();
-    t.para.list = Some(vectorcraft_doc::text::ParaList::bulleted(vectorcraft_doc::text::Bullet::Dot));
+    t.para.list = Some(vansoncraft_doc::text::ParaList::bulleted(vansoncraft_doc::text::Bullet::Dot));
     assert_eq!((plain, HiddenMarks::of(&t).spaces.len()), (2, 2));
 }
 
@@ -5058,10 +5058,10 @@ fn hidden_characters_mark_no_space_at_a_bullet() {
 /// same marks.
 #[test]
 fn show_hidden_characters_off_releases_the_text_nodes() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let text = json!({"x": 20, "y": 60, "text": "one two\nthree four"});
-    let id = vectorcraft_doc::NodeId(app.session.execute("text.create", &text).unwrap()["id"].as_u64().unwrap());
+    let id = vansoncraft_doc::NodeId(app.session.execute("text.create", &text).unwrap()["id"].as_u64().unwrap());
     let ctx = egui::Context::default();
     app.run("type.hiddenCharacters", json!({})).unwrap();
     let on = hidden_char_marks(&mut app, &ctx);
@@ -5086,11 +5086,11 @@ fn show_hidden_characters_off_releases_the_text_nodes() {
 /// the same type in a new document shows the same marks.
 #[test]
 fn show_hidden_characters_releases_the_text_nodes_of_a_closed_document() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     let ctx = egui::Context::default();
     crate::theme::install_fonts(&ctx);
     app.run("type.hiddenCharacters", json!({})).unwrap();
-    let open = |app: &mut VectorcraftApp| {
+    let open = |app: &mut VansoncraftApp| {
         app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
         app.session.execute("text.create", &json!({"x": 20, "y": 60, "text": "one two\nthree four"})).unwrap();
         hidden_char_marks(app, &ctx)
@@ -5111,11 +5111,11 @@ fn show_hidden_characters_releases_the_text_nodes_of_a_closed_document() {
 /// trackpad pinch zoom about the pointer either way.
 #[test]
 fn zoom_with_mouse_wheel_preference() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let ctx = egui::Context::default();
     // A canvas frame through the host's input hook (it feeds the control channel's input).
-    let run = |app: &mut VectorcraftApp| {
+    let run = |app: &mut VansoncraftApp| {
         let mut raw = egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0))), ..Default::default() };
         app.raw_input_hook(&ctx, &mut raw);
         let mut out = ctx.run_ui(raw, |ui| show(app, ui));
@@ -5126,7 +5126,7 @@ fn zoom_with_mouse_wheel_preference() {
     let at = rect.center() + vec2(60.0, 40.0);
     // One notch up at `at` with `mods` held, or a pinch: → (zoom ratio, scroll in points, how
     // far the point under `at` moved).
-    let turn = |app: &mut VectorcraftApp, mods: &str| {
+    let turn = |app: &mut VansoncraftApp, mods: &str| {
         let before = *app.view().unwrap();
         if mods == "pinch" {
             app.synthetic.extend([egui::Event::PointerMoved(at), egui::Event::Zoom(1.25)]);
@@ -5169,7 +5169,7 @@ fn zoom_with_mouse_wheel_preference() {
 fn wheel_over_a_numeric_panel_field_does_not_start_a_canvas_zoom_glide() {
     use std::cell::Cell;
     for focused in [false, true] {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
         for key in ["zoomWithMouseWheel", "animatedZoom", "gpuPerformance"] {
             app.run("prefs.set", json!({"key": key, "value": true})).unwrap();
@@ -5180,7 +5180,7 @@ fn wheel_over_a_numeric_panel_field_does_not_start_a_canvas_zoom_glide() {
         let field_rect = Cell::new(egui::Rect::NOTHING);
         let field_id = Cell::new(egui::Id::NULL);
         let mut time = 0.0;
-        let mut run = |app: &mut VectorcraftApp, events| {
+        let mut run = |app: &mut VansoncraftApp, events| {
             time += 0.016;
             let raw = egui::RawInput {
                 time: Some(time),
@@ -5247,11 +5247,11 @@ fn wheel_over_a_numeric_panel_field_does_not_start_a_canvas_zoom_glide() {
 /// Mouse Wheel also on, Cmd/Ctrl-wheel scrolls sideways and the wheel zooms.
 #[test]
 fn cmd_wheel_scrolls_sideways_preference() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let ctx = egui::Context::default();
     // A canvas frame through the host's input hook (it feeds the control channel's input).
-    let run = |app: &mut VectorcraftApp| {
+    let run = |app: &mut VansoncraftApp| {
         let mut raw = egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0))), ..Default::default() };
         app.raw_input_hook(&ctx, &mut raw);
         let mut out = ctx.run_ui(raw, |ui| show(app, ui));
@@ -5262,7 +5262,7 @@ fn cmd_wheel_scrolls_sideways_preference() {
     let at = rect.center() + vec2(60.0, 40.0);
     // One notch up at `at` with `mods` held, or a pinch: → (zoom ratio, scroll in points, how
     // far the point under `at` moved).
-    let turn = |app: &mut VectorcraftApp, mods: &str| {
+    let turn = |app: &mut VansoncraftApp, mods: &str| {
         let before = *app.view().unwrap();
         if mods == "pinch" {
             app.synthetic.extend([egui::Event::PointerMoved(at), egui::Event::Zoom(1.25)]);
@@ -5375,7 +5375,7 @@ fn cmd_wheel_scrolls_sideways_preference() {
     // ends it before the next event, so a move with Cmd alone scrolls sideways.
     // Frames at the given times, with the events in the frame's own input (the host's input
     // hook hands synthetic events out over several frames).
-    let run_at = |app: &mut VectorcraftApp, time: f64, events: Vec<egui::Event>| {
+    let run_at = |app: &mut VansoncraftApp, time: f64, events: Vec<egui::Event>| {
         let raw = egui::RawInput {
             screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0))),
             time: Some(time),
@@ -5422,11 +5422,11 @@ fn cmd_wheel_scrolls_sideways_preference() {
 /// a touchpad zooms too.
 #[test]
 fn cmd_with_a_touchpad_zooms_and_a_whole_notch_scrolls_sideways() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let ctx = egui::Context::default();
     let mut t = 0.0;
-    let mut run = |app: &mut VectorcraftApp, events: Vec<egui::Event>| {
+    let mut run = |app: &mut VansoncraftApp, events: Vec<egui::Event>| {
         t += 1.0 / 60.0;
         let raw = egui::RawInput {
             screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0))),
@@ -5449,7 +5449,7 @@ fn cmd_with_a_touchpad_zooms_and_a_whole_notch_scrolls_sideways() {
     };
     // Sends each event on its own frame, then lets egui finish and end the turn:
     // → (zoom ratio, scroll in points, how far the point under `at` moved).
-    let mut turn = |app: &mut VectorcraftApp, events: Vec<egui::Event>| {
+    let mut turn = |app: &mut VansoncraftApp, events: Vec<egui::Event>| {
         let before = *app.view().unwrap();
         run(app, vec![egui::Event::PointerMoved(at)]);
         for e in events {
@@ -5464,10 +5464,10 @@ fn cmd_with_a_touchpad_zooms_and_a_whole_notch_scrolls_sideways() {
     };
     use egui::{MouseWheelSource as S, MouseWheelUnit as U};
     let zooms_in = |(zoom, _, moved): (f64, _, f64)| zoom > 1.0005 && moved < 1e-6;
-    let zooms_by = |(zoom, _, moved): (f64, vectorcraft_geom::Vec2, f64), want: f64| (zoom / want - 1.0).abs() < 1e-6 && moved < 1e-6;
+    let zooms_by = |(zoom, _, moved): (f64, vansoncraft_geom::Vec2, f64), want: f64| (zoom / want - 1.0).abs() < 1e-6 && moved < 1e-6;
     // `lines` wheel lines to the left.
     let line = f64::from(ctx.options(|o| o.input_options.line_scroll_speed));
-    let sideways = |(zoom, scroll, _): (f64, vectorcraft_geom::Vec2, f64), lines: f64| {
+    let sideways = |(zoom, scroll, _): (f64, vansoncraft_geom::Vec2, f64), lines: f64| {
         (zoom - 1.0).abs() < 1e-9 && (scroll.x + lines * line).abs() < 0.5 && scroll.y == 0.0
     };
     assert!(app.session.prefs.ctrl_wheel_scrolls_sideways, "the option is on by default");
@@ -5512,12 +5512,12 @@ fn cmd_with_a_touchpad_zooms_and_a_whole_notch_scrolls_sideways() {
 #[test]
 fn a_touchpad_wheel_turn_ends_with_its_end_phase_or_the_scroll_timeout() {
     use egui::{MouseWheelSource as S, MouseWheelUnit as U, TouchPhase as P};
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let ctx = egui::Context::default();
     let mut t = 0.0;
     let frame_time = 1.0 / 60.0;
-    let mut run = |app: &mut VectorcraftApp, dt: f64, events: Vec<egui::Event>| {
+    let mut run = |app: &mut VansoncraftApp, dt: f64, events: Vec<egui::Event>| {
         t += dt;
         let raw = egui::RawInput {
             screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0))),
@@ -5539,7 +5539,7 @@ fn a_touchpad_wheel_turn_ends_with_its_end_phase_or_the_scroll_timeout() {
     let notch = || ev(U::Line, 1.0, P::Move, S::Unknown);
     // A frame with a small delta, then `events` in one frame `dt` seconds later, and the wheel
     // going idle: → (zoom ratio, scroll in points) since the small delta.
-    let mut turn = |app: &mut VectorcraftApp, dt: f64, events: Vec<egui::Event>| {
+    let mut turn = |app: &mut VansoncraftApp, dt: f64, events: Vec<egui::Event>| {
         run(app, frame_time, vec![egui::Event::PointerMoved(at)]);
         run(app, frame_time, vec![small()]);
         let before = *app.view().unwrap();
@@ -5550,7 +5550,7 @@ fn a_touchpad_wheel_turn_ends_with_its_end_phase_or_the_scroll_timeout() {
         let after = *app.view().unwrap();
         (after.zoom / before.zoom, (after.center - before.center) * after.zoom)
     };
-    let sideways = |(zoom, scroll): (f64, vectorcraft_geom::Vec2)| (zoom - 1.0).abs() < 1e-9 && (scroll.x + line).abs() < 0.5 && scroll.y == 0.0;
+    let sideways = |(zoom, scroll): (f64, vansoncraft_geom::Vec2)| (zoom - 1.0).abs() < 1e-9 && (scroll.x + line).abs() < 0.5 && scroll.y == 0.0;
     for wheel_zooms in [false, true] {
         app.session.execute("prefs.set", &json!({"key": "zoomWithMouseWheel", "value": wheel_zooms})).unwrap();
         assert!(turn(&mut app, frame_time, vec![notch()]).0 > 1.01, "a notch inside the turn zooms ({wheel_zooms})");
@@ -5599,13 +5599,13 @@ fn fine_steps_tells_touchpad_input_from_whole_notches() {
 /// Cmd-wheel alone scrolls sideways.
 #[test]
 fn cmd_wheel_sideways_alt_cmd_zooms_without_animated_zoom() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     for (key, value) in [("ctrlWheelScrollsSideways", true), ("zoomWithMouseWheel", false), ("animatedZoom", false)] {
         app.session.execute("prefs.set", &json!({"key": key, "value": value})).unwrap();
     }
     let ctx = egui::Context::default();
-    let run = |app: &mut VectorcraftApp| {
+    let run = |app: &mut VansoncraftApp| {
         let mut raw = egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0))), ..Default::default() };
         app.raw_input_hook(&ctx, &mut raw);
         let mut out = ctx.run_ui(raw, |ui| show(app, ui));
@@ -5643,13 +5643,13 @@ fn cmd_wheel_sideways_alt_cmd_zooms_without_animated_zoom() {
 #[test]
 fn alt_wheel_gesture_keeps_zooming_after_alt_is_let_go() {
     for animate in [true, false] {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         for (key, value) in [("zoomWithMouseWheel", false), ("animatedZoom", animate)] {
             app.session.execute("prefs.set", &json!({"key": key, "value": value})).unwrap();
         }
         let ctx = egui::Context::default();
-        let run = |app: &mut VectorcraftApp| {
+        let run = |app: &mut VansoncraftApp| {
             let mut raw = egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0))), ..Default::default() };
             app.raw_input_hook(&ctx, &mut raw);
             let mut out = ctx.run_ui(raw, |ui| show(app, ui));
@@ -5667,7 +5667,7 @@ fn alt_wheel_gesture_keeps_zooming_after_alt_is_let_go() {
         };
         // One gesture with the given modifiers on its Start and its two Moves → (zoom ratio, how far
         // the point under `at` moved).
-        let gesture = |app: &mut VectorcraftApp, mods: [egui::Modifiers; 3]| {
+        let gesture = |app: &mut VansoncraftApp, mods: [egui::Modifiers; 3]| {
             let before = *app.view().unwrap();
             app.synthetic.extend([
                 egui::Event::PointerMoved(at),
@@ -5702,11 +5702,11 @@ fn alt_wheel_gesture_keeps_zooming_after_alt_is_let_go() {
 /// scroll does, instead of jumping on the frame it arrives; it ends at the same zoom.
 #[test]
 fn wheel_notches_zoom_in_a_glide() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.session.execute("prefs.set", &json!({"key": "zoomWithMouseWheel", "value": true})).unwrap();
     let ctx = egui::Context::default();
-    let run = |app: &mut VectorcraftApp| {
+    let run = |app: &mut VansoncraftApp| {
         let mut raw = egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0))), ..Default::default() };
         app.raw_input_hook(&ctx, &mut raw);
         let mut out = ctx.run_ui(raw, |ui| show(app, ui));
@@ -5740,10 +5740,10 @@ fn wheel_notches_zoom_in_a_glide() {
 /// Mouse Wheel and Alt-wheel without it.
 #[test]
 fn wheel_notches_zoom_at_once_without_animated_zoom() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let ctx = egui::Context::default();
-    let run = |app: &mut VectorcraftApp| {
+    let run = |app: &mut VansoncraftApp| {
         let mut raw = egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0))), ..Default::default() };
         app.raw_input_hook(&ctx, &mut raw);
         let mut out = ctx.run_ui(raw, |ui| show(app, ui));
@@ -5794,14 +5794,14 @@ fn wheel_notches_zoom_at_once_without_animated_zoom() {
 /// under the pointer in the view the canvas draws in that frame.
 #[test]
 fn the_hover_point_follows_a_wheel_scroll_in_the_frame_it_moves() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let ctx = egui::Context::default();
     frame(&mut app, &ctx, vec![]);
     let rect = app.canvas_rect.unwrap();
     let at = rect.center() + vec2(60.0, 40.0);
     frame(&mut app, &ctx, vec![egui::Event::PointerMoved(at)]);
-    let under = |app: &VectorcraftApp| Xf::new(rect, app.view().unwrap()).to_doc(at);
+    let under = |app: &VansoncraftApp| Xf::new(rect, app.view().unwrap()).to_doc(at);
     let wheel = egui::Event::MouseWheel {
         unit: egui::MouseWheelUnit::Point,
         delta: vec2(0.0, -60.0),
@@ -5826,7 +5826,7 @@ fn the_hover_point_follows_a_wheel_scroll_in_the_frame_it_moves() {
 #[test]
 fn the_hover_point_follows_a_view_drag_in_the_frame_it_moves() {
     for (tool, button) in [("rectangle", egui::PointerButton::Middle), ("rotateView", egui::PointerButton::Primary)] {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         app.select_tool(tool);
         let ctx = egui::Context::default();
@@ -5855,7 +5855,7 @@ fn the_hover_point_follows_a_view_drag_in_the_frame_it_moves() {
 /// to, in the frame the wheel scrolls.
 #[test]
 fn a_tool_drag_follows_a_wheel_scroll_in_the_frame_it_moves() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     // With Zoom with Mouse Wheel on, Shift-wheel scrolls up and down in the frame it comes in.
     app.session.execute("prefs.set", &json!({"key": "zoomWithMouseWheel", "value": true})).unwrap();
@@ -5880,7 +5880,7 @@ fn a_tool_drag_follows_a_wheel_scroll_in_the_frame_it_moves() {
     let after = *app.view().unwrap();
     assert!(after.center != before.center, "Shift-wheel scrolls the view");
     let want = Xf::new(rect, &after).to_doc(b);
-    let bounds = |app: &VectorcraftApp| app.session.active().unwrap().doc.layers[0].children().unwrap()[0].geometric_bounds().unwrap();
+    let bounds = |app: &VansoncraftApp| app.session.active().unwrap().doc.layers[0].children().unwrap()[0].geometric_bounds().unwrap();
     let r = bounds(&app);
     assert!((r.x1 - want.x).abs() < 1e-6 && ((r.y0 - want.y).abs() < 1e-6 || (r.y1 - want.y).abs() < 1e-6), "{r:?} reaches {want:?}");
     frame(&mut app, &ctx, vec![primary(b, false)]);
@@ -5892,7 +5892,7 @@ fn a_tool_drag_follows_a_wheel_scroll_in_the_frame_it_moves() {
 #[test]
 fn two_fingers_dragged_together_pan_the_canvas() {
     for wheel_zooms in [false, true] {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         app.session.execute("prefs.set", &json!({"key": "zoomWithMouseWheel", "value": wheel_zooms})).unwrap();
         app.select_tool("rectangle");
@@ -5925,7 +5925,7 @@ fn two_fingers_dragged_together_pan_the_canvas() {
 #[test]
 fn a_second_finger_cancels_the_tool_gesture_the_first_began() {
     for (tool, together) in [("pencil", false), ("selection", false), ("pencil", true), ("selection", true)] {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         app.session.execute("shape.rectangle", &json!({"x": 50, "y": 50, "width": 100, "height": 100})).unwrap();
         app.select_tool(tool);
@@ -5995,7 +5995,7 @@ fn a_second_finger_cancels_the_tool_gesture_the_first_began() {
 }
 
 /// A canvas frame at input time `t` (seconds) with `events`, for the trackpad rotation tests.
-fn timed_frame(app: &mut VectorcraftApp, ctx: &egui::Context, t: f64, events: Vec<egui::Event>) {
+fn timed_frame(app: &mut VansoncraftApp, ctx: &egui::Context, t: f64, events: Vec<egui::Event>) {
     let raw =
         egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0))), time: Some(t), events, ..Default::default() };
     let mut out = ctx.run_ui(raw, |ui| show(app, ui));
@@ -6008,14 +6008,14 @@ fn timed_frame(app: &mut VectorcraftApp, ctx: &egui::Context, t: f64, events: Ve
 /// does not turn.
 #[test]
 fn a_trackpad_rotation_turns_the_view_about_the_pointer() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let ctx = egui::Context::default();
     timed_frame(&mut app, &ctx, 0.0, vec![]);
     let rect = app.canvas_rect.unwrap();
     let at = rect.center() + vec2(60.0, 40.0);
     timed_frame(&mut app, &ctx, 0.1, vec![egui::Event::PointerMoved(at)]);
-    let under = |app: &VectorcraftApp| Xf::new(rect, app.view().unwrap()).to_doc(at);
+    let under = |app: &VansoncraftApp| Xf::new(rect, app.view().unwrap()).to_doc(at);
     let before = (*app.view().unwrap(), under(&app));
     timed_frame(&mut app, &ctx, 0.2, vec![egui::Event::Rotate(0.25)]);
     let after = *app.view().unwrap();
@@ -6042,7 +6042,7 @@ fn a_trackpad_rotation_turns_the_view_about_the_pointer() {
 /// a quarter of a second passes without one.
 #[test]
 fn a_trackpad_rotation_turns_nothing_until_it_reaches_five_degrees() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let ctx = egui::Context::default();
     timed_frame(&mut app, &ctx, 0.0, vec![]);
@@ -6067,7 +6067,7 @@ fn a_trackpad_rotation_turns_nothing_until_it_reaches_five_degrees() {
 /// them with the touches) do not turn the view.
 #[test]
 fn a_rotation_with_fingers_on_a_touch_screen_turns_nothing() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let ctx = egui::Context::default();
     timed_frame(&mut app, &ctx, 0.0, vec![]);
@@ -6084,7 +6084,7 @@ fn a_rotation_with_fingers_on_a_touch_screen_turns_nothing() {
 /// screen point with it off, and 96 screen points per document inch with it on.
 #[test]
 fn view_actual_size_follows_display_print_size() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 200, "height": 100})).unwrap();
     app.canvas_rect = Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(460.0, 260.0)));
     app.run("view.setZoom", json!({"zoom": 250})).unwrap();
@@ -6099,7 +6099,7 @@ fn view_actual_size_follows_display_print_size() {
 /// on the canvas and one is within the 30-point margin of an edge. At 0° the zoom is unchanged.
 #[test]
 fn fit_artboard_fits_the_artboard_turned_with_the_view() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 612, "height": 792})).unwrap();
     let rect = egui::Rect::from_min_size(Pos2::ZERO, vec2(1000.0, 800.0));
     app.canvas_rect = Some(rect);
@@ -6121,7 +6121,7 @@ fn fit_artboard_fits_the_artboard_turned_with_the_view() {
 #[test]
 fn animated_zoom_scrubs_and_holds_else_the_zoom_tool_zooms_to_an_area() {
     use egui::Event;
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.select_tool("zoom");
     let ctx = egui::Context::default();
@@ -6130,7 +6130,7 @@ fn animated_zoom_scrubs_and_holds_else_the_zoom_tool_zooms_to_an_area() {
     let at = rect.center() - vec2(100.0, 50.0);
     let button = |pos, pressed| Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
     // Press at `at`, move by `by` and hold for `frames` frames (a 60th of a second each), let go.
-    let press = |app: &mut VectorcraftApp, by: egui::Vec2, frames: usize| {
+    let press = |app: &mut VansoncraftApp, by: egui::Vec2, frames: usize| {
         frame(app, &ctx, vec![Event::PointerMoved(at)]);
         frame(app, &ctx, vec![button(at, true)]);
         frame(app, &ctx, vec![Event::PointerMoved(at + by)]);
@@ -6139,7 +6139,7 @@ fn animated_zoom_scrubs_and_holds_else_the_zoom_tool_zooms_to_an_area() {
         }
         frame(app, &ctx, vec![button(at + by, false)]);
     };
-    let doc_at = |app: &VectorcraftApp, p: Pos2| Xf::new(rect, app.view().unwrap()).to_doc(p);
+    let doc_at = |app: &VansoncraftApp, p: Pos2| Xf::new(rect, app.view().unwrap()).to_doc(p);
     let pinned = doc_at(&app, at);
     let z0 = app.view().unwrap().zoom;
     press(&mut app, vec2(100.0, 0.0), 0);
@@ -6170,7 +6170,7 @@ fn animated_zoom_scrubs_and_holds_else_the_zoom_tool_zooms_to_an_area() {
 #[test]
 fn the_zoom_tool_zooms_a_rotated_view_to_the_area_dragged_across() {
     use egui::Event;
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.run("prefs.set", json!({"key": "animatedZoom", "value": false})).unwrap();
     app.select_tool("zoom");
@@ -6203,7 +6203,7 @@ fn the_zoom_tool_zooms_a_rotated_view_to_the_area_dragged_across() {
 #[test]
 fn space_moves_the_zoom_marquee_while_dragging() {
     use egui::{Event, Modifiers};
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.run("prefs.set", json!({"key": "animatedZoom", "value": false})).unwrap();
     app.select_tool("zoom");
@@ -6213,7 +6213,7 @@ fn space_moves_the_zoom_marquee_while_dragging() {
     let at = rect.center() - vec2(100.0, 50.0);
     let space = |pressed, modifiers| Event::Key { key: egui::Key::Space, physical_key: None, pressed, repeat: false, modifiers };
     let button = |pos, pressed, modifiers| Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers };
-    let drawn = |app: &mut VectorcraftApp| -> Vec<Pos2> {
+    let drawn = |app: &mut VansoncraftApp| -> Vec<Pos2> {
         let lines: Vec<Vec<Pos2>> = shapes(app, &ctx)
             .into_iter()
             .filter_map(|s| match s {
@@ -6261,7 +6261,7 @@ fn space_moves_the_zoom_marquee_while_dragging() {
 #[test]
 fn space_before_the_zoom_drag_moves_sizes_the_marquee_first() {
     use egui::{Event, Modifiers};
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.run("prefs.set", json!({"key": "animatedZoom", "value": false})).unwrap();
     app.select_tool("zoom");
@@ -6290,7 +6290,7 @@ fn space_before_the_zoom_drag_moves_sizes_the_marquee_first() {
 #[test]
 fn the_zoom_marquee_follows_space_and_the_pointer_in_the_order_they_came() {
     use egui::{Event, Modifiers};
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.run("prefs.set", json!({"key": "animatedZoom", "value": false})).unwrap();
     app.select_tool("zoom");
@@ -6300,7 +6300,7 @@ fn the_zoom_marquee_follows_space_and_the_pointer_in_the_order_they_came() {
     let at = rect.center() - vec2(100.0, 50.0);
     let space = |pressed| Event::Key { key: egui::Key::Space, physical_key: None, pressed, repeat: false, modifiers: Modifiers::NONE };
     let button = |pos, pressed| Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Modifiers::NONE };
-    let corners = |app: &mut VectorcraftApp| -> (Pos2, Pos2) {
+    let corners = |app: &mut VansoncraftApp| -> (Pos2, Pos2) {
         let lines: Vec<Vec<Pos2>> = shapes(app, &ctx)
             .into_iter()
             .filter_map(|s| match s {
@@ -6330,7 +6330,7 @@ fn the_zoom_marquee_follows_space_and_the_pointer_in_the_order_they_came() {
 #[test]
 fn space_during_a_zoom_drag_keeps_the_zoom_cursor() {
     use egui::{CursorIcon, Event, Modifiers};
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.run("prefs.set", json!({"key": "animatedZoom", "value": false})).unwrap();
     app.select_tool("zoom");
@@ -6339,7 +6339,7 @@ fn space_during_a_zoom_drag_keeps_the_zoom_cursor() {
     let c = app.canvas_rect.unwrap().center();
     // `shown` returns the system cursor the canvas sets over a window without the focus, as in
     // `the_rotate_cursor_shows_for_space_shift_and_the_rotate_view_tool`.
-    let shown = |app: &mut VectorcraftApp, events: Vec<Event>| {
+    let shown = |app: &mut VansoncraftApp, events: Vec<Event>| {
         let screen_rect = Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0)));
         let mut out = ctx.run_ui(egui::RawInput { screen_rect, focused: false, events, ..Default::default() }, |ui| show(app, ui));
         out.textures_delta.clear();
@@ -6364,13 +6364,13 @@ fn space_during_a_zoom_drag_keeps_the_zoom_cursor() {
 #[test]
 fn space_during_a_pencil_drag_keeps_the_pencil_cursor() {
     use egui::{CursorIcon, Event, Modifiers};
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.select_tool("pencil");
     let ctx = egui::Context::default();
     frame(&mut app, &ctx, vec![]);
     let c = app.canvas_rect.unwrap().center();
-    let shown = |app: &mut VectorcraftApp, events: Vec<Event>| {
+    let shown = |app: &mut VansoncraftApp, events: Vec<Event>| {
         let screen_rect = Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0)));
         let mut out = ctx.run_ui(egui::RawInput { screen_rect, focused: false, events, ..Default::default() }, |ui| show(app, ui));
         out.textures_delta.clear();
@@ -6398,13 +6398,13 @@ fn space_during_a_pencil_drag_keeps_the_pencil_cursor() {
 fn cmd_space_mid_tool_drag_keeps_the_active_tool_cursor() {
     use egui::{CursorIcon, Event, Modifiers};
     for tool in ["pencil", "rectangle", "pen"] {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         app.select_tool(tool);
         let ctx = egui::Context::default();
         frame(&mut app, &ctx, vec![]);
         let c = app.canvas_rect.unwrap().center();
-        let shown = |app: &mut VectorcraftApp, events: Vec<Event>| {
+        let shown = |app: &mut VansoncraftApp, events: Vec<Event>| {
             let screen_rect = Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0)));
             let mut out = ctx.run_ui(egui::RawInput { screen_rect, focused: false, events, ..Default::default() }, |ui| show(app, ui));
             out.textures_delta.clear();
@@ -6431,7 +6431,7 @@ fn cmd_space_mid_tool_drag_keeps_the_active_tool_cursor() {
 #[test]
 fn the_selection_marquee_is_drawn_where_it_selects_in_a_rotated_view() {
     use egui::Event;
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.select_tool("selection");
     let ctx = egui::Context::default();
@@ -6464,11 +6464,11 @@ fn the_selection_marquee_is_drawn_where_it_selects_in_a_rotated_view() {
 /// User Interface › Large Tabs (#394): the document tabs are taller, so the canvas starts lower.
 #[test]
 fn large_tabs_make_the_document_tabs_taller() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let ctx = egui::Context::default();
     crate::theme::install_fonts(&ctx);
-    let canvas_top = |app: &mut VectorcraftApp| {
+    let canvas_top = |app: &mut VansoncraftApp| {
         let raw = egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0))), ..Default::default() };
         let mut out = ctx.run_ui(raw, |ui| {
             crate::chrome::doc_tabs(app, ui);
@@ -6485,7 +6485,7 @@ fn large_tabs_make_the_document_tabs_taller() {
 #[test]
 fn cmd_space_zooms_and_space_pans_whatever_the_tool() {
     use egui::{Event, Modifiers};
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.select_tool("rectangle");
     let ctx = egui::Context::default();
@@ -6494,7 +6494,7 @@ fn cmd_space_zooms_and_space_pans_whatever_the_tool() {
     let space = |pressed, modifiers| Event::Key { key: egui::Key::Space, physical_key: None, pressed, repeat: false, modifiers };
     let button = |pos, pressed, modifiers| Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers };
     // A drag from `at` to `to` with Space and `held` down.
-    let drag = |app: &mut VectorcraftApp, held: Modifiers, to: Pos2| {
+    let drag = |app: &mut VansoncraftApp, held: Modifiers, to: Pos2| {
         frame(app, &ctx, vec![Event::ModifiersChanged(held), space(true, held), Event::PointerMoved(at)]);
         frame(app, &ctx, vec![button(at, true, held)]);
         frame(app, &ctx, vec![Event::PointerMoved(to)]);
@@ -6520,7 +6520,7 @@ fn cmd_space_zooms_and_space_pans_whatever_the_tool() {
 #[test]
 fn space_shift_drag_rotates_the_view_whatever_the_tool() {
     use egui::{Event, Modifiers};
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.select_tool("rectangle");
     let ctx = egui::Context::default();
@@ -6529,7 +6529,7 @@ fn space_shift_drag_rotates_the_view_whatever_the_tool() {
     let space = |pressed, modifiers| Event::Key { key: egui::Key::Space, physical_key: None, pressed, repeat: false, modifiers };
     let button = |pos, pressed, modifiers| Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers };
     // `drag` drags from `from` to `to` with `held` down, and with Space as well when `with_space`.
-    let drag = |app: &mut VectorcraftApp, held: Modifiers, with_space: bool, from: Pos2, to: Pos2| {
+    let drag = |app: &mut VansoncraftApp, held: Modifiers, with_space: bool, from: Pos2, to: Pos2| {
         let keys = |pressed| if with_space { vec![space(pressed, held)] } else { vec![] };
         frame(app, &ctx, [vec![Event::ModifiersChanged(held)], keys(true), vec![Event::PointerMoved(from)]].concat());
         frame(app, &ctx, vec![button(from, true, held)]);
@@ -6569,7 +6569,7 @@ fn space_shift_drag_rotates_the_view_whatever_the_tool() {
 #[test]
 fn the_rotate_cursor_shows_for_space_shift_and_the_rotate_view_tool() {
     use egui::{CursorIcon, Event, Modifiers};
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.select_tool("rectangle");
     let ctx = egui::Context::default();
@@ -6578,7 +6578,7 @@ fn the_rotate_cursor_shows_for_space_shift_and_the_rotate_view_tool() {
     // `shown` returns the system cursor the canvas sets over a window without the focus. On macOS
     // the window paints the glyph only with the focus, and on the other desktop builds (not
     // Wayland, which the tests do not set) the window sets the system cursor next to the bitmap.
-    let shown = |app: &mut VectorcraftApp, events: Vec<Event>| {
+    let shown = |app: &mut VansoncraftApp, events: Vec<Event>| {
         let screen_rect = Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0)));
         let mut out = ctx.run_ui(egui::RawInput { screen_rect, focused: false, events, ..Default::default() }, |ui| show(app, ui));
         out.textures_delta.clear();
@@ -6602,7 +6602,7 @@ fn the_rotate_cursor_shows_for_space_shift_and_the_rotate_view_tool() {
 #[test]
 fn a_rotate_view_drag_shows_a_dial_with_the_angle() {
     use egui::{Event, Modifiers};
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.select_tool("rotateView");
     let ctx = egui::Context::default();
@@ -6612,7 +6612,7 @@ fn a_rotate_view_drag_shows_a_dial_with_the_angle() {
     let button = |pos, pressed, modifiers| Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers };
     // `dial` returns, from the shapes of one frame, the center of the dial's circle, the needle's
     // direction in whole degrees clockwise from straight up, and the angle text.
-    let dial = |app: &mut VectorcraftApp| {
+    let dial = |app: &mut VansoncraftApp| {
         let s = shapes(app, &ctx);
         let circle = s.iter().find_map(|s| if let Shape::Circle(k) = s { (k.radius == DIAL_RADIUS).then_some(k.center) } else { None });
         let needle = s.iter().find_map(|s| match s {
@@ -6654,7 +6654,7 @@ fn a_rotate_view_drag_shows_a_dial_with_the_angle() {
 #[test]
 fn space_pressed_mid_drag_moves_what_the_tool_draws() {
     use egui::{Event, Modifiers};
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.ui.view.smart_guides = false;
     let ctx = egui::Context::default();
@@ -6663,7 +6663,7 @@ fn space_pressed_mid_drag_moves_what_the_tool_draws() {
     let space = |pressed| Event::Key { key: egui::Key::Space, physical_key: None, pressed, repeat: false, modifiers: Modifiers::NONE };
     let button = |pos, pressed| Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Modifiers::NONE };
     // Press at `a`, drag to `b`, then hold Space while moving on by `by` and let go of both.
-    let draw = |app: &mut VectorcraftApp, a: Pos2, b: Pos2, by: egui::Vec2| {
+    let draw = |app: &mut VansoncraftApp, a: Pos2, b: Pos2, by: egui::Vec2| {
         frame(app, &ctx, vec![Event::PointerMoved(a)]);
         frame(app, &ctx, vec![button(a, true)]);
         frame(app, &ctx, vec![Event::PointerMoved(b)]);
@@ -6697,25 +6697,25 @@ fn space_pressed_mid_drag_moves_what_the_tool_draws() {
 
 #[test]
 fn double_clicking_type_with_the_selection_tool_puts_the_caret_there() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let id = app.session.execute("text.create", &json!({"x": 100, "y": 150, "text": "Hello world", "size": 24})).unwrap()["id"].as_u64().unwrap();
     app.session.execute("select.none", &json!({})).unwrap();
     app.select_tool("selection");
     let ctx = egui::Context::default();
-    let timed = |app: &mut VectorcraftApp, time: f64, events: Vec<egui::Event>| {
+    let timed = |app: &mut VansoncraftApp, time: f64, events: Vec<egui::Event>| {
         let screen = egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0));
         let mut out = ctx.run_ui(egui::RawInput { screen_rect: Some(screen), time: Some(time), events, ..Default::default() }, |ui| show(app, ui));
         out.textures_delta.clear();
     };
     timed(&mut app, 0.0, vec![]);
     let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
-    let text = |app: &VectorcraftApp| match &app.session.active().unwrap().doc.node(vectorcraft_doc::NodeId(id)).unwrap().kind {
+    let text = |app: &VansoncraftApp| match &app.session.active().unwrap().doc.node(vansoncraft_doc::NodeId(id)).unwrap().kind {
         NodeKind::Text(t) => t.plain_text(),
         _ => panic!("not text"),
     };
     // Double-click the middle of the text.
-    let b = app.session.active().unwrap().doc.node(vectorcraft_doc::NodeId(id)).unwrap().geometric_bounds().unwrap();
+    let b = app.session.active().unwrap().doc.node(vansoncraft_doc::NodeId(id)).unwrap().geometric_bounds().unwrap();
     let at = xf.to_screen(b.center());
     let button = |pressed| egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
     timed(&mut app, 1.0, vec![egui::Event::PointerMoved(at), button(true), button(false), button(true), button(false)]);
@@ -6739,7 +6739,7 @@ fn double_clicking_type_with_the_selection_tool_puts_the_caret_there() {
 /// event per frame.
 fn retype_all_of_a_copied_type(ime: bool) {
     use egui::{Event, Key, Modifiers};
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let original = app
         .session
@@ -6751,7 +6751,7 @@ fn retype_all_of_a_copied_type(ime: bool) {
     app.select_tool("selection");
     let ctx = egui::Context::default();
     let time = std::cell::Cell::new(0.0);
-    let frame = |app: &mut VectorcraftApp, events: Vec<Event>| {
+    let frame = |app: &mut VansoncraftApp, events: Vec<Event>| {
         time.set(time.get() + 0.03);
         let screen = egui::Rect::from_min_size(Pos2::ZERO, vec2(1600.0, 850.0));
         let mut out = ctx.run_ui(egui::RawInput { screen_rect: Some(screen), time: Some(time.get()), events, ..Default::default() }, |ui| {
@@ -6764,8 +6764,8 @@ fn retype_all_of_a_copied_type(ime: bool) {
         frame(&mut app, vec![]);
     }
     let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
-    let node = |app: &VectorcraftApp, id: u64| app.session.active().unwrap().doc.node(vectorcraft_doc::NodeId(id)).unwrap().clone();
-    let styles = |app: &VectorcraftApp, id: u64| match &node(app, id).kind {
+    let node = |app: &VansoncraftApp, id: u64| app.session.active().unwrap().doc.node(vansoncraft_doc::NodeId(id)).unwrap().clone();
+    let styles = |app: &VansoncraftApp, id: u64| match &node(app, id).kind {
         NodeKind::Text(t) => {
             t.runs.iter().map(|r| (r.text.clone(), r.style.font_family.clone(), r.style.size, r.style.fill.clone())).collect::<Vec<_>>()
         }
@@ -6835,13 +6835,13 @@ fn retyping_all_of_a_copied_type_after_backspace_keeps_its_style() {
 
 #[test]
 fn double_clicking_type_with_the_direct_selection_tool_puts_the_caret_there() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let id = app.session.execute("text.create", &json!({"x": 100, "y": 150, "text": "Hello world", "size": 24})).unwrap()["id"].as_u64().unwrap();
     app.session.execute("select.none", &json!({})).unwrap();
     app.select_tool("directSelection");
     let ctx = egui::Context::default();
-    let timed = |app: &mut VectorcraftApp, time: f64, events: Vec<egui::Event>| {
+    let timed = |app: &mut VansoncraftApp, time: f64, events: Vec<egui::Event>| {
         let screen = egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0));
         let mut out = ctx.run_ui(egui::RawInput { screen_rect: Some(screen), time: Some(time), events, ..Default::default() }, |ui| {
             crate::shortcuts::handle(app, ui.ctx());
@@ -6851,12 +6851,12 @@ fn double_clicking_type_with_the_direct_selection_tool_puts_the_caret_there() {
     };
     timed(&mut app, 0.0, vec![]);
     let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
-    let text = |app: &VectorcraftApp| match &app.session.active().unwrap().doc.node(vectorcraft_doc::NodeId(id)).unwrap().kind {
+    let text = |app: &VansoncraftApp| match &app.session.active().unwrap().doc.node(vansoncraft_doc::NodeId(id)).unwrap().kind {
         NodeKind::Text(t) => t.plain_text(),
         _ => panic!("not text"),
     };
     // Double-click the middle of the text with Direct Selection.
-    let b = app.session.active().unwrap().doc.node(vectorcraft_doc::NodeId(id)).unwrap().geometric_bounds().unwrap();
+    let b = app.session.active().unwrap().doc.node(vansoncraft_doc::NodeId(id)).unwrap().geometric_bounds().unwrap();
     let at = xf.to_screen(b.center());
     let button = |pressed| egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
     timed(&mut app, 1.0, vec![egui::Event::PointerMoved(at), button(true), button(false), button(true), button(false)]);
@@ -6882,7 +6882,7 @@ fn double_clicking_type_with_the_direct_selection_tool_puts_the_caret_there() {
 
 #[test]
 fn escape_while_editing_in_isolation_returns_to_selection_tool_and_keeps_isolation_until_second_escape() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let tid = app.session.execute("text.create", &json!({"x": 100, "y": 150, "text": "Nested hello", "size": 24})).unwrap()["id"].as_u64().unwrap();
     // Group the text inside a group.
@@ -6890,7 +6890,7 @@ fn escape_while_editing_in_isolation_returns_to_selection_tool_and_keeps_isolati
     app.session.execute("object.group", &json!({})).unwrap();
     app.select_tool("selection");
     let ctx = egui::Context::default();
-    let timed = |app: &mut VectorcraftApp, time: f64, events: Vec<egui::Event>| {
+    let timed = |app: &mut VansoncraftApp, time: f64, events: Vec<egui::Event>| {
         let screen = egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0));
         let mut out = ctx.run_ui(egui::RawInput { screen_rect: Some(screen), time: Some(time), events, ..Default::default() }, |ui| {
             crate::shortcuts::handle(app, ui.ctx());
@@ -6900,7 +6900,7 @@ fn escape_while_editing_in_isolation_returns_to_selection_tool_and_keeps_isolati
     };
     timed(&mut app, 0.0, vec![]);
     let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
-    let b = app.session.active().unwrap().doc.node(vectorcraft_doc::NodeId(tid)).unwrap().geometric_bounds().unwrap();
+    let b = app.session.active().unwrap().doc.node(vansoncraft_doc::NodeId(tid)).unwrap().geometric_bounds().unwrap();
     let at = xf.to_screen(b.center());
     let button = |pressed| egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
     let esc = |pressed| egui::Event::Key { key: egui::Key::Escape, physical_key: None, pressed, repeat: false, modifiers: Default::default() };
@@ -6934,7 +6934,7 @@ fn escape_while_editing_in_isolation_returns_to_selection_tool_and_keeps_isolati
 
 #[test]
 fn a_symbol_dropped_on_the_canvas_is_placed_there() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.session.execute("shape.rectangle", &json!({"x": 10, "y": 10, "width": 40, "height": 20})).unwrap();
     let name = app.session.execute("symbol.new", &json!({})).unwrap()["name"].as_str().unwrap().to_string();
@@ -6957,7 +6957,7 @@ fn a_symbol_dropped_on_the_canvas_is_placed_there() {
 
 #[test]
 fn a_library_symbol_dropped_on_the_canvas_is_added_and_placed_there_in_one_step() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     // Dropped on art too, it is placed, not applied to the art.
     app.session.execute("shape.rectangle", &json!({"x": 200, "y": 150, "width": 100, "height": 60})).unwrap();
@@ -6979,7 +6979,7 @@ fn a_library_symbol_dropped_on_the_canvas_is_added_and_placed_there_in_one_step(
     assert!(matches!(&n.kind, NodeKind::SymbolInstance { symbol, .. } if symbol == "Star"));
     // The registration point (the centre) is where it was dropped, in document coordinates
     // (the pointer's screen position, which rounds 250, 180 a little).
-    let size = st.doc.unknown.get(vectorcraft_doc::SYMBOL_SIZES).and_then(|m| m.get("Star")).cloned().unwrap();
+    let size = st.doc.unknown.get(vansoncraft_doc::SYMBOL_SIZES).and_then(|m| m.get("Star")).cloned().unwrap();
     let b = n.geometric_bounds().unwrap();
     assert!((b.width() - size[0].as_f64().unwrap()).abs() < 1e-6, "{b:?} {size}");
     assert!((b.center() - xf.to_doc(at)).hypot() < 1e-6 && (b.center() - Point::new(250.0, 180.0)).hypot() < 0.1, "{b:?}");
@@ -6990,18 +6990,18 @@ fn a_library_symbol_dropped_on_the_canvas_is_added_and_placed_there_in_one_step(
 
 #[test]
 fn a_brush_dropped_on_a_path_is_applied_to_it() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let id = app.session.execute("path.create", &json!({"anchors": [{"x": 100, "y": 150}, {"x": 300, "y": 150}]})).unwrap()["id"].as_u64().unwrap();
     app.session.execute("select.none", &json!({})).unwrap();
     let ctx = egui::Context::default();
     frame(&mut app, &ctx, vec![]);
     let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
-    let brush = |app: &VectorcraftApp| {
+    let brush = |app: &VansoncraftApp| {
         let st = app.session.active().unwrap();
-        st.doc.node(vectorcraft_doc::NodeId(id)).unwrap().appearance.stroke().and_then(|s| s.brush.clone())
+        st.doc.node(vansoncraft_doc::NodeId(id)).unwrap().appearance.stroke().and_then(|s| s.brush.clone())
     };
-    let drop = |app: &mut VectorcraftApp, at: Point| {
+    let drop = |app: &mut VansoncraftApp, at: Point| {
         let at = xf.to_screen(at);
         egui::DragAndDrop::set_payload(&ctx, widgets::PanelDrag::Brush { name: "Arrow".into(), def: json!({}) });
         let up = egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed: false, modifiers: Default::default() };
@@ -7017,14 +7017,14 @@ fn a_brush_dropped_on_a_path_is_applied_to_it() {
 
 #[test]
 fn a_brush_with_art_dropped_off_the_art_places_a_copy_of_its_art_there() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.session.execute("path.create", &json!({"anchors": [{"x": 100, "y": 150}, {"x": 300, "y": 150}]})).unwrap();
     app.session.execute("select.none", &json!({})).unwrap();
     let ctx = egui::Context::default();
     frame(&mut app, &ctx, vec![]);
     let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
-    let drop = |app: &mut VectorcraftApp, name: &str, at: Point| {
+    let drop = |app: &mut VansoncraftApp, name: &str, at: Point| {
         let def = app.session.execute("brush.get", &json!({"name": name})).unwrap();
         let at = xf.to_screen(at);
         egui::DragAndDrop::set_payload(&ctx, widgets::PanelDrag::Brush { name: name.into(), def });
@@ -7060,14 +7060,14 @@ fn a_brush_with_art_dropped_off_the_art_places_a_copy_of_its_art_there() {
 
 #[test]
 fn a_library_brush_dropped_on_a_path_is_added_and_applied_in_one_step() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let id = app.session.execute("path.create", &json!({"anchors": [{"x": 100, "y": 150}, {"x": 300, "y": 150}]})).unwrap()["id"].as_u64().unwrap();
     app.session.execute("select.none", &json!({})).unwrap();
     let ctx = egui::Context::default();
     frame(&mut app, &ctx, vec![]);
     let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
-    let drop = |app: &mut VectorcraftApp, at: Point| {
+    let drop = |app: &mut VansoncraftApp, at: Point| {
         let at = xf.to_screen(at);
         egui::DragAndDrop::set_payload(&ctx, widgets::PanelDrag::LibraryBrush { library: "scatter-shapes".into(), name: "Sparkles".into() });
         let up = egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed: false, modifiers: Default::default() };
@@ -7076,12 +7076,12 @@ fn a_library_brush_dropped_on_a_path_is_added_and_applied_in_one_step() {
     let undo = app.session.active().unwrap().history.undo.len();
     // Off the path: nothing.
     drop(&mut app, Point::new(200.0, 250.0));
-    assert!(vectorcraft_brush::find(&app.session.active().unwrap().doc, "Sparkles").is_none());
+    assert!(vansoncraft_brush::find(&app.session.active().unwrap().doc, "Sparkles").is_none());
     // On it: added, with the symbol it scatters, and applied, as one step.
     drop(&mut app, Point::new(200.0, 150.0));
     let st = app.session.active().unwrap();
-    assert!(vectorcraft_brush::find(&st.doc, "Sparkles").is_some() && st.doc.symbols.iter().any(|s| s.name == "Sparkle"), "{}", app.ui.status);
-    let n = st.doc.node(vectorcraft_doc::NodeId(id)).unwrap();
+    assert!(vansoncraft_brush::find(&st.doc, "Sparkles").is_some() && st.doc.symbols.iter().any(|s| s.name == "Sparkle"), "{}", app.ui.status);
+    let n = st.doc.node(vansoncraft_doc::NodeId(id)).unwrap();
     assert_eq!(n.appearance.stroke().and_then(|s| s.brush.clone()).as_deref(), Some("Sparkles"));
     assert_eq!(st.history.undo.len(), undo + 1);
     assert_eq!(st.history.undo.last().unwrap().label, "Add to Brushes");
@@ -7089,7 +7089,7 @@ fn a_library_brush_dropped_on_a_path_is_added_and_applied_in_one_step() {
 
 #[test]
 fn middle_drag_pans_the_view_with_any_tool() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     // A drawing tool: the middle button must pan, never draw.
     app.select_tool("rectangle");
@@ -7111,22 +7111,22 @@ fn middle_drag_pans_the_view_with_any_tool() {
 
 #[test]
 fn swatches_and_proxy_paints_dropped_on_art_fill_the_object_hit() {
-    use vectorcraft_color::{Color, GradientGeom, GradientPaint, Paint};
+    use vansoncraft_color::{Color, GradientGeom, GradientPaint, Paint};
     use widgets::{PanelDrag, SwatchRows};
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let id = app.session.execute("shape.rectangle", &json!({"x": 50, "y": 50, "width": 100, "height": 100})).unwrap()["id"].as_u64().unwrap();
     app.session.execute("select.none", &json!({})).unwrap();
     let ctx = egui::Context::default();
     frame(&mut app, &ctx, vec![]);
     let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
-    let drop = |app: &mut VectorcraftApp, d: PanelDrag, at: Point| {
+    let drop = |app: &mut VansoncraftApp, d: PanelDrag, at: Point| {
         let at = xf.to_screen(at);
         egui::DragAndDrop::set_payload(&ctx, d);
         let up = egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed: false, modifiers: Default::default() };
         frame(app, &ctx, vec![egui::Event::PointerMoved(at), up]);
     };
-    let fill = |app: &VectorcraftApp| app.session.active().unwrap().doc.node(vectorcraft_doc::NodeId(id)).unwrap().appearance.fill_paint();
+    let fill = |app: &VansoncraftApp| app.session.active().unwrap().doc.node(vansoncraft_doc::NodeId(id)).unwrap().appearance.fill_paint();
     let red = Paint::solid(Color::from_hex("#ed1c24").unwrap());
     let rows = SwatchRows { grabbed: "Red".into(), names: vec!["Red".into()], groups: false };
     let swatch = PanelDrag::Paint { paint: red.clone(), params: json!({"swatch": "Red"}), rows: Some(rows), library: None };
@@ -7148,9 +7148,9 @@ fn swatches_and_proxy_paints_dropped_on_art_fill_the_object_hit() {
 
 #[test]
 fn dropping_the_appearance_thumbnail_on_art_copies_the_appearance() {
-    use vectorcraft_doc::NodeId;
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
-    let run = |app: &mut VectorcraftApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
+    use vansoncraft_doc::NodeId;
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
+    let run = |app: &mut VansoncraftApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
     run(&mut app, "file.new", json!({"width": 400, "height": 300}));
     let a = run(&mut app, "shape.rectangle", json!({"x": 20, "y": 20, "width": 100, "height": 100}))["id"].as_u64().unwrap();
     run(&mut app, "effect.apply", json!({"effect": "distort.twist"}));
@@ -7161,7 +7161,7 @@ fn dropping_the_appearance_thumbnail_on_art_copies_the_appearance() {
     frame(&mut app, &ctx, vec![]);
     // The Appearance panel's thumbnail (its drag payload) released over the second rectangle.
     let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
-    let drop = |app: &mut VectorcraftApp, at: Point| {
+    let drop = |app: &mut VansoncraftApp, at: Point| {
         let at = xf.to_screen(at);
         egui::DragAndDrop::set_payload(&ctx, widgets::PanelDrag::Appearance(NodeId(a)));
         frame(app, &ctx, vec![egui::Event::PointerMoved(at)]);
@@ -7182,9 +7182,9 @@ fn dropping_the_appearance_thumbnail_on_art_copies_the_appearance() {
 
 #[test]
 fn a_graphic_style_dropped_on_art_applies_to_the_object_hit() {
-    use vectorcraft_doc::NodeId;
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
-    let run = |app: &mut VectorcraftApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
+    use vansoncraft_doc::NodeId;
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
+    let run = |app: &mut VansoncraftApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
     run(&mut app, "file.new", json!({"width": 400, "height": 300}));
     let a = NodeId(run(&mut app, "shape.rectangle", json!({"x": 20, "y": 20, "width": 100, "height": 100}))["id"].as_u64().unwrap());
     let b = NodeId(run(&mut app, "shape.rectangle", json!({"x": 200, "y": 20, "width": 100, "height": 100}))["id"].as_u64().unwrap());
@@ -7209,10 +7209,10 @@ fn a_graphic_style_dropped_on_art_applies_to_the_object_hit() {
 
 #[test]
 fn art_moved_off_the_canvas_waits_and_drops_on_the_panel() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let id = app.session.execute("shape.rectangle", &json!({"x": 50, "y": 50, "width": 100, "height": 100})).unwrap()["id"].as_u64().unwrap();
-    let id = vectorcraft_doc::NodeId(id);
+    let id = vansoncraft_doc::NodeId(id);
     app.select_tool("selection");
     let ctx = egui::Context::default();
     frame(&mut app, &ctx, vec![]);
@@ -7222,7 +7222,7 @@ fn art_moved_off_the_canvas_waits_and_drops_on_the_panel() {
     let button =
         |pos: Pos2, pressed: bool| egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
     let start = xf.to_screen(Point::new(100.0, 100.0));
-    let left = |app: &VectorcraftApp| app.session.active().unwrap().doc.node(id).unwrap().geometric_bounds().unwrap().x0;
+    let left = |app: &VansoncraftApp| app.session.active().unwrap().doc.node(id).unwrap().geometric_bounds().unwrap().x0;
     let moved_to = |screen: Pos2| 50.0 + xf.to_doc(screen).x - 100.0;
     frame(&mut app, &ctx, vec![egui::Event::PointerMoved(start), button(start, true)]);
     // Moving on the canvas moves the art...
@@ -7246,10 +7246,10 @@ fn art_moved_off_the_canvas_waits_and_drops_on_the_panel() {
 #[test]
 fn art_alt_dragged_off_the_canvas_reaches_the_panels_as_the_original() {
     use egui::{Event, Modifiers};
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let id = app.session.execute("shape.rectangle", &json!({"x": 50, "y": 50, "width": 100, "height": 100})).unwrap()["id"].as_u64().unwrap();
-    let id = vectorcraft_doc::NodeId(id);
+    let id = vansoncraft_doc::NodeId(id);
     app.select_tool("selection");
     let ctx = egui::Context::default();
     frame(&mut app, &ctx, vec![]);
@@ -7276,10 +7276,10 @@ fn art_alt_dragged_off_the_canvas_reaches_the_panels_as_the_original() {
 #[test]
 fn art_moved_whole_off_the_canvas_with_direct_selection_drops_on_the_panel() {
     for tool in ["directSelection", "groupSelection"] {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
         let id = app.session.execute("shape.rectangle", &json!({"x": 50, "y": 50, "width": 100, "height": 100})).unwrap()["id"].as_u64().unwrap();
-        let id = vectorcraft_doc::NodeId(id);
+        let id = vansoncraft_doc::NodeId(id);
         app.session.execute("select.none", &json!({})).unwrap();
         app.select_tool(tool);
         let ctx = egui::Context::default();
@@ -7314,7 +7314,7 @@ fn art_moved_whole_off_the_canvas_with_direct_selection_drops_on_the_panel() {
 /// reshape goes on and no art drag starts (#4233).
 #[test]
 fn an_anchor_dragged_off_the_canvas_is_not_handed_to_the_panels() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let id = app.session.execute("shape.rectangle", &json!({"x": 50, "y": 50, "width": 100, "height": 100})).unwrap()["id"].as_u64().unwrap();
     app.select_tool("directSelection");
@@ -7327,7 +7327,7 @@ fn an_anchor_dragged_off_the_canvas_is_not_handed_to_the_panels() {
     let corner = xf.to_screen(Point::new(50.0, 50.0));
     frame(&mut app, &ctx, vec![egui::Event::PointerMoved(corner), button(corner, true)]);
     frame(&mut app, &ctx, vec![egui::Event::PointerMoved(corner + vec2(20.0, 0.0))]);
-    assert!(app.session.active().unwrap().selection.partial(vectorcraft_doc::NodeId(id)).is_some(), "an anchor is picked");
+    assert!(app.session.active().unwrap().selection.partial(vansoncraft_doc::NodeId(id)).is_some(), "an anchor is picked");
     frame(&mut app, &ctx, vec![egui::Event::PointerMoved(pos2(850.0, 100.0))]);
     assert!(
         !matches!(egui::DragAndDrop::payload::<widgets::PanelDrag>(&ctx).as_deref(), Some(widgets::PanelDrag::Art(_))),
@@ -7340,7 +7340,7 @@ fn an_anchor_dragged_off_the_canvas_is_not_handed_to_the_panels() {
 /// pointer when it comes back — it isn't dropped or put back.
 #[test]
 fn art_moved_off_the_canvas_resumes_when_the_pointer_returns() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let id = app.session.execute("shape.rectangle", &json!({"x": 50, "y": 50, "width": 100, "height": 100})).unwrap()["id"].as_u64().unwrap();
     app.select_tool("selection");
@@ -7351,7 +7351,7 @@ fn art_moved_off_the_canvas_resumes_when_the_pointer_returns() {
     let button =
         |pos: Pos2, pressed: bool| egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
     let start = xf.to_screen(Point::new(100.0, 100.0));
-    let left = |app: &VectorcraftApp| app.session.active().unwrap().doc.node(vectorcraft_doc::NodeId(id)).unwrap().geometric_bounds().unwrap().x0;
+    let left = |app: &VansoncraftApp| app.session.active().unwrap().doc.node(vansoncraft_doc::NodeId(id)).unwrap().geometric_bounds().unwrap().x0;
     let moved_to = |screen: Pos2| 50.0 + xf.to_doc(screen).x - 100.0;
     frame(&mut app, &ctx, vec![egui::Event::PointerMoved(start), button(start, true)]);
     frame(&mut app, &ctx, vec![egui::Event::PointerMoved(start + vec2(40.0, 0.0))]);
@@ -7373,8 +7373,8 @@ fn art_moved_off_the_canvas_resumes_when_the_pointer_returns() {
 
 /// One frame of keyboard handling, canvas and the end-of-pass IME observation, as the app runs
 /// them; returns the IME output.
-fn typing_frame(app: &mut VectorcraftApp, ctx: &egui::Context, events: Vec<egui::Event>) -> Option<egui::output::IMEOutput> {
-    VectorcraftApp::install_ime_reset_hooks(ctx);
+fn typing_frame(app: &mut VansoncraftApp, ctx: &egui::Context, events: Vec<egui::Event>) -> Option<egui::output::IMEOutput> {
+    VansoncraftApp::install_ime_reset_hooks(ctx);
     let raw = egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0))), events, ..Default::default() };
     let mut out = ctx.run_ui(raw, |ui| {
         crate::ime::begin_ui(app, ui.ctx());
@@ -7391,8 +7391,8 @@ fn preedit(t: &str, chars: usize) -> egui::Event {
     egui::Event::Ime(egui::ImeEvent::Preedit { text: t.into(), active_range_chars: Some(chars..chars) })
 }
 
-fn plain(app: &VectorcraftApp, id: u64) -> String {
-    match &app.session.active().unwrap().doc.node(vectorcraft_doc::NodeId(id)).unwrap().kind {
+fn plain(app: &VansoncraftApp, id: u64) -> String {
+    match &app.session.active().unwrap().doc.node(vansoncraft_doc::NodeId(id)).unwrap().kind {
         NodeKind::Text(t) => t.plain_text(),
         _ => panic!("not text"),
     }
@@ -7402,7 +7402,7 @@ fn plain(app: &VectorcraftApp, id: u64) -> String {
 /// the art as it was, and no move is left open.
 #[test]
 fn a_move_released_over_a_panel_ends_before_the_panels_draw() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let id = app.session.execute("shape.rectangle", &json!({"x": 50, "y": 50, "width": 100, "height": 100})).unwrap()["id"].as_u64().unwrap();
     app.select_tool("selection");
@@ -7429,7 +7429,7 @@ fn a_move_released_over_a_panel_ends_before_the_panels_draw() {
         assert_eq!(*app.session.active().unwrap().doc, *before, "the art is back where it was");
         assert_eq!(
             egui::DragAndDrop::payload::<widgets::PanelDrag>(ui.ctx()).as_deref(),
-            Some(&widgets::PanelDrag::Art(vec![vectorcraft_doc::NodeId(id)])),
+            Some(&widgets::PanelDrag::Art(vec![vansoncraft_doc::NodeId(id)])),
             "the panel still gets the art"
         );
         assert!(ui.ctx().data(|d| d.get_temp::<Drag>(drag_id())).is_none(), "no drag is left");
@@ -7440,7 +7440,7 @@ fn a_move_released_over_a_panel_ends_before_the_panels_draw() {
 
 #[test]
 fn japanese_ime_composes_on_the_canvas_with_its_window_at_the_caret() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     // The type placed starts empty (Fill New Type Objects With Placeholder Text off).
     app.session.prefs.placeholder_text = false;
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
@@ -7488,7 +7488,7 @@ fn japanese_ime_composes_on_the_canvas_with_its_window_at_the_caret() {
 /// preedit plus a single Commit lands the amount once, not duplicated.
 #[test]
 fn vietnamese_telex_digits_commit_once() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.prefs.placeholder_text = false;
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let ctx = egui::Context::default();
@@ -7518,7 +7518,7 @@ fn vietnamese_telex_digits_commit_once() {
 /// insert every character first and delete afterwards.
 #[test]
 fn hook_ime_backspace_and_reinject_builds_vietnamese() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.prefs.placeholder_text = false;
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let ctx = egui::Context::default();
@@ -7549,7 +7549,7 @@ fn hook_ime_backspace_and_reinject_builds_vietnamese() {
 /// Clear History waits while an IME composes, as Undo does: the marked text and the steps stay.
 #[test]
 fn clear_history_waits_while_the_ime_composes() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.prefs.placeholder_text = false;
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.session.execute("shape.rectangle", &json!({"x": 300, "y": 200, "width": 20, "height": 20})).unwrap();
@@ -7578,7 +7578,7 @@ fn clear_history_waits_while_the_ime_composes() {
 /// composition goes on.
 #[test]
 fn new_document_from_state_waits_while_the_ime_composes() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.prefs.placeholder_text = false;
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let ctx = egui::Context::default();
@@ -7602,7 +7602,7 @@ fn new_document_from_state_waits_while_the_ime_composes() {
 
 #[test]
 fn clicking_away_mid_composition_keeps_the_text_and_interrupts_the_ime() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let other = app.session.execute("text.create", &json!({"x": 300, "y": 250, "text": "Other", "size": 24})).unwrap()["id"].as_u64().unwrap();
     let ctx = egui::Context::default();
@@ -7621,7 +7621,7 @@ fn clicking_away_mid_composition_keeps_the_text_and_interrupts_the_ime() {
     let ime = typing_frame(&mut app, &ctx, vec![egui::Event::PointerMoved(b), click(b, true)]);
     assert_eq!(plain(&app, id), "しょうこ");
     assert!(!app.session.tool_composing());
-    assert_eq!(app.session.active().unwrap().selection.objects, vec![vectorcraft_doc::NodeId(other)]);
+    assert_eq!(app.session.active().unwrap().selection.objects, vec![vansoncraft_doc::NodeId(other)]);
     let ime = ime.expect("editing the other text");
     assert!(ime.should_interrupt_composition);
     let request_id = ime.reset_request.expect("the final destination publishes its reset request");
@@ -7646,7 +7646,7 @@ fn clicking_away_mid_composition_keeps_the_text_and_interrupts_the_ime() {
 
 #[test]
 fn ime_edge_orders_never_eat_committed_text_or_lose_the_composition() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let ctx = egui::Context::default();
     typing_frame(&mut app, &ctx, vec![]);
@@ -7681,7 +7681,7 @@ fn ime_edge_orders_never_eat_committed_text_or_lose_the_composition() {
 }
 
 /// Starts editing new point type with the Type tool; returns its id.
-fn start_typing(app: &mut VectorcraftApp, ctx: &egui::Context) -> u64 {
+fn start_typing(app: &mut VansoncraftApp, ctx: &egui::Context) -> u64 {
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     typing_frame(app, ctx, vec![]);
     app.select_tool("type");
@@ -7704,7 +7704,7 @@ fn tap(key: egui::Key) -> [egui::Event; 2] {
 /// of the same frame, and each Enter types a line break.
 #[test]
 fn the_type_tool_takes_text_and_editing_keys_in_the_order_they_came() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.prefs.placeholder_text = false;
     let ctx = egui::Context::default();
     let id = start_typing(&mut app, &ctx);
@@ -7732,7 +7732,7 @@ fn the_type_tool_takes_text_and_editing_keys_in_the_order_they_came() {
 /// Enter keeps each key event's modifiers while sharing a frame with typed text.
 #[test]
 fn shift_enter_types_a_soft_return_in_order_with_plain_enter() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.prefs.placeholder_text = false;
     let ctx = egui::Context::default();
     let id = start_typing(&mut app, &ctx);
@@ -7751,7 +7751,7 @@ fn shift_enter_types_a_soft_return_in_order_with_plain_enter() {
 /// act on the text as the events before them left it.
 #[test]
 fn home_tab_and_backspace_act_on_the_text_before_them_in_the_frame() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.prefs.placeholder_text = false;
     let ctx = egui::Context::default();
     let id = start_typing(&mut app, &ctx);
@@ -7769,7 +7769,7 @@ fn home_tab_and_backspace_act_on_the_text_before_them_in_the_frame() {
 /// that follows it; a key before the commit and an Enter after it stay the IME's.
 #[test]
 fn editing_keys_after_an_ime_commit_apply_in_the_same_frame() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.prefs.placeholder_text = false;
     let ctx = egui::Context::default();
     let id = start_typing(&mut app, &ctx);
@@ -7789,7 +7789,7 @@ fn editing_keys_after_an_ime_commit_apply_in_the_same_frame() {
 /// Enter comes in the same frame. Unbound, it ends editing and keeps the text.
 #[test]
 fn a_command_on_cmd_enter_runs_without_typing_a_line_break() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.prefs.placeholder_text = false;
     let ctx = egui::Context::default();
     let id = start_typing(&mut app, &ctx);
@@ -7823,7 +7823,7 @@ fn a_command_on_cmd_enter_runs_without_typing_a_line_break() {
 /// Ctrl+Enter on macOS still type line breaks.
 #[test]
 fn cmd_enter_ends_text_editing_and_keeps_the_text() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.prefs.placeholder_text = false;
     let ctx = egui::Context::default();
     let id = start_typing(&mut app, &ctx);
@@ -7847,7 +7847,7 @@ fn cmd_enter_ends_text_editing_and_keeps_the_text() {
     assert!(!app.session.tool_wants_text(), "editing ended");
     assert_eq!(app.session.tool_id(), "selection");
     assert_eq!(plain(&app, id), "a\n\u{2028}\n", "the text is kept, and nothing after the chord changes it");
-    assert_eq!(app.session.active().unwrap().selection.objects, vec![vectorcraft_doc::NodeId(id)], "the type stays selected");
+    assert_eq!(app.session.active().unwrap().selection.objects, vec![vansoncraft_doc::NodeId(id)], "the type stays selected");
     typing_frame(&mut app, &ctx, vec![key(true, true, egui::Modifiers::COMMAND)]);
     typing_frame(&mut app, &ctx, vec![key(false, false, egui::Modifiers::COMMAND)]);
     assert!(app.ui.dialog.is_none(), "the repeats of the chord open no dialog");
@@ -7858,7 +7858,7 @@ fn cmd_enter_ends_text_editing_and_keeps_the_text() {
 /// type a line break, in the frame that starts the composition or in a later one.
 #[test]
 fn cmd_enter_while_composing_keeps_the_composition_and_editing() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.prefs.placeholder_text = false;
     let ctx = egui::Context::default();
     let id = start_typing(&mut app, &ctx);
@@ -7882,7 +7882,7 @@ fn cmd_enter_while_composing_keeps_the_composition_and_editing() {
 
 /// Reset to a blank document, select the Type tool and click document point (100, 100), returning
 /// the screen position used by IME fixtures.
-fn type_at(app: &mut VectorcraftApp, ctx: &egui::Context) -> egui::Pos2 {
+fn type_at(app: &mut VansoncraftApp, ctx: &egui::Context) -> egui::Pos2 {
     app.session.prefs.placeholder_text = false;
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     typing_frame(app, ctx, vec![]);
@@ -7900,7 +7900,7 @@ fn type_at(app: &mut VectorcraftApp, ctx: &egui::Context) -> egui::Pos2 {
 /// reversed selection reversed, and labels only accepted IME mutations `InputMethod`.
 #[test]
 fn ime_output_carries_text_offsets_and_explicit_cause() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     let ctx = egui::Context::default();
     type_at(&mut app, &ctx);
     let empty = typing_frame(&mut app, &ctx, vec![]).expect("the Type tool owns the IME");
@@ -7948,7 +7948,7 @@ fn ime_output_carries_text_offsets_and_explicit_cause() {
 /// IME mutation that earns `InputMethod`.
 #[test]
 fn ime_output_excludes_the_preedit_and_marks_the_commit() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     let ctx = egui::Context::default();
     type_at(&mut app, &ctx);
     typing_frame(&mut app, &ctx, vec![egui::Event::Text("ab".into())]);
@@ -7964,7 +7964,7 @@ fn ime_output_excludes_the_preedit_and_marks_the_commit() {
 /// An application edit anywhere in the frame dominates an IME receipt in it.
 #[test]
 fn ime_output_marks_mixed_application_and_ime_mutations_other() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     let ctx = egui::Context::default();
     type_at(&mut app, &ctx);
     typing_frame(&mut app, &ctx, vec![egui::Event::Text("ab".into())]);
@@ -7999,7 +7999,7 @@ fn ime_output_marks_mixed_application_and_ime_mutations_other() {
 /// Leaving and re-entering the same text object keeps the owner but starts a new generation.
 #[test]
 fn ime_owner_replacement_starts_a_new_generation() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.prefs.placeholder_text = false;
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let id = app.session.execute("text.create", &json!({"x": 100, "y": 100, "text": "Same", "size": 24})).unwrap()["id"].as_u64().unwrap();
@@ -8007,14 +8007,14 @@ fn ime_owner_replacement_starts_a_new_generation() {
     typing_frame(&mut app, &ctx, vec![]);
     app.select_tool("type");
     let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
-    let center = app.session.active().unwrap().doc.node(vectorcraft_doc::NodeId(id)).unwrap().geometric_bounds().unwrap().center();
+    let center = app.session.active().unwrap().doc.node(vansoncraft_doc::NodeId(id)).unwrap().geometric_bounds().unwrap().center();
     let at = xf.to_screen(center);
     let click =
         |p: Pos2, pressed| egui::Event::PointerButton { pos: p, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
     typing_frame(&mut app, &ctx, vec![egui::Event::PointerMoved(at), click(at, true)]);
     typing_frame(&mut app, &ctx, vec![click(at, false)]);
     let first = typing_frame(&mut app, &ctx, vec![]).expect("the text is being edited");
-    assert_eq!(first.owner, egui::Id::unique(("vectorcraft-type-ime", app.session.active().unwrap().uid, id)));
+    assert_eq!(first.owner, egui::Id::unique(("vansoncraft-type-ime", app.session.active().unwrap().uid, id)));
     let escape = |pressed| egui::Event::Key { key: egui::Key::Escape, physical_key: None, pressed, repeat: false, modifiers: Default::default() };
     typing_frame(&mut app, &ctx, vec![escape(true)]);
     typing_frame(&mut app, &ctx, vec![escape(false)]);
@@ -8031,11 +8031,11 @@ fn ime_owner_replacement_starts_a_new_generation() {
 /// editor, and an unchanged second pass in either keeps it.
 #[test]
 fn ime_context_is_scoped_per_viewport() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     let ctx = egui::Context::default();
     type_at(&mut app, &ctx);
-    let aux = egui::ViewportId::from_hash_of("vectorcraft-ime-aux");
-    let frame = |app: &mut VectorcraftApp, viewport: egui::ViewportId| {
+    let aux = egui::ViewportId::from_hash_of("vansoncraft-ime-aux");
+    let frame = |app: &mut VansoncraftApp, viewport: egui::ViewportId| {
         let mut raw = egui::RawInput {
             screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0))),
             viewport_id: viewport,
@@ -8064,7 +8064,7 @@ fn ime_context_is_scoped_per_viewport() {
 /// visible pass starts a new generation instead of inheriting the old context.
 #[test]
 fn hidden_viewport_observes_no_ime_owner() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     let ctx = egui::Context::default();
     type_at(&mut app, &ctx);
     let root = egui::ViewportId::ROOT;
@@ -8086,7 +8086,7 @@ fn hidden_viewport_observes_no_ime_owner() {
 /// unchanged second pass keeps the first pass's `InputMethod` cause and generation.
 #[test]
 fn ime_observation_runs_in_every_pass_of_a_discarded_frame() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     let ctx = egui::Context::default();
     type_at(&mut app, &ctx);
     let mut first = true;
@@ -8148,7 +8148,7 @@ fn tool_drag_moved_without_pointer_delta() {
 #[test]
 fn a_modifier_changed_mid_scale_applies_with_the_pointer_held_still() {
     use egui::{Event, Modifiers};
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.ui.view.smart_guides = false;
     app.ui.view.snap_to_point = false;
@@ -8157,7 +8157,7 @@ fn a_modifier_changed_mid_scale_applies_with_the_pointer_held_still() {
     let ctx = egui::Context::default();
     frame(&mut app, &ctx, vec![]);
     let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
-    let with = |app: &mut VectorcraftApp, mut events: Vec<Event>, modifiers: Modifiers| {
+    let with = |app: &mut VansoncraftApp, mut events: Vec<Event>, modifiers: Modifiers| {
         events.insert(0, Event::ModifiersChanged(modifiers));
         let raw = egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0))), events, ..Default::default() };
         let mut out = ctx.run_ui(raw, |ui| show(app, ui));
@@ -8165,7 +8165,7 @@ fn a_modifier_changed_mid_scale_applies_with_the_pointer_held_still() {
     };
     let button = |pos, pressed| Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Modifiers::NONE };
     let height =
-        |app: &VectorcraftApp| app.session.active().unwrap().doc.node(vectorcraft_doc::NodeId(id)).unwrap().geometric_bounds().unwrap().height();
+        |app: &VansoncraftApp| app.session.active().unwrap().doc.node(vansoncraft_doc::NodeId(id)).unwrap().geometric_bounds().unwrap().height();
     let corner = xf.to_screen(Point::new(200.0, 150.0));
     let to = xf.to_screen(Point::new(300.0, 150.0));
     with(&mut app, vec![Event::PointerMoved(corner)], Modifiers::NONE);
@@ -8184,7 +8184,7 @@ fn a_modifier_changed_mid_scale_applies_with_the_pointer_held_still() {
 #[test]
 fn backtick_changed_mid_selection_drag_applies_with_the_pointer_held_still() {
     use egui::Event;
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     let tile = app.run("shape.rectangle", json!({"x": 0, "y": 0, "width": 10, "height": 10})).unwrap()["id"].as_u64().unwrap();
     app.run("object.pattern.make", json!({"ids": [tile], "name": "Dots", "width": 20, "height": 20})).unwrap();
@@ -8204,9 +8204,9 @@ fn backtick_changed_mid_selection_drag_applies_with_the_pointer_held_still() {
     let to = xf.to_screen(Point::new(145.0, 125.0));
     let button = |pos, pressed| Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
     let key = |pressed| Event::Key { key: egui::Key::Backtick, physical_key: None, pressed, repeat: false, modifiers: Default::default() };
-    let node = |app: &VectorcraftApp| app.session.doc().unwrap().doc.node(vectorcraft_doc::NodeId(id)).unwrap().clone();
-    let pattern_x = |node: &vectorcraft_doc::Node| {
-        let vectorcraft_color::Paint::Pattern { xf, .. } = node.appearance.fill_paint() else { panic!("pattern fill expected") };
+    let node = |app: &VansoncraftApp| app.session.doc().unwrap().doc.node(vansoncraft_doc::NodeId(id)).unwrap().clone();
+    let pattern_x = |node: &vansoncraft_doc::Node| {
+        let vansoncraft_color::Paint::Pattern { xf, .. } = node.appearance.fill_paint() else { panic!("pattern fill expected") };
         xf.as_coeffs()[4]
     };
     let before = node(&app);
@@ -8269,7 +8269,7 @@ fn stationary_press_is_not_a_drag() {
 #[test]
 fn a_bezier_drag_preview_follows_the_pointer_back_into_the_window_and_to_the_release() {
     use egui::{Event, Modifiers};
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.ui.view.smart_guides = false;
     app.ui.view.snap_to_point = false;
@@ -8278,7 +8278,7 @@ fn a_bezier_drag_preview_follows_the_pointer_back_into_the_window_and_to_the_rel
     let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
     let button = |pos, pressed| Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Modifiers::NONE };
     let near = |p: Point, q: Pos2| p.distance(xf.to_doc(q)) < 1e-3;
-    let first_anchor = |app: &VectorcraftApp| {
+    let first_anchor = |app: &VansoncraftApp| {
         let st = app.session.active().unwrap();
         st.doc.node(st.selection.objects[0]).unwrap().path_data().unwrap().subpaths[0].anchors[0]
     };
@@ -8332,7 +8332,7 @@ fn a_bezier_drag_preview_follows_the_pointer_back_into_the_window_and_to_the_rel
 #[test]
 fn a_drag_ends_where_the_button_went_up_in_its_frame() {
     use egui::{Event, Modifiers};
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.ui.view.smart_guides = false;
     app.ui.view.snap_to_point = false;
@@ -8340,7 +8340,7 @@ fn a_drag_ends_where_the_button_went_up_in_its_frame() {
     frame(&mut app, &ctx, vec![]);
     let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
     let button = |pos, pressed| Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Modifiers::NONE };
-    let last_bounds = |app: &VectorcraftApp| {
+    let last_bounds = |app: &VansoncraftApp| {
         let st = app.session.active().unwrap();
         st.doc.node(st.selection.objects[0]).unwrap().geometric_bounds().unwrap()
     };
@@ -8394,7 +8394,7 @@ fn a_drag_ends_where_the_button_went_up_in_its_frame() {
 #[test]
 fn moves_after_the_button_up_do_not_join_the_stroke() {
     use egui::{Event, Modifiers};
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.ui.view.smart_guides = false;
     app.ui.view.snap_to_point = false;
@@ -8513,11 +8513,11 @@ fn frame_moves_keeps_touch_feed_and_mouse_samples_with_their_pressure() {
 
 #[test]
 fn long_touch_drops_a_tool_press_without_committing_art() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width":800,"height":600})).unwrap();
     app.select_tool("rectangle");
     let ctx = egui::Context::default();
-    let tick = |app: &mut VectorcraftApp, time, events| {
+    let tick = |app: &mut VansoncraftApp, time, events| {
         let raw = egui::RawInput {
             screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0))),
             time: Some(time),
@@ -8543,7 +8543,7 @@ fn long_touch_drops_a_tool_press_without_committing_art() {
 /// sides) are put back and not stored, and nothing is drawn.
 #[test]
 fn a_canceled_touch_drops_the_drag_without_keeping_its_options() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.prefs.touch_gestures = true;
     app.session.execute("file.new", &json!({"width": 800, "height": 600})).unwrap();
     app.select_tool("polygon");
@@ -8557,7 +8557,7 @@ fn a_canceled_touch_drops_the_drag_without_keeping_its_options() {
     assert!(app.session.active().unwrap().interaction.is_some(), "the drag previews the polygon");
     let view = app.view_info();
     assert_eq!(app.session.tool_options()["sides"], json!(6));
-    app.session.tool_key(vectorcraft_tools::ToolKey::Up, Mods::default(), view).unwrap();
+    app.session.tool_key(vansoncraft_tools::ToolKey::Up, Mods::default(), view).unwrap();
     assert_eq!(app.session.tool_options()["sides"], json!(7));
     frame(&mut app, &ctx, pen(egui::TouchPhase::Cancel, start + vec2(60.0, 40.0), 0.5));
     assert!(!app.session.tool_busy(), "the tool is at rest");
@@ -8573,7 +8573,7 @@ fn a_canceled_touch_drops_the_drag_without_keeping_its_options() {
 /// outlive the drag that began it.
 #[test]
 fn a_second_finger_drops_a_move_waiting_over_a_panel() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.prefs.touch_gestures = true;
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.session.execute("shape.rectangle", &json!({"x": 50, "y": 50, "width": 100, "height": 100})).unwrap();
@@ -8622,7 +8622,7 @@ fn pen(phase: egui::TouchPhase, pos: Pos2, force: f32) -> Vec<egui::Event> {
 }
 
 /// A pen stroke across `pts` (document points), one frame per sample, with its pressures.
-fn pen_stroke(app: &mut VectorcraftApp, ctx: &egui::Context, pts: &[(f64, f64, f32)]) {
+fn pen_stroke(app: &mut VansoncraftApp, ctx: &egui::Context, pts: &[(f64, f64, f32)]) {
     let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
     let last = pts.len() - 1;
     for (i, &(x, y, force)) in pts.iter().enumerate() {
@@ -8638,7 +8638,7 @@ fn pen_stroke(app: &mut VectorcraftApp, ctx: &egui::Context, pts: &[(f64, f64, f
 /// use it; the pointer leaving with the lift doesn't move the stroke's end.
 #[test]
 fn pen_and_touch_input_drive_the_tools_with_their_pressure() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 800, "height": 600})).unwrap();
     let ctx = egui::Context::default();
     frame(&mut app, &ctx, vec![]);
@@ -8664,14 +8664,14 @@ fn pen_and_touch_input_drive_the_tools_with_their_pressure() {
 /// pressure, and once a mouse moves (`None`) a stroke presses fully.
 #[test]
 fn the_hosts_pen_pressure_drives_the_tools_under_mouse_events() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     let feed = StylusFeed::default();
     app.services.stylus = Some(feed.clone());
     app.session.execute("file.new", &json!({"width": 800, "height": 600})).unwrap();
     let ctx = egui::Context::default();
     frame(&mut app, &ctx, vec![]);
     // One frame per sample: the reader has set the pressure before the frame's mouse events.
-    let stroke = |app: &mut VectorcraftApp, pts: &[(f64, f64, Option<f32>)]| {
+    let stroke = |app: &mut VansoncraftApp, pts: &[(f64, f64, Option<f32>)]| {
         let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
         let button = |pos, pressed| egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
         let mut at = Pos2::ZERO;
@@ -8736,8 +8736,8 @@ fn the_hosts_pen_pressure_drives_the_tools_under_mouse_events() {
 
 /// An app with an 800 × 600 document whose host reads the pen itself (`Services::stylus`),
 /// after its first frame, with the pointer in the window.
-fn pen_app() -> (VectorcraftApp, StylusFeed, egui::Context) {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+fn pen_app() -> (VansoncraftApp, StylusFeed, egui::Context) {
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     let feed = StylusFeed::default();
     app.services.stylus = Some(feed.clone());
     app.session.execute("file.new", &json!({"width": 800, "height": 600})).unwrap();
@@ -8769,7 +8769,7 @@ fn the_eraser_end_selects_the_eraser_and_the_tip_brings_back_the_tool() {
     feed.set(Some(0.0));
     frame(&mut app, &ctx, vec![]);
     assert_eq!(app.session.tool_id(), "paintbrush", "the tip brings back the tool before");
-    assert_eq!(app.ui.group_tool.get(vectorcraft_tools::catalog::group_of("paintbrush").unwrap()).map(String::as_str), Some("paintbrush"));
+    assert_eq!(app.ui.group_tool.get(vansoncraft_tools::catalog::group_of("paintbrush").unwrap()).map(String::as_str), Some("paintbrush"));
 
     // A turn acts once: a tool that becomes active while the eraser end stays in stays, and
     // the tip doesn't replace a tool other than the Eraser.
@@ -8912,7 +8912,7 @@ fn a_turn_over_another_window_waits_for_the_pointer() {
 fn the_tip_brings_back_the_perspective_grid_tool_without_showing_the_grid() {
     let (mut app, feed, ctx) = pen_app();
     let visible =
-        |app: &VectorcraftApp| vectorcraft_tools::distort::perspective::PerspectiveGrid::current(&app.session.active().unwrap().doc).visible;
+        |app: &VansoncraftApp| vansoncraft_tools::distort::perspective::PerspectiveGrid::current(&app.session.active().unwrap().doc).visible;
     app.select_tool("perspectiveGrid");
     assert!(visible(&app));
     app.session.execute("perspective.grid.show", &json!({"visible": false})).unwrap();
@@ -8931,7 +8931,7 @@ fn the_tip_brings_back_the_perspective_grid_tool_without_showing_the_grid() {
 /// the tilt turned onto the page when the view is rotated; a mouse's points carry neither.
 #[test]
 fn the_hosts_pen_tilt_and_rotation_reach_the_paintbrush() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     let feed = StylusFeed::default();
     app.services.stylus = Some(feed.clone());
     app.session.execute("file.new", &json!({"width": 800, "height": 600})).unwrap();
@@ -8940,7 +8940,7 @@ fn the_hosts_pen_tilt_and_rotation_reach_the_paintbrush() {
     app.select_tool("paintbrush");
     // A stroke at `y`, one frame per sample, with the pen held as `pose` (`None`: a mouse); the
     // tilt x, tilt y and rotation of each of its points.
-    let stroke = |app: &mut VectorcraftApp, y: f64, pose: Option<PenPose>| -> Vec<[Option<f64>; 3]> {
+    let stroke = |app: &mut VansoncraftApp, y: f64, pose: Option<PenPose>| -> Vec<[Option<f64>; 3]> {
         let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
         let button = |pos, pressed| egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
         let mut at = Pos2::ZERO;
@@ -8979,7 +8979,7 @@ fn the_hosts_pen_tilt_and_rotation_reach_the_paintbrush() {
 /// with the tilt the host's feed kept for that move.
 #[test]
 fn moves_in_the_release_frame_reach_the_paintbrush_with_their_tilt() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     let feed = StylusFeed::default();
     app.services.stylus = Some(feed.clone());
     app.session.execute("file.new", &json!({"width": 800, "height": 600})).unwrap();
@@ -9025,7 +9025,7 @@ fn moves_in_the_release_frame_reach_the_paintbrush_with_their_tilt() {
 /// move, not with a later pen sample that came without a move.
 #[test]
 fn the_last_move_of_a_frame_keeps_its_own_tilt() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     let feed = StylusFeed::default();
     app.services.stylus = Some(feed.clone());
     app.session.execute("file.new", &json!({"width": 800, "height": 600})).unwrap();
@@ -9056,7 +9056,7 @@ fn the_last_move_of_a_frame_keeps_its_own_tilt() {
 /// frame's last one, so a fast stroke keeps the hand's movement.
 #[test]
 fn a_mouse_stroke_keeps_every_move_of_a_frame() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 800, "height": 600})).unwrap();
     let ctx = egui::Context::default();
     frame(&mut app, &ctx, vec![]);
@@ -9088,7 +9088,7 @@ fn a_mouse_stroke_keeps_every_move_of_a_frame() {
 /// out and came back in between.
 #[test]
 fn a_mouse_stroke_keeps_a_frame_that_ends_where_it_started() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 800, "height": 600})).unwrap();
     let ctx = egui::Context::default();
     frame(&mut app, &ctx, vec![]);
@@ -9113,7 +9113,7 @@ fn a_mouse_stroke_keeps_a_frame_that_ends_where_it_started() {
 /// costly drag preview runs once.
 #[test]
 fn only_the_freehand_tools_get_every_move_of_a_frame() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 800, "height": 600})).unwrap();
     let ctx = egui::Context::default();
     let events: Vec<_> = (0..20).map(|i| egui::Event::PointerMoved(pos2(100.0 + i as f32 * 5.0, 100.0))).collect();
@@ -9132,7 +9132,7 @@ fn only_the_freehand_tools_get_every_move_of_a_frame() {
 /// lift (the pointer gone with it) doesn't drag the selection to the canvas's centre.
 #[test]
 fn a_pen_tap_within_one_frame_clicks_where_it_tapped() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 800, "height": 600})).unwrap();
     let id = app.session.execute("shape.rectangle", &json!({"x": 100, "y": 100, "width": 100, "height": 100})).unwrap()["id"].as_u64().unwrap();
     app.session.execute("select.none", &json!({})).unwrap();
@@ -9146,7 +9146,7 @@ fn a_pen_tap_within_one_frame_clicks_where_it_tapped() {
     frame(&mut app, &ctx, tap);
     frame(&mut app, &ctx, vec![]);
     let doc = app.session.active().unwrap();
-    assert_eq!(doc.selection.objects, vec![vectorcraft_doc::NodeId(id)]);
+    assert_eq!(doc.selection.objects, vec![vansoncraft_doc::NodeId(id)]);
     assert_eq!(doc.doc.art_bounds(), before, "the tap moved nothing");
 }
 
@@ -9155,7 +9155,7 @@ fn a_pen_tap_within_one_frame_clicks_where_it_tapped() {
 /// the Fill chip does for the Fill proxy.
 #[test]
 fn the_task_bar_shows_a_stroke_chip_beside_fill() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let id = app.session.execute("shape.rectangle", &json!({"x": 180, "y": 130, "width": 40, "height": 40})).unwrap()["id"].clone();
     app.session.execute("paint.setFill", &json!({"ids": [id], "color": "#cc3322"})).unwrap();
@@ -9184,7 +9184,7 @@ fn the_task_bar_shows_a_stroke_chip_beside_fill() {
     assert!(chip_with(stroke_x), "the Stroke chip is drawn with the stroke color");
     assert!(!chip_with(fill_x), "the Fill chip is not");
 
-    let click = |app: &mut VectorcraftApp, x: f32| {
+    let click = |app: &mut VansoncraftApp, x: f32| {
         let at = pos2(x, bar.center().y);
         let button = |pressed| egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
         frame(app, &ctx, vec![egui::Event::PointerMoved(at)]);
@@ -9206,7 +9206,7 @@ fn the_task_bar_shows_a_stroke_chip_beside_fill() {
 /// Swatches panel wherever it is, closed included.
 #[test]
 fn the_task_bar_chips_follow_the_proxies_and_show_swatches_anywhere() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let mut square = |x: f64, stroke: &str| {
         let id = app.session.execute("shape.rectangle", &json!({"x": x, "y": 130, "width": 40, "height": 40})).unwrap()["id"].clone();
@@ -9219,7 +9219,7 @@ fn the_task_bar_chips_follow_the_proxies_and_show_swatches_anywhere() {
     app.select_tool("selection");
     app.session.execute("select.all", &json!({})).unwrap();
     let ctx = egui::Context::default();
-    let shapes = |app: &mut VectorcraftApp| {
+    let shapes = |app: &mut VansoncraftApp| {
         for _ in 0..30 {
             frame(app, &ctx, vec![]);
         }
@@ -9271,13 +9271,13 @@ fn the_task_bar_chips_follow_the_proxies_and_show_swatches_anywhere() {
 /// and it opens the Recolor Artwork dialog; art painted with None has no button.
 #[test]
 fn the_task_bar_recolors_coloured_art() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let id = app.session.execute("shape.rectangle", &json!({"x": 180, "y": 130, "width": 40, "height": 40})).unwrap()["id"].clone();
     app.session.execute("paint.setFill", &json!({"ids": [id], "color": "#cc3322"})).unwrap();
     app.select_tool("selection");
     let ctx = egui::Context::default();
-    let click = |app: &mut VectorcraftApp| {
+    let click = |app: &mut VansoncraftApp| {
         frame(app, &ctx, vec![]);
         frame(app, &ctx, vec![]);
         let bar = task_bar_rect(&ctx).expect("the task bar shows");
@@ -9306,7 +9306,7 @@ fn the_task_bar_recolors_coloured_art() {
 /// selected group outside isolation mode.
 #[test]
 fn the_task_bar_lock_button_locks_selected_art_in_isolation_mode() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     // Plain paths: a basic shape shows its properties in Lock's place.
     let square =
@@ -9317,7 +9317,7 @@ fn the_task_bar_lock_button_locks_selected_art_in_isolation_mode() {
     let g = app.session.execute("object.group", &json!({})).unwrap()["id"].clone();
     app.select_tool("selection");
     let ctx = egui::Context::default();
-    let click_lock = |app: &mut VectorcraftApp| {
+    let click_lock = |app: &mut VansoncraftApp| {
         frame(app, &ctx, vec![]);
         frame(app, &ctx, vec![]);
         let bar = task_bar_rect(&ctx).expect("the task bar shows");
@@ -9328,8 +9328,8 @@ fn the_task_bar_lock_button_locks_selected_art_in_isolation_mode() {
         frame(app, &ctx, vec![button(true)]);
         frame(app, &ctx, vec![button(false)]);
     };
-    let locked = |app: &VectorcraftApp, id: &serde_json::Value| {
-        app.session.active().unwrap().doc.node(vectorcraft_doc::NodeId(id.as_u64().unwrap())).unwrap().locked
+    let locked = |app: &VansoncraftApp, id: &serde_json::Value| {
+        app.session.active().unwrap().doc.node(vansoncraft_doc::NodeId(id.as_u64().unwrap())).unwrap().locked
     };
     app.session.execute("object.isolate", &json!({"id": g.clone()})).unwrap();
     app.session.execute("select.set", &json!({"ids": [a.clone()]})).unwrap();
@@ -9348,16 +9348,16 @@ fn the_task_bar_lock_button_locks_selected_art_in_isolation_mode() {
 /// object it made, the first button is Expand, which keeps only the traced paths.
 #[test]
 fn the_task_bar_traces_an_image_then_expands_the_trace() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let img = image::RgbaImage::from_fn(20, 20, |x, _| image::Rgba(if x < 10 { [0, 0, 0, 255] } else { [255, 255, 255, 255] }));
     let mut png = vec![];
     img.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
-    let data = vectorcraft_format::base64_encode(&png);
+    let data = vansoncraft_format::base64_encode(&png);
     app.run("file.place", json!({"name": "half.png", "dataBase64": data, "link": false, "at": [200, 150]})).unwrap();
     app.select_tool("selection");
     let ctx = egui::Context::default();
-    let click_first = |app: &mut VectorcraftApp| {
+    let click_first = |app: &mut VansoncraftApp| {
         frame(app, &ctx, vec![]);
         frame(app, &ctx, vec![]);
         let bar = task_bar_rect(&ctx).expect("the task bar shows");
@@ -9368,7 +9368,7 @@ fn the_task_bar_traces_an_image_then_expands_the_trace() {
         frame(app, &ctx, vec![button(true)]);
         frame(app, &ctx, vec![button(false)]);
     };
-    let first = |app: &VectorcraftApp| {
+    let first = |app: &VansoncraftApp| {
         let st = app.session.active().unwrap();
         st.selection.objects.first().and_then(|id| st.doc.node(*id)).cloned().unwrap()
     };
@@ -9389,13 +9389,13 @@ fn the_task_bar_traces_an_image_then_expands_the_trace() {
 /// background in the image's pixels at once (no dialog) with the command's defaults.
 #[test]
 fn the_task_bar_removes_a_selected_images_background() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let img =
         image::RgbaImage::from_fn(20, 20, |x, y| image::Rgba(if (6..14).contains(&x) && (6..14).contains(&y) { [200, 0, 0, 255] } else { [255; 4] }));
     let mut png = vec![];
     img.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
-    let data = vectorcraft_format::base64_encode(&png);
+    let data = vansoncraft_format::base64_encode(&png);
     app.run("file.place", json!({"name": "dot.png", "dataBase64": data, "link": false, "at": [200, 150]})).unwrap();
     app.select_tool("selection");
     let ctx = egui::Context::default();
@@ -9415,7 +9415,7 @@ fn the_task_bar_removes_a_selected_images_background() {
 /// The labels the Contextual Task Bar draws in a headless frame (after one to lay it out), with
 /// their rects; none while it isn't shown. The SVG loaders are installed so the icons draw as
 /// images instead of egui's ⚠ placeholder, which the label list would otherwise pick up.
-fn task_bar_labels(app: &mut VectorcraftApp, ctx: &egui::Context) -> Vec<(String, egui::Rect)> {
+fn task_bar_labels(app: &mut VansoncraftApp, ctx: &egui::Context) -> Vec<(String, egui::Rect)> {
     egui_extras::install_image_loaders(ctx);
     frame(app, ctx, vec![]);
     let raw = egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0))), ..Default::default() };
@@ -9437,11 +9437,11 @@ fn task_bar_labels(app: &mut VectorcraftApp, ctx: &egui::Context) -> Vec<(String
 /// with nothing selected it doesn't show.
 #[test]
 fn the_task_bar_offers_the_artboard_tools_actions() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 200, "height": 100, "artboards": 3})).unwrap();
     app.select_tool("selection");
     let ctx = egui::Context::default();
-    let names = |app: &mut VectorcraftApp| task_bar_labels(app, &ctx).into_iter().map(|(t, _)| t).collect::<Vec<_>>();
+    let names = |app: &mut VansoncraftApp| task_bar_labels(app, &ctx).into_iter().map(|(t, _)| t).collect::<Vec<_>>();
     assert!(names(&mut app).is_empty() && task_bar_rect(&ctx).is_none(), "nothing selected: no bar");
 
     app.select_tool("artboard");
@@ -9472,7 +9472,7 @@ fn the_task_bar_offers_the_artboard_tools_actions() {
 #[test]
 fn screen_readers_name_the_task_bars_text_buttons() {
     use crate::widgets::accessibility_tests::{named, tree};
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.session.execute("shape.rectangle", &json!({"x": 180, "y": 130, "width": 40, "height": 40})).unwrap();
     app.select_tool("selection");
@@ -9486,15 +9486,15 @@ fn screen_readers_name_the_task_bars_text_buttons() {
 /// edited, when Enter Isolation Mode is off, a group in the mask art gets Ungroup without Isolate.
 #[test]
 fn the_task_bar_leaves_isolate_out_while_an_opacity_mask_is_edited() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.select_tool("selection");
     let ctx = egui::Context::default();
-    let names = |app: &mut VectorcraftApp| task_bar_labels(app, &ctx).into_iter().map(|(t, _)| t).collect::<Vec<_>>();
-    let rect = |app: &mut VectorcraftApp, x: f64| {
+    let names = |app: &mut VansoncraftApp| task_bar_labels(app, &ctx).into_iter().map(|(t, _)| t).collect::<Vec<_>>();
+    let rect = |app: &mut VansoncraftApp, x: f64| {
         app.session.execute("shape.rectangle", &json!({"x": x, "y": 100, "width": 40, "height": 40})).unwrap()["id"].clone()
     };
-    let group = |app: &mut VectorcraftApp, x: f64| {
+    let group = |app: &mut VansoncraftApp, x: f64| {
         let (a, b) = (rect(app, x), rect(app, x + 50.0));
         app.session.execute("select.set", &json!({"ids": [a, b]})).unwrap();
         app.session.execute("object.group", &json!({})).unwrap();
@@ -9514,13 +9514,13 @@ fn the_task_bar_leaves_isolate_out_while_an_opacity_mask_is_edited() {
 /// artboard in one undo step and selects the copies.
 #[test]
 fn the_artboard_tools_task_bar_buttons_act_on_the_selected_artboards() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 200, "height": 100, "artboards": 3})).unwrap();
     app.select_tool("artboard");
     crate::panels::artboards::select(&mut app, 2);
     app.session.set_tool_option("selected", &json!([2, 0]));
     let ctx = egui::Context::default();
-    let press = |app: &mut VectorcraftApp, label: &str| {
+    let press = |app: &mut VansoncraftApp, label: &str| {
         let labels = task_bar_labels(app, &ctx);
         let at = labels.iter().find(|(t, _)| t == label).unwrap_or_else(|| panic!("{label} in {labels:?}")).1.center();
         let button = |pressed| egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
@@ -9537,7 +9537,7 @@ fn the_artboard_tools_task_bar_buttons_act_on_the_selected_artboards() {
     assert_eq!((d.kind.as_str(), &d.fields["boards"]), (crate::dialogs::EXPORT_FOR_SCREENS, &json!([true, false, true])));
 
     let boards =
-        |app: &VectorcraftApp| app.session.active().unwrap().doc.artboards.iter().map(|a| (a.name.clone(), a.rect.size())).collect::<Vec<_>>();
+        |app: &VansoncraftApp| app.session.active().unwrap().doc.artboards.iter().map(|a| (a.name.clone(), a.rect.size())).collect::<Vec<_>>();
     let before = boards(&app);
     assert!(press(&mut app, "Duplicate").is_none());
     let after = boards(&app);
@@ -9553,15 +9553,15 @@ fn the_artboard_tools_task_bar_buttons_act_on_the_selected_artboards() {
 /// the path there and Connect closes it again, as the Control bar's anchor buttons do.
 #[test]
 fn the_task_bar_connects_cuts_and_converts_direct_selected_anchors() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let id = app.session.execute("shape.rectangle", &json!({"x": 150, "y": 100, "width": 100, "height": 80})).unwrap()["id"].as_u64().unwrap();
     app.select_tool("directSelection");
     app.run("select.anchors", json!({"id": id, "anchors": [[0, 1]]})).unwrap();
     let ctx = egui::Context::default();
-    let names = |app: &mut VectorcraftApp| task_bar_labels(app, &ctx).into_iter().map(|(t, _)| t).collect::<Vec<_>>();
+    let names = |app: &mut VansoncraftApp| task_bar_labels(app, &ctx).into_iter().map(|(t, _)| t).collect::<Vec<_>>();
     assert_eq!(names(&mut app), ["Remove Anchor Points", "Connect", "Cut Path", "Corner", "Smooth", "Duplicate"]);
-    let press = |app: &mut VectorcraftApp, label: &str| {
+    let press = |app: &mut VansoncraftApp, label: &str| {
         let labels = task_bar_labels(app, &ctx);
         let at = labels.iter().find(|(t, _)| t == label).unwrap_or_else(|| panic!("{label} in {labels:?}")).1.center();
         let button = |pressed| egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
@@ -9570,8 +9570,8 @@ fn the_task_bar_connects_cuts_and_converts_direct_selected_anchors() {
         frame(app, &ctx, vec![button(false)]);
     };
     let subpath =
-        |app: &VectorcraftApp| app.session.active().unwrap().doc.node(vectorcraft_doc::NodeId(id)).unwrap().path_data().unwrap().subpaths[0].clone();
-    let last_undo = |app: &VectorcraftApp| app.session.active().unwrap().history.undo.last().unwrap().label.clone();
+        |app: &VansoncraftApp| app.session.active().unwrap().doc.node(vansoncraft_doc::NodeId(id)).unwrap().path_data().unwrap().subpaths[0].clone();
+    let last_undo = |app: &VansoncraftApp| app.session.active().unwrap().history.undo.last().unwrap().label.clone();
     press(&mut app, "Smooth");
     let a = subpath(&app).anchors[1];
     assert!(a.has_in() && a.has_out(), "smooth: {a:?}");
@@ -9595,7 +9595,7 @@ fn the_task_bar_connects_cuts_and_converts_direct_selected_anchors() {
 /// also when the window shrinks.
 #[test]
 fn the_task_bar_is_dragged_by_its_handle_pinned_and_reset() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let mut square =
         |x: f64, y: f64| app.session.execute("shape.rectangle", &json!({"x": x, "y": y, "width": 40, "height": 40})).unwrap()["id"].clone();
@@ -9603,14 +9603,14 @@ fn the_task_bar_is_dragged_by_its_handle_pinned_and_reset() {
     app.select_tool("selection");
     let ctx = egui::Context::default();
     let bar = || task_bar_rect(&ctx).expect("the task bar shows");
-    let select = |app: &mut VectorcraftApp, id: &serde_json::Value| {
+    let select = |app: &mut VansoncraftApp, id: &serde_json::Value| {
         app.session.execute("select.set", &json!({"ids": [id]})).unwrap();
         frame(app, &ctx, vec![]);
         frame(app, &ctx, vec![]);
         bar().min
     };
     let button = |pos, pressed| egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
-    let drag = |app: &mut VectorcraftApp, by: Vec2| {
+    let drag = |app: &mut VansoncraftApp, by: Vec2| {
         let grip = pos2(bar().left() + 11.0, bar().center().y);
         frame(app, &ctx, vec![egui::Event::PointerMoved(grip)]);
         frame(app, &ctx, vec![button(grip, true)]);
@@ -9672,7 +9672,7 @@ fn the_task_bar_is_dragged_by_its_handle_pinned_and_reset() {
 /// screen, not over the selection.
 #[test]
 fn the_task_bar_stays_under_the_selection_in_a_rotated_view() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let id = app.session.execute("shape.rectangle", &json!({"x": 170, "y": 90, "width": 60, "height": 120})).unwrap()["id"].clone();
     app.session.execute("select.set", &json!({"ids": [id]})).unwrap();
@@ -9695,7 +9695,7 @@ fn ruler_guide_origin_ui(alt: bool, cancel: bool) {
         (Point::ZERO, Point::new(225.0, 235.0), Point::new(230.0, 245.0)),
     ] {
         for source_vertical in [false, true] {
-            let mut app = VectorcraftApp::new(Session::new(), Default::default());
+            let mut app = VansoncraftApp::new(Session::new(), Default::default());
             app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
             app.run("document.setRulerOrigin", json!({"x": origin.x, "y": origin.y})).unwrap();
             app.run("shape.rectangle", json!({"x": 40, "y": 50, "width": 20, "height": 30})).unwrap();
@@ -9726,7 +9726,7 @@ fn ruler_guide_origin_ui(alt: bool, cancel: bool) {
             let button = |pos, pressed| Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: mods };
             let before = app.session.active().unwrap().doc.clone();
             let selection = app.session.active().unwrap().selection.clone();
-            let history = |app: &VectorcraftApp| {
+            let history = |app: &VansoncraftApp| {
                 let st = app.session.active().unwrap();
                 (st.history.undo.len(), st.history.redo.len(), st.is_dirty())
             };
@@ -9735,7 +9735,7 @@ fn ruler_guide_origin_ui(alt: bool, cancel: bool) {
             frame(&mut app, &ctx, vec![Event::ModifiersChanged(mods), Event::PointerMoved(from)]);
             frame(&mut app, &ctx, vec![button(from, true)]);
             frame(&mut app, &ctx, vec![Event::PointerMoved(to)]);
-            let check = |app: &VectorcraftApp, switched: bool, expected: Point| {
+            let check = |app: &VansoncraftApp, switched: bool, expected: Point| {
                 let guides = &app.session.active().unwrap().doc.ruler_guides();
                 assert_eq!(guides.len(), 1);
                 let vertical = source_vertical != switched;
@@ -9767,11 +9767,11 @@ fn ruler_guide_origin_ui(alt: bool, cancel: bool) {
             check(&app, alt, release);
             let st = app.session.active().unwrap();
             assert_eq!(st.doc.ruler_origin_for(0), origin);
-            let art = |d: &vectorcraft_doc::Document| {
+            let art = |d: &vansoncraft_doc::Document| {
                 d.layers
                     .iter()
                     .map(|l| {
-                        let mut l = vectorcraft_doc::Node::clone(l);
+                        let mut l = vansoncraft_doc::Node::clone(l);
                         l.strip_ruler_guides();
                         l
                     })
@@ -9803,11 +9803,11 @@ fn ruler_guide_shift_origin_cancel_preserves_redo() {
 
 #[test]
 fn ruler_guide_origin_display_fallback_accepts_only_bounded_finite_pairs() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({})).unwrap();
     // The global zero point as stored (artboard rulers check their own, see `ruler_origin_for`).
     app.run("view.globalRulers", json!({"global": true})).unwrap();
-    let max = vectorcraft_engine::MAX_COORD;
+    let max = vansoncraft_engine::MAX_COORD;
     for (origin, expected) in [
         (Point::ZERO, Point::ZERO),
         (Point::new(17.0, -23.0), Point::new(17.0, -23.0)),
@@ -9826,7 +9826,7 @@ fn ruler_guide_origin_display_fallback_accepts_only_bounded_finite_pairs() {
 fn ruler_guide_origin_tooltip_matches_selected_guide_fields() {
     use egui::Event;
     for (vertical, target, shown) in [(true, 222.0, 205.0), (false, 238.0, 215.0)] {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
         app.run("document.setRulerOrigin", json!({"x": 17, "y": 23})).unwrap();
         app.run("guide.add", json!({"vertical": vertical, "pos": 100})).unwrap();
@@ -9857,7 +9857,7 @@ fn ruler_guide_origin_tooltip_matches_selected_guide_fields() {
         frame(&mut app, &ctx, vec![Event::PointerMoved(to)]);
         assert!((app.session.active().unwrap().doc.ruler_guides()[0].pos - target).abs() < 1e-4);
         let st = app.session.active().unwrap();
-        assert_eq!(vectorcraft_engine::cmd::guide_indexes(&st.doc, &st.selection.guides), vec![0]);
+        assert_eq!(vansoncraft_engine::cmd::guide_indexes(&st.doc, &st.selection.guides), vec![0]);
         // Observe the real selected-guide field; no expected strings are inserted into UI state.
         let fields = egui::Context::default();
         crate::theme::install_fonts(&fields);
@@ -9881,7 +9881,7 @@ fn ruler_guide_origin_tooltip_matches_selected_guide_fields() {
         let overlays = app.session.overlays(view);
         let want = format!("{}: {shown:.2} pt", if vertical { "X" } else { "Y" });
         assert!(
-            overlays.iter().any(|o| matches!(o, vectorcraft_tools::Overlay::Measure { text, .. } if text == &want)),
+            overlays.iter().any(|o| matches!(o, vansoncraft_tools::Overlay::Measure { text, .. } if text == &want)),
             "{overlays:?}, field={shown}"
         );
         assert_eq!(app.session.active().unwrap().history.undo.len(), undo);
@@ -9897,8 +9897,8 @@ fn ruler_guide_origin_tooltip_matches_selected_guide_fields() {
 /// selected, and with `other` another 100 pt to its right, the Selection tool and Smart Guides
 /// on → the app, its context, the view, the screen point over the middle of where the other
 /// square is (or would be) and the selected square's id.
-fn distance_scene(other: bool) -> (VectorcraftApp, egui::Context, Xf, Pos2, serde_json::Value) {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+fn distance_scene(other: bool) -> (VansoncraftApp, egui::Context, Xf, Pos2, serde_json::Value) {
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     let a = app.run("shape.rectangle", json!({"x": 50, "y": 50, "width": 50, "height": 50})).unwrap()["id"].clone();
     if other {
@@ -9921,7 +9921,7 @@ fn distance_scene(other: bool) -> (VectorcraftApp, egui::Context, Xf, Pos2, serd
 
 /// One frame with `events` → the shapes drawn, flattened. The modifiers held stay from one
 /// frame to the next until an `Event::ModifiersChanged`.
-fn distance_frame(app: &mut VectorcraftApp, ctx: &egui::Context, events: Vec<egui::Event>) -> Vec<Shape> {
+fn distance_frame(app: &mut VansoncraftApp, ctx: &egui::Context, events: Vec<egui::Event>) -> Vec<Shape> {
     distance_frame_covered(app, ctx, events, None)
 }
 
@@ -9935,7 +9935,7 @@ enum Cover {
 }
 
 /// [`distance_frame`] with `cover` drawn over the canvas.
-fn distance_frame_covered(app: &mut VectorcraftApp, ctx: &egui::Context, events: Vec<egui::Event>, cover: Option<Cover>) -> Vec<Shape> {
+fn distance_frame_covered(app: &mut VansoncraftApp, ctx: &egui::Context, events: Vec<egui::Event>, cover: Option<Cover>) -> Vec<Shape> {
     let raw = egui::RawInput { screen_rect: Some(WINDOW), events, ..Default::default() };
     let mut out = ctx.run_ui(raw, |ui| {
         show(app, ui);
@@ -9970,7 +9970,7 @@ fn texts(s: &[Shape]) -> Vec<String> {
 
 /// The label "100.00 pt" drawn in `s` and the pill of the smart guide colour it sits in, if any.
 fn gap_label(s: &[Shape]) -> Option<(egui::Rect, Option<egui::Rect>)> {
-    let magenta = c32(vectorcraft_tools::guides::MAGENTA);
+    let magenta = c32(vansoncraft_tools::guides::MAGENTA);
     let text =
         s.iter().find_map(|s| if let Shape::Text(t) = s { (t.galley.text() == "100.00 pt").then(|| t.visual_bounding_rect()) } else { None })?;
     let pill =
@@ -9995,7 +9995,7 @@ fn alt_over_another_object_draws_the_distance_guide_label() {
     let mid = xf.to_screen(Point::new(150.0, 75.0));
     assert!(pill.center().distance(mid) < 1.0 && pill.contains_rect(text), "{pill:?} on {mid:?}");
     let (from, to) = (xf.to_screen(Point::new(100.0, 75.0)), xf.to_screen(Point::new(200.0, 75.0)));
-    let magenta = c32(vectorcraft_tools::guides::MAGENTA);
+    let magenta = c32(vansoncraft_tools::guides::MAGENTA);
     let measured = s.iter().any(|s| matches!(s, Shape::LineSegment { points, stroke } if *points == [from, to] && stroke.color == magenta));
     assert!(measured, "the measured line between the facing edges");
     run(vec![Event::ModifiersChanged(Modifiers::NONE)]);
@@ -10044,7 +10044,7 @@ fn distance_guides_go_when_the_hover_ends() {
 fn distance_guides_follow_what_lies_under_a_still_pointer() {
     use egui::{Event, Modifiers};
     let (mut app, ctx, _, over, _) = distance_scene(true);
-    let run = |app: &mut VectorcraftApp, events, cover| distance_frame_covered(app, &ctx, events, cover);
+    let run = |app: &mut VansoncraftApp, events, cover| distance_frame_covered(app, &ctx, events, cover);
     run(&mut app, vec![Event::ModifiersChanged(Modifiers::ALT), Event::PointerMoved(over)], None);
     assert!(gap_label(&run(&mut app, vec![], None)).is_some(), "shown over the other square");
     // A floating panel, then a modal dialog, opens over the still pointer.
@@ -10075,7 +10075,7 @@ fn distance_guides_follow_what_lies_under_a_still_pointer() {
 
     // A square made under the still pointer, the first selected again (an edit, an undo).
     let (mut app, ctx, _, over, a) = distance_scene(false);
-    let run = |app: &mut VectorcraftApp, events| distance_frame(app, &ctx, events);
+    let run = |app: &mut VansoncraftApp, events| distance_frame(app, &ctx, events);
     run(&mut app, vec![Event::ModifiersChanged(Modifiers::ALT), Event::PointerMoved(over)]);
     let s = run(&mut app, vec![]);
     assert!(gap_label(&s).is_none() && texts(&s).iter().any(|t| t == "300.00 pt"), "to the artboard: {:?}", texts(&s));
@@ -10094,7 +10094,7 @@ fn distance_guides_follow_what_lies_under_a_still_pointer() {
 #[test]
 fn a_panel_or_dialog_over_the_canvas_hides_the_pointer_from_it() {
     let (mut app, ctx, _, over, _) = distance_scene(true);
-    let run = |app: &mut VectorcraftApp, events, cover| distance_frame_covered(app, &ctx, events, cover);
+    let run = |app: &mut VansoncraftApp, events, cover| distance_frame_covered(app, &ctx, events, cover);
     run(&mut app, vec![egui::Event::PointerMoved(over)], None);
     run(&mut app, vec![], None);
     assert!(app.hover_doc.is_some(), "over the canvas");
@@ -10116,8 +10116,8 @@ const WINDOW: egui::Rect = egui::Rect { min: Pos2::ZERO, max: Pos2 { x: 800.0, y
 
 /// A 400 × 300 pt document at 400%, turned `rotation` degrees, with the Rectangle tool: a press
 /// that reached the tool would draw.
-fn zoomed_in(rotation: f64) -> (VectorcraftApp, egui::Context) {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+fn zoomed_in(rotation: f64) -> (VansoncraftApp, egui::Context) {
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.select_tool("rectangle");
     let ctx = egui::Context::default();
@@ -10130,12 +10130,12 @@ fn zoomed_in(rotation: f64) -> (VectorcraftApp, egui::Context) {
 }
 
 /// Where the document's point `p` is on screen.
-fn on_screen(app: &VectorcraftApp, p: Point) -> Pos2 {
+fn on_screen(app: &VansoncraftApp, p: Point) -> Pos2 {
     Xf::new(app.canvas_rect.unwrap(), app.view().unwrap()).to_screen(p)
 }
 
 /// Scroll bar `k` (0 horizontal, 1 vertical): its track, its span and the thumb's centre.
-fn scroll_bar(app: &mut VectorcraftApp, k: usize) -> (egui::Rect, Span, Pos2) {
+fn scroll_bar(app: &mut VansoncraftApp, k: usize) -> (egui::Rect, Span, Pos2) {
     let rect = app.canvas_rect.unwrap();
     let track = scroll_tracks(rect, WINDOW)[k];
     let span = scroll_spans(&Xf::new(rect, app.view().unwrap()), app.content_bounds())[k];
@@ -10154,7 +10154,7 @@ fn primary(pos: Pos2, pressed: bool) -> egui::Event {
 /// whole window.
 #[test]
 fn scroll_bars_take_the_right_and_bottom_edges_in_the_windowed_screen_modes() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.ui.view.rulers = true;
     let ctx = egui::Context::default();
@@ -10175,7 +10175,7 @@ fn a_scroll_bar_thumb_is_as_long_as_the_view_is_against_the_content() {
     assert_eq!(Span { lo: 0.0, hi: 400.0, v0: 150.0, v1: 250.0 }.thumb(100.0), (37.5, 25.0));
     assert_eq!(Span { lo: 0.0, hi: 1000.0, v0: 450.0, v1: 550.0 }.thumb(100.0), (40.0, 20.0), "never shorter than MIN_THUMB");
     let (mut app, ctx) = zoomed_in(0.0);
-    let len = |app: &mut VectorcraftApp| {
+    let len = |app: &mut VansoncraftApp| {
         let (track, span, _) = scroll_bar(app, 0);
         span.thumb(track.width()).1
     };
@@ -10261,7 +10261,7 @@ fn the_wheel_over_a_scroll_bar_scrolls_along_it() {
 #[test]
 fn live_trace_selection_highlight_excludes_the_retained_source_rectangle() {
     use std::sync::Arc;
-    use vectorcraft_doc::{Appearance, ImageObject, NodeId, TraceView};
+    use vansoncraft_doc::{Appearance, ImageObject, NodeId, TraceView};
     let mut source = Node::new(
         NodeId(2),
         NodeKind::Image(Box::new(ImageObject {
@@ -10275,9 +10275,9 @@ fn live_trace_selection_highlight_excludes_the_retained_source_rectangle() {
         })),
     );
     source.visible = false;
-    let art = Node::path(NodeId(3), vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(20.0, 30.0, 80.0, 90.0)), Appearance::default());
+    let art = Node::path(NodeId(3), vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(20.0, 30.0, 80.0, 90.0)), Appearance::default());
     let mut group = Node::group(NodeId(1), vec![Arc::new(source), Arc::new(art)]);
-    let doc = vectorcraft_doc::Document::new(300.0, 300.0);
+    let doc = vansoncraft_doc::Document::new(300.0, 300.0);
     let symbols = doc.symbol_boxes();
     for view in TraceView::ALL {
         group.extras_mut().trace = Some(Box::new(json!({"view":view.id()})));
@@ -10285,26 +10285,26 @@ fn live_trace_selection_highlight_excludes_the_retained_source_rectangle() {
         walk_drawn(&group, &mut |n| visited.push(n.id));
         assert_eq!(visited.contains(&NodeId(2)), view.shows_source());
         let want = if view.shows_source() {
-            vectorcraft_geom::Rect::new(0.0, 0.0, 200.0, 200.0)
+            vansoncraft_geom::Rect::new(0.0, 0.0, 200.0, 200.0)
         } else {
-            vectorcraft_geom::Rect::new(20.0, 30.0, 80.0, 90.0)
+            vansoncraft_geom::Rect::new(20.0, 30.0, 80.0, 90.0)
         };
         assert_eq!(node_outline(&group, &symbols).bounding_box(), want);
     }
     group.extras_mut().trace = None;
-    assert_eq!(node_outline(&group, &symbols).bounding_box(), vectorcraft_geom::Rect::new(0.0, 0.0, 200.0, 200.0));
+    assert_eq!(node_outline(&group, &symbols).bounding_box(), vansoncraft_geom::Rect::new(0.0, 0.0, 200.0, 200.0));
 }
 
 /// Hovering over point type shows only its baseline (not the transform bounding box), while
 /// selecting it shows both the bounding box with handles and the baseline.
 #[test]
 fn point_type_hover_shows_baseline_only_and_selection_shows_both_box_and_baseline() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 600, "height": 300})).unwrap();
     app.ui.task_bar = false;
     app.ui.view.rulers = false;
     let made = app.run("text.create", json!({"x": 200, "y": 150, "text": "Lorem ipsum", "size": 36})).unwrap();
-    let id = vectorcraft_doc::NodeId(made["id"].as_u64().unwrap());
+    let id = vansoncraft_doc::NodeId(made["id"].as_u64().unwrap());
     app.run("select.none", json!({})).unwrap();
     app.select_tool("selection");
 
@@ -10353,18 +10353,18 @@ fn point_type_hover_shows_baseline_only_and_selection_shows_both_box_and_baselin
 /// is drawn while no frame of the thread is selected.
 #[test]
 fn text_threads_run_from_each_out_port_to_the_next_in_port() {
-    use vectorcraft_tools::text::{Port, port_centre};
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    use vansoncraft_tools::text::{Port, port_centre};
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 600, "height": 400})).unwrap();
     let text = "Words that fill more than the frame holds. ".repeat(10);
     let a = app.run("text.create", json!({"x": 20, "y": 20, "text": text, "area": {"width": 150, "height": 60}})).unwrap()["id"].clone();
     let b = app.run("text.thread.add", json!({"from": a, "at": [300, 200]})).unwrap()["id"].clone();
-    let frame = |app: &VectorcraftApp, id: &serde_json::Value| match &app
+    let frame = |app: &VansoncraftApp, id: &serde_json::Value| match &app
         .session
         .active()
         .unwrap()
         .doc
-        .node(vectorcraft_doc::NodeId(id.as_u64().unwrap()))
+        .node(vansoncraft_doc::NodeId(id.as_u64().unwrap()))
         .unwrap()
         .kind
     {
@@ -10389,17 +10389,17 @@ fn text_threads_run_from_each_out_port_to_the_next_in_port() {
 /// thread there: no new frame is threaded on, and the story flows back into the first frame.
 #[test]
 fn a_double_click_on_a_threaded_out_port_breaks_the_thread() {
-    use vectorcraft_tools::text::{Port, port_centre};
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    use vansoncraft_tools::text::{Port, port_centre};
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 600, "height": 400})).unwrap();
     let text = "Words that fill more than the frame holds. ".repeat(10);
     let a = app.run("text.create", json!({"x": 20, "y": 20, "text": text, "area": {"width": 150, "height": 60}})).unwrap()["id"].as_u64().unwrap();
     app.run("text.thread.add", json!({"from": a, "at": [300, 200]})).unwrap();
     app.run("select.set", json!({"ids": [a]})).unwrap();
     app.select_tool("selection");
-    let doc = |app: &VectorcraftApp| app.session.active().unwrap().doc.clone();
+    let doc = |app: &VansoncraftApp| app.session.active().unwrap().doc.clone();
     let before = doc(&app);
-    let NodeKind::Text(t) = &before.node(vectorcraft_doc::NodeId(a)).unwrap().kind else { panic!("not text") };
+    let NodeKind::Text(t) = &before.node(vansoncraft_doc::NodeId(a)).unwrap().kind else { panic!("not text") };
     let view = app.view_info();
     let at = port_centre(t, Port::Out, 1.0 / view.zoom).unwrap();
     let count = doc(&app).layers[0].children().map_or(0, |c| c.len());
@@ -10409,7 +10409,7 @@ fn a_double_click_on_a_threaded_out_port_breaks_the_thread() {
     let d = doc(&app);
     assert!(d.text_threads.is_empty(), "the thread is broken");
     assert_eq!(d.layers[0].children().map_or(0, |c| c.len()), count, "no new frame");
-    let NodeKind::Text(t) = &d.node(vectorcraft_doc::NodeId(a)).unwrap().kind else { panic!("not text") };
+    let NodeKind::Text(t) = &d.node(vansoncraft_doc::NodeId(a)).unwrap().kind else { panic!("not text") };
     assert_eq!(t.plain_text(), text, "the story flows into the first frame");
     assert_eq!(app.session.tool_id(), "selection");
 }
@@ -10418,8 +10418,8 @@ fn a_double_click_on_a_threaded_out_port_breaks_the_thread() {
 /// Threads draws only its lines, no port boxes.
 #[test]
 fn text_threads_of_a_huge_selection_have_lines_but_no_ports() {
-    use vectorcraft_tools::text::PORTS_MAX;
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    use vansoncraft_tools::text::PORTS_MAX;
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 600, "height": 400})).unwrap();
     let text = "Words that fill more than the frame holds. ".repeat(10);
     let a = app.run("text.create", json!({"x": 20, "y": 20, "text": text, "area": {"width": 150, "height": 60}})).unwrap()["id"].clone();
@@ -10439,11 +10439,11 @@ fn text_threads_of_a_huge_selection_have_lines_but_no_ports() {
 /// and no line to or from it; the links between frames with ports keep theirs.
 #[test]
 fn text_threads_skip_the_links_of_a_frame_in_perspective() {
-    use vectorcraft_tools::text::{Port, port_centre};
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    use vansoncraft_tools::text::{Port, port_centre};
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 600, "height": 400})).unwrap();
     let text = "Words that fill more than the frame holds. ".repeat(20);
-    let id = |v: serde_json::Value| vectorcraft_doc::NodeId(v["id"].as_u64().unwrap());
+    let id = |v: serde_json::Value| vansoncraft_doc::NodeId(v["id"].as_u64().unwrap());
     let a = id(app.run("text.create", json!({"x": 20, "y": 20, "text": text, "area": {"width": 150, "height": 60}})).unwrap());
     let b = id(app.run("text.thread.add", json!({"from": a.0, "at": [200, 20]})).unwrap());
     let c = id(app.run("text.thread.add", json!({"from": b.0, "at": [20, 200]})).unwrap());
@@ -10451,7 +10451,7 @@ fn text_threads_skip_the_links_of_a_frame_in_perspective() {
     app.session
         .edit("Perspective", |doc, _| {
             if let Some(n) = doc.node_mut(b) {
-                n.extras_mut().perspective = Some(Box::new(vectorcraft_doc::PerspectiveAttachment::new("left", 0.0)));
+                n.extras_mut().perspective = Some(Box::new(vansoncraft_doc::PerspectiveAttachment::new("left", 0.0)));
             }
             Ok(())
         })
@@ -10477,14 +10477,14 @@ fn text_threads_skip_the_links_of_a_frame_in_perspective() {
 /// corners while the mode lasts, selected or not, and the marks go with the mode.
 #[test]
 fn draw_inside_marks_the_corners_of_its_object() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     let id =
-        vectorcraft_doc::NodeId(app.run("shape.rectangle", json!({"x": 100, "y": 100, "width": 120, "height": 90})).unwrap()["id"].as_u64().unwrap());
+        vansoncraft_doc::NodeId(app.run("shape.rectangle", json!({"x": 100, "y": 100, "width": 120, "height": 90})).unwrap()["id"].as_u64().unwrap());
     let ctx = egui::Context::default();
     let color = c32(app.session.active().unwrap().doc.layer_color(id));
     // The marks' dashes: one-pixel dashes in the layer colour no longer than a dash.
-    let dashes = |app: &mut VectorcraftApp| -> Vec<[Pos2; 2]> {
+    let dashes = |app: &mut VansoncraftApp| -> Vec<[Pos2; 2]> {
         shapes(app, &ctx)
             .into_iter()
             .filter_map(|s| match s {
@@ -10519,7 +10519,7 @@ fn draw_inside_marks_the_corners_of_its_object() {
 /// press (it flashed); a drag hides it until the drag ends.
 #[test]
 fn the_task_bar_stays_up_through_a_click_and_gives_way_to_a_drag() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     app.run("shape.rectangle", json!({"x": 40, "y": 60, "width": 60, "height": 60})).unwrap();
     app.run("shape.rectangle", json!({"x": 260, "y": 60, "width": 60, "height": 60})).unwrap();
@@ -10552,10 +10552,10 @@ fn the_task_bar_stays_up_through_a_click_and_gives_way_to_a_drag() {
 /// the Artboard tool still shows them.
 #[test]
 fn hidden_artboards_leave_a_paper_canvas_without_edges() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     let ctx = egui::Context::default();
-    let look = |app: &mut VectorcraftApp| {
+    let look = |app: &mut VansoncraftApp| {
         let shapes = shapes(app, &ctx);
         let canvas = app.canvas_rect.unwrap();
         let paper = shapes.iter().any(|s| matches!(s, Shape::Rect(r) if r.fill == Color32::WHITE && r.rect.contains_rect(canvas)));
@@ -10575,7 +10575,7 @@ fn hidden_artboards_leave_a_paper_canvas_without_edges() {
 }
 
 /// One headless canvas frame → whether the fade outside the artboards is drawn.
-fn fades(app: &mut VectorcraftApp, ctx: &egui::Context) -> bool {
+fn fades(app: &mut VansoncraftApp, ctx: &egui::Context) -> bool {
     fade_mesh(&shapes(app, ctx)).is_some()
 }
 
@@ -10602,7 +10602,7 @@ fn mesh_covers(mesh: &egui::Mesh, p: Pos2) -> bool {
 /// usual.
 #[test]
 fn the_artboard_tool_fades_the_pasteboard() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     let ctx = egui::Context::default();
     frame(&mut app, &ctx, vec![]);
@@ -10622,7 +10622,7 @@ fn the_artboard_tool_fades_the_pasteboard() {
 /// fade, and the fade comes back when Presentation Mode ends.
 #[test]
 fn presentation_mode_draws_no_fade() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     let ctx = egui::Context::default();
     frame(&mut app, &ctx, vec![]);
@@ -10678,7 +10678,7 @@ fn the_fade_of_crossing_boards_stays_bounded() {
 /// in an upright view and in a rotated one.
 #[test]
 fn the_fade_darkens_art_on_the_pasteboard_and_not_on_the_artboard() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.session.execute("shape.rectangle", &json!({"x": -150, "y": 100, "width": 100, "height": 100})).unwrap();
     app.session.execute("shape.rectangle", &json!({"x": 150, "y": 100, "width": 100, "height": 100})).unwrap();
@@ -10725,7 +10725,7 @@ fn outside_rects_cover_the_bounds_minus_the_boards() {
 #[test]
 fn update_while_dragging_keeps_or_drops_the_fade_during_an_artboard_drag() {
     for update in [true, false] {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
         app.run("prefs.set", json!({"key": "artboardUpdateWhileDragging", "value": update})).unwrap();
         app.select_tool("artboard");
@@ -10757,10 +10757,10 @@ fn update_while_dragging_keeps_or_drops_the_fade_during_an_artboard_drag() {
 /// the same as with the Selection tool and the fade off.
 #[test]
 fn the_pasteboard_fade_leaves_exports_unchanged() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 200, "height": 100})).unwrap();
     app.run("shape.rectangle", json!({"x": -40, "y": 20, "width": 120, "height": 40})).unwrap();
-    let exports = |app: &mut VectorcraftApp| -> Vec<serde_json::Value> {
+    let exports = |app: &mut VansoncraftApp| -> Vec<serde_json::Value> {
         ["svg", "png"].iter().map(|f| app.run("document.export", json!({"format": f})).unwrap()).collect()
     };
     app.run("prefs.set", json!({"key": "fadeRegionOutsideArtboard", "value": false})).unwrap();
@@ -10780,7 +10780,7 @@ fn the_pasteboard_fade_leaves_exports_unchanged() {
 /// is already displayed are discarded.
 #[test]
 fn poll_worker_accepts_frames_not_older_than_displayed_and_discards_obsolete_frames() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.canvas.worker_started = true;
     let ctx = egui::Context::default();
@@ -10804,12 +10804,12 @@ fn poll_worker_accepts_frames_not_older_than_displayed_and_discards_obsolete_fra
     // It is newer than displayed revision 2: it MUST be accepted and uploaded.
     let mut rev5_key = initial_key.clone();
     rev5_key.revision = 5;
-    let img5 = vectorcraft_render::Rendered { width: 10, height: 10, pixels: vec![200; 400] };
+    let img5 = vansoncraft_render::Rendered { width: 10, height: 10, pixels: vec![200; 400] };
     done_tx
         .send(crate::render_worker::Done {
             key: rev5_key,
             doc: doc.clone(),
-            opts: vectorcraft_render::RenderOptions::default(),
+            opts: vansoncraft_render::RenderOptions::default(),
             img: img5,
             ms: 2.5,
             moved: 0,
@@ -10827,12 +10827,12 @@ fn poll_worker_accepts_frames_not_older_than_displayed_and_discards_obsolete_fra
     // Worker completes an older revision 3 (out of order). It is older than displayed 5, so discarded.
     let mut rev3_key = initial_key.clone();
     rev3_key.revision = 3;
-    let img3 = vectorcraft_render::Rendered { width: 10, height: 10, pixels: vec![150; 400] };
+    let img3 = vansoncraft_render::Rendered { width: 10, height: 10, pixels: vec![150; 400] };
     done_tx
         .send(crate::render_worker::Done {
             key: rev3_key,
             doc: doc.clone(),
-            opts: vectorcraft_render::RenderOptions::default(),
+            opts: vansoncraft_render::RenderOptions::default(),
             img: img3,
             ms: 2.5,
             moved: 0,
@@ -10849,12 +10849,12 @@ fn poll_worker_accepts_frames_not_older_than_displayed_and_discards_obsolete_fra
     // Worker completes another intermediate revision 8. Newer than displayed 5, so uploaded.
     let mut rev8_key = initial_key.clone();
     rev8_key.revision = 8;
-    let img8 = vectorcraft_render::Rendered { width: 10, height: 10, pixels: vec![180; 400] };
+    let img8 = vansoncraft_render::Rendered { width: 10, height: 10, pixels: vec![180; 400] };
     done_tx
         .send(crate::render_worker::Done {
             key: rev8_key,
             doc: doc.clone(),
-            opts: vectorcraft_render::RenderOptions::default(),
+            opts: vansoncraft_render::RenderOptions::default(),
             img: img8,
             ms: 2.5,
             moved: 0,
@@ -10871,12 +10871,12 @@ fn poll_worker_accepts_frames_not_older_than_displayed_and_discards_obsolete_fra
     // Finally, the settling frame at revision 10 completes: it is accepted and uploaded.
     let mut rev10_key = initial_key;
     rev10_key.revision = 10;
-    let img10 = vectorcraft_render::Rendered { width: 10, height: 10, pixels: vec![255; 400] };
+    let img10 = vansoncraft_render::Rendered { width: 10, height: 10, pixels: vec![255; 400] };
     done_tx
         .send(crate::render_worker::Done {
             key: rev10_key,
             doc: doc.clone(),
-            opts: vectorcraft_render::RenderOptions::default(),
+            opts: vansoncraft_render::RenderOptions::default(),
             img: img10,
             ms: 2.5,
             moved: 0,
@@ -10893,7 +10893,7 @@ fn poll_worker_accepts_frames_not_older_than_displayed_and_discards_obsolete_fra
 
 /// The labels the Contour bar draws in a headless frame, with their rects; none while it isn't
 /// shown.
-fn contour_bar_labels(app: &mut VectorcraftApp, ctx: &egui::Context, events: Vec<egui::Event>) -> Vec<(String, egui::Rect)> {
+fn contour_bar_labels(app: &mut VansoncraftApp, ctx: &egui::Context, events: Vec<egui::Event>) -> Vec<(String, egui::Rect)> {
     egui_extras::install_image_loaders(ctx);
     let raw = egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0))), events, ..Default::default() };
     let mut out = ctx.run_ui(raw, |ui| show(app, ui));
@@ -10909,7 +10909,7 @@ fn contour_bar_labels(app: &mut VectorcraftApp, ctx: &egui::Context, events: Vec
 }
 
 /// A click on the centre of the label `name` of the Contour bar, laid out by one frame before it.
-fn click_contour_bar(app: &mut VectorcraftApp, ctx: &egui::Context, name: &str) {
+fn click_contour_bar(app: &mut VansoncraftApp, ctx: &egui::Context, name: &str) {
     let labels = contour_bar_labels(app, ctx, vec![]);
     let at = labels.iter().find(|(t, _)| t == name).map(|(_, r)| r.center()).unwrap_or_else(|| panic!("no `{name}` in {labels:?}"));
     let button = |pressed| egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
@@ -10922,7 +10922,7 @@ fn click_contour_bar(app: &mut VectorcraftApp, ctx: &egui::Context, name: &str) 
 /// plain paths.
 #[test]
 fn the_contour_bar_sets_corners_and_bakes() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.session.execute("shape.rectangle", &json!({"x": 100, "y": 100, "width": 80, "height": 60})).unwrap();
     let ctx = egui::Context::default();
@@ -10936,7 +10936,7 @@ fn the_contour_bar_sets_corners_and_bakes() {
     for want in ["Contour", "Sharp", "Round", "Square", "Bake"] {
         assert!(names.iter().any(|n| n == want), "{want} in {names:?}");
     }
-    let offsets = |app: &VectorcraftApp| {
+    let offsets = |app: &VansoncraftApp| {
         let mut found = vec![];
         app.session.active().unwrap().doc.walk(|n| {
             if let Some(e) = n.appearance.effects.iter().find(|e| e.id == "path.offsetPath") {
@@ -10967,21 +10967,21 @@ fn the_contour_bar_sets_corners_and_bakes() {
 
 /// A frame the render worker finished for `job`: white pixels of the job's size.
 fn finished(job: &crate::render_worker::Job) -> crate::render_worker::Done {
-    let img = vectorcraft_render::Rendered { width: job.w, height: job.h, pixels: vec![255; job.w as usize * job.h as usize * 4] };
+    let img = vansoncraft_render::Rendered { width: job.w, height: job.h, pixels: vec![255; job.w as usize * job.h as usize * 4] };
     crate::render_worker::Done { key: job.key.clone(), doc: job.doc.clone(), opts: job.opts.clone(), img, ms: 40.0, moved: 0, reused: false }
 }
 
 /// A job for the render worker to pan over a document of `doc`: a view at 100% moved by `(dx, dy)`
 /// device pixels, in a 256×128 frame.
-fn pan_job(doc: &std::sync::Arc<vectorcraft_doc::Document>, key: &CacheKey, (dx, dy): (f64, f64)) -> crate::render_worker::Job {
+fn pan_job(doc: &std::sync::Arc<vansoncraft_doc::Document>, key: &CacheKey, (dx, dy): (f64, f64)) -> crate::render_worker::Job {
     crate::render_worker::Job {
         key: CacheKey { cx: 128.0 - dx, cy: 64.0 - dy, w: 256, h: 128, ..key.clone() },
         doc: doc.clone(),
         w: 256,
         h: 128,
         view: Affine::translate((dx, dy)),
-        opts: vectorcraft_render::RenderOptions::default(),
-        scope: vectorcraft_engine::file_access::ScopeHandle::capture(),
+        opts: vansoncraft_render::RenderOptions::default(),
+        scope: vansoncraft_engine::file_access::ScopeHandle::capture(),
         effects: Default::default(),
         may_copy: true,
         may_keep: true,
@@ -10989,8 +10989,8 @@ fn pan_job(doc: &std::sync::Arc<vectorcraft_doc::Document>, key: &CacheKey, (dx,
 }
 
 /// The document and the canvas key the render worker tests start from: rectangles on whole pixels.
-fn pan_doc() -> (std::sync::Arc<vectorcraft_doc::Document>, CacheKey) {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+fn pan_doc() -> (std::sync::Arc<vansoncraft_doc::Document>, CacheKey) {
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 256, "height": 128})).unwrap();
     for (x, color) in [(16, "#c02040"), (96, "#2040c0"), (176, "#20a040")] {
         let id = app.run("shape.rectangle", json!({"x": x, "y": 16, "width": 64, "height": 96})).unwrap()["id"].clone();
@@ -11008,7 +11008,7 @@ fn pan_doc() -> (std::sync::Arc<vectorcraft_doc::Document>, CacheKey) {
 fn a_whole_pixel_pan_copies_the_pixels_that_stay_on_screen() {
     let (doc, key) = pan_doc();
     for pan in [(10.0, 0.0), (-10.0, 0.0), (0.0, 7.0), (0.0, -7.0), (-13.0, 5.0)] {
-        let mut r = vectorcraft_render::Renderer::new();
+        let mut r = vansoncraft_render::Renderer::new();
         let mut kept = None;
         let first = render_job(&mut r, &mut kept, &pan_job(&doc, &key, (0.0, 0.0)));
         assert!(!first.reused, "the first frame renders whole");
@@ -11020,7 +11020,7 @@ fn a_whole_pixel_pan_copies_the_pixels_that_stay_on_screen() {
         assert!(frame.reused, "{pan:?}");
         let at = ((64 + pan.1 as i64) * 256 + 128 + pan.0 as i64) as usize * 4;
         assert_eq!(frame.img.pixels[at..at + 4], [1, 2, 3, 4], "{pan:?}: the marked pixel moved with the art");
-        let whole = vectorcraft_render::Renderer::new().render(&doc, 256, 128, job.view, &job.opts);
+        let whole = vansoncraft_render::Renderer::new().render(&doc, 256, 128, job.view, &job.opts);
         let mut img = frame.img.pixels;
         img[at..at + 4].copy_from_slice(&whole.pixels[at..at + 4]);
         assert_eq!(img, whole.pixels, "{pan:?}: the same picture as a whole render");
@@ -11033,10 +11033,10 @@ fn a_whole_pixel_pan_copies_the_pixels_that_stay_on_screen() {
 /// plug-in registry, and the plug-in is removed after.
 #[test]
 fn a_plug_in_change_draws_the_document_s_plug_in_effects_again() {
-    use vectorcraft_plugins::wat as tpl;
+    use vansoncraft_plugins::wat as tpl;
     let id = "test.canvas.redraw";
-    let module = vectorcraft_format::base64_encode(&wat::parse_str(tpl::module(&tpl::manifest(id, "effect", "{}"), tpl::ECHO, "", 1)).unwrap());
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let module = vansoncraft_format::base64_encode(&wat::parse_str(tpl::module(&tpl::manifest(id, "effect", "{}"), tpl::ECHO, "", 1)).unwrap());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("plugin.install", json!({"dataBase64": module})).unwrap();
     app.session.execute("file.new", &json!({"width": 256, "height": 128})).unwrap();
     let rect = app.run("shape.rectangle", json!({"x": 16, "y": 16, "width": 64, "height": 96})).unwrap()["id"].clone();
@@ -11044,12 +11044,12 @@ fn a_plug_in_change_draws_the_document_s_plug_in_effects_again() {
     let ctx = egui::Context::default();
     shapes(&mut app, &ctx);
     // Other keys' fields (placed documents' bitmaps) follow what other tests do; this one's don't.
-    let plugins = |app: &VectorcraftApp| app.canvas.key.as_ref().expect("a frame was rendered").plugins;
+    let plugins = |app: &VansoncraftApp| app.canvas.key.as_ref().expect("a frame was rendered").plugins;
     let plain = plugins(&app);
     app.run("plugin.install", json!({"dataBase64": module})).unwrap();
     shapes(&mut app, &ctx);
     assert_eq!(plugins(&app), plain, "no plug-in effect, so nothing to draw again");
-    app.run("effect.apply", json!({"effect": vectorcraft_plugins::effect::effect_id(id), "ids": [rect]})).unwrap();
+    app.run("effect.apply", json!({"effect": vansoncraft_plugins::effect::effect_id(id), "ids": [rect]})).unwrap();
     shapes(&mut app, &ctx);
     let before = app.canvas.key.clone().expect("a frame was rendered");
     app.run("plugin.install", json!({"dataBase64": module})).unwrap();
@@ -11059,7 +11059,7 @@ fn a_plug_in_change_draws_the_document_s_plug_in_effects_again() {
     // The worker's frame from before the change gives no pixels to the next pan.
     let doc = app.session.active().unwrap().doc.clone();
     let at_100 = CacheKey { zoom: 1.0, rot: 0.0, ppp: 1.0, pixel: None, ..before };
-    let mut r = vectorcraft_render::Renderer::new();
+    let mut r = vansoncraft_render::Renderer::new();
     let mut kept = None;
     render_job(&mut r, &mut kept, &pan_job(&doc, &at_100, (0.0, 0.0)));
     let pan = pan_job(&doc, &CacheKey { plugins: after, ..at_100.clone() }, (10.0, 0.0));
@@ -11076,7 +11076,7 @@ fn a_plug_in_change_draws_the_document_s_plug_in_effects_again() {
 #[test]
 fn a_frame_renders_whole_when_anything_but_a_whole_pixel_pan_changed() {
     let (doc, key) = pan_doc();
-    let other_opts = |f: &dyn Fn(&mut vectorcraft_render::RenderOptions)| {
+    let other_opts = |f: &dyn Fn(&mut vansoncraft_render::RenderOptions)| {
         let mut job = pan_job(&doc, &key, (10.0, 0.0));
         f(&mut job.opts);
         job
@@ -11128,20 +11128,20 @@ fn a_frame_renders_whole_when_anything_but_a_whole_pixel_pan_changed() {
         ("overprint preview", other_opts(&|o| o.overprint_preview = true)),
         ("rich black", other_opts(&|o| o.rich_black = true)),
         ("trim", other_opts(&|o| o.trim = true)),
-        ("anti-alias", other_opts(&|o| o.anti_alias = vectorcraft_render::AntiAlias::None)),
+        ("anti-alias", other_opts(&|o| o.anti_alias = vansoncraft_render::AntiAlias::None)),
         ("smooth images", other_opts(&|o| o.smooth_images = false)),
-        ("opacity mask view", other_opts(&|o| o.mask_view = Some(vectorcraft_doc::NodeId(1)))),
+        ("opacity mask view", other_opts(&|o| o.mask_view = Some(vansoncraft_doc::NodeId(1)))),
     ];
     let mut copied = vec![];
     for (name, job) in cases {
-        let mut r = vectorcraft_render::Renderer::new();
+        let mut r = vansoncraft_render::Renderer::new();
         let mut kept = None;
         render_job(&mut r, &mut kept, &pan_job(&doc, &key, (0.0, 0.0)));
         let frame = render_job(&mut r, &mut kept, &job);
         if frame.reused {
             copied.push(name);
         }
-        let whole = vectorcraft_render::Renderer::new().render(&job.doc, job.w, job.h, job.view, &job.opts);
+        let whole = vansoncraft_render::Renderer::new().render(&job.doc, job.w, job.h, job.view, &job.opts);
         assert_eq!((frame.img.width, frame.img.height), (whole.width, whole.height), "{name}");
     }
     assert!(copied.is_empty(), "copied from the last frame: {copied:?}");
@@ -11152,7 +11152,7 @@ fn a_frame_renders_whole_when_anything_but_a_whole_pixel_pan_changed() {
 /// not kept. A frame that may not copy can still be kept.
 #[test]
 fn the_render_worker_keeps_one_frame_up_to_its_limit() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 256, "height": 128})).unwrap();
     let id = app.run("shape.rectangle", json!({"x": 16, "y": 16, "width": 64, "height": 64})).unwrap()["id"].clone();
     app.run("effect.apply", json!({"effect": "stylize.dropShadow", "ids": [id]})).unwrap();
@@ -11161,7 +11161,7 @@ fn the_render_worker_keeps_one_frame_up_to_its_limit() {
     app.run("object.move", json!({"dx": 8, "dy": 0})).unwrap();
     let after = app.session.active().unwrap().doc.clone();
     let (_, key) = pan_doc();
-    let mut r = vectorcraft_render::Renderer::new();
+    let mut r = vansoncraft_render::Renderer::new();
     let mut kept = None;
     render_job(&mut r, &mut kept, &pan_job(&before, &key, (0.0, 0.0)));
     assert!(kept.is_some(), "kept");
@@ -11261,12 +11261,12 @@ fn worker_frames_match_a_fresh_render_through_a_session() {
         ("first pan after the setting", pan((5.5, -4.0)), false),
         ("next pan", pan((6.5, -4.0)), true),
     ];
-    let mut r = vectorcraft_render::Renderer::new();
+    let mut r = vansoncraft_render::Renderer::new();
     let mut kept = None;
     for (name, job, copies) in steps {
         let frame = render_job(&mut r, &mut kept, &job);
         assert_eq!(frame.reused, copies, "{name}");
-        let whole = vectorcraft_render::Renderer::new().render(&job.doc, job.w, job.h, job.view, &job.opts);
+        let whole = vansoncraft_render::Renderer::new().render(&job.doc, job.w, job.h, job.view, &job.opts);
         if copies {
             let off = frame.img.pixels.iter().zip(&whole.pixels).map(|(a, b)| a.abs_diff(*b)).max();
             assert!(off.is_some_and(|d| d <= 1), "{name}: {off:?}");
@@ -11285,7 +11285,7 @@ fn worker_frames_match_a_fresh_render_through_a_session() {
 fn a_pan_over_art_the_frame_size_decides_renders_whole() {
     let (_, key) = pan_doc();
     let effect = |effect: &str, params: serde_json::Value| {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 595, "height": 842})).unwrap();
         let id = app.run("shape.rectangle", json!({"x": 0, "y": 0, "width": 595, "height": 842})).unwrap()["id"].clone();
         app.run("paint.setFill", json!({"ids": [id], "color": "#1a4de6"})).unwrap();
@@ -11293,14 +11293,14 @@ fn a_pan_over_art_the_frame_size_decides_renders_whole() {
         app.session.active().unwrap().doc.clone()
     };
     let group_glow = {
-        use vectorcraft_doc::Appearance;
-        use vectorcraft_doc::color::{BlendMode, Color, Paint};
-        use vectorcraft_geom::{Rect, shapes::rectangle};
-        let mut d = vectorcraft_doc::Document::new(1600.0, 1200.0);
+        use vansoncraft_doc::Appearance;
+        use vansoncraft_doc::color::{BlendMode, Color, Paint};
+        use vansoncraft_geom::{Rect, shapes::rectangle};
+        let mut d = vansoncraft_doc::Document::new(1600.0, 1200.0);
         let basic = |c: Color| Appearance::basic(Paint::solid(c), Paint::None, 0.0);
         let wide = Node::path(d.alloc_id(), rectangle(Rect::new(100.0, 100.0, 1590.0, 900.0)), basic(Color::rgb(0.9, 0.8, 0.3)));
         let mut child = Node::path(d.alloc_id(), rectangle(Rect::new(1453.0, 200.0, 1583.0, 500.0)), basic(Color::rgb(0.1, 0.3, 0.9)));
-        child.appearance.effects = vec![vectorcraft_doc::Effect { id: "stylize.innerGlow".into(), params: json!({"blur": 40}), visible: true }];
+        child.appearance.effects = vec![vansoncraft_doc::Effect { id: "stylize.innerGlow".into(), params: json!({"blur": 40}), visible: true }];
         child.blend = BlendMode::Multiply;
         let mut group = Node::group(d.alloc_id(), vec![std::sync::Arc::new(wide), std::sync::Arc::new(child)]);
         group.isolate = true;
@@ -11320,12 +11320,12 @@ fn a_pan_over_art_the_frame_size_decides_renders_whole() {
             job.view = Affine::translate((x + dx, y)) * Affine::scale(zoom);
             job
         };
-        let mut r = vectorcraft_render::Renderer::new();
+        let mut r = vansoncraft_render::Renderer::new();
         let mut kept = None;
         render_job(&mut r, &mut kept, &job(0.0));
         let pan = job(-40.0);
         let frame = render_job(&mut r, &mut kept, &pan);
-        let whole = vectorcraft_render::Renderer::new().render(&pan.doc, pan.w, pan.h, pan.view, &pan.opts);
+        let whole = vansoncraft_render::Renderer::new().render(&pan.doc, pan.w, pan.h, pan.view, &pan.opts);
         let off = frame.img.pixels.iter().zip(&whole.pixels).map(|(a, b)| a.abs_diff(*b)).max();
         assert!(off.is_some_and(|d| d <= 1), "{name}: a channel differs by {off:?}");
         assert!(!frame.reused, "{name}: the pan renders whole");
@@ -11339,10 +11339,10 @@ fn a_pan_over_art_the_frame_size_decides_renders_whole() {
 /// failure.
 fn while_the_placed_clock_stands_still(test: fn()) {
     for _ in 0..20 {
-        let clock = vectorcraft_render::placed_document::generation();
+        let clock = vansoncraft_render::placed_document::generation();
         match std::panic::catch_unwind(test) {
             Ok(()) => return,
-            Err(_) if vectorcraft_render::placed_document::generation() != clock => {}
+            Err(_) if vansoncraft_render::placed_document::generation() != clock => {}
             Err(e) => std::panic::resume_unwind(e),
         }
     }
@@ -11358,13 +11358,13 @@ fn a_frame_with_copied_pixels_renders_whole_once_the_view_stops() {
 }
 
 fn frame_with_copied_pixels_renders_whole_once_the_view_stops() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.canvas.worker_started = true;
     let (worker, jobs, done_tx) = crate::render_worker::Worker::test_channel();
     app.canvas.worker = Some(worker);
     let ctx = egui::Context::default();
-    let frame = |app: &mut VectorcraftApp, t: f64| {
+    let frame = |app: &mut VansoncraftApp, t: f64| {
         let raw =
             egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0))), time: Some(t), ..Default::default() };
         ctx.run_ui(raw, |ui| show(app, ui)).textures_delta.clear();
@@ -11408,18 +11408,18 @@ fn a_pan_after_the_settling_frame_copies() {
 }
 
 fn pan_after_the_settling_frame_copies() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.canvas.worker_started = true;
     let (worker, jobs, done_tx) = crate::render_worker::Worker::test_channel();
     app.canvas.worker = Some(worker);
     let ctx = egui::Context::default();
-    let frame = |app: &mut VectorcraftApp, t: f64| {
+    let frame = |app: &mut VansoncraftApp, t: f64| {
         let raw =
             egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0))), time: Some(t), ..Default::default() };
         ctx.run_ui(raw, |ui| show(app, ui)).textures_delta.clear();
     };
-    let mut r = vectorcraft_render::Renderer::new();
+    let mut r = vansoncraft_render::Renderer::new();
     let mut kept = None;
     let mut render = |name: &str, copies: bool| {
         let job = jobs.try_recv().unwrap_or_else(|_| panic!("{name}: the canvas asks for a frame"));
@@ -11480,7 +11480,7 @@ fn a_frame_after_a_zoom_or_an_edit_holds_no_pixels() {
         ("the first pan after the edit", crate::render_worker::Job { doc: edited.clone(), ..pan_job(&doc, &revised, (10.0, 0.0)) }, false, true),
         ("the next pan after the edit", crate::render_worker::Job { doc: edited.clone(), ..pan_job(&doc, &revised, (20.0, 0.0)) }, true, true),
     ];
-    let mut r = vectorcraft_render::Renderer::new();
+    let mut r = vansoncraft_render::Renderer::new();
     let mut kept = None;
     for (name, job, copies, holds) in steps {
         assert_eq!(render_job(&mut r, &mut kept, &job).reused, copies, "{name}: copied");
@@ -11506,14 +11506,14 @@ fn the_render_worker_thread_copies_a_pan() {
 /// meanwhile, does not queue the frame again while it renders, and shows it once it lands.
 #[test]
 fn a_documents_first_frame_renders_on_the_worker() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.canvas.worker_started = true;
     let (worker, jobs, done_tx) = crate::render_worker::Worker::test_channel();
     app.canvas.worker = Some(worker);
     let ctx = egui::Context::default();
     let raw = egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0))), ..Default::default() };
-    let frame = |app: &mut VectorcraftApp| ctx.run_ui(raw.clone(), |ui| show(app, ui)).textures_delta.clear();
+    let frame = |app: &mut VansoncraftApp| ctx.run_ui(raw.clone(), |ui| show(app, ui)).textures_delta.clear();
 
     frame(&mut app);
     let job = jobs.try_recv().expect("the first frame is queued on the worker");
@@ -11536,7 +11536,7 @@ fn a_documents_first_frame_renders_on_the_worker() {
 /// the time is up.
 #[test]
 fn the_render_worker_waits_for_a_frame_only_as_long_as_asked() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.canvas.worker_started = true;
     let (worker, jobs, _) = crate::render_worker::Worker::test_channel();
@@ -11569,7 +11569,7 @@ fn the_render_worker_waits_for_a_frame_only_as_long_as_asked() {
 /// (a press then takes its handles), and not otherwise.
 #[test]
 fn direct_selection_shows_the_bounding_box_while_cmd_is_held() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     let id = app.run("shape.rectangle", json!({"x": 100, "y": 100, "width": 100, "height": 50})).unwrap()["id"].as_u64().unwrap();
     app.run("select.set", json!({"ids": [id]})).unwrap();
@@ -11579,7 +11579,7 @@ fn direct_selection_shows_the_bounding_box_while_cmd_is_held() {
     let xf = Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
     let corner = xf.to_screen(Point::new(200.0, 150.0));
     // A frame with `modifiers` held → is a white box handle drawn at the bottom-right corner?
-    let handle_drawn = |app: &mut VectorcraftApp, modifiers: egui::Modifiers| {
+    let handle_drawn = |app: &mut VansoncraftApp, modifiers: egui::Modifiers| {
         let screen = Some(egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0)));
         let raw = egui::RawInput { screen_rect: screen, events: vec![egui::Event::ModifiersChanged(modifiers)], ..Default::default() };
         let mut out = ctx.run_ui(raw, |ui| show(app, ui));
@@ -11607,7 +11607,7 @@ fn direct_selection_shows_the_bounding_box_while_cmd_is_held() {
 fn double_clicking_a_ruler_adds_a_guide_at_that_position() {
     // The ruler to click, the guide's orientation and its position, the pointer at that position.
     for (top, vertical, pos) in [(true, true, 120.0), (false, false, 80.0)] {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
         app.ui.view.rulers = true;
         app.ui.view.guides = false;
@@ -11625,13 +11625,13 @@ fn double_clicking_a_ruler_adds_a_guide_at_that_position() {
         } else {
             pos2(rect.left() - RULER / 2.0, xf.to_screen(Point::new(0.0, pos)).y)
         };
-        let guides = |app: &mut VectorcraftApp| {
+        let guides = |app: &mut VansoncraftApp| {
             let list = app.session.execute("guide.list", &json!({})).unwrap();
             list.as_array().unwrap().iter().map(|g| (g["vertical"].as_bool().unwrap(), g["pos"].as_f64().unwrap())).collect::<Vec<_>>()
         };
-        let steps = |app: &VectorcraftApp| app.session.active().unwrap().history.undo.len();
+        let steps = |app: &VansoncraftApp| app.session.active().unwrap().history.undo.len();
         let before = steps(&app);
-        let click = |app: &mut VectorcraftApp| {
+        let click = |app: &mut VansoncraftApp| {
             let button =
                 |pressed| egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
             frame(app, &ctx, vec![egui::Event::PointerMoved(at)]);
@@ -11653,8 +11653,8 @@ fn double_clicking_a_ruler_adds_a_guide_at_that_position() {
 
 /// A fresh app with a 400 x 300 document, rulers on, the view at zoom 2 turned `rotation` degrees,
 /// and its first frame drawn.
-fn ruler_guide_app(rotation: f64) -> (VectorcraftApp, egui::Context) {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+fn ruler_guide_app(rotation: f64) -> (VansoncraftApp, egui::Context) {
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     app.ui.view.rulers = true;
     app.ui.view.guides = false;
@@ -11669,7 +11669,7 @@ fn ruler_guide_app(rotation: f64) -> (VectorcraftApp, egui::Context) {
 }
 
 /// One primary click at `at`, as three frames (move, press, release).
-fn click_at(app: &mut VectorcraftApp, ctx: &egui::Context, at: Pos2) {
+fn click_at(app: &mut VansoncraftApp, ctx: &egui::Context, at: Pos2) {
     let button = |pressed| egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
     frame(app, ctx, vec![egui::Event::PointerMoved(at)]);
     frame(app, ctx, vec![button(true)]);
@@ -11677,7 +11677,7 @@ fn click_at(app: &mut VectorcraftApp, ctx: &egui::Context, at: Pos2) {
 }
 
 /// The ruler guides as (vertical, position).
-fn guide_list(app: &mut VectorcraftApp) -> Vec<(bool, f64)> {
+fn guide_list(app: &mut VansoncraftApp) -> Vec<(bool, f64)> {
     let list = app.session.execute("guide.list", &json!({})).unwrap();
     list.as_array().unwrap().iter().map(|g| (g["vertical"].as_bool().unwrap(), g["pos"].as_f64().unwrap())).collect()
 }
@@ -11746,11 +11746,11 @@ fn a_ruler_double_click_follows_a_rotated_view() {
 }
 
 /// An edit to a 3D effect renders the part it changed on this thread, measured by the renderer
-/// that drew the frame shown ([`vectorcraft_render::Renderer::changed`]): it draws the part with
+/// that drew the frame shown ([`vansoncraft_render::Renderer::changed`]): it draws the part with
 /// the 3D art it made to measure it.
 #[test]
 fn an_edit_to_a_3d_effect_redraws_with_the_art_measured() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 800, "height": 600})).unwrap();
     app.canvas.worker_started = true; // render on this thread
     let id = app.run("shape.rectangle", json!({"x": 380, "y": 280, "width": 40, "height": 40})).unwrap()["id"].clone();
@@ -11772,7 +11772,7 @@ fn an_edit_to_a_3d_effect_redraws_with_the_art_measured() {
 #[test]
 fn art_measured_for_an_edit_not_drawn_here_is_let_go() {
     for worker in [false, true] {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.session.execute("file.new", &json!({"width": 800, "height": 600})).unwrap();
         app.canvas.worker_started = true; // render on this thread
         // Off the view, or filling it, for the worker to draw.
@@ -11817,10 +11817,10 @@ fn art_measured_for_an_edit_not_drawn_here_is_let_go() {
 #[test]
 fn mac_cursor_canvas_without_host_keeps_visible_fallback() {
     use crate::cursors::native_request;
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     let ctx = egui::Context::default();
-    let view = vectorcraft_engine::ViewInfo::default();
+    let view = vansoncraft_engine::ViewInfo::default();
     for (tool, expected) in [("selection", egui::CursorIcon::Default), ("type", egui::CursorIcon::Text), ("pen", egui::CursorIcon::Crosshair)] {
         app.session.select_tool(tool, view).unwrap();
         app.hover_doc = Some(Point::new(200.0, 150.0));
@@ -11840,14 +11840,14 @@ fn mac_cursor_canvas_without_host_keeps_visible_fallback() {
 #[test]
 fn mac_cursor_canvas_respects_precise_scaling_focus_and_presentation() {
     use crate::cursors::native_request;
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
-    let view = vectorcraft_engine::ViewInfo::default();
+    let view = vansoncraft_engine::ViewInfo::default();
     app.session.select_tool("pen", view).unwrap();
     app.hover_doc = Some(Point::new(200.0, 150.0));
     let ctx = egui::Context::default();
     ctx.set_zoom_factor(1.5);
-    let frame = |app: &mut VectorcraftApp, focused| {
+    let frame = |app: &mut VansoncraftApp, focused| {
         let _ = mac_cursor_headless(
             &ctx,
             egui::RawInput { focused, events: vec![egui::Event::PointerMoved(pos2(200.0, 150.0))], ..Default::default() },
@@ -11884,7 +11884,7 @@ fn mac_cursor_headless(ctx: &egui::Context, input: egui::RawInput, draw: impl Fn
 }
 
 /// The shapes Edit › Spelling › Auto Spell Check draws in one frame, seen through `xf`.
-fn spelling_lines(app: &mut VectorcraftApp, ctx: &egui::Context, xf: &Xf) -> Vec<Shape> {
+fn spelling_lines(app: &mut VansoncraftApp, ctx: &egui::Context, xf: &Xf) -> Vec<Shape> {
     let raw = egui::RawInput { screen_rect: Some(xf.rect), ..Default::default() };
     let mut out = ctx.run_ui(raw, |ui| spelling_overlay(app, ui.painter(), xf));
     out.textures_delta.clear();
@@ -11892,8 +11892,8 @@ fn spelling_lines(app: &mut VectorcraftApp, ctx: &egui::Context, xf: &Xf) -> Vec
 }
 
 /// A document with one point type object of `text` at the top left, and a view of it.
-fn spelling_doc(text: &str) -> (VectorcraftApp, u64, Xf) {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+fn spelling_doc(text: &str) -> (VansoncraftApp, u64, Xf) {
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let id = app.session.execute("text.create", &json!({"x": 20, "y": 60, "text": text})).unwrap()["id"].as_u64().unwrap();
     let xf = Xf { rect: egui::Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0)), zoom: 1.0, center: Point::new(200.0, 150.0), rot: 0.0 };
@@ -11911,7 +11911,7 @@ fn auto_spell_check_underlines_the_unknown_words() {
     let lines = spelling_lines(&mut app, &ctx, &xf);
     assert_eq!(lines.len(), 2, "one line under each unknown word: {lines:?}");
     // The first line runs under the second word: below the type's top and within its width.
-    let bounds = app.session.active().unwrap().doc.node(vectorcraft_doc::NodeId(id)).unwrap().geometric_bounds().unwrap();
+    let bounds = app.session.active().unwrap().doc.node(vansoncraft_doc::NodeId(id)).unwrap().geometric_bounds().unwrap();
     let on_screen = xf.rect_to_screen(bounds);
     let Shape::Path(first) = &lines[0] else { panic!("{:?}", lines[0]) };
     let xs = || first.points.iter().map(|p| p.x);
@@ -11927,7 +11927,7 @@ fn auto_spell_check_underlines_the_unknown_words() {
 fn auto_spell_check_follows_edits_ignore_all_and_the_dictionary() {
     let ctx = egui::Context::default();
     let (mut app, id, xf) = spelling_doc("Wqzxvtr and Pzxqvrt");
-    let kept = |app: &VectorcraftApp| app.canvas.spelling.lines[&vectorcraft_doc::NodeId(id)].1.clone();
+    let kept = |app: &VansoncraftApp| app.canvas.spelling.lines[&vansoncraft_doc::NodeId(id)].1.clone();
     assert_eq!(spelling_lines(&mut app, &ctx, &xf).len(), 2);
     // Tests running alongside add fonts and words, which checks all type again: frames are drawn
     // until neither changed between two of them.
@@ -11970,7 +11970,7 @@ fn auto_spell_check_is_a_toggle_of_the_canvas_lines() {
     let ctx = egui::Context::default();
     let (mut app, _, _) = spelling_doc("Yqzvtrx");
     let red = |s: &Shape| matches!(s, Shape::Path(p) if p.stroke.color == egui::epaint::ColorMode::Solid(Color32::from_rgb(0xe0, 0x20, 0x20)));
-    let count = |app: &mut VectorcraftApp| shapes(app, &ctx).iter().filter(|s| red(s)).count();
+    let count = |app: &mut VansoncraftApp| shapes(app, &ctx).iter().filter(|s| red(s)).count();
     assert!(!app.ui.view.auto_spell_check, "off at first");
     assert_eq!(count(&mut app), 0);
     assert_eq!(app.run("edit.autoSpellCheck", json!({})).unwrap(), json!(true));

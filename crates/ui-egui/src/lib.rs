@@ -1,17 +1,25 @@
-//! VectorCraft's egui frontend: an Illustrator-style UI over `vectorcraft-engine`.
+//! VansonCraft's egui frontend: an Illustrator-style UI over `vansoncraft-engine`.
 //!
-//! The UI is thin: every action goes through [`VectorcraftApp::run`], which dispatches UI commands
+//! The UI is thin: every action goes through [`VansoncraftApp::run`], which dispatches UI commands
 //! (view/window) here and everything else to the engine. The same entry point serves menus,
 //! shortcuts, the ⌘K palette and the control channel ([`control`]).
 #![forbid(unsafe_code)]
 
-/// VectorCraft as craft-update knows it, with its 128 px icon and accent colour: the update
-/// prompt shows both, and an AppImage's menu entry gets the icon.
+/// VansonCraft as craft-update knows it: releases come only from its own repository
+/// (`vansyson1308/vansoncraft`), never from another app's; the update prompt shows its 128 px icon,
+/// accent colour and developer, and an AppImage's menu entry gets the icon. It has no former ids or
+/// names: installs of other apps are never taken for its own.
 #[cfg(not(target_arch = "wasm32"))]
 pub const UPDATE_APP: craft_update::app::App = craft_update::app::App {
-    icon_png: Some(include_bytes!("../../../assets/app-icon/hicolor/128x128/apps/ai.storyteller.vectorcraft.png")),
-    accent: Some([0xe8, 0x57, 0x3f]),
-    ..craft_update::suite::VECTORCRAFT
+    icon_png: Some(include_bytes!("../../../assets/app-icon/hicolor/128x128/apps/io.github.vansyson1308.vansoncraft.png")),
+    accent: Some(brand::ACCENT),
+    developer: "vansyson1308",
+    ..craft_update::app::App::new(
+        vansoncraft_engine::cmd::help::APP_ID,
+        "VansonCraft",
+        "Vector illustration",
+        vansoncraft_engine::cmd::help::REPOSITORY,
+    )
 };
 
 /// Translate a UI string literal into the language the UI is drawn in (see [`i18n`]).
@@ -102,9 +110,9 @@ use std::sync::mpsc::Receiver;
 use std::sync::{Arc, Mutex};
 
 use serde_json::{Value, json};
-use vectorcraft_engine::cmd::fileio;
-use vectorcraft_engine::file_access::{self, AutomationRoots};
-use vectorcraft_engine::{Session, ViewInfo};
+use vansoncraft_engine::cmd::fileio;
+use vansoncraft_engine::file_access::{self, AutomationRoots};
+use vansoncraft_engine::{Session, ViewInfo};
 
 pub use control::{ControlRequest, ControlResponse, Ticket as ControlTicket};
 pub use state::{UiState, View};
@@ -128,12 +136,12 @@ pub use services::{
 use state::{GeometryStamp, InputGeneration, PendingScreenshot, QueuedScreenshot};
 pub(crate) use state::{InputFrame, take_frame_once};
 
-pub struct VectorcraftApp {
+pub struct VansoncraftApp {
     pub session: Session,
     pub ui: UiState,
     pub views: Vec<View>,
-    /// The document ([`vectorcraft_engine::DocState::uid`]) each of `views` belonged to at the last
-    /// [`VectorcraftApp::sync_views`], which puts the views back with their documents after
+    /// The document ([`vansoncraft_engine::DocState::uid`]) each of `views` belonged to at the last
+    /// [`VansoncraftApp::sync_views`], which puts the views back with their documents after
     /// `document.move` reorders them (#5663).
     pub(crate) view_uids: Vec<u64>,
     /// The thread that checks the system clipboard for `system_paste` instead
@@ -204,19 +212,19 @@ pub struct VectorcraftApp {
     /// An unfinished control-channel Rotate View gesture, kept only for this app instance.
     pub(crate) control_rotate_press: Option<control::RotateViewPress>,
     /// Hover position in document coordinates.
-    pub hover_doc: Option<vectorcraft_geom::Point>,
+    pub hover_doc: Option<vansoncraft_geom::Point>,
     /// System clipboard: SVG to publish next frame, the last SVG we published (so pasting it back
     /// uses the lossless internal clipboard) and what came with a paste (a Paste event's text, a
     /// picture or file the host read: [`Self::paste_from_host`]).
     clipboard_out: Option<String>,
     clipboard_published: Option<String>,
-    pub(crate) clipboard_in: Option<vectorcraft_engine::cmd::clipboard::Flavour>,
+    pub(crate) clipboard_in: Option<vansoncraft_engine::cmd::clipboard::Flavour>,
     /// The Copy or Cut whose formats go to the system clipboard ([`Self::publish_clipboard`]).
     clipboard_publishing: sysclip::Publishing,
     /// A URL to open through egui next frame (when the host has no `open_url` service).
     pending_url: Option<String>,
-    /// `VECTORCRAFT_TITLEBAR` chose this window's frame (Linux and the BSDs), so Preferences › User
-    /// Interface › System Title Bar and VectorCraft Title Bar on Every Desktop do not apply while
+    /// `VANSONCRAFT_TITLEBAR` chose this window's frame (Linux and the BSDs), so Preferences › User
+    /// Interface › System Title Bar and VansonCraft Title Bar on Every Desktop do not apply while
     /// it is set. `false` unless the host sets it.
     pub titlebar_from_env: bool,
     /// Windows and Linux: the window has no OS decorations, so the app bar is the title bar (drag,
@@ -317,8 +325,8 @@ pub struct VectorcraftApp {
     /// A numeric field is being scrubbed: the document's edits meanwhile are one undo step
     /// ([`scrub::begin_frame`]).
     scrub_group: bool,
-    /// The undo step of the scrub in progress ([`vectorcraft_engine::Session::begin_undo_scope`]).
-    scrub_scope: Option<vectorcraft_engine::UndoScope>,
+    /// The undo step of the scrub in progress ([`vansoncraft_engine::Session::begin_undo_scope`]).
+    scrub_scope: Option<vansoncraft_engine::UndoScope>,
     /// The folders control requests, and the input they inject, may read and write
     /// (`--automation-read-root`, `--automation-write-root`); `None`: anywhere. See
     /// [`Self::with_automation_roots`].

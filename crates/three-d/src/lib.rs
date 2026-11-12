@@ -20,7 +20,7 @@ pub use mesh::{Mesh, extrude_mesh, inflate_meshes, plane_mesh, revolve_mesh};
 mod shadow;
 pub use shadow::{MAX_SHADOW_FACES, Shadow, ShadowCaster, ShadowPlane, ShadowPosition, TOO_COMPLEX_SHADOW};
 
-use vectorcraft_geom::{BezPath, FillRule, ParamCurve, PathData, Point, Rect, Shape, Vec2, kurbo::ParamCurveDeriv};
+use vansoncraft_geom::{BezPath, FillRule, ParamCurve, PathData, Point, Rect, Shape, Vec2, kurbo::ParamCurveDeriv};
 
 /// Resource limits shared by desktop, CLI and browser evaluation.
 const MAX_PROFILE_POINTS: usize = 16_384;
@@ -666,7 +666,7 @@ impl HoleSearch {
         if self.contours.get(own).and_then(|c| c.2).is_none() {
             return Ok(vec![]);
         }
-        let line = vectorcraft_geom::kurbo::Line::new(a, b);
+        let line = vansoncraft_geom::kurbo::Line::new(a, b);
         let reach = Rect::from_points(a, b);
         let mut out = vec![];
         for j in self.candidates(own, reach)? {

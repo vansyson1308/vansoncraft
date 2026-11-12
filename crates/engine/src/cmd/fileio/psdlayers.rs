@@ -3,7 +3,7 @@
 //! (<https://helpx.adobe.com/illustrator/desktop/add-and-import-files/import-from-other-apps/photoshop-import-options.html>)
 //! keeps as much of the layer structure as it can, merges the layers of a clipping mask into one
 //! layer, and discards hidden layers that need merging; the rest of what this module does is
-//! VectorCraft's own. Read from the layer records of the public PSD file format specification
+//! VansonCraft's own. Read from the layer records of the public PSD file format specification
 //! (<https://www.adobe.com/devnet-apps/photoshop/fileformatashtml/>).
 //!
 //! Each layer becomes a layer of the document, with the layer's name, visibility, opacity and blend
@@ -20,14 +20,14 @@
 //! Layers clipped to the layer below them are merged into it as one image (named after them all,
 //! joined with " + "), shown where the layer below has pixels. Layers clipped to an adjustment
 //! layer, or to a fill layer drawn over the whole canvas, show over the whole canvas. A layer in a
-//! blend mode VectorCraft doesn't have (Dissolve, Linear Burn, Linear Dodge, Vivid Light, Linear
+//! blend mode VansonCraft doesn't have (Dissolve, Linear Burn, Linear Dodge, Vivid Light, Linear
 //! Light, Pin Light, Hard Mix, Subtract, Divide, Darker Color, Lighter Color) is merged with the
 //! layers below it in its group. A Dissolve layer's partly transparent pixels are merged as opaque
 //! or transparent, opaque at the share of its pixels their transparency gives, in a fixed pattern
 //! that differs from layer to layer. When a merge's canvases would need more memory than allowed,
 //! the layer comes in alone: in the Normal mode, or unclipped.
 //! Hidden layers are left out unless `hidden` asks for them. A hidden layer that would need a merge
-//! (one in a mode VectorCraft lacks, one that layers are clipped to, one clipped to another, or
+//! (one in a mode VansonCraft lacks, one that layers are clipped to, one clipped to another, or
 //! one below a merged layer) is always left out, with the layers clipped to it. Adjustment layers,
 //! fill layers that store no pixels and whose fill isn't read or whose shape is a vector mask,
 //! layer effects that are switched on, knockouts and vector masks aren't applied; the warnings
@@ -43,11 +43,11 @@ use std::cell::Cell;
 use std::sync::Arc;
 
 use image::RgbaImage;
-use vectorcraft_color::BlendMode;
-use vectorcraft_color::blend::{blend_rgb, composite};
-use vectorcraft_color::cms::{Lab, lab::lab_to_srgb};
-use vectorcraft_doc::{Document, ImageObject, LAYER_COLORS, LayerColor, Node, NodeKind, OpacityMask};
-use vectorcraft_geom::Affine;
+use vansoncraft_color::BlendMode;
+use vansoncraft_color::blend::{blend_rgb, composite};
+use vansoncraft_color::cms::{Lab, lab::lab_to_srgb};
+use vansoncraft_doc::{Document, ImageObject, LAYER_COLORS, LayerColor, Node, NodeKind, OpacityMask};
+use vansoncraft_geom::Affine;
 
 use super::load::{RasterImage, as_png};
 use super::psdread::{Header, Reader, byte, header, layer_channel, layer_info, long_key, row_bytes, sample, to_rgb};
@@ -76,7 +76,7 @@ enum Blend {
     Mode(BlendMode),
     /// A group's Pass Through.
     Pass,
-    /// A mode VectorCraft doesn't have: the layer is merged with the layers below it.
+    /// A mode VansonCraft doesn't have: the layer is merged with the layers below it.
     Other(Other),
 }
 
@@ -541,7 +541,7 @@ impl Canvas {
     }
 }
 
-/// The blend function of a mode VectorCraft doesn't have, on straight RGB.
+/// The blend function of a mode VansonCraft doesn't have, on straight RGB.
 fn blend_other(mode: Other, b: [f32; 3], s: [f32; 3]) -> [f32; 3] {
     let each = |f: fn(f32, f32) -> f32| [0, 1, 2].map(|i| f(b[i].clamp(0.0, 1.0), s[i].clamp(0.0, 1.0)).clamp(0.0, 1.0));
     // Darker and Lighter Color compare the total of the channel values.
@@ -580,7 +580,7 @@ fn blend_other(mode: Other, b: [f32; 3], s: [f32; 3]) -> [f32; 3] {
 }
 
 /// Source-over compositing of straight `s` onto straight `b` in `mode`, as
-/// [`vectorcraft_color::blend::composite`] does for the modes it has.
+/// [`vansoncraft_color::blend::composite`] does for the modes it has.
 fn over(mode: Blend, b: [f32; 4], s: [f32; 4]) -> [f32; 4] {
     let other = match mode {
         Blend::Mode(m) => return composite(m, b, s),
@@ -613,7 +613,7 @@ struct Unit<'i> {
 }
 
 impl Unit<'_> {
-    /// Is it what a merge of layers in modes VectorCraft lacks made: one image, visible, at full
+    /// Is it what a merge of layers in modes VansonCraft lacks made: one image, visible, at full
     /// opacity in the Normal mode, without a mask?
     fn is_merge(&self) -> bool {
         matches!(self.body, Body::Merged(_))
@@ -722,11 +722,11 @@ impl Notes {
             out.push(format!("{} layers clipped to fill layers that weren't drawn were left out", self.clipped_out));
         }
         if !self.merged.is_empty() {
-            out.push(format!("layers in blend modes VectorCraft doesn't have ({}) were merged with the layers below them", self.merged.join(", ")));
+            out.push(format!("layers in blend modes VansonCraft doesn't have ({}) were merged with the layers below them", self.merged.join(", ")));
         }
         if self.unmerged > 0 {
             out.push(format!(
-                "{} in blend modes VectorCraft doesn't have came in as Normal: the merge needs more memory than allowed",
+                "{} in blend modes VansonCraft doesn't have came in as Normal: the merge needs more memory than allowed",
                 layers(self.unmerged)
             ));
         }
@@ -875,7 +875,7 @@ impl<F: Fn([f32; 4]) -> [f32; 3]> Builder<'_, F> {
         Ok(())
     }
 
-    /// What `items` (a layer list, bottom first) become, before the modes VectorCraft lacks are
+    /// What `items` (a layer list, bottom first) become, before the modes VansonCraft lacks are
     /// merged: layers clipped to the one below are merged into it, and hidden ones are left out
     /// unless `keep_hidden`. Hidden layers a clip would merge are always left out.
     fn units<'i>(&mut self, items: &'i [Item], keep_hidden: bool) -> Result<Vec<Unit<'i>>, String> {
@@ -1068,7 +1068,7 @@ impl<F: Fn([f32; 4]) -> [f32; 3]> Builder<'_, F> {
         }
     }
 
-    /// `items`' units with the layers in blend modes VectorCraft lacks merged with those below.
+    /// `items`' units with the layers in blend modes VansonCraft lacks merged with those below.
     fn merged<'i>(&mut self, items: &'i [Item], keep_hidden: bool) -> Result<Vec<Unit<'i>>, String> {
         let mut out: Vec<Unit<'i>> = vec![];
         for mut u in self.units(items, keep_hidden)? {

@@ -29,14 +29,14 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use vectorcraft_color::blend::{cmyk_planes, composite, planes_cmyk};
-use vectorcraft_color::{BlendMode, Color, Paint};
-use vectorcraft_doc::appearance::{AppearanceItem, FillLayer};
-use vectorcraft_doc::cmyk::Inks;
-use vectorcraft_doc::{Appearance, ColorMode, Document, Effect, ImageBlob, ImageObject, Knockout, Node, NodeId, NodeKind};
-use vectorcraft_geom::{Affine, FillRule, PathData, Rect, shapes};
-use vectorcraft_pathops as po;
-use vectorcraft_render::effects;
+use vansoncraft_color::blend::{cmyk_planes, composite, planes_cmyk};
+use vansoncraft_color::{BlendMode, Color, Paint};
+use vansoncraft_doc::appearance::{AppearanceItem, FillLayer};
+use vansoncraft_doc::cmyk::Inks;
+use vansoncraft_doc::{Appearance, ColorMode, Document, Effect, ImageBlob, ImageObject, Knockout, Node, NodeId, NodeKind};
+use vansoncraft_geom::{Affine, FillRule, PathData, Rect, shapes};
+use vansoncraft_pathops as po;
+use vansoncraft_render::effects;
 
 use super::edit::roots_of;
 use super::menucmds::{MAX_PIXELS, isolated_doc, unique_key};

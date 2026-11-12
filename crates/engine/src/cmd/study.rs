@@ -29,7 +29,7 @@ mod raster;
 mod tests;
 
 use serde_json::Value;
-use vectorcraft_doc::NodeId;
+use vansoncraft_doc::NodeId;
 
 use super::{CommandSpec, Result, Session, bad, cmd, given_objects, has_doc};
 

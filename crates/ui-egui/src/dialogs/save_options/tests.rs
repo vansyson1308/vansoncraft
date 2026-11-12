@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use vectorcraft_engine::Session;
+use vansoncraft_engine::Session;
 
 use super::*;
 use crate::{FilePick, Services, theme};
@@ -9,7 +9,7 @@ use crate::{FilePick, Services, theme};
 type Written = Rc<RefCell<Vec<(String, Vec<u8>)>>>;
 
 /// A desktop app whose save panel answers `picked` and records what it was shown.
-fn desktop(picked: &'static str) -> (VectorcraftApp, Written, Rc<RefCell<Vec<FilePick>>>) {
+fn desktop(picked: &'static str) -> (VansoncraftApp, Written, Rc<RefCell<Vec<FilePick>>>) {
     let (written, picks) = (Written::default(), Rc::new(RefCell::new(vec![])));
     let (w, p) = (written.clone(), picks.clone());
     let services = Services {
@@ -27,7 +27,7 @@ fn desktop(picked: &'static str) -> (VectorcraftApp, Written, Rc<RefCell<Vec<Fil
 }
 
 /// A browser app: saves are downloads.
-fn web() -> (VectorcraftApp, Written) {
+fn web() -> (VansoncraftApp, Written) {
     let written = Written::default();
     let w = written.clone();
     let services = Services {
@@ -40,15 +40,15 @@ fn web() -> (VectorcraftApp, Written) {
     (with_art(services), written)
 }
 
-fn with_art(services: Services) -> VectorcraftApp {
-    let mut app = VectorcraftApp::new(Session::new(), services);
+fn with_art(services: Services) -> VansoncraftApp {
+    let mut app = VansoncraftApp::new(Session::new(), services);
     app.run("file.new", json!({"width": 100, "height": 80})).unwrap();
     app.run("shape.rectangle", json!({"x": 10, "y": 10, "width": 30, "height": 20})).unwrap();
     app
 }
 
 /// One headless frame of the dialog layer; `enter` presses OK.
-fn frame(app: &mut VectorcraftApp, enter: bool) {
+fn frame(app: &mut VansoncraftApp, enter: bool) {
     let ctx = egui::Context::default();
     theme::install_fonts(&ctx);
     let events = if enter {
@@ -60,7 +60,7 @@ fn frame(app: &mut VectorcraftApp, enter: bool) {
     out.textures_delta.clear();
 }
 
-fn dialog(app: &VectorcraftApp) -> &Dialog {
+fn dialog(app: &VansoncraftApp) -> &Dialog {
     app.ui.dialog.as_ref().expect("a dialog is open")
 }
 
@@ -72,8 +72,8 @@ fn save_as_svg_opens_svg_options_then_writes_svg() {
     // The save panel offers every save format, the document's own first.
     let pick = &picks.borrow()[0];
     let labels: Vec<&str> = pick.filters.iter().map(|f| f.0.as_str()).collect();
-    assert_eq!(labels, ["VectorCraft", "VectorCraft Template", "PDF", "SVG", "SVG Compressed", "PDF-compatible .ai", "EPS"]);
-    assert_eq!(pick.name, "Untitled-1.vectorcraft");
+    assert_eq!(labels, ["VansonCraft", "VansonCraft Template", "PDF", "SVG", "SVG Compressed", "PDF-compatible .ai", "EPS"]);
+    assert_eq!(pick.name, "Untitled-1.vansoncraft");
     let d = dialog(&app);
     assert_eq!((d.kind.as_str(), d.str("path").as_str(), d.str("mode").as_str()), ("svgOptions", "art.svg", "save"));
     assert!(written.borrow().is_empty(), "nothing is written before OK");
@@ -141,7 +141,7 @@ fn legacy_ai_saves_the_artboards_checked_in_its_picker() {
     if let Some(dir) = std::env::var_os("CRAFT_UI_SAVE_OPTIONS_SHOT") {
         let mut ready = false;
         let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(900.0, 760.0)).wgpu().build_ui_state(
-            move |ui, app: &mut VectorcraftApp| {
+            move |ui, app: &mut VansoncraftApp| {
                 if !ready {
                     theme::install_fonts(ui.ctx());
                     theme::apply(ui.ctx(), theme::Brightness::MediumDark);
@@ -189,7 +189,7 @@ fn legacy_ai_saves_the_artboards_checked_in_its_picker() {
     assert_eq!(dialog(&app).fields["boards"], json!([true, false, true, false]));
 }
 
-fn board_files_of(app: &VectorcraftApp, boards: [bool; 4]) -> Vec<Option<String>> {
+fn board_files_of(app: &VansoncraftApp, boards: [bool; 4]) -> Vec<Option<String>> {
     let d = Dialog { kind: KIND.into(), fields: [("path".to_string(), json!("art.ai"))].into_iter().collect() };
     board_files(app, &d, &boards)
 }
@@ -197,9 +197,9 @@ fn board_files_of(app: &VectorcraftApp, boards: [bool; 4]) -> Vec<Option<String>
 #[test]
 fn the_enter_that_closed_the_save_panel_does_not_confirm_the_options() {
     let (mut app, written, _) = desktop("again.ai");
-    let dir = vectorcraft_testkit::temp_dir("ai-options-enter");
+    let dir = vansoncraft_testkit::temp_dir("ai-options-enter");
     let orig = dir.join("orig.ai");
-    std::fs::write(&orig, vectorcraft_testkit::ai::ai(&vectorcraft_testkit::ai::sample_data(), vectorcraft_testkit::ai::page_pdf())).unwrap();
+    std::fs::write(&orig, vansoncraft_testkit::ai::ai(&vansoncraft_testkit::ai::sample_data(), vansoncraft_testkit::ai::page_pdf())).unwrap();
     app.run("document.open", json!({"path": orig.to_string_lossy()})).unwrap();
     assert_eq!(app.run("file.saveAs", json!({})).unwrap()["pending"], KIND);
     frame(&mut app, true);
@@ -214,14 +214,14 @@ fn the_enter_that_closed_the_save_panel_does_not_confirm_the_options() {
 
 #[test]
 fn save_a_copy_and_template_suggest_their_names() {
-    let (mut app, written, picks) = desktop("copy.vectorcraft");
-    let folder = vectorcraft_testkit::temp_dir("save-template-dialog");
+    let (mut app, written, picks) = desktop("copy.vansoncraft");
+    let folder = vansoncraft_testkit::temp_dir("save-template-dialog");
     app.session.prefs.templates_folder = folder.to_string_lossy().into_owned();
     app.run("file.saveCopy", json!({})).unwrap();
-    assert_eq!(picks.borrow()[0].name, "Untitled-1 copy.vectorcraft");
+    assert_eq!(picks.borrow()[0].name, "Untitled-1 copy.vansoncraft");
     assert!(app.ui.dialog.is_none(), "the native format has no options");
-    assert!(vectorcraft_format::sniff(&written.borrow()[0].1));
-    assert!(vectorcraft_format::pdf_content(&written.borrow()[0].1).is_some());
+    assert!(vansoncraft_format::sniff(&written.borrow()[0].1));
+    assert!(vansoncraft_format::pdf_content(&written.borrow()[0].1).is_some());
     assert!(app.session.active().unwrap().path.is_none() && app.session.active().unwrap().is_dirty());
     app.run("file.saveAsTemplate", json!({})).unwrap();
     let pick = &picks.borrow()[1];
@@ -229,7 +229,7 @@ fn save_a_copy_and_template_suggest_their_names() {
     assert_eq!(pick.folder.as_deref().map(std::path::Path::new), Some(folder.as_path()));
     assert_eq!(
         pick.filters,
-        crate::FilePick::filters([("VectorCraft Template", &["vctemplate"][..]), ("PDF-compatible .ait template", &["ait"][..])])
+        crate::FilePick::filters([("VansonCraft Template", &["vctemplate"][..]), ("PDF-compatible .ait template", &["ait"][..])])
     );
     assert_eq!(written.borrow()[1].0, "copy.vctemplate", "the picked name, its extension replaced with the template's");
 }
@@ -237,18 +237,18 @@ fn save_a_copy_and_template_suggest_their_names() {
 #[test]
 fn save_as_template_writes_ait_when_it_is_picked() {
     let (mut app, written, _) = desktop("flyer.ait");
-    app.session.prefs.templates_folder = vectorcraft_testkit::temp_dir("save-template-ait").to_string_lossy().into_owned();
+    app.session.prefs.templates_folder = vansoncraft_testkit::temp_dir("save-template-ait").to_string_lossy().into_owned();
     app.run("file.saveAsTemplate", json!({})).unwrap();
     assert!(app.ui.dialog.is_none(), "a template asks no options");
     let (path, bytes) = written.borrow()[0].clone();
     assert_eq!(path, "flyer.ait", "the picked name is kept");
-    assert!(bytes.starts_with(b"%PDF") && vectorcraft_pdf::editing(&bytes).is_some(), "a PDF carrying the document");
+    assert!(bytes.starts_with(b"%PDF") && vansoncraft_pdf::editing(&bytes).is_some(), "a PDF carrying the document");
     assert!(app.session.active().unwrap().path.is_none() && app.session.active().unwrap().is_dirty());
     // The web's dialog picks the format: .vctemplate first, .ait beside it.
     let (mut app, written) = web();
     app.run("file.saveAsTemplate", json!({})).unwrap();
     assert_eq!((heading(dialog(&app)).as_str(), dialog(&app).str("format").as_str()), ("Save as Template", "template"));
-    assert_eq!(template_labels(), ["VectorCraft Template", "PDF-compatible .ait template"]);
+    assert_eq!(template_labels(), ["VansonCraft Template", "PDF-compatible .ait template"]);
     frame(&mut app, false);
     let mut d = app.ui.dialog.take().unwrap();
     switch_format(&mut app, &mut d, "ait");
@@ -273,7 +273,7 @@ fn the_ait_template_options_have_no_version_row() {
 /// command; the rows it has stay.
 #[test]
 fn the_native_options_have_no_precision_row() {
-    for id in ["vectorcraft", "template"] {
+    for id in ["vansoncraft", "template"] {
         let f = fileio::format(id).unwrap();
         assert!(f.options.iter().any(|o| o.name == "precision"), "{id}");
         let names: Vec<&str> = shown(f).map(|o| o.name).collect();
@@ -285,13 +285,13 @@ fn the_native_options_have_no_precision_row() {
 /// replaced with the template's, as Save As replaces the extension of a format it doesn't write.
 #[test]
 fn save_as_template_replaces_a_save_formats_extension() {
-    for (picked, saved) in [("card.pdf", "card.vctemplate"), ("card.vectorcraft", "card.vctemplate"), ("card.svg", "card.vctemplate")] {
+    for (picked, saved) in [("card.pdf", "card.vctemplate"), ("card.vansoncraft", "card.vctemplate"), ("card.svg", "card.vctemplate")] {
         let (mut app, written, _) = desktop(picked);
-        app.session.prefs.templates_folder = vectorcraft_testkit::temp_dir("save-template-ext").to_string_lossy().into_owned();
+        app.session.prefs.templates_folder = vansoncraft_testkit::temp_dir("save-template-ext").to_string_lossy().into_owned();
         app.run("file.saveAsTemplate", json!({})).unwrap();
         let (path, bytes) = written.borrow()[0].clone();
         assert_eq!(path, saved, "typed {picked}");
-        assert!(vectorcraft_format::load(&bytes).is_ok_and(|d| d.template), "typed {picked}: a native template");
+        assert!(vansoncraft_format::load(&bytes).is_ok_and(|d| d.template), "typed {picked}: a native template");
     }
 }
 
@@ -300,7 +300,7 @@ fn web_save_as_names_the_file_and_picks_the_format() {
     let (mut app, written) = web();
     app.run("file.saveAs", json!({})).unwrap();
     let d = dialog(&app);
-    assert_eq!((heading(d).as_str(), d.str("path").as_str(), d.str("format").as_str()), ("Save As", "Untitled-1.vectorcraft", "vectorcraft"));
+    assert_eq!((heading(d).as_str(), d.str("path").as_str(), d.str("format").as_str()), ("Save As", "Untitled-1.vansoncraft", "vansoncraft"));
     frame(&mut app, false);
     let mut d = app.ui.dialog.take().unwrap();
     switch_format(&mut app, &mut d, "pdf");
@@ -348,7 +348,7 @@ fn save_as_pdf_asks_with_the_save_pdf_dialog_and_remembers_its_options() {
 
 /// The `%%BoundingBox` line of an EPS file.
 fn bounding_box(eps: &[u8]) -> String {
-    let ps = std::str::from_utf8(vectorcraft_eps::sections(eps).unwrap().0).unwrap();
+    let ps = std::str::from_utf8(vansoncraft_eps::sections(eps).unwrap().0).unwrap();
     ps.lines().find(|l| l.starts_with("%%BoundingBox:")).expect("a bounding box").to_string()
 }
 
@@ -372,10 +372,10 @@ fn eps_save_as_shows_use_artboards_off_and_writes_the_art_or_the_artboard() {
     {
         let saved = written.borrow();
         assert_eq!(saved[0].0, "art.eps");
-        assert!(vectorcraft_eps::native(&saved[0].1).is_some());
+        assert!(vansoncraft_eps::native(&saved[0].1).is_some());
         // The box Export writes of the visible art, not the artboard.
         let exported = app.session.execute("document.export", &json!({"format": "eps"})).unwrap();
-        let exported = vectorcraft_format::base64_decode(exported["dataBase64"].as_str().unwrap()).unwrap();
+        let exported = vansoncraft_format::base64_decode(exported["dataBase64"].as_str().unwrap()).unwrap();
         assert_eq!(bounding_box(&saved[0].1), bounding_box(&exported));
         assert_ne!(bounding_box(&saved[0].1), "%%BoundingBox: 0 0 100 80");
     }
@@ -475,9 +475,9 @@ fn save_options_have_written_labels() {
 #[test]
 fn picking_eps_menu_items_saves_their_values() {
     let (mut app, written, _) = desktop("art.eps");
-    app.session.prefs.flattener_presets.push(vectorcraft_engine::cmd::FlattenerPreset {
+    app.session.prefs.flattener_presets.push(vansoncraft_engine::cmd::FlattenerPreset {
         name: "Mine".into(),
-        options: vectorcraft_engine::cmd::FlattenOptions::preset("low").unwrap(),
+        options: vansoncraft_engine::cmd::FlattenOptions::preset("low").unwrap(),
     });
     app.run("file.saveAs", json!({})).unwrap();
     let f = fileio::format("eps").unwrap();
@@ -521,7 +521,7 @@ fn picking_eps_menu_items_saves_their_values() {
         assert_eq!(saved[name], value, "{name}");
     }
     let bytes = written.borrow()[0].1.clone();
-    let (ps, preview) = vectorcraft_eps::sections(&bytes).unwrap();
+    let (ps, preview) = vansoncraft_eps::sections(&bytes).unwrap();
     assert!(preview.is_none(), "no preview");
     assert!(String::from_utf8_lossy(ps).contains("%%LanguageLevel: 2"));
 }
@@ -535,7 +535,7 @@ fn eps_save_transparency_follows_the_color_preview() {
     use egui::accesskit::Toggled;
     let (mut app, _, _) = desktop("art.eps");
     app.run("file.saveAs", json!({})).unwrap();
-    let set = |app: &mut VectorcraftApp, k: &str, v: Value| {
+    let set = |app: &mut VansoncraftApp, k: &str, v: Value| {
         app.ui.dialog.as_mut().unwrap().fields.insert(k.into(), v);
     };
     set(&mut app, "previewFormat", json!("tiffColor"));
@@ -555,19 +555,19 @@ fn eps_save_transparency_follows_the_color_preview() {
     assert!(text.lines().any(|l| l == "Gone"), "{text}");
 }
 
-/// #4931: a native file's Version is a menu of the versions VectorCraft writes, the current one
+/// #4931: a native file's Version is a menu of the versions VansonCraft writes, the current one
 /// first and chosen, each named by the releases that read it. An older version without
 /// compression saves plain, whatever Use Compression held.
 #[test]
-fn native_version_is_a_menu_of_the_versions_vectorcraft_writes() {
+fn native_version_is_a_menu_of_the_versions_vansoncraft_writes() {
     let listed: Vec<u32> = NATIVE_VERSIONS.iter().map(|(n, _)| *n).collect();
-    let writable: Vec<u32> = (vectorcraft_format::MIN_VERSION..=vectorcraft_format::VERSION).rev().collect();
-    assert_eq!(listed, writable, "every version VectorCraft writes, newest first");
-    let (mut app, written, _) = desktop("art.vectorcraft");
+    let writable: Vec<u32> = (vansoncraft_format::MIN_VERSION..=vansoncraft_format::VERSION).rev().collect();
+    assert_eq!(listed, writable, "every version VansonCraft writes, newest first");
+    let (mut app, written, _) = desktop("art.vansoncraft");
     assert_eq!(app.run("file.saveAs", json!({})).unwrap()["pending"], KIND);
     let text = crate::tests_labels::painted_text(&mut app, |app, ui| super::super::show(app, ui.ctx()));
-    assert!(text.contains("VectorCraft 0.8 and later (version 4)"), "{text}");
-    assert_eq!(native_version_of(dialog(&app)), vectorcraft_format::VERSION);
+    assert!(text.contains("VansonCraft 0.8 and later (version 4)"), "{text}");
+    assert_eq!(native_version_of(dialog(&app)), vansoncraft_format::VERSION);
     let d = app.ui.dialog.as_mut().unwrap();
     d.fields.insert("version".into(), json!(2));
     d.fields.insert("compress".into(), json!(true));
@@ -583,7 +583,7 @@ fn native_version_is_a_menu_of_the_versions_vectorcraft_writes() {
 /// so in the "Can't save" alert, in the reason's words without the command's, and writes nothing.
 #[test]
 fn a_refused_save_says_so_in_an_alert() {
-    let (mut app, written, _) = desktop("art.vectorcraft");
+    let (mut app, written, _) = desktop("art.vansoncraft");
     assert_eq!(app.run("file.saveAs", json!({})).unwrap()["pending"], KIND);
     app.ui.dialog.as_mut().unwrap().fields.insert("version".into(), json!(55));
     frame(&mut app, false);
@@ -591,7 +591,7 @@ fn a_refused_save_says_so_in_an_alert() {
     let d = dialog(&app);
     assert_eq!(
         (d.kind.as_str(), d.str("message").as_str(), d.str("detail").as_str()),
-        (crate::dialogs::confirm::MESSAGE, "Can't save “art.vectorcraft”.", "can't save version 55: VectorCraft writes versions 1 to 4")
+        (crate::dialogs::confirm::MESSAGE, "Can't save “art.vansoncraft”.", "can't save version 55: VansonCraft writes versions 1 to 4")
     );
     assert!(written.borrow().is_empty());
     let st = app.session.active().unwrap();

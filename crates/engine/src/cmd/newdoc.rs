@@ -4,8 +4,8 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use vectorcraft_doc::{Artboard, Background, ColorMode, Document, Unit};
-use vectorcraft_geom::{Point, Rect};
+use vansoncraft_doc::{Artboard, Background, ColorMode, Document, Unit};
+use vansoncraft_geom::{Point, Rect};
 
 use super::{CommandSpec, Result, Session, always, bad, clock_date, cmd, date_param, str_param, switch_or};
 
@@ -144,7 +144,7 @@ pub struct DocSettings {
     #[serde(deserialize_with = "de_ppi")]
     pub raster_effects_ppi: f64,
     pub preview_mode: PreviewMode,
-    /// Align New Objects to Pixel Grid ([`vectorcraft_doc::DocSetup::align_new_objects_to_pixel_grid`]):
+    /// Align New Objects to Pixel Grid ([`vansoncraft_doc::DocSetup::align_new_objects_to_pixel_grid`]):
     /// on in the Mobile and Web presets, off in the others and in a saved or Recent preset from
     /// before it.
     pub align_new_objects_to_pixel_grid: bool,
@@ -361,7 +361,7 @@ impl DocSettings {
 
 /// Largest artboard side `file.new` and `artboard.new` accept, points: the span of the canvas
 /// ([`crate::MAX_COORD`] from the origin) less the largest bleed on both sides, 3,999,856 pt.
-pub(crate) const MAX_SIDE: f64 = crate::MAX_COORD - 2.0 * vectorcraft_doc::setup::MAX_BLEED;
+pub(crate) const MAX_SIDE: f64 = crate::MAX_COORD - 2.0 * vansoncraft_doc::setup::MAX_BLEED;
 
 /// Is `side` an artboard side `file.new` and `artboard.new` accept: more than 0 and at most [`MAX_SIDE`]?
 pub(crate) fn side_in_range(side: f64) -> bool {
@@ -411,7 +411,7 @@ fn de_spacing<'de, D: serde::Deserializer<'de>>(d: D) -> std::result::Result<f64
 
 /// A saved or Recent preset's bleed, each side kept to 0 to `MAX_BLEED` points.
 fn de_bleed<'de, D: serde::Deserializer<'de>>(d: D) -> std::result::Result<[f64; 4], D::Error> {
-    Ok(vectorcraft_doc::setup::bleed_in_range(<[f64; 4]>::deserialize(d)?))
+    Ok(vansoncraft_doc::setup::bleed_in_range(<[f64; 4]>::deserialize(d)?))
 }
 
 /// Top-left corners for artboards of `sizes` from `origin`: `columns` per row, `spacing` apart,

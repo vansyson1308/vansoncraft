@@ -7,8 +7,8 @@ use std::sync::{Arc, OnceLock};
 
 use skrifa::GlyphId;
 use skrifa::raw::TableProvider;
-use vectorcraft_doc::Node;
-use vectorcraft_doc::color::Color;
+use vansoncraft_doc::Node;
+use vansoncraft_doc::color::Color;
 
 /// Turns glyph `gid`'s SVG document (possibly gzipped) of a font of `upem` units per em into its
 /// art in font units (y down), in the text's colours `fill` and `stroke`, and says whether it used

@@ -1,17 +1,17 @@
 //! Effect menu commands (live effects) and Object → Expand Appearance.
 //!
 //! Effects are stored on the object's appearance (`appearance.effects`) and evaluated at render
-//! time by `vectorcraft-effects` (re-exported by the renderer). The commands edit the objects'
+//! time by `vansoncraft-effects` (re-exported by the renderer). The commands edit the objects'
 //! own stacks, groups and layers included (layers through `ids`), or with `target: "contents"`
 //! the objects inside them (see `appearance`).
 
 use std::sync::Arc;
 
 use serde_json::{Value, json};
-use vectorcraft_doc::appearance::SharedStack;
-use vectorcraft_doc::{Document, Effect, Node, NodeKind, StrokeLayer};
-use vectorcraft_geom::{FillRule, PathData};
-use vectorcraft_render::effects;
+use vansoncraft_doc::appearance::SharedStack;
+use vansoncraft_doc::{Document, Effect, Node, NodeKind, StrokeLayer};
+use vansoncraft_geom::{FillRule, PathData};
+use vansoncraft_render::effects;
 
 use super::appearance::{ItemTarget, aligned, appearance_targets, index_param, item_indices, item_target, item_target_at};
 use super::expand::has_seeded;
@@ -139,7 +139,7 @@ fn has_deferred(s: &Session) -> std::result::Result<(), String> {
 /// The objects the deferred stages of `fx` name, by id, each with whether it is in `d`'s layers.
 /// An object that is not is looked for in the art `d` draws from elsewhere, where live-effect
 /// plug-ins run too: the art of its symbols, patterns and brushes, and opacity masks.
-fn stage_objects(d: &Document, fx: &vectorcraft_plugins::deferred::Deferrals) -> std::collections::HashMap<u64, (Arc<Node>, bool)> {
+fn stage_objects(d: &Document, fx: &vansoncraft_plugins::deferred::Deferrals) -> std::collections::HashMap<u64, (Arc<Node>, bool)> {
     let mut out = std::collections::HashMap::new();
     let mut rest = Vec::new();
     for object in fx.list().into_iter().map(|x| x.stage.object) {
@@ -164,7 +164,7 @@ fn definition_objects(d: &Document, ids: &[u64]) -> std::collections::HashMap<u6
         return out;
     }
     let ids: std::collections::HashSet<u64> = ids.iter().copied().collect();
-    let brushes = vectorcraft_brush::library(d);
+    let brushes = vansoncraft_brush::library(d);
     let symbols = d.symbols.iter().map(|s| &*s.art);
     let patterns = d.patterns.iter().flat_map(|p| p.art.iter().map(|a| &**a));
     let layers = d.layers.iter().map(|a| &**a);
@@ -174,25 +174,25 @@ fn definition_objects(d: &Document, ids: &[u64]) -> std::collections::HashMap<u6
         }
     };
     for a in symbols.chain(patterns).chain(brushes.iter().flat_map(|b| b.art())).chain(layers) {
-        vectorcraft_doc::swatches::walk_with_masks(a, &mut look);
+        vansoncraft_doc::swatches::walk_with_masks(a, &mut look);
     }
     out
 }
 
 /// Is plug-in `plugin`'s effect at `stage`'s place in `n` (`None`: no such object), and visible,
 /// on a visible fill or stroke when it is one's?
-fn stage_holds(n: Option<&Node>, stage: vectorcraft_plugins::deferred::Stage, plugin: &str) -> bool {
+fn stage_holds(n: Option<&Node>, stage: vansoncraft_plugins::deferred::Stage, plugin: &str) -> bool {
     let Some(n) = n else { return false };
     let list = match stage.item {
         None => Some(n.appearance.effects.as_slice()),
         Some(i) => n.appearance.items.get(i).filter(|it| it.visible()).map(|it| it.effects().as_slice()),
     };
-    list.and_then(|l| l.get(stage.effect)).is_some_and(|e| e.visible && e.id == vectorcraft_plugins::effect::effect_id(plugin))
+    list.and_then(|l| l.get(stage.effect)).is_some_and(|e| e.visible && e.id == vansoncraft_plugins::effect::effect_id(plugin))
 }
 
 /// Drops the records of `fx`'s stages whose object or plug-in effect is no longer at their place
 /// in `d` ([`stage_holds`]), and gives the objects of the others ([`stage_objects`]).
-fn prune(d: &Document, fx: &vectorcraft_plugins::deferred::Deferrals) -> std::collections::HashMap<u64, (Arc<Node>, bool)> {
+fn prune(d: &Document, fx: &vansoncraft_plugins::deferred::Deferrals) -> std::collections::HashMap<u64, (Arc<Node>, bool)> {
     let objects = stage_objects(d, fx);
     fx.retain(|stage, plugin| stage_holds(objects.get(&stage.object).map(|(n, _)| &**n), stage, plugin));
     objects
@@ -200,7 +200,7 @@ fn prune(d: &Document, fx: &vectorcraft_plugins::deferred::Deferrals) -> std::co
 
 /// The deferred stages of `d` as `effect.deferredStatus` lists them. The records of stages whose
 /// object or plug-in effect is no longer at their place in `d` are dropped first.
-fn deferred_effects(d: &Document, fx: &vectorcraft_plugins::deferred::Deferrals) -> Vec<Value> {
+fn deferred_effects(d: &Document, fx: &vansoncraft_plugins::deferred::Deferrals) -> Vec<Value> {
     prune(d, fx);
     fx.list()
         .into_iter()
@@ -217,16 +217,16 @@ fn deferred_effects(d: &Document, fx: &vectorcraft_plugins::deferred::Deferrals)
 /// `effect.deferredStatus`.
 fn deferred_status(s: &mut Session, _: &Value) -> Result<Value> {
     let st = s.doc()?;
-    Ok(json!({"budgetMs": vectorcraft_plugins::deferred::OPENING_BUDGET_MS, "effects": deferred_effects(&st.doc, &st.plugin_effects)}))
+    Ok(json!({"budgetMs": vansoncraft_plugins::deferred::OPENING_BUDGET_MS, "effects": deferred_effects(&st.doc, &st.plugin_effects)}))
 }
 
 /// Draws `n` alone, small, as the canvas would (its live-effect plug-ins run inside the view that
 /// applies): what matters is that it is drawn, not its pixels. Is every part of it drawn, none left
 /// out for its size?
-fn draw_small(renderer: &mut vectorcraft_render::Renderer, doc: &Document, n: &Arc<Node>) -> bool {
+fn draw_small(renderer: &mut vansoncraft_render::Renderer, doc: &Document, n: &Arc<Node>) -> bool {
     let Some(b) = n.geometric_bounds() else { return false };
     let scale = 64.0 / b.width().max(b.height()).max(1.0);
-    let view = vectorcraft_geom::Affine::scale(scale) * vectorcraft_geom::Affine::translate((1.0 - b.x0, 1.0 - b.y0));
+    let view = vansoncraft_geom::Affine::scale(scale) * vansoncraft_geom::Affine::translate((1.0 - b.x0, 1.0 - b.y0));
     renderer.stats = Default::default();
     renderer.render_node(doc, n, 66, 66, view);
     renderer.stats.culled == 0
@@ -256,7 +256,7 @@ fn refresh_deferred(s: &mut Session, p: &Value) -> Result<Value> {
         ids
     });
     let counts = fx.refresh(ids.as_deref(), |targets| {
-        let mut renderer = vectorcraft_render::Renderer::new();
+        let mut renderer = vansoncraft_render::Renderer::new();
         let mut whole = Vec::new();
         fx.view(|| {
             let mut elsewhere = false;
@@ -505,7 +505,7 @@ fn list(s: &mut Session, p: &Value) -> Result<Value> {
                 e.iter()
                     .map(|e| {
                         let mut v = serde_json::to_value(e).unwrap_or(Value::Null);
-                        if vectorcraft_plugins::effect::skipped(&e.id)
+                        if vansoncraft_plugins::effect::skipped(&e.id)
                             && let Some(o) = v.as_object_mut()
                         {
                             o.insert("skipped".into(), json!(true));
@@ -848,7 +848,7 @@ pub(crate) fn expandable_except(n: &Node, skip: &[NodeId]) -> bool {
     }
     match &n.kind {
         NodeKind::Path { clipping: true, .. } | NodeKind::Path { guide: true, .. } => false,
-        NodeKind::Path { .. } | NodeKind::Compound { .. } => !n.appearance.is_basic() || vectorcraft_brush::has_brush(n),
+        NodeKind::Path { .. } | NodeKind::Compound { .. } => !n.appearance.is_basic() || vansoncraft_brush::has_brush(n),
         NodeKind::Group { children, .. } | NodeKind::Layer { children, .. } => {
             !n.appearance.items.is_empty() || !n.appearance.effects.is_empty() || children.iter().any(|c| expandable_except(c, skip))
         }
@@ -900,7 +900,7 @@ fn expand_pieces(
     d: &mut Document,
     m: &mut Node,
     all: bool,
-    brushes: &[vectorcraft_brush::Brush],
+    brushes: &[vansoncraft_brush::Brush],
     stroke_art: effects::StrokeArt,
 ) -> std::collections::HashMap<NodeId, Vec<Listed>> {
     let id = m.id;
@@ -940,7 +940,7 @@ fn repeats_an_id(n: &Node, seen: &std::collections::HashSet<NodeId>) -> bool {
 type Listed = (NodeId, usize);
 
 /// [`expanded_node`] of `c` in place. Returns what the expansion lists, by places in the walk of `c`.
-fn expand_in_place(d: &mut Document, c: &mut Node, brushes: &[vectorcraft_brush::Brush]) -> Vec<Listed> {
+fn expand_in_place(d: &mut Document, c: &mut Node, brushes: &[vansoncraft_brush::Brush]) -> Vec<Listed> {
     let mut listed = vec![];
     if let Some(e) = expanded_node(d, c.clone(), brushes, &mut listed) {
         *c = e;
@@ -965,7 +965,7 @@ fn fresh_ids_listed(d: &mut Document, c: &mut Node, seen: &mut std::collections:
 /// stroke becomes an object of its own (a stroke a path stroked by it alone, brushes as their art),
 /// geometry effects are baked, raster effects become an embedded image, and the object keeps its
 /// transparency.
-pub(crate) fn expand_node(d: &mut Document, id: NodeId, brushes: &[vectorcraft_brush::Brush], out: &mut Vec<NodeId>) {
+pub(crate) fn expand_node(d: &mut Document, id: NodeId, brushes: &[vansoncraft_brush::Brush], out: &mut Vec<NodeId>) {
     let Some(n) = d.node(id).cloned() else { return };
     let mut listed = vec![];
     let m = expanded_node(d, n, brushes, &mut listed);
@@ -982,7 +982,7 @@ pub(crate) fn expand_node(d: &mut Document, id: NodeId, brushes: &[vectorcraft_b
 /// [`expand_node`] of `n`, which need not be in `d`: `n` with its appearance expanded, `None` when
 /// it has nothing to expand. `out` gets the objects whose appearance expands, by places in the walk
 /// of the expanded `n`, `n`'s first when its own does.
-fn expanded_node(d: &mut Document, mut n: Node, brushes: &[vectorcraft_brush::Brush], out: &mut Vec<Listed>) -> Option<Node> {
+fn expanded_node(d: &mut Document, mut n: Node, brushes: &[vansoncraft_brush::Brush], out: &mut Vec<Listed>) -> Option<Node> {
     let id = n.id;
     if !expandable(&n) {
         return None;
@@ -995,7 +995,7 @@ fn expanded_node(d: &mut Document, mut n: Node, brushes: &[vectorcraft_brush::Br
     // A symbol instance's fill tints its art before the adjustment, as the canvas draws it.
     let symbol_art = match &n.kind {
         NodeKind::SymbolInstance { symbol, .. } if effects::has_adjustment(&n) => {
-            d.symbols.iter().find(|s| s.name == *symbol).map(|s| vectorcraft_render::instance_art(&s.art, &n))
+            d.symbols.iter().find(|s| s.name == *symbol).map(|s| vansoncraft_render::instance_art(&s.art, &n))
         }
         _ => None,
     };
@@ -1034,7 +1034,7 @@ fn expanded_node(d: &mut Document, mut n: Node, brushes: &[vectorcraft_brush::Br
         return Some(m);
     }
     // Vector Halftone: the object becomes its dots, a group (with `id`) of paths with ids of their own.
-    if let Some(mut m) = vectorcraft_render::addons::halftone::art(d, &n) {
+    if let Some(mut m) = vansoncraft_render::addons::halftone::art(d, &n) {
         let mut seen = std::collections::HashSet::from([id]);
         for c in m.children_mut().into_iter().flatten() {
             effects::fresh_ids(d, Arc::make_mut(c), &mut seen);
@@ -1076,7 +1076,7 @@ fn expanded_node(d: &mut Document, mut n: Node, brushes: &[vectorcraft_brush::Br
                 // their outlines.
                 let symbol = match &n.kind {
                     NodeKind::SymbolInstance { symbol, .. } => {
-                        d.symbols.iter().find(|s| s.name == *symbol).map(|s| vectorcraft_render::instance_art(&s.art, &n))
+                        d.symbols.iter().find(|s| s.name == *symbol).map(|s| vansoncraft_render::instance_art(&s.art, &n))
                     }
                     _ => None,
                 };
@@ -1136,7 +1136,7 @@ fn expanded_node(d: &mut Document, mut n: Node, brushes: &[vectorcraft_brush::Br
 /// object that expands ([`expandable`]; in a symbol's art, `in_art`, every object does). A symbol's
 /// art counts where an instance of it expands. `seen` holds the symbols already looked into.
 fn holds_plugin_effect(d: &Document, n: &Node, in_art: bool, seen: &mut std::collections::HashSet<String>) -> bool {
-    let plugin = |e: &Effect| e.visible && vectorcraft_plugins::effect::plugin_id(&e.id).is_some();
+    let plugin = |e: &Effect| e.visible && vansoncraft_plugins::effect::plugin_id(&e.id).is_some();
     let mut symbols = vec![];
     let mut holds = false;
     n.walk(&mut |c| {
@@ -1158,7 +1158,7 @@ fn expand_appearance(s: &mut Session, p: &Value) -> Result<Value> {
     let roots = appearance_targets(s, p)?;
     // In Safe Mode a plug-in effect draws nothing: expanding it would drop the effect and keep the
     // geometry it hasn't changed.
-    if vectorcraft_plugins::safe_mode::active() {
+    if vansoncraft_plugins::safe_mode::active() {
         // A dimension selected with the art it measures is left as it is.
         let d = &*super::dimension::without_kept(&s.doc()?.doc, &roots);
         let mut seen = std::collections::HashSet::new();
@@ -1166,7 +1166,7 @@ fn expand_appearance(s: &mut Session, p: &Value) -> Result<Value> {
             return Err(EngineError::Other("Expand Appearance: a plug-in effect in the selection can't be expanded in Safe Mode".into()));
         }
     }
-    let failed = vectorcraft_render::decode_failures();
+    let failed = vansoncraft_render::decode_failures();
     let colorized_ok = super::paint::check_colorized(&s.doc()?.doc).is_ok();
     let ids = s.edit("Expand Appearance", |d, _| {
         let before = d.clone();
@@ -1175,7 +1175,7 @@ fn expand_appearance(s: &mut Session, p: &Value) -> Result<Value> {
         let lifted = super::dimension::lift(d, &roots);
         let kept = !lifted.is_empty();
         let ended = super::dimension::end_links(d, &roots);
-        let brushes = vectorcraft_brush::library(d);
+        let brushes = vansoncraft_brush::library(d);
         let mut out = vec![];
         let threaded = super::threads::frames(d);
         for id in &roots {

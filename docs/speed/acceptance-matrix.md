@@ -20,13 +20,13 @@ Coverage is reported three ways, never merged:
 | 2 | Committed features | 8 study commands, preview modes, method resources, 4 prompts, the audit fixes | tests + scenarios | 100 % implemented, tested, MCP-reachable, evidenced | **PASS** — 24 engine tests (20 study, 4 id) and 10 MCP tests (`tests::speed`), all commands reached through MCP in scenarios A–H | test runs below | Lead, Tester (scripted), Reviewer |
 | 3 | Serious defects | audit findings, review findings | runtime reproduction, review | no confirmed P0/P1 open in scope | **PASS** with one scoped exception — F1 and F2 fixed (F2 for MCP headless sessions; desktop deferred, documented); the reviewer's three P1s fixed; F2b mitigated by `expect_document` | `audit.md`, `qc-report.md` | Auditor, Reviewer, Lead |
 | 4 | Required workflows | scenarios A–J | scripted MCP runs on the final binary | 100 % pass | **PASS** (table below) | `examples/speed/` | Lead, Visual QC |
-| 5 | Vector editability | A–D | `doc_inspect`; SVG text; save/reopen | no raster stand-ins; every flower its own named group; reopen keeps them | **PASS** — named groups per flower, vase, stems and leaves, lip and setting; no `<image>`; MCP test `a_vase_of_flowers_stays_editable_part_by_part` | `vase-compositions.vectorcraft`, SVGs | Lead, Tester, Visual QC |
+| 5 | Vector editability | A–D | `doc_inspect`; SVG text; save/reopen | no raster stand-ins; every flower its own named group; reopen keeps them | **PASS** — named groups per flower, vase, stems and leaves, lip and setting; no `<image>`; MCP test `a_vase_of_flowers_stays_editable_part_by_part` | `vase-compositions.vansoncraft`, SVGs | Lead, Tester, Visual QC |
 | 6 | Undo/redo | F | `document.json` before/after | content, geometry, appearance and hierarchy restored | **PASS** — 29 steps undone → identical; redone → identical; a revision undone in one step | `vase-revision-report.json` (`undo_restores: true`) | Tester |
 | 7 | Round trip | E, I | native JSON equality; SVG re-import; Chromium render of the SVG vs the app's PNG | native equal but for the save time; SVG ≤ 1 % pixels off | **PASS** — native equal except `metadata.modified`; SVG re-import 0.002 %; Chromium vs app ≤ 0.015 % on the vases, 0.17 % on the line study, 0.39 % on the hard-path sheet (edges) | `qa` diffs | Tester, Lead |
 | 8 | Bad input | G, fuzz | unknown arguments, unknown/deleted ids, wrong types, huge numbers, corrupt/truncated files, unwritable paths, `command_sweep` | clear refusal, no crash, document unchanged | **PASS** — all refused with reasons; server alive; document unchanged; `command_sweep` 24/24 including the new commands | logs | Tester |
 | 9 | MCP live mode | H | desktop app (Xvfb, software GPU) + `--connect` | right app, right document, change visible in the UI | **PASS** — `backend.kind: remote`; the drawing appeared in the window (`ui_screenshot`); a person's click between calls seen; closing the app fails clearly; wrong port exits | `mcp-clients.md` | Lead |
 | 10 | Client compatibility | Claude Code CLI, a real model | `claude -p` with this server as its only MCP server | completes a drawing brief through the tools | **PASS for Claude Code 2.1.322 (Linux)**; Claude Desktop, Codex, Windows NOT VERIFIED | `mcp-clients.md` | Lead |
-| 11 | Build and repo checks | final tree | `cargo fmt --check`; `cargo clippy -p vectorcraft-engine -p vectorcraft-mcp -p vectorcraft-cli --all-targets -D warnings`; tests below; `xtask layers`; `xtask assets` | all pass | **PASS** for these, and `cargo check -p vectorcraft-engine --target wasm32-unknown-unknown` is clean (the study module builds for the web); the full `cargo xtask ci` (workspace clippy and tests, the whole wasm set) was not run here (disk); CI is relied on | logs | Lead |
+| 11 | Build and repo checks | final tree | `cargo fmt --check`; `cargo clippy -p vansoncraft-engine -p vansoncraft-mcp -p vansoncraft-cli --all-targets -D warnings`; tests below; `xtask layers`; `xtask assets` | all pass | **PASS** for these, and `cargo check -p vansoncraft-engine --target wasm32-unknown-unknown` is clean (the study module builds for the web); the full `cargo xtask ci` (workspace clippy and tests, the whole wasm set) was not run here (disk); CI is relied on | logs | Lead |
 | 12 | Visual QC | the exported files of A–D | thumbnail, 100 %, zoom crops, Chromium renders; rubric 1–5 | every applicable criterion ≥ 4 | **PASS in round 3** (round 1 failed the curve rhythm and three compositions; two revision rounds) | `qc-report.md` | Visual QC |
 | 13 | Handoff | docs | set-up, connection, rollback, limits, examples | complete | **PASS** | `handoff.md`, `mcp-clients.md`, `README.md` | Lead |
 
@@ -49,17 +49,17 @@ Coverage is reported three ways, never merged:
 
 | Command | Result |
 |---|---|
-| `cargo test -p vectorcraft-mcp` | 178 + 5 + 15 passed (baseline was 168 + 5 + 15) |
-| `cargo test -p vectorcraft-engine --lib -- study id_reuse` | 24 passed |
-| `cargo test -p vectorcraft-engine --lib` | 5 901 passed, 1 failed, 2 ignored; the failure, `tests::textedit::the_fallback_glyph_of_a_consonant_after_its_vowel_sign_is_reported`, passes when run alone (a shared font database under parallel tests; it does not touch this change) |
-| `cargo test -p vectorcraft-engine --test command_sweep` | 24 passed |
-| `cargo clippy -p vectorcraft-engine -p vectorcraft-mcp -p vectorcraft-cli --all-targets -- -D warnings` | clean |
+| `cargo test -p vansoncraft-mcp` | 178 + 5 + 15 passed (baseline was 168 + 5 + 15) |
+| `cargo test -p vansoncraft-engine --lib -- study id_reuse` | 24 passed |
+| `cargo test -p vansoncraft-engine --lib` | 5 901 passed, 1 failed, 2 ignored; the failure, `tests::textedit::the_fallback_glyph_of_a_consonant_after_its_vowel_sign_is_reported`, passes when run alone (a shared font database under parallel tests; it does not touch this change) |
+| `cargo test -p vansoncraft-engine --test command_sweep` | 24 passed |
+| `cargo clippy -p vansoncraft-engine -p vansoncraft-mcp -p vansoncraft-cli --all-targets -- -D warnings` | clean |
 | `cargo fmt --all -- --check`, `cargo xtask layers`, `cargo xtask assets` | clean; 361 assets attributed |
-| `cargo check -p vectorcraft-engine --target wasm32-unknown-unknown` | clean |
+| `cargo check -p vansoncraft-engine --target wasm32-unknown-unknown` | clean |
 
 ## Performance
 
-`vectorcraft-cli perf` (the 50 000-path synthetic document), six alternating runs each of the
+`vansoncraft-cli perf` (the 50 000-path synthetic document), six alternating runs each of the
 baseline (`2304b38f`) and the final **debug** builds on the same machine; medians (and minima) in ms.
 The budgets are for release builds: the debug build misses the render budgets in both versions, so
 read the absolute numbers as relative only. No release build was measured here (time and disk).
@@ -70,8 +70,8 @@ read the absolute numbers as relative only. No release build was measured here (
 | render: refresh after a pan | 100 | 239.9 (216.9) | 240.7 (229.7) | 0 % |
 | render: 400 % zoom | 16 | 89.4 (85.0) | 91.6 (86.9) | +3 % |
 | hit test per click | 2 | 0.57 (0.45) | 0.60 (0.51) | +5 % |
-| save `.vectorcraft` | 300 | 108.3 (94.3) | 115.1 (106.3) | +6 % |
-| open `.vectorcraft` | 300 | 331.7 (298.0) | 348.4 (299.0) | +5 % |
+| save `.vansoncraft` | 300 | 108.3 (94.3) | 115.1 (106.3) | +6 % |
+| open `.vansoncraft` | 300 | 331.7 (298.0) | 348.4 (299.0) | +5 % |
 | export SVG | 500 | 233.3 (195.7) | 218.6 (186.5) | −6 % |
 | Pathfinder Unite, 1 000 paths | 150 | 93.4 (87.0) | 103.7 (82.9) | +11 % |
 | handle drag, 5 000 anchors | 8 | 5.13 (4.17) | 5.17 (4.11) | +1 % |

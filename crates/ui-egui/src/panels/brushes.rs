@@ -14,17 +14,17 @@ use std::sync::Arc;
 
 use egui::{Sense, Ui, vec2};
 use serde_json::{Value, json};
-use vectorcraft_brush::Brush;
-use vectorcraft_doc::{AngleProfile, Appearance, Document, Node, PressureProfile, color::Color, color::Paint};
-use vectorcraft_engine::DocState;
-use vectorcraft_engine::cmd::brushlib::{self, BrushLibrary};
-use vectorcraft_engine::cmd::clipboard::{ArtResources, art_resources};
-use vectorcraft_engine::cmd::swatchlib::LibraryInfo;
+use vansoncraft_brush::Brush;
+use vansoncraft_doc::{AngleProfile, Appearance, Document, Node, PressureProfile, color::Color, color::Paint};
+use vansoncraft_engine::DocState;
+use vansoncraft_engine::cmd::brushlib::{self, BrushLibrary};
+use vansoncraft_engine::cmd::clipboard::{ArtResources, art_resources};
+use vansoncraft_engine::cmd::swatchlib::LibraryInfo;
 
 use super::library_panel::{self, LibraryKind, LibraryRef, Row};
 use super::memo::Memo;
 use super::{first_selected, pstate, set_pstate};
-use crate::VectorcraftApp;
+use crate::VansoncraftApp;
 use crate::dialogs::brush_options;
 use crate::menus::Item;
 use crate::theme::Tokens;
@@ -34,10 +34,10 @@ const KINDS: [(&str, &str); 5] =
     [("calligraphic", "Calligraphic"), ("scatter", "Scatter"), ("art", "Art"), ("bristle", "Bristle"), ("pattern", "Pattern")];
 
 /// (name, type) of every brush in the active document's library, and the current brush.
-pub fn brushes(app: &mut VectorcraftApp) -> (Vec<(String, String)>, Option<String>) {
+pub fn brushes(app: &mut VansoncraftApp) -> (Vec<(String, String)>, Option<String>) {
     let Some(st) = app.session.active() else { return (vec![], None) };
     let list = document_brushes(st).iter().map(|b| (b.name.clone(), b.ty.to_string())).collect();
-    (list, vectorcraft_brush::current(&st.doc))
+    (list, vansoncraft_brush::current(&st.doc))
 }
 
 /// A brush as the panels show it: its definition (as `brush.get` gives it, which a drag carries)
@@ -66,7 +66,7 @@ pub(crate) fn document_brushes(st: &DocState) -> Rc<Vec<Shown>> {
     thread_local! {
         static MEMO: RefCell<Memo<Document, Vec<Shown>>> = RefCell::new(Memo::default());
     }
-    MEMO.with(|m| m.borrow_mut().get(&st.doc, st.revision, || vectorcraft_brush::library(&st.doc).iter().map(|b| Shown::of(&st.doc, b)).collect()))
+    MEMO.with(|m| m.borrow_mut().get(&st.doc, st.revision, || vansoncraft_brush::library(&st.doc).iter().map(|b| Shown::of(&st.doc, b)).collect()))
 }
 
 /// The cache key of the stroke preview of brush definition `def` in `doc` (`art`: its art): the
@@ -103,8 +103,8 @@ fn preview(ui: &Ui, doc: &Document, def: &Value, key: u64, size: egui::Vec2) -> 
 fn preview_doc(resources: &Document, def: &Value, w: f64, h: f64) -> Option<Document> {
     let mut doc = resources.clone();
     let layer = doc.alloc_id();
-    doc.layers = vec![Arc::new(Node::layer(layer, "Preview", vectorcraft_doc::LayerColor::Preset(0)))];
-    doc.unknown.insert(vectorcraft_brush::DOC_KEY.into(), json!([def]));
+    doc.layers = vec![Arc::new(Node::layer(layer, "Preview", vansoncraft_doc::LayerColor::Preset(0)))];
+    doc.unknown.insert(vansoncraft_brush::DOC_KEY.into(), json!([def]));
     let name = def["name"].as_str()?.to_string();
     let mut ap = Appearance::basic(Paint::None, Paint::solid(Color::BLACK), 1.0);
     let st = ap.stroke_mut()?;
@@ -114,13 +114,13 @@ fn preview_doc(resources: &Document, def: &Value, w: f64, h: f64) -> Option<Docu
     st.bearing = Some(AngleProfile::sample());
     st.rotation = Some(AngleProfile::sample());
     // A gentle S-curve across the swatch (square tiles keep a quarter of it either side).
-    let mut bp = vectorcraft_geom::BezPath::new();
+    let mut bp = vansoncraft_geom::BezPath::new();
     let margin = (h * 0.5).min(w * 0.25);
     let (x0, x1) = (margin, w - margin);
     bp.move_to((x0, h * 0.5));
     bp.curve_to((x0 + (x1 - x0) * 0.35, h * 0.1), (x0 + (x1 - x0) * 0.65, h * 0.9), (x1, h * 0.5));
     let id = doc.alloc_id();
-    doc.insert(Some(layer), 0, Node::path(id, vectorcraft_geom::PathData::from_bezpath(&bp), ap)).ok()?;
+    doc.insert(Some(layer), 0, Node::path(id, vansoncraft_geom::PathData::from_bezpath(&bp), ap)).ok()?;
     Some(doc)
 }
 
@@ -157,7 +157,7 @@ pub(crate) fn definition_chip(ui: &Ui, r: egui::Rect, st: Option<&DocState>, def
     chip(ui, r, &doc, def, key);
 }
 
-fn selected_brush(app: &VectorcraftApp) -> Option<String> {
+fn selected_brush(app: &VansoncraftApp) -> Option<String> {
     first_selected(app).and_then(|n| n.appearance.stroke().and_then(|s| s.brush.clone()))
 }
 
@@ -165,13 +165,13 @@ fn selected_brush(app: &VectorcraftApp) -> Option<String> {
 /// brush.
 type ClickKey = (u64, Vec<u64>, Option<String>);
 
-fn click_key(app: &VectorcraftApp, current: Option<&str>) -> Option<ClickKey> {
+fn click_key(app: &VansoncraftApp, current: Option<&str>) -> Option<ClickKey> {
     app.session.active().map(|st| (st.uid, st.selection.objects.iter().map(|id| id.0).collect(), current.map(str::to_string)))
 }
 
 /// Whether the panel's last click was made with the document, objects and current brush active
 /// now. Panel state `br-selected` holds the multi-selection and the key of that click.
-fn same_click(app: &VectorcraftApp, ctx: &egui::Context, current: Option<&str>) -> bool {
+fn same_click(app: &VansoncraftApp, ctx: &egui::Context, current: Option<&str>) -> bool {
     let (_, key): (Option<Vec<String>>, Option<ClickKey>) = pstate(ctx, "br-selected");
     key.is_some() && key == click_key(app, current)
 }
@@ -181,7 +181,7 @@ fn same_click(app: &VectorcraftApp, ctx: &egui::Context, current: Option<&str>) 
 /// document, other objects or another current brush is active, which also clears it and the key
 /// of the last click; `Some` of an empty list after Cmd/Ctrl-clicks deselected every brush or
 /// Select All Unused found none.
-fn multi(app: &VectorcraftApp, ctx: &egui::Context, list: &[(String, String)], current: Option<&str>) -> Option<Vec<String>> {
+fn multi(app: &VansoncraftApp, ctx: &egui::Context, list: &[(String, String)], current: Option<&str>) -> Option<Vec<String>> {
     if !same_click(app, ctx, current) {
         set_pstate(ctx, "br-selected", (None::<Vec<String>>, None::<ClickKey>));
         return None;
@@ -197,12 +197,12 @@ fn multi(app: &VectorcraftApp, ctx: &egui::Context, list: &[(String, String)], c
 
 /// The brushes Delete Brush and Duplicate Brush act on: the multi-selection, else the selected
 /// path's brush, else the current one.
-fn targets(app: &VectorcraftApp, ctx: &egui::Context, list: &[(String, String)], current: Option<&str>) -> Vec<String> {
+fn targets(app: &VansoncraftApp, ctx: &egui::Context, list: &[(String, String)], current: Option<&str>) -> Vec<String> {
     multi(app, ctx, list, current).unwrap_or_else(|| selected_brush(app).or(current.map(str::to_string)).into_iter().collect())
 }
 
 /// Runs `brush.delete` or `brush.duplicate` on `names`.
-fn run_on(app: &mut VectorcraftApp, id: &str, names: &[String]) {
+fn run_on(app: &mut VansoncraftApp, id: &str, names: &[String]) {
     let p = match names {
         [name] => json!({ "name": name }),
         _ => json!({ "names": names }),
@@ -212,7 +212,7 @@ fn run_on(app: &mut VectorcraftApp, id: &str, names: &[String]) {
 
 /// Delete `names` after asking: Yes or No when none of them is in use, else Remove Strokes or
 /// Cancel. With `now` (Alt-click on the bottom button), brushes that are not in use go at once.
-fn delete(app: &mut VectorcraftApp, names: &[String], now: bool) {
+fn delete(app: &mut VansoncraftApp, names: &[String], now: bool) {
     let Some(used) = crate::dialogs::brush_delete::used(app, names) else {
         return;
     };
@@ -287,7 +287,7 @@ fn replace_drop(ui: &Ui, resp: &egui::Response, name: &str, ty: &str, replaced: 
     }
 }
 
-pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn show(app: &mut VansoncraftApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let (list, current) = brushes(app);
     let sel_brush = selected_brush(app);
@@ -469,7 +469,7 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
     });
 }
 
-pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn menu(app: &mut VansoncraftApp, ui: &mut Ui) {
     let sel = selected_brush(app);
     let (list, current) = brushes(app);
     let targets = targets(app, ui.ctx(), &list, current.as_deref());
@@ -550,7 +550,7 @@ pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui) {
 }
 
 /// Save Brush Library… for the document's brushes (`names`: those selected in the panel).
-fn save_library(app: &mut VectorcraftApp, names: Vec<String>) {
+fn save_library(app: &mut VansoncraftApp, names: Vec<String>) {
     if let Err(e) = app.run("ui.saveBrushLibrary", json!({ "names": names })) {
         app.status(e);
     }
@@ -623,18 +623,18 @@ impl LibraryKind for BrushLibraries {
     type Lib = Rc<Vec<LibBrush>>;
     type Item = LibBrush;
 
-    fn list(app: &VectorcraftApp) -> Vec<LibraryRef> {
+    fn list(app: &VansoncraftApp) -> Vec<LibraryRef> {
         let libs = brushlib::libraries(&app.session).into_iter();
         libs.map(|l| LibraryRef { submenu: library_panel::submenu(l.category), id: l.id, name: l.name }).collect()
     }
-    fn get(app: &VectorcraftApp, id: &str) -> Option<(String, Self::Lib)> {
+    fn get(app: &VansoncraftApp, id: &str) -> Option<(String, Self::Lib)> {
         let (info, lib) = brushlib::library(&app.session, id)?;
         Some((info.name, library_brushes(&lib)))
     }
-    fn find(app: &VectorcraftApp, key: &str) -> library_panel::Found {
+    fn find(app: &VansoncraftApp, key: &str) -> library_panel::Found {
         brushlib::library(&app.session, key).map(|(info, lib)| (info.id, info.name, lib.len()))
     }
-    fn path(app: &VectorcraftApp, id: &str) -> Option<String> {
+    fn path(app: &VansoncraftApp, id: &str) -> Option<String> {
         app.session.brush_libraries.path(id).map(str::to_string)
     }
     fn rows<'a>(lib: &'a Self::Lib, query: &str) -> Vec<Row<'a, LibBrush>> {
@@ -642,7 +642,7 @@ impl LibraryKind for BrushLibraries {
         lib.iter().filter(|b| found(b.name())).map(|b| Row { name: b.name(), item: Some(b) }).collect()
     }
     /// The brush's stroke preview, drawn with the library's resources.
-    fn draw(_: &VectorcraftApp, ui: &Ui, r: egui::Rect, b: &LibBrush, selected: bool, hovered: bool) {
+    fn draw(_: &VansoncraftApp, ui: &Ui, r: egui::Rect, b: &LibBrush, selected: bool, hovered: bool) {
         chip(ui, r, &b.lib.doc, &b.shown.def, b.shown.key);
         super::graphic_styles::outline(ui, r, selected, hovered);
     }
@@ -653,18 +653,18 @@ impl LibraryKind for BrushLibraries {
     }
     /// Adds the brush to the document's Brushes as the current brush, and applies it to the
     /// selected paths, as clicking a brush of the Brushes panel does.
-    fn click(app: &mut VectorcraftApp, _: &Ui, id: &str, name: &str) {
+    fn click(app: &mut VansoncraftApp, _: &Ui, id: &str, name: &str) {
         let apply = app.session.active().is_some_and(|d| !d.selection.is_empty());
         add(app, json!({"library": id, "name": name, "apply": apply}));
     }
-    fn add(app: &mut VectorcraftApp, id: &str, names: Vec<String>) {
+    fn add(app: &mut VansoncraftApp, id: &str, names: Vec<String>) {
         add(app, json!({"library": id, "names": names}));
     }
     /// Dragged onto a path, the brush is added and applied to it; onto the Brushes panel, added.
     fn drag(id: &str, name: &str) -> Option<PanelDrag> {
         Some(PanelDrag::LibraryBrush { library: id.to_string(), name: name.to_string() })
     }
-    fn menu_tail(app: &mut VectorcraftApp, ui: &mut Ui) {
+    fn menu_tail(app: &mut VansoncraftApp, ui: &mut Ui) {
         ui.separator();
         // As a command, so its file dialog, shown off the UI thread, loads the library when it
         // answers.
@@ -683,7 +683,7 @@ impl LibraryKind for BrushLibraries {
 }
 
 /// Run `brush.addFromLibrary` with `p`; a failure goes to the status bar.
-fn add(app: &mut VectorcraftApp, p: Value) {
+fn add(app: &mut VansoncraftApp, p: Value) {
     if let Err(e) = app.run("brush.addFromLibrary", p) {
         app.status(e);
     }
@@ -691,26 +691,26 @@ fn add(app: &mut VectorcraftApp, p: Value) {
 
 /// Has the active document brushes to save? (Its stored library isn't parsed: a document without
 /// one has the default brushes.)
-pub(crate) fn has_brushes(app: &VectorcraftApp) -> bool {
-    let stored = |d: &Document| d.unknown.get(vectorcraft_brush::DOC_KEY).map(|v| v.as_array().is_some_and(|a| !a.is_empty()));
+pub(crate) fn has_brushes(app: &VansoncraftApp) -> bool {
+    let stored = |d: &Document| d.unknown.get(vansoncraft_brush::DOC_KEY).map(|v| v.as_array().is_some_and(|a| !a.is_empty()));
     app.session.active().is_some_and(|st| stored(&st.doc).unwrap_or(true))
 }
 
 /// `window.brushLibrary {library}`: open a brush library in its own panel (`library` null closes
 /// every brush library panel).
-pub(crate) fn open_library(app: &mut VectorcraftApp, p: &Value) -> Result<Value, String> {
+pub(crate) fn open_library(app: &mut VansoncraftApp, p: &Value) -> Result<Value, String> {
     library_panel::open_command::<BrushLibraries>(app, p)
 }
 
 /// `brush.loadLibrary` params, then open the library in its panel.
-pub(crate) fn load_library(app: &mut VectorcraftApp, params: Value) -> Result<Value, String> {
+pub(crate) fn load_library(app: &mut VansoncraftApp, params: Value) -> Result<Value, String> {
     let r = app.run("brush.loadLibrary", params)?;
     open_library(app, &json!({ "library": r["library"] }))
 }
 
 /// Other Library…: load the brushes of the document at `path`, else of one picked in an open
 /// dialog.
-pub(crate) fn other_library(app: &mut VectorcraftApp, path: Option<String>) -> Result<Value, String> {
+pub(crate) fn other_library(app: &mut VansoncraftApp, path: Option<String>) -> Result<Value, String> {
     match library_panel::pick_library_file(app, path, library_panel::library_pick_filters(BrushLibraries::KIND))? {
         Some(path) => load_library(app, json!({ "path": path })),
         None => Ok(Value::Null),
@@ -721,7 +721,7 @@ pub(crate) fn other_library(app: &mut VectorcraftApp, path: Option<String>) -> R
 pub(crate) const USER_SLOT: &str = "window.userBrushLibrary";
 
 /// The User Defined library slot `id` (`window.userBrushLibrary3`) stands for.
-pub(crate) fn user_library(app: &VectorcraftApp, id: &str) -> Option<LibraryInfo> {
+pub(crate) fn user_library(app: &VansoncraftApp, id: &str) -> Option<LibraryInfo> {
     library_panel::user_slot(id, USER_SLOT, brushlib::libraries(&app.session))
 }
 

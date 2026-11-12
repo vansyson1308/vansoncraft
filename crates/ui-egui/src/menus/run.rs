@@ -3,7 +3,7 @@ use super::invoke::menu_dialog;
 use super::slots::{recent_readable, recent_slot, saved_selection_name, saved_selection_slot, saved_view, saved_view_slot};
 use super::state::{checked, selected_image};
 use super::ui_commands::UI_COMMANDS;
-use super::{Brightness, Face, SaveMode, Value, VectorcraftApp, io, json, next_zoom};
+use super::{Brightness, Face, SaveMode, Value, VansoncraftApp, io, json, next_zoom};
 
 /// Canonical panel id for `window.panel`: a dock tab's or an icon panel's id or display label,
 /// matched case-insensitively (`"Layers"`, `"swatches"`, `"Color Guide"`), or a library panel's id
@@ -42,11 +42,11 @@ pub(crate) fn opt_index(p: &Value, key: &str) -> Result<Option<usize>, String> {
 }
 
 /// An optional `{key?: [x, y]}` param: none when it is omitted or null.
-fn opt_point(p: &Value, key: &str) -> Result<Option<vectorcraft_geom::Point>, String> {
+fn opt_point(p: &Value, key: &str) -> Result<Option<vansoncraft_geom::Point>, String> {
     match p.get(key) {
         None | Some(Value::Null) => Ok(None),
         Some(v) => match v.as_array().map(Vec::as_slice) {
-            Some([x, y]) => x.as_f64().zip(y.as_f64()).map(|(x, y)| Some(vectorcraft_geom::Point::new(x, y))),
+            Some([x, y]) => x.as_f64().zip(y.as_f64()).map(|(x, y)| Some(vansoncraft_geom::Point::new(x, y))),
             _ => None,
         }
         .ok_or_else(|| format!("`{key}` must be [x, y] numbers")),
@@ -58,7 +58,7 @@ fn opt_point(p: &Value, key: &str) -> Result<Option<vectorcraft_geom::Point>, St
 /// error naming the one it doesn't (#1442). The UI's own commands aren't checked yet: their
 /// descriptions haven't been audited against what they read.
 /// `file.save` and `file.exportForScreens` take the params of the engine command they run.
-pub fn check_params(session: &vectorcraft_engine::Session, id: &str, params: &Value) -> Result<(), String> {
+pub fn check_params(session: &vansoncraft_engine::Session, id: &str, params: &Value) -> Result<(), String> {
     let id = match id {
         "file.save" => "document.save",
         "file.exportForScreens" => "document.exportForScreens",
@@ -73,7 +73,7 @@ pub fn check_params(session: &vectorcraft_engine::Session, id: &str, params: &Va
 /// Runs `id` when the UI runs it itself: one of [`UI_COMMANDS`], or an engine command the UI
 /// handles its own way (a Window menu panel item that toggles, …) → `None` to leave it to the
 /// engine.
-pub fn run_ui_command(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
+pub fn run_ui_command(app: &mut VansoncraftApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
     // Window menu items and the named panel function keys toggle against the checked state;
     // other commands that open panels show them.
     let toggles = if id == "window.panel" { opt_bool(p, "toggle").and_then(|t| Ok((t, opt_bool(p, "toggleGroup")?))) } else { Ok((None, None)) };
@@ -134,7 +134,7 @@ pub fn run_ui_command(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<R
 }
 
 /// UI commands, part 1.
-fn run_ui_part1(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
+fn run_ui_part1(app: &mut VansoncraftApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
     let s = |k: &str| p.get(k).and_then(Value::as_str).map(str::to_string);
     let r = match id {
         "file.newDialog" => {
@@ -167,7 +167,7 @@ fn run_ui_part1(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<
             };
             let saved = if mode == SaveMode::Save { io::save_current(app, p) } else { io::save(app, mode, p, true) };
             saved.map(|mut r| {
-                vectorcraft_engine::cmd::fileio::leave_out_unreadable_save_paths(&mut r, p.get("path").and_then(Value::as_str));
+                vansoncraft_engine::cmd::fileio::leave_out_unreadable_save_paths(&mut r, p.get("path").and_then(Value::as_str));
                 r
             })
         }
@@ -196,7 +196,7 @@ fn run_ui_part1(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<
 }
 
 /// UI commands, part 2.
-fn run_ui_part2(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
+fn run_ui_part2(app: &mut VansoncraftApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
     let s = |k: &str| p.get(k).and_then(Value::as_str).map(str::to_string);
     let flag = |b: &mut bool| {
         *b = !*b;
@@ -223,13 +223,13 @@ fn run_ui_part2(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<
         }
         "file.exportForScreens" => io::export_for_screens(app, p.clone()),
         "file.export.png" if s("path").is_none() => io::target_path(app, None, "png").and_then(|path| {
-            let f = vectorcraft_engine::cmd::fileio::format("png").ok_or("no PNG encoder")?;
+            let f = vansoncraft_engine::cmd::fileio::format("png").ok_or("no PNG encoder")?;
             let mut params = if p.is_object() { p.clone() } else { json!({}) };
             params["format"] = json!("png");
             params["path"] = json!(path);
             // No artboard named: the artboard in use rather than the first (#5502), or each one the
             // Artboard tool has selected, one file each.
-            let named = ["useArtboards", "rect"].iter().chain(vectorcraft_engine::cmd::fileio::ARTBOARD_PARAMS.iter()).any(|k| !params[*k].is_null());
+            let named = ["useArtboards", "rect"].iter().chain(vansoncraft_engine::cmd::fileio::ARTBOARD_PARAMS.iter()).any(|k| !params[*k].is_null());
             let n = app.session.active().map_or(0, |d| d.doc.artboards.len());
             if !named && n > 0 {
                 match crate::panels::artboards::picked(app, n).as_slice() {
@@ -270,7 +270,7 @@ fn run_ui_part2(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<
 }
 
 /// UI commands, part 3.
-fn run_ui_part3(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
+fn run_ui_part3(app: &mut VansoncraftApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
     let flag = |b: &mut bool| {
         *b = !*b;
         Ok(json!(*b))
@@ -337,7 +337,7 @@ fn run_ui_part3(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<
 }
 
 /// UI commands, part 4.
-fn run_ui_part4(app: &mut VectorcraftApp, id: &str, _p: &Value) -> Option<Result<Value, String>> {
+fn run_ui_part4(app: &mut VansoncraftApp, id: &str, _p: &Value) -> Option<Result<Value, String>> {
     let flag = |b: &mut bool| {
         *b = !*b;
         Ok(json!(*b))
@@ -349,7 +349,7 @@ fn run_ui_part4(app: &mut VectorcraftApp, id: &str, _p: &Value) -> Option<Result
         "view.livePaintGaps" => flag(&mut app.ui.view.live_paint_gaps),
         "effect.last" => match app.last_effect.clone() {
             Some((e, params)) => {
-                let label = vectorcraft_effects::effect_info(&e).map(|i| i.label.trim_end_matches('…').to_string()).unwrap_or_else(|| e.clone());
+                let label = vansoncraft_effects::effect_info(&e).map(|i| i.label.trim_end_matches('…').to_string()).unwrap_or_else(|| e.clone());
                 let mut fields = params.as_object().cloned().unwrap_or_default();
                 fields.insert("__effect".into(), json!(e));
                 fields.insert("__label".into(), json!(label));
@@ -388,7 +388,7 @@ fn run_ui_part4(app: &mut VectorcraftApp, id: &str, _p: &Value) -> Option<Result
                         || d.selection
                             .objects
                             .iter()
-                            .any(|id| matches!(d.doc.node(*id).map(|n| &n.kind), Some(vectorcraft_doc::NodeKind::Path { guide: true, .. })))
+                            .any(|id| matches!(d.doc.node(*id).map(|n| &n.kind), Some(vansoncraft_doc::NodeKind::Path { guide: true, .. })))
                 });
             if hidden_selection {
                 // Deselecting a document that is open cannot fail.
@@ -405,7 +405,7 @@ fn run_ui_part4(app: &mut VectorcraftApp, id: &str, _p: &Value) -> Option<Result
 }
 
 /// UI commands, part 5.
-fn run_ui_part5(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
+fn run_ui_part5(app: &mut VansoncraftApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
     let s = |k: &str| p.get(k).and_then(Value::as_str).map(str::to_string);
     let flag = |b: &mut bool| {
         *b = !*b;
@@ -486,7 +486,7 @@ fn run_ui_part5(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<
             };
             match app.view_mut() {
                 Some(v) => {
-                    v.rotation = vectorcraft_geom::normalize_deg(angle);
+                    v.rotation = vansoncraft_geom::normalize_deg(angle);
                     Ok(json!({ "angle": v.rotation }))
                 }
                 None => Err("no document".into()),
@@ -499,7 +499,7 @@ fn run_ui_part5(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<
             if st.selection.objects.is_empty() {
                 return Some(Err("nothing selected".into()));
             }
-            let angle = vectorcraft_geom::normalize_deg(st.doc.bbox_angle(&st.selection.objects));
+            let angle = vansoncraft_geom::normalize_deg(st.doc.bbox_angle(&st.selection.objects));
             match app.view_mut() {
                 Some(v) => {
                     v.rotation = angle;
@@ -591,7 +591,7 @@ fn run_ui_part5(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<
 }
 
 /// UI commands, part 6.
-fn run_ui_part6(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
+fn run_ui_part6(app: &mut VansoncraftApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
     let s = |k: &str| p.get(k).and_then(Value::as_str).map(str::to_string);
     let flag = |b: &mut bool| {
         *b = !*b;
@@ -673,7 +673,7 @@ fn run_ui_part6(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<
         "window.nextDocument" => crate::chrome::step_document(app, true),
         "window.previousDocument" => crate::chrome::step_document(app, false),
         "tool.select" => match s("tool") {
-            Some(t) if vectorcraft_tools::tool_info(&t).is_some() => {
+            Some(t) if vansoncraft_tools::tool_info(&t).is_some() => {
                 app.select_tool(&t);
                 Ok(json!({"tool": app.session.tool_id()}))
             }
@@ -692,7 +692,7 @@ fn run_ui_part6(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<
         "ui.recolorDialog" => crate::dialogs::recolor::open(app, p),
         "ui.cropImage" if !selected_image(app, |_| true) => Err("select an image".into()),
         "ui.cropImage" => {
-            app.select_tool(vectorcraft_tools::cropimage::ID);
+            app.select_tool(vansoncraft_tools::cropimage::ID);
             Ok(json!({"tool": app.session.tool_id()}))
         }
         "ui.paramDialog" => {
@@ -716,7 +716,7 @@ fn run_ui_part6(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<
 }
 
 /// UI commands, part 7.
-fn run_ui_part7(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
+fn run_ui_part7(app: &mut VansoncraftApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
     let s = |k: &str| p.get(k).and_then(Value::as_str).map(str::to_string);
     let r = match id {
         "help.about" => {
@@ -794,7 +794,7 @@ fn run_ui_part7(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<
 }
 
 /// UI commands, part 8.
-fn run_ui_part8(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
+fn run_ui_part8(app: &mut VansoncraftApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
     let s = |k: &str| p.get(k).and_then(Value::as_str).map(str::to_string);
     let r = match id {
         "ui.colorGuideOptions" => {
@@ -843,7 +843,7 @@ fn run_ui_part8(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<
 }
 
 /// UI commands, part 9.
-fn run_ui_part9(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
+fn run_ui_part9(app: &mut VansoncraftApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
     let s = |k: &str| p.get(k).and_then(Value::as_str).map(str::to_string);
     let r = match id {
         "ui.flattenerPresetsDialog" => {
@@ -894,7 +894,7 @@ fn run_ui_part9(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<
 }
 
 /// UI commands, part 10.
-fn run_ui_part10(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
+fn run_ui_part10(app: &mut VansoncraftApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
     let s = |k: &str| p.get(k).and_then(Value::as_str).map(str::to_string);
     let r = match id {
         "ui.expandDialog" => crate::dialogs::expand::open(app),
@@ -941,7 +941,7 @@ fn run_ui_part10(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result
 }
 
 /// UI commands, part 11.
-fn run_ui_part11(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
+fn run_ui_part11(app: &mut VansoncraftApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
     let s = |k: &str| p.get(k).and_then(Value::as_str).map(str::to_string);
     let r = match id {
         "ui.fileInfoDialog" => crate::dialogs::file_info::open(app),
@@ -995,7 +995,7 @@ fn run_ui_part11(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result
 }
 
 /// UI commands, part 12.
-fn run_ui_part12(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
+fn run_ui_part12(app: &mut VansoncraftApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
     let s = |k: &str| p.get(k).and_then(Value::as_str).map(str::to_string);
     let r = match id {
         "file.showPackage" => crate::dialogs::package::show_package(app, p),
@@ -1044,7 +1044,7 @@ fn run_ui_part12(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result
 }
 
 /// UI commands, part 13.
-fn run_ui_part13(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
+fn run_ui_part13(app: &mut VansoncraftApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
     let s = |k: &str| p.get(k).and_then(Value::as_str).map(str::to_string);
     let r = match id {
         "ui.printPresetsDialog" => {
@@ -1082,7 +1082,7 @@ fn run_ui_part13(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result
 
 /// `view.goToArtboard`: make artboard `index` (a number, or first / previous / next / last from
 /// the current one) active, synchronizing the Artboard tool when in use, and fit it in the window.
-fn go_to_artboard(app: &mut VectorcraftApp, p: &Value) -> Result<Value, String> {
+fn go_to_artboard(app: &mut VansoncraftApp, p: &Value) -> Result<Value, String> {
     let n = app.session.active().map(|d| d.doc.artboards.len()).ok_or("no document open")?;
     let last = n.checked_sub(1).ok_or("the document has no artboards")?;
     let current = app.view().map_or(0, |v| v.artboard).min(last);

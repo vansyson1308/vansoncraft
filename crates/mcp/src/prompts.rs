@@ -1,13 +1,13 @@
 //! MCP prompts (`prompts/list`, `prompts/get`) and `completion/complete`.
 //!
-//! A prompt is a reusable VectorCraft workflow: `prompts/get` hands the model one templated user
+//! A prompt is a reusable VansonCraft workflow: `prompts/get` hands the model one templated user
 //! message, so a client can offer "make a poster" the way it offers a slash command. Every prompt's
 //! arguments double as completion sources, and the resource templates in [`crate::resources`] share
 //! the same [`Live`] catalogues, so `completion/complete` can suggest real command ids, effect ids,
 //! swatch names and export formats instead of a fixed list that goes stale.
 
 use serde_json::{Value, json};
-use vectorcraft_engine::cmd::fileio::FORMATS;
+use vansoncraft_engine::cmd::fileio::FORMATS;
 
 use crate::backend::Backend;
 
@@ -29,7 +29,7 @@ pub enum Live {
     Swatches,
     /// Layer and object ids in the active document (`document.inspect`).
     Objects,
-    /// The drawing-method topics (`vectorcraft://method/{topic}`), compiled in.
+    /// The drawing-method topics (`vansoncraft://method/{topic}`), compiled in.
     MethodTopics,
 }
 
@@ -82,7 +82,7 @@ fn ids_in(reply: &Value, key: Option<&str>) -> Vec<String> {
     items.iter().take(MAX_VALUES * 8).filter_map(|i| i.get("id").or_else(|| i.get("name"))).filter_map(Value::as_str).map(str::to_string).collect()
 }
 
-/// Ids of every layer and object in the active document, for `vectorcraft://object/{id}`.
+/// Ids of every layer and object in the active document, for `vansoncraft://object/{id}`.
 fn object_ids(b: &mut dyn Backend) -> Vec<String> {
     let mut out = Vec::new();
     let Ok(v) = b.call("document.inspect", json!({})) else { return out };
@@ -159,7 +159,7 @@ pub static PROMPTS: &[PromptDef] = &[
             },
         ],
         text: "\
-Design a poster in VectorCraft.
+Design a poster in VansonCraft.
 
 Brief: {brief}
 Palette: {palette}
@@ -211,7 +211,7 @@ rasterise unless the brief asks for it.",
             },
         ],
         text: "\
-Draw a set of {count} icons of {subject} in VectorCraft, {detail}.
+Draw a set of {count} icons of {subject} in VansonCraft, {detail}.
 
 Coordinates are points in document space (y down, origin at the first artboard's
 top-left).
@@ -254,7 +254,7 @@ Return the ids of the icons in a grid, and leave them as separate objects on one
             },
         ],
         text: "\
-Recolour the current selection in VectorCraft with {palette}, using the `{method}` recolour method.
+Recolour the current selection in VansonCraft with {palette}, using the `{method}` recolour method.
 
 Method:
 1. inspect_document to see what is selected and what colours it actually uses.
@@ -292,7 +292,7 @@ One undo step covers the whole change; gradients and linked swatches stay linked
             },
         ],
         text: "\
-Trace the image at {path} in VectorCraft with the \"{preset}\" preset, then style the result
+Trace the image at {path} in VansonCraft with the \"{preset}\" preset, then style the result
 with the {effect} effect.
 
 Method:
@@ -353,7 +353,7 @@ The trace is real geometry: every traced shape stays selectable and editable.",
             },
         ],
         text: "\
-Export the document in VectorCraft to {formats}, into {directory}, at {scale} pixels per
+Export the document in VansonCraft to {formats}, into {directory}, at {scale} pixels per
 point for the raster formats.
 
 Method:
@@ -398,7 +398,7 @@ and text stays text unless you pass outlineText.",
             },
         ],
         text: "\
-Check spelling in VectorCraft for {scope}, then {action}.
+Check spelling in VansonCraft for {scope}, then {action}.
 
 Method:
 1. inspect_document to see the selection and type objects.
@@ -431,7 +431,7 @@ Desktop-only Auto Spell Check is edit.autoSpellCheck (ui: true); use --connect f
             },
         ],
         text: "\
-Set up {kind} variables in VectorCraft from {source}.
+Set up {kind} variables in VansonCraft from {source}.
 
 Method:
 1. inspect_document and variable.list (or the Variables panel commands) to see what exists.
@@ -461,7 +461,7 @@ Method:
             ]),
         }],
         text: "\
-Perform this Path Tools task in VectorCraft: {task}.
+Perform this Path Tools task in VansonCraft: {task}.
 
 Method:
 1. command_list with filter \"addon.pathtools\" for the command ids (extend, close, addPoints,
@@ -497,11 +497,11 @@ Method:
             },
         ],
         text: "\
-Draw this in VectorCraft by Harold Speed's method: {brief}
+Draw this in VansonCraft by Harold Speed's method: {brief}
 
 Kind of study: {study}
 
-Read vectorcraft://method/procedure first, and the topic you need (line, mass, rhythm, balance,
+Read vansoncraft://method/procedure first, and the topic you need (line, mass, rhythm, balance,
 proportion) when you reach it. Coordinates are points, y down, origin at the artboard's top-left;
 Bezier handles are absolute points.
 
@@ -544,9 +544,9 @@ brief decide.",
             },
         ],
         text: "\
-Make {count} compositions of {subject} in VectorCraft, varying {vary}.
+Make {count} compositions of {subject} in VansonCraft, varying {vary}.
 
-Read vectorcraft://method/balance and vectorcraft://method/rhythm.
+Read vansoncraft://method/balance and vansoncraft://method/rhythm.
 
 Method:
 1. One artboard per composition (artboard.new, named A, B, C ... with a short description); keep
@@ -574,7 +574,7 @@ Method:
             },
         ],
         text: "\
-Revise this in the open VectorCraft drawing: {request}
+Revise this in the open VansonCraft drawing: {request}
 
 Target: {target}
 
@@ -602,9 +602,9 @@ Method:
             values: Values::Fixed(NONE),
         }],
         text: "\
-Run a visual-memory exercise in VectorCraft with this reference: {reference}
+Run a visual-memory exercise in VansonCraft with this reference: {reference}
 
-Read vectorcraft://method/memory.
+Read vansoncraft://method/memory.
 
 Method:
 1. Put the reference on a template layer named Reference (file.place with template true for an
@@ -855,7 +855,7 @@ mod tests {
         for params in [
             json!({"ref": {"type": "ref/prompt", "name": "nope"}, "argument": {"name": "x", "value": ""}}),
             json!({"ref": {"type": "ref/prompt", "name": "poster"}, "argument": {"name": "nope", "value": ""}}),
-            json!({"ref": {"type": "ref/resource", "uri": "vectorcraft://nope/{id}"}, "argument": {"name": "id", "value": ""}}),
+            json!({"ref": {"type": "ref/resource", "uri": "vansoncraft://nope/{id}"}, "argument": {"name": "id", "value": ""}}),
             json!({"ref": {"type": "ref/other"}, "argument": {"name": "x", "value": ""}}),
             json!({}),
         ] {

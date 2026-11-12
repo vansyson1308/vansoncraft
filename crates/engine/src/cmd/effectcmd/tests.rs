@@ -1,6 +1,6 @@
 use serde_json::json;
-use vectorcraft_doc::NodeKind;
-use vectorcraft_render::effects;
+use vansoncraft_doc::NodeKind;
+use vansoncraft_render::effects;
 
 use crate::{NodeId, Session};
 
@@ -11,7 +11,7 @@ fn session_with_rect() -> (Session, NodeId) {
     (s, NodeId(r["id"].as_u64().unwrap()))
 }
 
-fn node(s: &Session, id: NodeId) -> vectorcraft_doc::Node {
+fn node(s: &Session, id: NodeId) -> vansoncraft_doc::Node {
     s.doc().unwrap().doc.node(id).cloned().unwrap()
 }
 
@@ -26,11 +26,11 @@ fn revolve_commands_keep_profile_live_edit_options_expand_and_undo() {
     let before = effects_for_test(&s, id);
     assert_eq!(node(&s, id).path_data(), Some(&source));
     let doc = &s.doc().unwrap().doc;
-    let restored = vectorcraft_format::load(&vectorcraft_format::save(doc, false)).unwrap();
+    let restored = vansoncraft_format::load(&vansoncraft_format::save(doc, false)).unwrap();
     assert_eq!(restored.node(id).unwrap().path_data(), Some(&source));
     assert_eq!(effects::revolve_art(restored.node(id).unwrap()).unwrap(), before);
     let pdf = s.execute("document.serialize", &json!({"format":"pdf"})).unwrap();
-    let bytes = vectorcraft_format::base64_decode(pdf["dataBase64"].as_str().unwrap()).unwrap();
+    let bytes = vansoncraft_format::base64_decode(pdf["dataBase64"].as_str().unwrap()).unwrap();
     assert!(bytes.starts_with(b"%PDF"));
     assert!(s.execute("effect.apply", &json!({"effect":"threeD.revolve","ids":[id.0],"item":null})).is_err());
     assert!(s.execute("effect.duplicate", &json!({"index":0,"ids":[id.0],"item":null})).is_err());
@@ -107,7 +107,7 @@ fn solid_effects_apply_save_edit_export_expand_and_undo() {
         let art = effects::solid_art(&node(&s, id)).unwrap();
         assert_eq!(node(&s, id).path_data(), Some(&source), "{effect}: the source stays editable");
         let doc = &s.doc().unwrap().doc;
-        let restored = vectorcraft_format::load(&vectorcraft_format::save(doc, false)).unwrap();
+        let restored = vansoncraft_format::load(&vansoncraft_format::save(doc, false)).unwrap();
         assert_eq!(effects::solid_art(restored.node(id).unwrap()).unwrap(), art, "{effect}: reopens the same");
         // One 3D effect per object, whichever kind.
         for other in ["threeD.revolve", "threeD.extrude", "threeD.rotate"] {
@@ -118,7 +118,7 @@ fn solid_effects_apply_save_edit_export_expand_and_undo() {
         assert!(s.execute("effect.setParams", &json!({"index": 0, "params": {"bevel": "nope"}, "ids": [id.0], "item": null})).is_err());
         let svg = s.execute("document.serialize", &json!({"format": "svg"})).unwrap();
         let svg = svg["data"].as_str().or_else(|| svg["text"].as_str()).map(str::to_string).unwrap_or_else(|| svg.to_string());
-        assert!(vectorcraft_testkit::svg_shapes(&svg) >= 2, "{effect}: exported as vector faces");
+        assert!(vansoncraft_testkit::svg_shapes(&svg) >= 2, "{effect}: exported as vector faces");
         s.execute("effect.expandAppearance", &json!({"ids": [id.0]})).unwrap();
         assert!(matches!(node(&s, id).kind, NodeKind::Group { .. }), "{effect}");
         assert!(!effects::has_solid(&node(&s, id)));
@@ -148,7 +148,7 @@ fn solid_effects_apply_to_a_group_and_its_members_stay_editable() {
         assert_ne!(effects::solid_art(&node(&s, g)).unwrap(), art, "{effect}");
         let svg = s.execute("document.serialize", &json!({"format": "svg"})).unwrap();
         let svg = svg["data"].as_str().or_else(|| svg["text"].as_str()).map(str::to_string).unwrap_or_else(|| svg.to_string());
-        assert!(vectorcraft_testkit::svg_shapes(&svg) >= 4, "{effect}: both members exported as vector faces");
+        assert!(vansoncraft_testkit::svg_shapes(&svg) >= 4, "{effect}: both members exported as vector faces");
         s.execute("effect.expandAppearance", &json!({"ids": [g.0]})).unwrap();
         assert!(!effects::has_solid(&node(&s, g)), "{effect}: expanded");
     }
@@ -188,17 +188,17 @@ fn group_with_an_image() -> (Session, NodeId, NodeId) {
     let image = s
         .edit("Place", |d, _| {
             let id = d.alloc_id();
-            let img = vectorcraft_doc::ImageObject {
+            let img = vansoncraft_doc::ImageObject {
                 key: "k".into(),
                 width: 4,
                 height: 4,
-                xf: vectorcraft_geom::Affine::translate((250.0, 250.0)),
+                xf: vansoncraft_geom::Affine::translate((250.0, 250.0)),
                 link: None,
                 placement: Default::default(),
                 pixels: None,
             };
             let (parent, index, _) = d.position(a).unwrap();
-            d.insert(parent, index + 1, vectorcraft_doc::Node::new(id, NodeKind::Image(Box::new(img))))?;
+            d.insert(parent, index + 1, vansoncraft_doc::Node::new(id, NodeKind::Image(Box::new(img))))?;
             Ok(id)
         })
         .unwrap();
@@ -257,7 +257,7 @@ fn type_revolves_as_its_glyphs_and_stays_editable() {
     });
     assert!(tinted, "shaded from the characters' red");
     let doc = &s.doc().unwrap().doc;
-    let restored = vectorcraft_format::load(&vectorcraft_format::save(doc, false)).unwrap();
+    let restored = vansoncraft_format::load(&vansoncraft_format::save(doc, false)).unwrap();
     assert_eq!(effects::revolve_art(restored.node(id).unwrap()).unwrap(), art, "the same art after a save");
     let meshes = effects::three_d_meshes(&n).unwrap();
     assert_eq!(meshes.len(), 1, "one mesh of every contour of the type");
@@ -306,8 +306,8 @@ fn revolve_refuses_type_and_groups_without_a_shape() {
 /// A Revolve on one fill is checked in that fill's paint, and `effect.setParams` on it as well.
 #[test]
 fn revolve_on_a_fill_is_checked_in_that_fills_paint() {
-    use vectorcraft_color::{Color, Gradient, GradientKind, GradientPaint, GradientStop, Paint};
-    use vectorcraft_doc::{AppearanceItem, FillLayer};
+    use vansoncraft_color::{Color, Gradient, GradientKind, GradientPaint, GradientStop, Paint};
+    use vansoncraft_doc::{AppearanceItem, FillLayer};
     let (mut s, id) = session_with_rect();
     // The paint copies of 100 faces reach the 256 MiB budget: 8 segments stay under, 64 pass it.
     let count = (256 << 20) / (4 * 100 * std::mem::size_of::<GradientStop>());
@@ -372,7 +372,7 @@ fn revolve_on_a_group_shares_one_axis_and_members_stay_editable() {
     assert_eq!(effects::three_d_meshes(&node(&s, g)).unwrap().len(), 2, "a mesh for each member");
     let svg = s.execute("document.serialize", &json!({"format": "svg"})).unwrap();
     let svg = svg["data"].as_str().or_else(|| svg["text"].as_str()).map(str::to_string).unwrap_or_else(|| svg.to_string());
-    assert!(vectorcraft_testkit::svg_shapes(&svg) >= 4, "both members exported as vector faces");
+    assert!(vansoncraft_testkit::svg_shapes(&svg) >= 4, "both members exported as vector faces");
     s.execute("select.set", &json!({"ids": [a.0]})).unwrap();
     s.execute("object.move", &json!({"dx": -40, "dy": 0})).unwrap();
     assert_ne!(effects::revolve_art(&node(&s, g)).unwrap(), art, "a moved member reshapes the surface");
@@ -458,7 +458,7 @@ fn scribble_stores_an_earlier_variation_as_two_and_its_angle_within_180() {
     assert_eq!(params(&s), json!({"overlapVariation": 3, "spacingVariation": 1}));
 }
 
-fn effects_for_test(s: &Session, id: NodeId) -> vectorcraft_doc::Node {
+fn effects_for_test(s: &Session, id: NodeId) -> vansoncraft_doc::Node {
     effects::revolve_art(&node(s, id)).unwrap()
 }
 
@@ -476,7 +476,7 @@ fn smooth_revolve_commands_validate_save_expand_and_undo() {
     let mut gradients = 0;
     effects_for_test(&s, id).walk(&mut |face| {
         gradients += face.appearance.items.iter().filter(|item| {
-            matches!(item, vectorcraft_doc::AppearanceItem::Fill(fill) if matches!(fill.paint, vectorcraft_doc::color::Paint::Gradient(_)))
+            matches!(item, vansoncraft_doc::AppearanceItem::Fill(fill) if matches!(fill.paint, vansoncraft_doc::color::Paint::Gradient(_)))
         }).count();
     });
     assert!(gradients > 0, "commands use smooth vector shading by default");
@@ -484,7 +484,7 @@ fn smooth_revolve_commands_validate_save_expand_and_undo() {
     let smooth = node(&s, id);
     assert_eq!(smooth.path_data(), Some(&source));
     assert_ne!(effects_for_test(&s, id), effects::revolve_art(&initial).unwrap());
-    let restored = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let restored = vansoncraft_format::load(&vansoncraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
     assert_eq!(effects::revolve_art(restored.node(id).unwrap()), Some(effects_for_test(&s, id)));
     s.execute("effect.expandAppearance", &json!({"ids":[id.0]})).unwrap();
     assert!(!effects::has_revolve(&node(&s, id)));
@@ -509,7 +509,7 @@ fn revolve_caps_save_export_expand_and_undo_without_changing_the_source() {
     .unwrap();
     let uncapped = node(&s, id);
     assert_eq!(uncapped.appearance.effects[0].params["cap"], json!(false));
-    let count = |n: &vectorcraft_doc::Node| n.children().unwrap()[0].children().unwrap().len();
+    let count = |n: &vansoncraft_doc::Node| n.children().unwrap()[0].children().unwrap().len();
     let open_count = count(&effects_for_test(&s, id));
     s.execute("effect.setParams", &json!({"index":0,"ids":[id.0],"item":null,"params":{"cap":true}})).unwrap();
     let capped = node(&s, id);
@@ -518,11 +518,11 @@ fn revolve_caps_save_export_expand_and_undo_without_changing_the_source() {
     assert_eq!(capped.path_data(), Some(&source));
     assert!(s.execute("effect.setParams", &json!({"index":0,"ids":[id.0],"item":null,"params":{"cap":"yes"}})).is_err());
     assert_eq!(node(&s, id), capped, "a bad boolean does not mutate the document");
-    let restored = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let restored = vansoncraft_format::load(&vansoncraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
     assert_eq!(restored.node(id).unwrap().appearance.effects[0].params["cap"], json!(true));
     assert_eq!(effects::revolve_art(restored.node(id).unwrap()), Some(art.clone()));
     let pdf = s.execute("document.serialize", &json!({"format":"pdf"})).unwrap();
-    assert!(vectorcraft_format::base64_decode(pdf["dataBase64"].as_str().unwrap()).unwrap().starts_with(b"%PDF"));
+    assert!(vansoncraft_format::base64_decode(pdf["dataBase64"].as_str().unwrap()).unwrap().starts_with(b"%PDF"));
     s.execute("effect.expandAppearance", &json!({"ids":[id.0]})).unwrap();
     assert_eq!(count(&node(&s, id)), count(&art));
     assert!(!effects::has_revolve(&node(&s, id)));
@@ -540,9 +540,9 @@ fn revolve_visibility_parameter_saves_expands_and_undoes_without_other_appearanc
     let id = NodeId(r["id"].as_u64().unwrap());
     s.execute("effect.apply", &json!({"effect":"threeD.revolve","ids":[id.0],"item":null})).unwrap();
     let live = node(&s, id);
-    let restored = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let restored = vansoncraft_format::load(&vansoncraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
     assert_eq!(restored.node(id).unwrap().appearance.effects[0].params["expandVisibleOnly"], json!(true));
-    let count = |n: &vectorcraft_doc::Node| n.children().unwrap()[0].children().unwrap().len();
+    let count = |n: &vansoncraft_doc::Node| n.children().unwrap()[0].children().unwrap().len();
     s.execute("effect.expandAppearance", &json!({"ids":[id.0]})).unwrap();
     let visible = count(&node(&s, id));
     s.execute("edit.undo", &json!({})).unwrap();
@@ -685,7 +685,7 @@ fn pathfinder_effect_on_loose_objects_groups_them_first() {
     let g = NodeId(r["ids"][0].as_u64().unwrap());
     let gn = node(&s, g);
     assert_eq!(gn.children().unwrap().iter().map(|c| c.id).collect::<Vec<_>>(), [a, b], "stacking order kept");
-    assert!(vectorcraft_render::effects::has_pathfinder(&gn));
+    assert!(vansoncraft_render::effects::has_pathfinder(&gn));
     assert_eq!(s.doc().unwrap().selection.objects, [g]);
     // Live: one united shape, so expanding leaves a single path.
     s.execute("effect.expandAppearance", &json!({})).unwrap();
@@ -710,14 +710,14 @@ fn pathfinder_effect_on_a_group_with_type_cuts_the_glyphs_out() {
     let glyphs = effects::outline_text(&node(&s, t)).unwrap();
     let b = glyphs.geometric_bounds().unwrap();
     assert!(b.x0 > 105.0 && b.y0 > 105.0 && b.x1 < 195.0 && b.y1 < 195.0, "the type lies inside the square: {b:?}");
-    let area = |n: &vectorcraft_doc::Node| effects::member_shapes(None, n).iter().map(|(p, r)| vectorcraft_pathops::area(p, *r)).sum::<f64>();
+    let area = |n: &vansoncraft_doc::Node| effects::member_shapes(None, n).iter().map(|(p, r)| vansoncraft_pathops::area(p, *r)).sum::<f64>();
     let glyph_area = area(&glyphs);
     s.execute("select.set", &json!({"ids": [a.0, t.0]})).unwrap();
     let g = NodeId(s.execute("object.group", &json!({})).unwrap()["id"].as_u64().unwrap());
     s.execute("effect.apply", &json!({"effect": "pathfinder.subtract"})).unwrap();
     // Live: the renderer leaves the glyph's place in the square empty.
     let doc = s.doc().unwrap().doc.clone();
-    let img = vectorcraft_render::Renderer::new().render(&doc, 400, 400, vectorcraft_geom::Affine::IDENTITY, &Default::default());
+    let img = vansoncraft_render::Renderer::new().render(&doc, 400, 400, vansoncraft_geom::Affine::IDENTITY, &Default::default());
     let empty = (105..195).flat_map(|y| (105..195).map(move |x| (x, y))).filter(|&(x, y)| img.pixel(x, y)[3] == 0).count();
     assert!(empty as f64 > glyph_area / 2.0, "{empty} empty pixels for a glyph area of {glyph_area}");
     // Expanded: the group holds the square minus the glyph.
@@ -736,7 +736,7 @@ fn pathfinder_effect_on_a_group_renders_live_and_expands() {
     s.execute("effect.apply", &json!({"effect": "pathfinder.subtract"})).unwrap();
     // Live: the renderer shows only the back square minus the front one.
     let doc = s.doc().unwrap().doc.clone();
-    let img = vectorcraft_render::Renderer::new().render(&doc, 400, 400, vectorcraft_geom::Affine::IDENTITY, &Default::default());
+    let img = vansoncraft_render::Renderer::new().render(&doc, 400, 400, vansoncraft_geom::Affine::IDENTITY, &Default::default());
     assert!(img.pixel(125, 150)[3] > 0);
     assert_eq!(img.pixel(200, 150)[3], 0);
     s.execute("effect.expandAppearance", &json!({})).unwrap();
@@ -749,7 +749,7 @@ fn pathfinder_effect_on_a_group_renders_live_and_expands() {
 /// Expand Appearance on a Transform effect with copies gives each copy its own gradient.
 #[test]
 fn expand_appearance_gives_each_copy_of_a_transform_its_own_gradient() {
-    use vectorcraft_color::{Color, Gradient, GradientKind, GradientPaint, GradientStop, Paint};
+    use vansoncraft_color::{Color, Gradient, GradientKind, GradientPaint, GradientStop, Paint};
     let (mut s, id) = session_with_rect();
     let stops = vec![GradientStop::new(0.0, Color::rgb(1.0, 0.0, 0.0)), GradientStop::new(1.0, Color::rgb(0.0, 0.0, 1.0))];
     let ramp = Paint::Gradient(Box::new(GradientPaint::new(Gradient::new(GradientKind::Linear, stops))));
@@ -776,8 +776,8 @@ fn expand_appearance_gives_each_copy_of_a_transform_its_own_gradient() {
 /// effect's copies of those copies nest, a group per copy of the first.
 #[test]
 fn expand_appearance_makes_each_copy_of_a_transform_an_object() {
-    use vectorcraft_color::{Color, Paint};
-    let fill = |n: &vectorcraft_doc::Node| n.appearance.fill_paint().color();
+    use vansoncraft_color::{Color, Paint};
+    let fill = |n: &vansoncraft_doc::Node| n.appearance.fill_paint().color();
     let (mut s, id) = session_with_rect();
     s.execute("paint.setFill", &json!({"color": "#ff0000"})).unwrap();
     s.execute("paint.setStroke", &json!({"none": true})).unwrap();
@@ -908,7 +908,7 @@ fn a_3d_shadow_is_one_undo_step_saved_exported_and_expanded() {
     assert!(matches!(shadow.kind, NodeKind::Path { .. }));
     // Saved and opened again, the effect keeps its shadow settings and draws the same shadow.
     let doc = &s.doc().unwrap().doc;
-    let restored = vectorcraft_format::load(&vectorcraft_format::save(doc, false)).unwrap();
+    let restored = vansoncraft_format::load(&vansoncraft_format::save(doc, false)).unwrap();
     let fx = &restored.node(id).unwrap().appearance.effects[0];
     for (key, value) in params.as_object().unwrap() {
         assert_eq!(fx.params.get(key), Some(value), "{key}");
@@ -918,7 +918,7 @@ fn a_3d_shadow_is_one_undo_step_saved_exported_and_expanded() {
     let shapes = |s: &mut Session| {
         let svg = s.execute("document.serialize", &json!({"format": "svg"})).unwrap();
         let svg = svg["data"].as_str().or_else(|| svg["text"].as_str()).map(str::to_string).unwrap_or_else(|| svg.to_string());
-        vectorcraft_testkit::svg_shapes(&svg)
+        vansoncraft_testkit::svg_shapes(&svg)
     };
     let with = shapes(&mut s);
     s.execute("edit.undo", &json!({})).unwrap();

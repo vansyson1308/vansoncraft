@@ -2,8 +2,8 @@
 //! shared between steps, and past a memory budget the oldest steps go (never the last few).
 
 use serde_json::json;
-use vectorcraft_doc::{Appearance, Node};
-use vectorcraft_geom::shapes;
+use vansoncraft_doc::{Appearance, Node};
+use vansoncraft_geom::shapes;
 
 use crate::*;
 
@@ -258,7 +258,7 @@ fn the_default_budget_is_a_quarter_of_installed_memory() {
     assert_eq!(history_budget_for(Some(16 << 30)), 4 << 30);
     assert_eq!(history_budget_for(Some(64 << 30)), 16 << 30, "no fixed ceiling");
     // On Linux `physical_memory` returns a cgroup memory limit lower than the installed memory in
-    // its place (the `cgroup_limit_*` tests in vectorcraft-render), so a 2 GiB limit on a 64 GiB
+    // its place (the `cgroup_limit_*` tests in vansoncraft-render), so a 2 GiB limit on a 64 GiB
     // machine gives the budget of 2 GiB installed.
     assert_eq!(history_budget_for(Some(2 << 30)), 512 << 20, "2 GiB, or a 2 GiB cgroup limit");
     assert_eq!(history_budget_for(Some(128 << 20)), 64 << 20, "at least 64 MiB");
@@ -271,7 +271,7 @@ fn the_default_budget_is_a_quarter_of_installed_memory() {
 #[cfg(any(target_os = "linux", windows, target_os = "macos", target_os = "freebsd"))]
 fn the_default_budget_follows_the_installed_memory_read() {
     // Where the memory can't be read (a sandbox that hides it), the budget is the 1 GiB fallback.
-    let memory = vectorcraft_render::physical_memory();
+    let memory = vansoncraft_render::physical_memory();
     assert_eq!(default_history_budget(), history_budget_for(memory), "{memory:?}");
     assert_eq!(History::default().byte_budget, default_history_budget());
     assert_eq!(Session::new().history_budget, default_history_budget(), "the open documents share it");
@@ -428,7 +428,7 @@ fn color_mode_paint_snapshots_count_toward_the_history_budget() {
     let mut s = Session::new();
     s.execute("file.new", &json!({"width":100,"height":100})).unwrap();
     let mut appearance = s.new_art();
-    appearance.effects.push(vectorcraft_doc::Effect {
+    appearance.effects.push(vansoncraft_doc::Effect {
         id: "stylize.dropShadow".into(),
         visible: true,
         params: json!({"color":"#ab6739", "retainedTemplateData":"x".repeat(128*1024)}),

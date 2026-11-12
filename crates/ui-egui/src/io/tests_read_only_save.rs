@@ -4,12 +4,12 @@ use std::io::ErrorKind;
 use std::sync::{Arc, Mutex, mpsc};
 
 use serde_json::{Value, json};
-use vectorcraft_engine::{EngineError, READ_ONLY_LOCATION, Session};
+use vansoncraft_engine::{EngineError, READ_ONLY_LOCATION, Session};
 
 use super::{fileio, save};
 use crate::control::ControlRequest;
 use crate::tests::picks::off_the_ui_thread;
-use crate::{Services, VectorcraftApp, background, dialogs, picks};
+use crate::{Services, VansoncraftApp, background, dialogs, picks};
 
 const DOCUMENTS: &str = "/home/artist/Documents";
 
@@ -21,7 +21,7 @@ struct Files {
     fail_second: bool,
 }
 
-fn write(files: &Mutex<Files>, path: &str) -> vectorcraft_engine::Result<()> {
+fn write(files: &Mutex<Files>, path: &str) -> vansoncraft_engine::Result<()> {
     let mut files = files.lock().unwrap();
     files.attempts.push(path.into());
     if path == files.original || files.fail_second {
@@ -34,7 +34,7 @@ fn write(files: &Mutex<Files>, path: &str) -> vectorcraft_engine::Result<()> {
     Ok(())
 }
 
-fn app(format: &str, kind: ErrorKind) -> (VectorcraftApp, Arc<Mutex<Files>>) {
+fn app(format: &str, kind: ErrorKind) -> (VansoncraftApp, Arc<Mutex<Files>>) {
     let files = Arc::new(Mutex::new(Files { original: format!("/locked/Poster.{format}"), kind: Some(kind), ..Default::default() }));
     let typed = files.clone();
     let ordinary = files.clone();
@@ -48,7 +48,7 @@ fn app(format: &str, kind: ErrorKind) -> (VectorcraftApp, Arc<Mutex<Files>>) {
         })),
         ..Default::default()
     };
-    let mut app = VectorcraftApp::new(Session::new(), services);
+    let mut app = VansoncraftApp::new(Session::new(), services);
     app.run("file.new", json!({"width": 40, "height": 40})).unwrap();
     app.run("shape.rectangle", json!({"x": 1, "y": 1, "width": 10, "height": 10})).unwrap();
     let st = app.session.doc_mut().unwrap();
@@ -65,16 +65,16 @@ fn app(format: &str, kind: ErrorKind) -> (VectorcraftApp, Arc<Mutex<Files>>) {
     (app, files)
 }
 
-fn state(app: &VectorcraftApp) -> (Option<String>, bool, &'static str, Value) {
+fn state(app: &VansoncraftApp) -> (Option<String>, bool, &'static str, Value) {
     let st = app.session.doc().unwrap();
     (st.path.clone(), st.is_dirty(), st.format, json!(st.save_options))
 }
 
-fn poll(app: &mut VectorcraftApp) {
+fn poll(app: &mut VansoncraftApp) {
     picks::poll(app, &egui::Context::default());
 }
 
-fn normal_error(app: &VectorcraftApp) {
+fn normal_error(app: &VansoncraftApp) {
     let d = app.ui.dialog.as_ref().expect("a persistent error dialog");
     assert_eq!(d.kind, dialogs::confirm::MESSAGE);
     assert!(d.str("detail").contains("injected refusal"));
@@ -221,7 +221,7 @@ fn readonly_automation_continuation_keeps_the_prefix_and_never_opens_a_panel() {
 #[test]
 fn readonly_background_completion_resumes_the_original_uid_without_repeating_save() {
     for streamed in [false, true] {
-        let format = if streamed { "vectorcraft" } else { "svg" };
+        let format = if streamed { "vansoncraft" } else { "svg" };
         let (mut app, files) = app(format, ErrorKind::ReadOnlyFilesystem);
         let original = files.lock().unwrap().original.clone();
         let uid = app.session.doc().unwrap().uid;
@@ -299,11 +299,11 @@ fn readonly_changed_format_asks_for_its_options_before_writing() {
 #[test]
 fn readonly_typed_save_checks_sidecars_before_writing_and_after_retry() {
     for in_background in [false, true] {
-        let (mut app, files) = app("vectorcraft", ErrorKind::PermissionDenied);
+        let (mut app, files) = app("vansoncraft", ErrorKind::PermissionDenied);
         app.run("artboard.new", json!({"x": 100, "y": 0, "width": 40, "height": 40, "name": "B"})).unwrap();
         app.session.doc_mut().unwrap().save_options.insert("separateArtboards".into(), json!(true));
         let before = state(&app);
-        let there = ["/locked/Poster-B.vectorcraft", "/elsewhere/Poster-B.vectorcraft"];
+        let there = ["/locked/Poster-B.vansoncraft", "/elsewhere/Poster-B.vansoncraft"];
         app.services.exists = Some(Arc::new(move |path| there.contains(&path)));
         app.services.write_shared = Some(Arc::new(|_, _| panic!("typed writer required")));
         app.session.prefs.background_save = in_background;
@@ -313,7 +313,7 @@ fn readonly_typed_save_checks_sidecars_before_writing_and_after_retry() {
         background::wait_all(&mut app);
         let d = app.ui.dialog.as_ref().expect("ask before writing the existing artboard file");
         assert_eq!(d.kind, dialogs::confirm::REPLACE_FILES);
-        assert_eq!(d.fields["files"], json!(["/locked/Poster-B.vectorcraft"]));
+        assert_eq!(d.fields["files"], json!(["/locked/Poster-B.vansoncraft"]));
         assert!(files.lock().unwrap().attempts.is_empty());
         assert!(shown.requests().is_empty());
         assert_eq!(state(&app), before);
@@ -325,32 +325,32 @@ fn readonly_typed_save_checks_sidecars_before_writing_and_after_retry() {
         background::wait_all(&mut app);
         dialogs::confirm(&mut app).unwrap();
         background::wait_all(&mut app);
-        assert_eq!(files.lock().unwrap().attempts, ["/locked/Poster.vectorcraft"]);
+        assert_eq!(files.lock().unwrap().attempts, ["/locked/Poster.vansoncraft"]);
         assert_eq!(state(&app), before);
         let requests = shown.requests();
         let [picks::PickRequest::Save(pick)] = requests.as_slice() else { panic!("expected one fallback panel: {requests:?}") };
-        assert_eq!(pick.name, "Poster.vectorcraft");
+        assert_eq!(pick.name, "Poster.vansoncraft");
 
-        shown.answer(&["/elsewhere/Poster.vectorcraft"]);
+        shown.answer(&["/elsewhere/Poster.vansoncraft"]);
         poll(&mut app);
         background::wait_all(&mut app);
         let d = app.ui.dialog.as_ref().expect("the retry also checks its destination's artboard file");
         assert_eq!(d.kind, dialogs::confirm::REPLACE_FILES);
-        assert_eq!(d.fields["files"], json!(["/elsewhere/Poster-B.vectorcraft"]));
-        assert_eq!(files.lock().unwrap().attempts, ["/locked/Poster.vectorcraft"]);
+        assert_eq!(d.fields["files"], json!(["/elsewhere/Poster-B.vansoncraft"]));
+        assert_eq!(files.lock().unwrap().attempts, ["/locked/Poster.vansoncraft"]);
         assert_eq!(state(&app), before);
         dialogs::confirm(&mut app).unwrap();
         background::wait_all(&mut app);
         assert_eq!(
             files.lock().unwrap().attempts,
             [
-                "/locked/Poster.vectorcraft",
-                "/elsewhere/Poster.vectorcraft",
-                "/elsewhere/Poster-Artboard-1.vectorcraft",
-                "/elsewhere/Poster-B.vectorcraft"
+                "/locked/Poster.vansoncraft",
+                "/elsewhere/Poster.vansoncraft",
+                "/elsewhere/Poster-Artboard-1.vansoncraft",
+                "/elsewhere/Poster-B.vansoncraft"
             ]
         );
-        assert_eq!(app.session.doc().unwrap().path.as_deref(), Some("/elsewhere/Poster.vectorcraft"));
+        assert_eq!(app.session.doc().unwrap().path.as_deref(), Some("/elsewhere/Poster.vansoncraft"));
         assert!(!app.session.doc().unwrap().is_dirty());
         assert!(shown.requests().is_empty() && app.ui.dialog.is_none());
     }

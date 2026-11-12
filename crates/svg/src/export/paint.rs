@@ -50,14 +50,14 @@ impl Writer<'_> {
         });
     }
 
-    fn colorized_key(&self, im: &vectorcraft_doc::ImageObject, color: Color) -> super::ColorizedKey {
+    fn colorized_key(&self, im: &vansoncraft_doc::ImageObject, color: Color) -> super::ColorizedKey {
         let rgb = color.to_rgb().map(|v| (v.clamp(0.0, 1.0) * 255.0).round() as u8);
         (im.key.clone(), im.width, im.height, self.tiny().then_some(rgb))
     }
 
     /// Colorize the decoded gray pixels without changing the source blob. The white pixels of the
     /// coverage image contribute their alpha to an alpha mask; Tiny uses the same alpha in RGBA.
-    pub(super) fn colorized_image(&mut self, n: &Node, im: &vectorcraft_doc::ImageObject, color: Color, blob: &ImageBlob) {
+    pub(super) fn colorized_image(&mut self, n: &Node, im: &vansoncraft_doc::ImageObject, color: Color, blob: &ImageBlob) {
         let key = self.colorized_key(im, color);
         let rgb = color.to_rgb().map(|v| (v.clamp(0.0, 1.0) * 255.0).round() as u8);
         let href = if let Some(href) = self.colorized_hrefs.get(&key) {
@@ -70,7 +70,7 @@ impl Writer<'_> {
             if u64::from(width)
                 .checked_mul(u64::from(height))
                 .and_then(|pixels| pixels.checked_mul(4))
-                .is_none_or(|bytes| bytes > vectorcraft_doc::MAX_RASTER_ALLOC)
+                .is_none_or(|bytes| bytes > vansoncraft_doc::MAX_RASTER_ALLOC)
             {
                 self.warn(UNDECODED);
                 return;
@@ -159,7 +159,7 @@ impl Writer<'_> {
 
     /// The `href` of image `im`: its file with [`ImageMode::Link`] (or when its pixels are
     /// missing), else its bytes. `None` when it has neither.
-    pub(super) fn image_href(&mut self, im: &vectorcraft_doc::ImageObject) -> Option<String> {
+    pub(super) fn image_href(&mut self, im: &vansoncraft_doc::ImageObject) -> Option<String> {
         let (doc, link) = (self.doc, self.opts.images == ImageMode::Link);
         match (im.link.as_ref().filter(|_| link), doc.image_blob(im)) {
             (Some(l), _) => Some(l.path.clone()),
@@ -173,7 +173,7 @@ impl Writer<'_> {
     pub(super) fn share_images(&mut self, art: &Node) {
         self.count_colorized_images(art);
         // Each image's count and its first piece, which shows what they all show.
-        let mut seen: HashMap<(String, u32, u32), (usize, vectorcraft_doc::ImageObject)> = HashMap::new();
+        let mut seen: HashMap<(String, u32, u32), (usize, vansoncraft_doc::ImageObject)> = HashMap::new();
         art.walk(&mut |c| {
             if let NodeKind::Image(im) = &c.kind {
                 if matches!(c.extras().colorize.as_deref(), Some(Paint::Solid { .. }))
@@ -314,7 +314,7 @@ impl Writer<'_> {
         };
         let attrs = match g.gradient.spread {
             _ if !spread => attrs,
-            vectorcraft_color::GradientSpread::Reflect => format!("{attrs} spreadMethod=\"reflect\""),
+            vansoncraft_color::GradientSpread::Reflect => format!("{attrs} spreadMethod=\"reflect\""),
             _ => format!("{attrs} spreadMethod=\"repeat\""),
         };
         let stops: Vec<String> = g
@@ -395,9 +395,9 @@ impl Writer<'_> {
         }
         let bp = bp.get_or_insert_with(|| doc_path(paths));
         let doc = self.doc;
-        let brushes = self.brushes.get_or_insert_with(|| vectorcraft_brush::library(doc));
+        let brushes = self.brushes.get_or_insert_with(|| vansoncraft_brush::library(doc));
         match st.brush.as_deref().and_then(|name| brushes.iter().find(|b| b.name == name)) {
-            Some(b) => StrokePlan::Brush(vectorcraft_brush::stroke_pieces(doc, b, bp, st)),
+            Some(b) => StrokePlan::Brush(vansoncraft_brush::stroke_pieces(doc, b, bp, st)),
             None => StrokePlan::Written(stroke::for_writer(bp, st)),
         }
     }
@@ -466,14 +466,14 @@ impl Writer<'_> {
     ///
     /// A conic gradient (SVG has none) with opaque stops that isn't drawn as pixels is written as
     /// [`CONIC_WEDGES`] solid wedges around its center in the same clip group instead, each
-    /// running on to the seam under the next ([`vectorcraft_color::GradientGeom::conic_wedges`]):
+    /// running on to the seam under the next ([`vansoncraft_color::GradientGeom::conic_wedges`]):
     /// vector art with a sharp seam. With translucent stops, where wedges drawn over each other
     /// would add up their opacity, it is an image.
     ///
     /// A diamond gradient (SVG has none) with opaque stops that isn't drawn as pixels is written
     /// as four linear gradients in the same clip group, one for each quadrant of its frame and
     /// equal to the diamond there, overlapping so no hairline shows between them
-    /// ([`vectorcraft_color::GradientGeom::diamond_quadrants`]). With translucent stops, where
+    /// ([`vansoncraft_color::GradientGeom::diamond_quadrants`]). With translucent stops, where
     /// the overlaps would add up their opacity, or without an extent, it is an image.
     #[allow(clippy::too_many_arguments)]
     pub(super) fn raster_paint(
@@ -487,7 +487,7 @@ impl Writer<'_> {
         side: &str,
         fill: bool,
     ) {
-        use vectorcraft_color::freeform::{grid_size, painted_box, spread_scale};
+        use vansoncraft_color::freeform::{grid_size, painted_box, spread_scale};
         let Some(b) = painted_box(bounds) else { return };
         let freeform = g.gradient.kind == GradientKind::Freeform;
         // The box the paint covers: the painted box, and a stroke's outline, whose miters, caps
@@ -561,19 +561,19 @@ impl Writer<'_> {
             }
             None => match quadrants {
                 Some(quadrants) => {
-                    let gradient = vectorcraft_color::Gradient { kind: GradientKind::Linear, ..g.gradient.clone() };
+                    let gradient = vansoncraft_color::Gradient { kind: GradientKind::Linear, ..g.gradient.clone() };
                     for (pts, geom) in quadrants {
                         // Not named after the swatch: four defs, none of them the swatch's gradient.
                         let linear = GradientPaint { gradient: gradient.clone(), geom: Some(geom), swatch: None, ..g.clone() };
                         let id = self.gradient_def(&linear, b);
-                        let d = self.path_d(&PathData::single(vectorcraft_geom::SubPath::polyline(&pts, true)), self.xf);
+                        let d = self.path_d(&PathData::single(vansoncraft_geom::SubPath::polyline(&pts, true)), self.xf);
                         self.line(&format!("<path d=\"{d}\" fill=\"url(#{id})\"/>"));
                     }
                 }
                 None => {
                     let (sample, spread) = (g.gradient.sampler(), g.gradient.spreader());
                     for (pts, t) in g.resolve(bounds).conic_wedges(cover, g.gradient.conic_wedge_count(CONIC_WEDGES), true) {
-                        let d = self.path_d(&PathData::single(vectorcraft_geom::SubPath::polyline(&pts, true)), self.xf);
+                        let d = self.path_d(&PathData::single(vansoncraft_geom::SubPath::polyline(&pts, true)), self.xf);
                         self.line(&format!("<path d=\"{d}\" fill=\"{}\"/>", sample(spread(t) as f32).0.to_hex()));
                     }
                 }
@@ -598,7 +598,7 @@ impl Writer<'_> {
     /// like them.
     pub(super) fn filtered(&mut self, n: &Node) {
         let mut inner = n.clone();
-        inner.appearance.effects.retain(|e| !vectorcraft_effects::is_raster(&e.id));
+        inner.appearance.effects.retain(|e| !vansoncraft_effects::is_raster(&e.id));
         // An SVG filter's user-space coordinates are the document's from the effect's origin: the
         // object is written in them, in a group that moves it where the rest of the art goes.
         let xf = self.xf;
@@ -621,9 +621,9 @@ impl Writer<'_> {
 
     /// Open one `<g filter>` per visible raster effect of `effects` (an object's, or one fill or
     /// stroke's) on `n`, outermost last effect; returns how many to close.
-    pub(super) fn open_filters(&mut self, n: &Node, effects: &[vectorcraft_doc::Effect]) -> usize {
-        use vectorcraft_effects::RasterFx;
-        let fx = vectorcraft_effects::raster_effects(effects);
+    pub(super) fn open_filters(&mut self, n: &Node, effects: &[vansoncraft_doc::Effect]) -> usize {
+        use vansoncraft_effects::RasterFx;
+        let fx = vansoncraft_effects::raster_effects(effects);
         if self.tiny() {
             if !fx.is_empty() {
                 self.warn("SVG Tiny 1.2 has no filters: shadows, glows, blurs and feathers are left out");
@@ -641,7 +641,7 @@ impl Writer<'_> {
         // An SVG filter that is the object's last effect is written as it is ([`Self::filtered`]).
         let live = if std::ptr::eq(effects, n.appearance.effects.as_slice()) { live_svg_filter(effects) } else { None };
         for (k, f) in fx.iter().enumerate().rev() {
-            if let RasterFx::Pixel(vectorcraft_effects::PixelFx::Svg(sf)) = f
+            if let RasterFx::Pixel(vansoncraft_effects::PixelFx::Svg(sf)) = f
                 && live.is_some()
                 && k + 1 == fx.len()
             {
@@ -651,7 +651,7 @@ impl Writer<'_> {
                 let mut input = n.clone();
                 input.appearance.effects.clear();
                 let input_bounds = input.visual_bounds_with(&self.doc.symbol_boxes()).unwrap_or_default();
-                if let Some(def) = sf.written_xml(input_bounds).and_then(|xml| vectorcraft_effects::svg_filter::with_id(&xml, &fid)) {
+                if let Some(def) = sf.written_xml(input_bounds).and_then(|xml| vansoncraft_effects::svg_filter::with_id(&xml, &fid)) {
                     self.def(1, &def);
                     self.line(&format!("<g filter=\"url(#{fid})\">"));
                     self.depth += 1;
@@ -664,14 +664,14 @@ impl Writer<'_> {
                 continue;
             }
             if matches!(f, RasterFx::DropShadow { darkness: Some(_), .. }) {
-                let mut paints = n.appearance.items.iter().filter(|i| vectorcraft_effects::paints(i));
+                let mut paints = n.appearance.items.iter().filter(|i| vansoncraft_effects::paints(i));
                 let uniform = paints.next().is_some_and(|i| {
-                    matches!(i.paint(), vectorcraft_color::Paint::Solid { color: vectorcraft_color::Color::Rgb { .. }, swatch: None, .. })
+                    matches!(i.paint(), vansoncraft_color::Paint::Solid { color: vansoncraft_color::Color::Rgb { .. }, swatch: None, .. })
                 }) && paints.next().is_none();
-                if self.doc.color_mode == vectorcraft_doc::ColorMode::Cmyk
-                    || !vectorcraft_color::cms::active().rgb_is_srgb()
+                if self.doc.color_mode == vansoncraft_doc::ColorMode::Cmyk
+                    || !vansoncraft_color::cms::active().rgb_is_srgb()
                     || !uniform
-                    || !matches!(n.kind, vectorcraft_doc::NodeKind::Path { .. } | vectorcraft_doc::NodeKind::Compound { .. })
+                    || !matches!(n.kind, vansoncraft_doc::NodeKind::Path { .. } | vansoncraft_doc::NodeKind::Compound { .. })
                 {
                     self.warn("Some Darkness shadows require rendered images to preserve source colors, profiles and gradients");
                 }
@@ -688,7 +688,7 @@ impl Writer<'_> {
                 None => String::new(),
             };
             let sd = |blur: f64| fmt_num((blur / 2.0).max(0.0), 3);
-            let flood = |c: &vectorcraft_color::Color, o: f32| {
+            let flood = |c: &vansoncraft_color::Color, o: f32| {
                 format!("<feFlood flood-color=\"{}\" flood-opacity=\"{}\"/>", c.to_hex(), fmt_num(o as f64, 3))
             };
             let body = match f {
@@ -784,15 +784,15 @@ pub(super) fn pixel_gradient(p: &Paint, fill: bool) -> Option<&GradientPaint> {
 
 /// The SVG filter (Effect › SVG Filters) of an object's `effects` that SVG keeps as a `<filter>`:
 /// its last visible effect, measured in points.
-fn live_svg_filter(effects: &[vectorcraft_doc::Effect]) -> Option<vectorcraft_effects::svg_filter::SvgFilterFx> {
-    if !vectorcraft_effects::svg_filter::writes_live(effects) {
+fn live_svg_filter(effects: &[vansoncraft_doc::Effect]) -> Option<vansoncraft_effects::svg_filter::SvgFilterFx> {
+    if !vansoncraft_effects::svg_filter::writes_live(effects) {
         return None;
     }
-    let mut fx = vectorcraft_effects::raster_effects(effects);
+    let mut fx = vansoncraft_effects::raster_effects(effects);
     // A region measured against the object's box is kept only when the filter runs on the object itself.
     let alone = fx.len() == 1;
     match fx.pop() {
-        Some(vectorcraft_effects::RasterFx::Pixel(vectorcraft_effects::PixelFx::Svg(f)))
+        Some(vansoncraft_effects::RasterFx::Pixel(vansoncraft_effects::PixelFx::Svg(f)))
             if f.in_points() && (alone || !f.measured()) && f.writes_as_svg11() =>
         {
             Some(f)
@@ -802,6 +802,6 @@ fn live_svg_filter(effects: &[vectorcraft_doc::Effect]) -> Option<vectorcraft_ef
 }
 
 /// Any visible raster effect (shadow, glow, blur, feather) in `effects`?
-pub(super) fn has_raster(effects: &[vectorcraft_doc::Effect]) -> bool {
-    effects.iter().any(|e| e.visible && vectorcraft_effects::is_raster(&e.id))
+pub(super) fn has_raster(effects: &[vansoncraft_doc::Effect]) -> bool {
+    effects.iter().any(|e| e.visible && vansoncraft_effects::is_raster(&e.id))
 }

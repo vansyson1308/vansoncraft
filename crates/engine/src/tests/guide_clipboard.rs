@@ -2,7 +2,7 @@
 //! or alone, and paste into another document or onto another artboard.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::NodeId;
+use vansoncraft_doc::NodeId;
 
 use crate::*;
 

@@ -2,7 +2,7 @@
 //! carries (see `native`). The files here are small ones written by hand for the tests, with the
 //! operators seen in files their users own.
 
-use vectorcraft_doc::{Document, LayerColor, Node, NodeKind, Unit};
+use vansoncraft_doc::{Document, LayerColor, Node, NodeKind, Unit};
 
 use crate::import::import;
 
@@ -78,10 +78,10 @@ fn names(d: &Document) -> Vec<String> {
 }
 
 /// The ruler guides of `d` by their line, artboard and layer.
-fn guide_lines(d: &Document) -> Vec<vectorcraft_doc::Guide> {
+fn guide_lines(d: &Document) -> Vec<vansoncraft_doc::Guide> {
     d.ruler_guides()
         .into_iter()
-        .map(|g| vectorcraft_doc::Guide { artboard: g.artboard, layer: g.layer, ..vectorcraft_doc::Guide::new(g.vertical, g.pos) })
+        .map(|g| vansoncraft_doc::Guide { artboard: g.artboard, layer: g.layer, ..vansoncraft_doc::Guide::new(g.vertical, g.pos) })
         .collect()
 }
 
@@ -127,13 +127,13 @@ fn an_eps_takes_the_author_and_custom_colors_of_its_own_header() {
     assert_eq!(names(&r.document), ["Art"]);
     assert_eq!(r.document.metadata.author, "Outer Author");
     let ink = |d: &Document, name: &str| d.swatch(name).map(|s| (s.paint.color(), s.spot));
-    assert_eq!(ink(&r.document, "Outer Ink"), Some((Some(vectorcraft_color::Color::cmyk(0.0, 0.0, 1.0, 0.0)), true)));
-    assert_eq!(ink(&r.document, "Red"), Some((Some(vectorcraft_color::Color::cmyk(0.0, 0.5, 0.5, 0.0)), true)), "in place of the default");
+    assert_eq!(ink(&r.document, "Outer Ink"), Some((Some(vansoncraft_color::Color::cmyk(0.0, 0.0, 1.0, 0.0)), true)));
+    assert_eq!(ink(&r.document, "Red"), Some((Some(vansoncraft_color::Color::cmyk(0.0, 0.5, 0.5, 0.0)), true)), "in place of the default");
     // The private data's own header comes first.
     let own = native(&art).replacen("%%BoundingBox", "%%For: (Inner Author) ()\n%%RGBCustomColor: 1 0 0 (Shared Ink)\n%%BoundingBox", 1);
     let r = import(&outer(eps(&page_square(10, 10), &own))).unwrap();
     assert_eq!(r.document.metadata.author, "Inner Author");
-    assert_eq!(ink(&r.document, "Shared Ink"), Some((Some(vectorcraft_color::Color::rgb(1.0, 0.0, 0.0)), true)));
+    assert_eq!(ink(&r.document, "Shared Ink"), Some((Some(vansoncraft_color::Color::rgb(1.0, 0.0, 0.0)), true)));
 }
 
 fn kinds(l: &Node) -> Vec<&'static str> {
@@ -322,10 +322,10 @@ fn private(native: &str) -> Vec<u8> {
 fn pdf_part(x: f64, y: f64) -> Document {
     let mut d = Document::new(100.0, 100.0);
     let id = d.alloc_id();
-    let path = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(x, y, x + 4.0, y + 4.0));
-    let paint = vectorcraft_color::Paint::solid(vectorcraft_color::Color::cmyk(0.0, 0.0, 1.0, 0.0));
-    let item = vectorcraft_doc::AppearanceItem::Fill(vectorcraft_doc::FillLayer::new(paint));
-    let n = Node::path(id, path, vectorcraft_doc::Appearance { items: vec![item], ..Default::default() });
+    let path = vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(x, y, x + 4.0, y + 4.0));
+    let paint = vansoncraft_color::Paint::solid(vansoncraft_color::Color::cmyk(0.0, 0.0, 1.0, 0.0));
+    let item = vansoncraft_doc::AppearanceItem::Fill(vansoncraft_doc::FillLayer::new(paint));
+    let n = Node::path(id, path, vansoncraft_doc::Appearance { items: vec![item], ..Default::default() });
     let layer = d.layers[0].id;
     d.insert(Some(layer), 0, n).unwrap();
     d
@@ -336,9 +336,9 @@ fn pdf_two_squares() -> Document {
     let other = pdf_part(50.0, 86.0);
     let layer = page.layers[0].id;
     let mut square = page.reid(&other.layers[0].children().unwrap()[0]);
-    square.appearance = vectorcraft_doc::Appearance {
-        items: vec![vectorcraft_doc::AppearanceItem::Fill(vectorcraft_doc::FillLayer::new(vectorcraft_color::Paint::solid(
-            vectorcraft_color::Color::cmyk(1.0, 0.0, 0.0, 0.0),
+    square.appearance = vansoncraft_doc::Appearance {
+        items: vec![vansoncraft_doc::AppearanceItem::Fill(vansoncraft_doc::FillLayer::new(vansoncraft_color::Paint::solid(
+            vansoncraft_color::Color::cmyk(1.0, 0.0, 0.0, 0.0),
         )))],
         ..Default::default()
     }
@@ -359,12 +359,12 @@ fn pdf_three_squares() -> Document {
 fn pdf_split_square() -> Document {
     let mut page = pdf_part(10.0, 86.0);
     let layer = page.layers[0].id;
-    for (i, color) in [vectorcraft_color::Color::cmyk(1.0, 0.0, 0.0, 0.0), vectorcraft_color::Color::cmyk(0.0, 1.0, 0.0, 0.0)].into_iter().enumerate()
+    for (i, color) in [vansoncraft_color::Color::cmyk(1.0, 0.0, 0.0, 0.0), vansoncraft_color::Color::cmyk(0.0, 1.0, 0.0, 0.0)].into_iter().enumerate()
     {
         let x = 50.0 + 2.0 * i as f64;
-        let path = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(x, 86.0, x + 2.0, 90.0));
-        let appearance = vectorcraft_doc::Appearance {
-            items: vec![vectorcraft_doc::AppearanceItem::Fill(vectorcraft_doc::FillLayer::new(vectorcraft_color::Paint::solid(color)))],
+        let path = vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(x, 86.0, x + 2.0, 90.0));
+        let appearance = vansoncraft_doc::Appearance {
+            items: vec![vansoncraft_doc::AppearanceItem::Fill(vansoncraft_doc::FillLayer::new(vansoncraft_color::Paint::solid(color)))],
             ..Default::default()
         };
         let node = Node::path(page.alloc_id(), path, appearance);
@@ -381,8 +381,8 @@ fn replacement_is_cyan(doc: &Document, layer: usize, child: usize) {
     let group = &doc.layers[layer].children().unwrap()[child];
     let art = &group.children().unwrap()[0];
     assert!(matches!(art.kind, NodeKind::Path { .. }));
-    assert!(matches!(art.appearance.items.first(), Some(vectorcraft_doc::AppearanceItem::Fill(fill))
-        if fill.paint == vectorcraft_color::Paint::solid(vectorcraft_color::Color::cmyk(1.0, 0.0, 0.0, 0.0))));
+    assert!(matches!(art.appearance.items.first(), Some(vansoncraft_doc::AppearanceItem::Fill(fill))
+        if fill.paint == vansoncraft_color::Paint::solid(vansoncraft_color::Color::cmyk(1.0, 0.0, 0.0, 0.0))));
 }
 
 fn replacement_has_two_halves(doc: &Document) {
@@ -391,10 +391,10 @@ fn replacement_has_two_halves(doc: &Document) {
     assert_eq!(art.len(), 2);
     assert_eq!(art[0].geometric_bounds().unwrap().x0, 50.0);
     assert_eq!(art[1].geometric_bounds().unwrap().x0, 52.0);
-    assert!(matches!(art[0].appearance.items.first(), Some(vectorcraft_doc::AppearanceItem::Fill(fill))
-        if fill.paint == vectorcraft_color::Paint::solid(vectorcraft_color::Color::cmyk(1.0, 0.0, 0.0, 0.0))));
-    assert!(matches!(art[1].appearance.items.first(), Some(vectorcraft_doc::AppearanceItem::Fill(fill))
-        if fill.paint == vectorcraft_color::Paint::solid(vectorcraft_color::Color::cmyk(0.0, 1.0, 0.0, 0.0))));
+    assert!(matches!(art[0].appearance.items.first(), Some(vansoncraft_doc::AppearanceItem::Fill(fill))
+        if fill.paint == vansoncraft_color::Paint::solid(vansoncraft_color::Color::cmyk(1.0, 0.0, 0.0, 0.0))));
+    assert!(matches!(art[1].appearance.items.first(), Some(vansoncraft_doc::AppearanceItem::Fill(fill))
+        if fill.paint == vansoncraft_color::Paint::solid(vansoncraft_color::Color::cmyk(0.0, 1.0, 0.0, 0.0))));
 }
 
 #[test]
@@ -438,7 +438,7 @@ fn unread_group_uses_page_opacity_once() {
     let replacement = &doc.layers[1].children().unwrap()[0];
     assert_eq!(replacement.opacity, 1.0);
     assert_eq!(replacement.children().unwrap()[0].opacity, 0.5);
-    let rendered = vectorcraft_render::Renderer::new().render_region(&doc, vectorcraft_geom::Rect::new(50.0, 86.0, 54.0, 90.0), 4.0, false);
+    let rendered = vansoncraft_render::Renderer::new().render_region(&doc, vansoncraft_geom::Rect::new(50.0, 86.0, 54.0, 90.0), 4.0, false);
     let pixel = rendered.pixels.as_chunks::<4>().0.get(8 * rendered.width as usize + 8).unwrap();
     assert!((120..=136).contains(&pixel[3]), "the final document draws the group at 50% once: {pixel:?}");
 }
@@ -521,12 +521,12 @@ fn nested_previewless_placed_file_at_box_corner_falls_back() {
     let art = native(&layer("Placed", true, &os1_group(place))).replace("%AI5_NumLayers", "%AI3_TemplateBox: 100 50 100 50\n%AI5_NumLayers");
     let mut page = Document::new(100.0, 100.0);
     let id = page.alloc_id();
-    let path = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(30.0, 30.0, 70.0, 70.0));
-    let fill = vectorcraft_doc::FillLayer::new(vectorcraft_color::Paint::solid(vectorcraft_color::Color::gray(0.5)));
+    let path = vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(30.0, 30.0, 70.0, 70.0));
+    let fill = vansoncraft_doc::FillLayer::new(vansoncraft_color::Paint::solid(vansoncraft_color::Color::gray(0.5)));
     page.insert(
         Some(page.layers[0].id),
         0,
-        Node::path(id, path, vectorcraft_doc::Appearance { items: vec![vectorcraft_doc::AppearanceItem::Fill(fill)], ..Default::default() }),
+        Node::path(id, path, vansoncraft_doc::Appearance { items: vec![vansoncraft_doc::AppearanceItem::Fill(fill)], ..Default::default() }),
     )
     .unwrap();
     let (doc, notes, read) = crate::layered_ai(&private(&art), page, vec![], false, false, 1.0);
@@ -541,12 +541,12 @@ fn group_with_previewless_placed_file_and_readable_sibling_keeps_sibling() {
     let art = native(&layer("Mixed", true, &group)).replace("%AI5_NumLayers", "%AI3_TemplateBox: 100 50 100 50\n%AI5_NumLayers");
     let mut page = pdf_part(70.0, 86.0);
     let id = page.alloc_id();
-    let path = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(30.0, 30.0, 70.0, 70.0));
-    let fill = vectorcraft_doc::FillLayer::new(vectorcraft_color::Paint::solid(vectorcraft_color::Color::gray(0.5)));
+    let path = vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(30.0, 30.0, 70.0, 70.0));
+    let fill = vansoncraft_doc::FillLayer::new(vansoncraft_color::Paint::solid(vansoncraft_color::Color::gray(0.5)));
     page.insert(
         Some(page.layers[0].id),
         1,
-        Node::path(id, path, vectorcraft_doc::Appearance { items: vec![vectorcraft_doc::AppearanceItem::Fill(fill)], ..Default::default() }),
+        Node::path(id, path, vansoncraft_doc::Appearance { items: vec![vansoncraft_doc::AppearanceItem::Fill(fill)], ..Default::default() }),
     )
     .unwrap();
     let (doc, notes, read) = crate::layered_ai(&private(&art), page, vec![], false, false, 1.0);
@@ -571,12 +571,12 @@ fn previewless_placed_file_tries_corner_when_first_box_contains_live_art() {
         .replace("%AI5_NumLayers", "%AI3_TemplateBox: 100 50 100 50\n%AI5_NumLayers");
     let mut page = Document::new(100.0, 100.0);
     let id = page.alloc_id();
-    let path = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(30.0, 30.0, 70.0, 70.0));
-    let fill = vectorcraft_doc::FillLayer::new(vectorcraft_color::Paint::solid(vectorcraft_color::Color::gray(0.5)));
+    let path = vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(30.0, 30.0, 70.0, 70.0));
+    let fill = vansoncraft_doc::FillLayer::new(vansoncraft_color::Paint::solid(vansoncraft_color::Color::gray(0.5)));
     page.insert(
         Some(page.layers[0].id),
         0,
-        Node::path(id, path, vectorcraft_doc::Appearance { items: vec![vectorcraft_doc::AppearanceItem::Fill(fill)], ..Default::default() }),
+        Node::path(id, path, vansoncraft_doc::Appearance { items: vec![vansoncraft_doc::AppearanceItem::Fill(fill)], ..Default::default() }),
     )
     .unwrap();
     let (doc, notes, read) = crate::layered_ai(&private(&art), page, vec![], false, false, 1.0);
@@ -594,14 +594,14 @@ fn replaced_page_art_reids_opacity_mask_art() {
     let mut page = pdf_part(50.0, 86.0);
     let page_node_id = page.layers[0].children().unwrap()[0].id;
     let mask_id = page.alloc_id();
-    let mask_path = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(50.0, 86.0, 54.0, 90.0));
-    let mask_fill = vectorcraft_doc::FillLayer::new(vectorcraft_color::Paint::solid(vectorcraft_color::Color::WHITE));
+    let mask_path = vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(50.0, 86.0, 54.0, 90.0));
+    let mask_fill = vansoncraft_doc::FillLayer::new(vansoncraft_color::Paint::solid(vansoncraft_color::Color::WHITE));
     let mask_art = Node::path(
         mask_id,
         mask_path,
-        vectorcraft_doc::Appearance { items: vec![vectorcraft_doc::AppearanceItem::Fill(mask_fill)], ..Default::default() },
+        vansoncraft_doc::Appearance { items: vec![vansoncraft_doc::AppearanceItem::Fill(mask_fill)], ..Default::default() },
     );
-    page.node_mut(page_node_id).unwrap().extras_mut().mask = Some(Box::new(vectorcraft_doc::OpacityMask::new(mask_art, true)));
+    page.node_mut(page_node_id).unwrap().extras_mut().mask = Some(Box::new(vansoncraft_doc::OpacityMask::new(mask_art, true)));
     let (doc, notes, read) = crate::layered_ai(&private(&art), page, vec![], false, false, 1.0);
     assert!(read, "{notes:?}");
     let replacement = &doc.layers[0].children().unwrap()[0].children().unwrap()[0];
@@ -613,7 +613,7 @@ fn replaced_page_art_reids_opacity_mask_art() {
 
 #[test]
 fn top_level_placed_file_replacement_keeps_page_image_data() {
-    use vectorcraft_doc::{ImageBlob, ImageObject};
+    use vansoncraft_doc::{ImageBlob, ImageObject};
 
     let placed = "%AI5_BeginPlace\n[1 0 0 1 0 0] 50 10 54 14 (missing) `\n~\n%AI5_EndPlace";
     let art = native(&(layer("Live", true, &square(10, 10)) + &layer("Mixed", true, placed)));
@@ -631,7 +631,7 @@ fn top_level_placed_file_replacement_keeps_page_image_data() {
             key: key.clone(),
             width: 4,
             height: 4,
-            xf: vectorcraft_geom::Affine::translate(vectorcraft_geom::Vec2::new(50.0, 86.0)),
+            xf: vansoncraft_geom::Affine::translate(vansoncraft_geom::Vec2::new(50.0, 86.0)),
             link: None,
             placement: Default::default(),
             pixels: None,
@@ -652,8 +652,8 @@ fn top_level_placed_file_replacement_keeps_page_image_data() {
 
 #[test]
 fn top_level_pattern_replacement_keeps_gradient_stop_swatch() {
-    use vectorcraft_color::gradient::{GradientKind, GradientPaint, GradientStop};
-    use vectorcraft_color::{Color, Gradient, Paint, Swatch};
+    use vansoncraft_color::gradient::{GradientKind, GradientPaint, GradientStop};
+    use vansoncraft_color::{Color, Gradient, Paint, Swatch};
 
     let body = format!("(Absent) 0 0 1 1 0 0 0 0 0 [1 0 0 1 0 0] p\n{}", square_path(50, 10));
     let art = native(&(layer("Live", true, &square(10, 10)) + &layer("Mixed", true, &body)));
@@ -665,8 +665,8 @@ fn top_level_pattern_replacement_keeps_gradient_stop_swatch() {
     let gradient = Gradient::new(GradientKind::Linear, vec![stop, GradientStop::new(1.0, cyan)]);
     let id = page.layers[0].children().unwrap()[1].id;
     let node = page.node_mut(id).unwrap();
-    node.appearance = vectorcraft_doc::Appearance {
-        items: vec![vectorcraft_doc::AppearanceItem::Fill(vectorcraft_doc::FillLayer::new(Paint::Gradient(Box::new(GradientPaint::new(gradient)))))],
+    node.appearance = vansoncraft_doc::Appearance {
+        items: vec![vansoncraft_doc::AppearanceItem::Fill(vansoncraft_doc::FillLayer::new(Paint::Gradient(Box::new(GradientPaint::new(gradient)))))],
         ..Default::default()
     }
     .into();
@@ -682,7 +682,7 @@ fn top_level_pattern_replacement_keeps_gradient_stop_swatch() {
 
 /// Two independently imported copies of the same tile have different node IDs.
 fn page_with_named_pattern(native_art: &str, different: bool) -> Document {
-    use vectorcraft_color::Paint;
+    use vansoncraft_color::Paint;
 
     let (editing, _) = crate::ai_alone(&private(&native_art.replace("(Absent)", "(Dots)"))).unwrap();
     let source = editing.pattern("Dots").unwrap();
@@ -695,10 +695,10 @@ fn page_with_named_pattern(native_art: &str, different: bool) -> Document {
     page.patterns.push(pattern);
     let id = page.layers[0].children().unwrap()[1].id;
     let node = page.node_mut(id).unwrap();
-    node.appearance = vectorcraft_doc::Appearance {
-        items: vec![vectorcraft_doc::AppearanceItem::Fill(vectorcraft_doc::FillLayer::new(Paint::Pattern {
+    node.appearance = vansoncraft_doc::Appearance {
+        items: vec![vansoncraft_doc::AppearanceItem::Fill(vansoncraft_doc::FillLayer::new(Paint::Pattern {
             pattern: "Dots".into(),
-            xf: vectorcraft_geom::Affine::IDENTITY,
+            xf: vansoncraft_geom::Affine::IDENTITY,
         }))],
         ..Default::default()
     }
@@ -721,7 +721,7 @@ fn same_named_pattern_in_page_art_keeps_editing_layers() {
     assert_eq!(names(&doc), ["Live", "Mixed"]);
     assert_eq!(doc.patterns.iter().filter(|p| p.name == "Dots").count(), 1);
     let replacement = &doc.layers[1].children().unwrap()[0].children().unwrap()[0];
-    assert!(matches!(replacement.appearance.fill().map(|f| &f.paint), Some(vectorcraft_color::Paint::Pattern { pattern, .. }) if pattern == "Dots"));
+    assert!(matches!(replacement.appearance.fill().map(|f| &f.paint), Some(vansoncraft_color::Paint::Pattern { pattern, .. }) if pattern == "Dots"));
 }
 
 #[test]
@@ -729,11 +729,11 @@ fn copied_page_pattern_reids_its_mask_art() {
     let source_art = named_pattern_replacement_art();
     let mut page = page_with_named_pattern(&source_art, false);
     let mask_id = page.alloc_id();
-    let path = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(0.0, 0.0, 4.0, 4.0));
-    let fill = vectorcraft_doc::FillLayer::new(vectorcraft_color::Paint::solid(vectorcraft_color::Color::WHITE));
+    let path = vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(0.0, 0.0, 4.0, 4.0));
+    let fill = vansoncraft_doc::FillLayer::new(vansoncraft_color::Paint::solid(vansoncraft_color::Color::WHITE));
     let mask_art =
-        Node::path(mask_id, path, vectorcraft_doc::Appearance { items: vec![vectorcraft_doc::AppearanceItem::Fill(fill)], ..Default::default() });
-    std::sync::Arc::make_mut(&mut page.patterns[0].art[0]).extras_mut().mask = Some(Box::new(vectorcraft_doc::OpacityMask::new(mask_art, true)));
+        Node::path(mask_id, path, vansoncraft_doc::Appearance { items: vec![vansoncraft_doc::AppearanceItem::Fill(fill)], ..Default::default() });
+    std::sync::Arc::make_mut(&mut page.patterns[0].art[0]).extras_mut().mask = Some(Box::new(vansoncraft_doc::OpacityMask::new(mask_art, true)));
     let art = native(&format!(
         "{}{}",
         layer("Live", true, &square(10, 10)),
@@ -779,8 +779,8 @@ fn grouped_page_across_unread_and_neighbor(clipped: bool) -> Document {
     let neighbor = page.reid(&other.layers[0].children().unwrap()[0]);
     let mut children = Vec::new();
     if clipped {
-        let path = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(50.0, 86.0, 74.0, 90.0));
-        let mut clip = Node::path(page.alloc_id(), path, vectorcraft_doc::Appearance::default());
+        let path = vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(50.0, 86.0, 74.0, 90.0));
+        let mut clip = Node::path(page.alloc_id(), path, vansoncraft_doc::Appearance::default());
         if let NodeKind::Path { clipping, .. } = &mut clip.kind {
             *clipping = true;
         }
@@ -819,7 +819,7 @@ fn live_art_inside_unread_bounds_falls_back_instead_of_drawing_twice() {
     let body = format!("{}\n{}", os1_group(&format!("{}\nZZ", square(50, 10))), "0 0 1 0 k\n51 11 m\n53 11 L\n53 13 L\n51 13 L\nf");
     let art = native(&(layer("Live", true, &square(10, 10)) + &layer("Mixed", true, &body)));
     let mut page = pdf_two_squares();
-    let inner = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(51.0, 87.0, 53.0, 89.0));
+    let inner = vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(51.0, 87.0, 53.0, 89.0));
     let appearance = (*page.layers[0].children().unwrap()[0].appearance).clone();
     let node = Node::path(page.alloc_id(), inner, appearance);
     let layer_id = page.layers[0].id;
@@ -835,7 +835,7 @@ fn live_art_crossing_unread_bounds_by_half_a_point_falls_back() {
     let neighbor = "0 0 1 0 k\n53.5 11 m\n54.5 11 L\n54.5 13 L\n53.5 13 L\nf";
     let art = native(&layer("Mixed", true, &format!("{}\n{neighbor}", os1_group(&format!("{}\nZZ", square(50, 10))))));
     let mut page = pdf_part(50.0, 86.0);
-    let path = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(53.5, 87.0, 54.5, 89.0));
+    let path = vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(53.5, 87.0, 54.5, 89.0));
     let appearance = (*page.layers[0].children().unwrap()[0].appearance).clone();
     let node = Node::path(page.alloc_id(), path, appearance);
     let layer = page.layers[0].id;
@@ -852,7 +852,7 @@ fn overlapping_unread_objects_cannot_claim_the_same_page_art() {
     let second = os1_group(&format!("{}\nZZ", square(52, 10)));
     let art = native(&layer("Mixed", true, &format!("{first}\n{second}")));
     let mut page = pdf_part(52.0, 86.0);
-    let path = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(52.0, 86.0, 54.0, 90.0));
+    let path = vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(52.0, 86.0, 54.0, 90.0));
     let node = page.layers[0].children().unwrap()[0].as_ref().clone();
     let layer = page.layers[0].id;
     page.remove(node.id).unwrap();
@@ -900,10 +900,10 @@ fn page_16(squares: &[(f64, f64, [f32; 4])]) -> Document {
     let mut d = Document::new(100.0, 100.0);
     let layer = d.layers[0].id;
     for (i, (x, y, [c, m, ye, k])) in squares.iter().enumerate() {
-        let path = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(*x, *y, x + 16.0, y + 16.0));
-        let paint = vectorcraft_color::Paint::solid(vectorcraft_color::Color::cmyk(*c, *m, *ye, *k));
-        let item = vectorcraft_doc::AppearanceItem::Fill(vectorcraft_doc::FillLayer::new(paint));
-        let n = Node::path(d.alloc_id(), path, vectorcraft_doc::Appearance { items: vec![item], ..Default::default() });
+        let path = vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(*x, *y, x + 16.0, y + 16.0));
+        let paint = vansoncraft_color::Paint::solid(vansoncraft_color::Color::cmyk(*c, *m, *ye, *k));
+        let item = vansoncraft_doc::AppearanceItem::Fill(vansoncraft_doc::FillLayer::new(paint));
+        let n = Node::path(d.alloc_id(), path, vansoncraft_doc::Appearance { items: vec![item], ..Default::default() });
         d.insert(Some(layer), i, n).unwrap();
     }
     d
@@ -960,7 +960,7 @@ fn a_differing_wrap_object_keeps_its_wrap_options() {
     assert_eq!(kinds(&doc.layers[1]), ["group[1]", "path"]);
     replacement_is_cyan(&doc, 1, 0);
     let group = &doc.layers[1].children().unwrap()[0];
-    assert_eq!(group.extras().wrap, Some(vectorcraft_doc::TextWrap { offset: 2.0, invert: false }));
+    assert_eq!(group.extras().wrap, Some(vansoncraft_doc::TextWrap { offset: 2.0, invert: false }));
 }
 
 #[test]
@@ -1050,11 +1050,11 @@ fn at_most_64_differing_objects_come_in_as_the_page_art() {
         for i in 0..130 {
             let (x, y) = at(i);
             let (x, y) = (f64::from(x), 96.0 - f64::from(y));
-            let path = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(x, y, x + 4.0, y + 4.0));
+            let path = vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(x, y, x + 4.0, y + 4.0));
             let color =
-                if i < black { vectorcraft_color::Color::cmyk(1.0, 0.0, 0.0, 0.0) } else { vectorcraft_color::Color::cmyk(0.0, 0.0, 1.0, 0.0) };
-            let item = vectorcraft_doc::AppearanceItem::Fill(vectorcraft_doc::FillLayer::new(vectorcraft_color::Paint::solid(color)));
-            let n = Node::path(page.alloc_id(), path, vectorcraft_doc::Appearance { items: vec![item], ..Default::default() });
+                if i < black { vansoncraft_color::Color::cmyk(1.0, 0.0, 0.0, 0.0) } else { vansoncraft_color::Color::cmyk(0.0, 0.0, 1.0, 0.0) };
+            let item = vansoncraft_doc::AppearanceItem::Fill(vansoncraft_doc::FillLayer::new(vansoncraft_color::Paint::solid(color)));
+            let n = Node::path(page.alloc_id(), path, vansoncraft_doc::Appearance { items: vec![item], ..Default::default() });
             page.insert(Some(layer_id), i, n).unwrap();
         }
         crate::layered_ai(&private(&native(&layer("Grid", true, &art))), page, vec![], false, false, 1.0)
@@ -1078,13 +1078,13 @@ fn a_differing_object_under_the_type_of_a_text_object_that_stays_falls_back() {
     let art = native_with_text(&(layer("Art", true, &format!("{big}\n{}", frame_object(0, 0))) + &layer("Top", true, &square_16(76, YELLOW))), &doc);
     let mut page = page_16(&[(76.0, 74.0, PAGE_YELLOW)]);
     let layer_id = page.layers[0].id;
-    let path = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(10.0, 60.0, 60.0, 98.0));
-    let paint = vectorcraft_color::Paint::solid(vectorcraft_color::Color::cmyk(1.0, 0.0, 0.0, 0.0));
-    let item = vectorcraft_doc::AppearanceItem::Fill(vectorcraft_doc::FillLayer::new(paint));
-    let square = Node::path(page.alloc_id(), path, vectorcraft_doc::Appearance { items: vec![item], ..Default::default() });
+    let path = vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(10.0, 60.0, 60.0, 98.0));
+    let paint = vansoncraft_color::Paint::solid(vansoncraft_color::Color::cmyk(1.0, 0.0, 0.0, 0.0));
+    let item = vansoncraft_doc::AppearanceItem::Fill(vansoncraft_doc::FillLayer::new(paint));
+    let square = Node::path(page.alloc_id(), path, vansoncraft_doc::Appearance { items: vec![item], ..Default::default() });
     page.insert(Some(layer_id), 0, square).unwrap();
-    let style = vectorcraft_doc::CharStyle { size: 8.0, ..Default::default() };
-    let text = vectorcraft_doc::TextObject::point(vectorcraft_geom::Point::new(34.0, 69.0), "Hi", style);
+    let style = vansoncraft_doc::CharStyle { size: 8.0, ..Default::default() };
+    let text = vansoncraft_doc::TextObject::point(vansoncraft_geom::Point::new(34.0, 69.0), "Hi", style);
     let text = Node::new(page.alloc_id(), NodeKind::Text(Box::new(text)));
     page.insert(Some(layer_id), 1, text).unwrap();
     let (doc, notes, read) = crate::layered_ai(&private(&art), page, vec![], false, false, 1.0);
@@ -1103,12 +1103,12 @@ fn unread_object_on_second_artboard_takes_second_page_art() {
     let art = native(&(boards.to_string() + &layer("Live", true, &square(10, 10)) + &layer("Mixed", true, second)));
     let mut page = pdf_part(10.0, 86.0);
     let mut board = page.artboards[0].clone();
-    (board.id, board.rect) = (2, vectorcraft_geom::Rect::new(120.0, 0.0, 220.0, 100.0));
+    (board.id, board.rect) = (2, vansoncraft_geom::Rect::new(120.0, 0.0, 220.0, 100.0));
     page.artboards.push(board);
-    let path = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(170.0, 46.0, 174.0, 50.0));
-    let paint = vectorcraft_color::Paint::solid(vectorcraft_color::Color::cmyk(1.0, 0.0, 0.0, 0.0));
-    let appearance = vectorcraft_doc::Appearance {
-        items: vec![vectorcraft_doc::AppearanceItem::Fill(vectorcraft_doc::FillLayer::new(paint))],
+    let path = vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(170.0, 46.0, 174.0, 50.0));
+    let paint = vansoncraft_color::Paint::solid(vansoncraft_color::Color::cmyk(1.0, 0.0, 0.0, 0.0));
+    let appearance = vansoncraft_doc::Appearance {
+        items: vec![vansoncraft_doc::AppearanceItem::Fill(vansoncraft_doc::FillLayer::new(paint))],
         ..Default::default()
     };
     let node = Node::path(page.alloc_id(), path, appearance);
@@ -1119,7 +1119,7 @@ fn unread_object_on_second_artboard_takes_second_page_art() {
     assert_eq!(names(&doc), ["Live", "Mixed"]);
     replacement_is_cyan(&doc, 1, 0);
     let bounds = doc.layers[1].children().unwrap()[0].visual_bounds().unwrap();
-    assert_eq!(bounds, vectorcraft_geom::Rect::new(50.0, 196.0, 54.0, 200.0));
+    assert_eq!(bounds, vansoncraft_geom::Rect::new(50.0, 196.0, 54.0, 200.0));
 }
 
 #[test]
@@ -1138,12 +1138,12 @@ fn page_art_from_second_artboard_moves_its_pattern_tile() {
     pattern.art = source.art.iter().map(|node| std::sync::Arc::new(page.reid(node))).collect();
     page.patterns.push(pattern);
     let mut board = page.artboards[0].clone();
-    (board.id, board.rect) = (2, vectorcraft_geom::Rect::new(120.0, 0.0, 220.0, 100.0));
+    (board.id, board.rect) = (2, vansoncraft_geom::Rect::new(120.0, 0.0, 220.0, 100.0));
     page.artboards.push(board);
-    let path = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(170.0, 46.0, 174.0, 50.0));
-    let paint = vectorcraft_color::Paint::Pattern { pattern: "Dots".into(), xf: vectorcraft_geom::Affine::IDENTITY };
-    let appearance = vectorcraft_doc::Appearance {
-        items: vec![vectorcraft_doc::AppearanceItem::Fill(vectorcraft_doc::FillLayer::new(paint))],
+    let path = vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(170.0, 46.0, 174.0, 50.0));
+    let paint = vansoncraft_color::Paint::Pattern { pattern: "Dots".into(), xf: vansoncraft_geom::Affine::IDENTITY };
+    let appearance = vansoncraft_doc::Appearance {
+        items: vec![vansoncraft_doc::AppearanceItem::Fill(vansoncraft_doc::FillLayer::new(paint))],
         ..Default::default()
     };
     let node = Node::path(page.alloc_id(), path, appearance);
@@ -1152,11 +1152,11 @@ fn page_art_from_second_artboard_moves_its_pattern_tile() {
     let (doc, notes, read) = crate::layered_ai(&private(&art), page, vec![], false, false, 1.0);
     assert!(read, "{notes:?}");
     let replacement = &doc.layers[1].children().unwrap()[0].children().unwrap()[0];
-    assert_eq!(replacement.visual_bounds().unwrap(), vectorcraft_geom::Rect::new(50.0, 196.0, 54.0, 200.0));
-    let Some(vectorcraft_color::Paint::Pattern { xf, .. }) = replacement.appearance.fill().map(|f| &f.paint) else {
+    assert_eq!(replacement.visual_bounds().unwrap(), vansoncraft_geom::Rect::new(50.0, 196.0, 54.0, 200.0));
+    let Some(vansoncraft_color::Paint::Pattern { xf, .. }) = replacement.appearance.fill().map(|f| &f.paint) else {
         panic!("the page art's pattern fill is kept: {:?}", replacement.appearance);
     };
-    assert_eq!(*xf, vectorcraft_geom::Affine::translate(vectorcraft_geom::Vec2::new(-120.0, 150.0)));
+    assert_eq!(*xf, vansoncraft_geom::Affine::translate(vansoncraft_geom::Vec2::new(-120.0, 150.0)));
 }
 
 #[test]
@@ -1173,11 +1173,11 @@ fn unknown_operator_between_objects_falls_back() {
 fn unread_object_without_page_art_names_what_is_unread() {
     let art = native(&layer("Mixed", true, &os1_group(&format!("{}\nZZ", square(50, 10)))));
     let e = crate::ai_alone(&private(&art)).unwrap_err();
-    assert_eq!(e, "it has operators VectorCraft doesn't know (`ZZ`), which VectorCraft doesn't read from it yet");
+    assert_eq!(e, "it has operators VansonCraft doesn't know (`ZZ`), which VansonCraft doesn't read from it yet");
     let pattern = os1_group(&format!("(Absent) 0 0 1 1 0 0 0 0 0 [1 0 0 1 0 0] p\n{}", square_path(70, 10)));
     let art = native(&layer("Mixed", true, &format!("{}\n{pattern}", os1_group(&format!("{}\nZZ", square(50, 10))))));
     let e = crate::ai_alone(&private(&art)).unwrap_err();
-    assert_eq!(e, "it has operators VectorCraft doesn't know (`ZZ`) and pattern fills, which VectorCraft doesn't read from it yet");
+    assert_eq!(e, "it has operators VansonCraft doesn't know (`ZZ`) and pattern fills, which VansonCraft doesn't read from it yet");
 }
 
 #[test]
@@ -1254,7 +1254,7 @@ fn eps_unread_group_uses_printed_page_art() {
 /// pages and art `k` times as large.
 fn in_points(mut d: Document, k: f64) -> Document {
     for layer in &mut d.layers {
-        std::sync::Arc::make_mut(layer).transform(vectorcraft_geom::Affine::scale(k), true);
+        std::sync::Arc::make_mut(layer).transform(vansoncraft_geom::Affine::scale(k), true);
     }
     for a in &mut d.artboards {
         a.rect = a.rect.scale_from_origin(k);
@@ -1312,7 +1312,7 @@ fn an_ai_image_past_the_target_size_is_reduced_and_keeps_the_layers() {
     let [image] = d.layers[1].children().unwrap().as_slice() else { panic!("{:?}", d.layers[1]) };
     let NodeKind::Image(im) = &image.kind else { panic!("{image:?}") };
     assert_eq!((im.width, im.height), (5, 4));
-    let full = im.xf.transform_rect_bbox(vectorcraft_geom::Rect::new(0.0, 0.0, 5.0, 4.0));
+    let full = im.xf.transform_rect_bbox(vansoncraft_geom::Rect::new(0.0, 0.0, 5.0, 4.0));
     assert!(
         (full.x0 - 50.0).abs() < 1e-9 && (full.x1 - 67.0).abs() < 1e-9 && (full.y0 - 86.0).abs() < 1e-9 && (full.y1 - 99.0).abs() < 1e-9,
         "{full:?}"
@@ -1368,15 +1368,15 @@ fn type_of_the_page_inside_a_placed_file_needs_no_text_object() {
     // The PDF part: the placed file's page in 50% grey, and type at (`x`, 55).
     let pdf = |x: f64| {
         let mut d = Document::new(100.0, 100.0);
-        let grey = vectorcraft_doc::FillLayer::new(vectorcraft_color::Paint::solid(vectorcraft_color::Color::gray(0.5)));
-        let rect = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(30.0, 30.0, 70.0, 70.0));
+        let grey = vansoncraft_doc::FillLayer::new(vansoncraft_color::Paint::solid(vansoncraft_color::Color::gray(0.5)));
+        let rect = vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(30.0, 30.0, 70.0, 70.0));
         let page = Node::path(
             d.alloc_id(),
             rect,
-            vectorcraft_doc::Appearance { items: vec![vectorcraft_doc::AppearanceItem::Fill(grey)], ..Default::default() },
+            vansoncraft_doc::Appearance { items: vec![vansoncraft_doc::AppearanceItem::Fill(grey)], ..Default::default() },
         );
-        let style = vectorcraft_doc::CharStyle { size: 14.0, ..Default::default() };
-        let text = vectorcraft_doc::TextObject::point(vectorcraft_geom::Point::new(x, 55.0), "Hi", style);
+        let style = vansoncraft_doc::CharStyle { size: 14.0, ..Default::default() };
+        let text = vansoncraft_doc::TextObject::point(vansoncraft_geom::Point::new(x, 55.0), "Hi", style);
         let text = Node::new(d.alloc_id(), NodeKind::Text(Box::new(text)));
         let layer = d.layers[0].id;
         d.insert(Some(layer), 0, page).unwrap();
@@ -1403,10 +1403,10 @@ fn type_of_the_page_inside_a_placed_file_needs_no_text_object() {
     let both = native_with_text(&layer("Pages", true, &format!("{place}{}", text_object(0))), &doc)
         .replace("%AI3_TemplateBox: 50 50 50 50", "%AI3_TemplateBox: 100 50 100 50");
     let mut page = pdf(38.0);
-    let style = vectorcraft_doc::CharStyle { size: 14.0, ..Default::default() };
+    let style = vansoncraft_doc::CharStyle { size: 14.0, ..Default::default() };
     let note = Node::new(
         page.alloc_id(),
-        NodeKind::Text(Box::new(vectorcraft_doc::TextObject::point(vectorcraft_geom::Point::new(5.0, 90.0), "Note", style))),
+        NodeKind::Text(Box::new(vansoncraft_doc::TextObject::point(vansoncraft_geom::Point::new(5.0, 90.0), "Note", style))),
     );
     let layer_id = page.layers[0].id;
     page.insert(Some(layer_id), 2, note).unwrap();
@@ -1429,8 +1429,8 @@ fn an_ai_file_that_comes_in_as_its_pdf_part_keeps_the_swatches_of_its_palette() 
          [ 1 0 0 1 0 100 ] 0 0 6000 6000 6000 6000 8 1 0 0 1 0 4 4 0 0\n%%BeginData: 1\rXI\n\u{0}%%EndData\r\nXH\r\n%AI5_EndRaster\r\nN";
     let art = native(&format!("{PALETTE}{}", layer("Texture", true, &format!("{}\n{image}", square(10, 10)))));
     let mut part = pdf_part(10.0, 86.0);
-    let gold = vectorcraft_color::Paint::solid(vectorcraft_color::Color::cmyk(0.0, 0.2, 0.9, 0.1));
-    part.swatches.push(vectorcraft_color::swatch::Swatch { name: "Gold ink".into(), paint: gold, global: true, spot: true });
+    let gold = vansoncraft_color::Paint::solid(vansoncraft_color::Color::cmyk(0.0, 0.2, 0.9, 0.1));
+    part.swatches.push(vansoncraft_color::swatch::Swatch { name: "Gold ink".into(), paint: gold, global: true, spot: true });
     // An image past 2^25 pixels isn't read here, and the page has no art of its own in its box.
     let (d, warnings, read) =
         crate::import::ai::with_image_limits(1 << 26, 1 << 25, 512 << 20, || crate::layered_ai(&private(&art), part, vec![], false, true, 1.0));
@@ -1453,7 +1453,7 @@ fn an_ai_file_without_layers_keeps_the_gradients_of_its_palette_unlinked() {
     assert!(!read, "{warnings:?}");
     let swatches: Vec<&str> = d.swatches.iter().map(|s| s.name.as_str()).collect();
     assert_eq!(swatches, ["[None]", "Sky"], "{warnings:?}");
-    let Some(vectorcraft_color::Paint::Gradient(g)) = d.swatch("Sky").map(|s| &s.paint) else { panic!("{:?}", d.swatch("Sky")) };
+    let Some(vansoncraft_color::Paint::Gradient(g)) = d.swatch("Sky").map(|s| &s.paint) else { panic!("{:?}", d.swatch("Sky")) };
     assert_eq!(g.swatch, None, "the swatch's own paint");
     assert_eq!(g.gradient.stops.len(), 2);
 }
@@ -1497,7 +1497,7 @@ fn an_ai_library_without_layers_reads_its_names_in_a_legacy_encoding() {
     let styles =
         format!("%AI9_BeginArtStyles\n{}%AI9_EndArtStyles\n%AI9_BeginArtStyleList\n({red})\n%AI9_EndArtStyleList\n", stroke_art_style(red, 1.0, ""));
     let symbols = format!("%AI5_Begin_NonPrinting\n{}%AI5_End_NonPrinting--\n", symbol_def(gra, &symbol_square(-2.0, -2.0, 2.0, 2.0), 1));
-    let variables = vectorcraft_testkit::ai::variable_library(&["QVARQ"], &["QSETQ"]).replace("QVARQ", red).replace("QSETQ", gra);
+    let variables = vansoncraft_testkit::ai::variable_library(&["QVARQ"], &["QSETQ"]).replace("QVARQ", red).replace("QSETQ", gra);
     let library = format!(
         "%!PS-Adobe-3.0 \n%%BoundingBox: 0 0 100 100\n%%BeginSetup\n{art}{order}{spray}{styles}{symbols}{variables}%%EndSetup\n%%PageTrailer\n%%Trailer\n"
     );
@@ -1511,7 +1511,7 @@ fn an_ai_library_without_layers_reads_its_names_in_a_legacy_encoding() {
         crate::NameEncoding::Korean,
     );
     assert!(!read, "{warnings:?}");
-    assert_eq!(vectorcraft_brush::library(&d).iter().map(|b| b.name.as_str()).collect::<Vec<_>>(), ["빨강"], "{warnings:?}");
+    assert_eq!(vansoncraft_brush::library(&d).iter().map(|b| b.name.as_str()).collect::<Vec<_>>(), ["빨강"], "{warnings:?}");
     assert_eq!(d.graphic_styles.iter().map(|g| g.name.as_str()).collect::<Vec<_>>(), ["빨강"], "{warnings:?}");
     assert_eq!(d.symbols.iter().map(|s| s.name.as_str()).collect::<Vec<_>>(), ["그라"], "{warnings:?}");
     assert_eq!(d.variables.variables.iter().map(|v| v.name.as_str()).collect::<Vec<_>>(), ["빨강"], "{warnings:?}");
@@ -1531,7 +1531,7 @@ fn a_renamed_pattern_of_a_file_without_layers_has_a_note_on_its_legacy_name() {
     let palette = format!("%AI5_BeginPalette\n0 0 Pb\n({red}) 0 0 1 1 0 0 0 0 0 [1 0 0 1 0 0] p\n(Tile)\nPc\nPB\n%AI5_EndPalette\n");
     let art = native(&format!("{tile}{palette}"));
     let mut part = pdf_part(10.0, 86.0);
-    part.patterns.push(vectorcraft_doc::PatternDef::new("빨강", vec![]));
+    part.patterns.push(vansoncraft_doc::PatternDef::new("빨강", vec![]));
     let (d, warnings, read) =
         crate::layered_ai_from(crate::AiLayers::decode(&private(&art)), part, vec![], false, true, 1.0, crate::NameEncoding::Korean);
     assert!(!read, "{warnings:?}");
@@ -1553,7 +1553,7 @@ fn an_ai_file_without_layers_keeps_the_patterns_of_its_palette() {
     assert!(!read, "{warnings:?}");
     let swatches: Vec<&str> = d.swatches.iter().map(|s| s.name.as_str()).collect();
     assert_eq!(swatches, ["[None]", "White", "Dots"], "{warnings:?}");
-    assert!(matches!(&d.swatch("Dots").map(|s| &s.paint), Some(vectorcraft_color::Paint::Pattern { pattern, .. }) if pattern == "Dots"));
+    assert!(matches!(&d.swatch("Dots").map(|s| &s.paint), Some(vansoncraft_color::Paint::Pattern { pattern, .. }) if pattern == "Dots"));
     assert!(d.pattern("Dots").is_some_and(|p| !p.art.is_empty()));
 
     // A pattern that shows an image brings the image's data with it.
@@ -1614,7 +1614,7 @@ fn an_ai_brush_library_without_layers_keeps_its_brushes() {
         format!("%!PS-Adobe-3.0 \n%%BoundingBox: 0 0 0 0\n%%BeginSetup\n{dots}{dot}{order}{nib}{spray}%%EndSetup\n%%PageTrailer\n%%Trailer\n");
     let (d, warnings, read) = crate::layered_ai(&private(&library), pdf_part(10.0, 86.0), vec![], false, true, 1.0);
     assert!(!read, "{warnings:?}");
-    let lib = vectorcraft_brush::library(&d);
+    let lib = vansoncraft_brush::library(&d);
     assert_eq!(lib.iter().map(|b| b.name.as_str()).collect::<Vec<_>>(), ["Spray", "Nib"], "{warnings:?}");
     assert!(warnings.is_empty(), "{warnings:?}");
     assert!(d.pattern("Dots").is_some_and(|p| !p.art.is_empty()), "the pattern the brush's art paints with");
@@ -1759,7 +1759,7 @@ fn symbol_library() -> String {
 }
 
 /// The ids of `n`, what it holds and the art of its opacity masks.
-fn all_ids(n: &Node, out: &mut Vec<vectorcraft_doc::NodeId>) {
+fn all_ids(n: &Node, out: &mut Vec<vansoncraft_doc::NodeId>) {
     out.push(n.id);
     if let Some(m) = n.extras().mask.as_ref() {
         all_ids(&m.art, out);
@@ -1782,11 +1782,11 @@ fn an_ai_symbol_library_without_layers_keeps_its_symbols() {
     let (d, warnings, read) = crate::layered_ai(&private(&symbol_library()), pdf_part(10.0, 86.0), vec![], false, true, 1.0);
     assert!(!read, "{warnings:?}");
     assert_eq!(symbol_names(&d), ["Bar", "Masked", "Dot"], "{warnings:?}");
-    assert_eq!(d.symbol_registration("Dot"), vectorcraft_doc::SymbolRegistration(0));
+    assert_eq!(d.symbol_registration("Dot"), vansoncraft_doc::SymbolRegistration(0));
     assert!(d.symbol_registration("Bar").is_center());
     let boxes = d.symbol_boxes();
     let bar = d.symbols.first().and_then(|s| s.art.visual_bounds_with(&boxes));
-    assert_eq!(bar, Some(vectorcraft_geom::Rect::new(-6.0, -1.0, 6.0, 1.0)));
+    assert_eq!(bar, Some(vansoncraft_geom::Rect::new(-6.0, -1.0, 6.0, 1.0)));
     drop(boxes);
     let mut ids = vec![];
     for n in d.layers.iter().chain(d.symbols.iter().map(|s| &s.art)) {
@@ -1836,11 +1836,11 @@ fn an_ai_symbol_librarys_symbols_keep_their_spot_colors() {
     };
     let open = |text: &str| crate::layered_ai(&private(text), pdf_part(10.0, 86.0), vec![], false, true, 1.0);
     let link = |d: &Document| match d.symbols.first().and_then(|s| s.art.appearance.fill()).map(|f| &f.paint) {
-        Some(vectorcraft_color::Paint::Solid { swatch, .. }) => swatch.clone(),
+        Some(vansoncraft_color::Paint::Solid { swatch, .. }) => swatch.clone(),
         _ => None,
     };
     let ink = |d: &Document, name: &str| d.swatch(name).map(|s| (s.paint.color(), s.spot));
-    let yellow = Some(vectorcraft_color::Color::cmyk(0.0, 0.0, 1.0, 0.0));
+    let yellow = Some(vansoncraft_color::Color::cmyk(0.0, 0.0, 1.0, 0.0));
     let (d, warnings, _) = open(&library("", "Brand Ink"));
     assert_eq!(link(&d).as_deref(), Some("Brand Ink"), "{warnings:?}");
     assert_eq!(ink(&d, "Brand Ink"), Some((yellow, true)));
@@ -1848,22 +1848,22 @@ fn an_ai_symbol_librarys_symbols_keep_their_spot_colors() {
     let (d, warnings, _) = open(&library(palette, "Clash"));
     assert_eq!(link(&d).as_deref(), Some("Clash 2"), "{warnings:?}");
     assert_eq!(ink(&d, "Clash 2"), Some((yellow, true)));
-    assert_eq!(ink(&d, "Clash"), Some((Some(vectorcraft_color::Color::rgb(0.0, 1.0, 0.0)), false)));
+    assert_eq!(ink(&d, "Clash"), Some((Some(vansoncraft_color::Color::rgb(0.0, 1.0, 0.0)), false)));
     let (d, warnings, _) = open(&library("", "Red"));
     assert_eq!(link(&d).as_deref(), Some("Red"), "{warnings:?}");
     assert_eq!(ink(&d, "Red"), Some((yellow, true)));
     assert_eq!(d.swatches.iter().filter(|s| s.name == "Red").count(), 1);
     // An ink of the PDF part keeps its swatch: the library's color of that name is renamed.
     let mut part = pdf_part(10.0, 86.0);
-    let green = vectorcraft_color::Paint::solid(vectorcraft_color::Color::cmyk(1.0, 0.0, 1.0, 0.0));
-    part.swatches.push(vectorcraft_color::Swatch { name: "Ink".into(), paint: green.clone(), global: true, spot: true });
+    let green = vansoncraft_color::Paint::solid(vansoncraft_color::Color::cmyk(1.0, 0.0, 1.0, 0.0));
+    part.swatches.push(vansoncraft_color::Swatch { name: "Ink".into(), paint: green.clone(), global: true, spot: true });
     let (d, warnings, _) = crate::layered_ai(&private(&library("", "Ink")), part, vec![], false, true, 1.0);
     assert_eq!(link(&d).as_deref(), Some("Ink 2"), "{warnings:?}");
     assert_eq!(ink(&d, "Ink 2"), Some((yellow, true)));
     assert_eq!(d.swatch("Ink").map(|s| &s.paint), Some(&green));
     // A color group of the PDF part keeps its name: the library's color of that name is renamed.
     let mut part = pdf_part(10.0, 86.0);
-    part.swatch_groups.push(vectorcraft_color::SwatchGroup { name: "Kit".into(), swatches: vec![] });
+    part.swatch_groups.push(vansoncraft_color::SwatchGroup { name: "Kit".into(), swatches: vec![] });
     let (d, warnings, _) = crate::layered_ai(&private(&library("", "Kit")), part, vec![], false, true, 1.0);
     assert_eq!(link(&d).as_deref(), Some("Kit 2"), "{warnings:?}");
     assert_eq!(ink(&d, "Kit 2"), Some((yellow, true)));
@@ -1886,8 +1886,8 @@ fn an_ai_symbol_librarys_symbols_keep_their_global_and_gradient_stop_colors() {
     let (d, warnings, _) = crate::layered_ai(&private(&text), pdf_part(10.0, 86.0), vec![], false, true, 1.0);
     assert_eq!(symbol_names(&d), ["Global", "Graded"], "{warnings:?}");
     let swatch = |name: &str| d.swatch(name).map(|s| (s.paint.color(), s.global, s.spot));
-    assert_eq!(swatch("Process Yellow"), Some((Some(vectorcraft_color::Color::cmyk(0.0, 0.0, 1.0, 0.0)), true, false)), "{warnings:?}");
-    assert_eq!(swatch("Brand"), Some((Some(vectorcraft_color::Color::cmyk(0.0, 1.0, 1.0, 0.0)), true, true)), "{warnings:?}");
+    assert_eq!(swatch("Process Yellow"), Some((Some(vansoncraft_color::Color::cmyk(0.0, 0.0, 1.0, 0.0)), true, false)), "{warnings:?}");
+    assert_eq!(swatch("Brand"), Some((Some(vansoncraft_color::Color::cmyk(0.0, 1.0, 1.0, 0.0)), true, true)), "{warnings:?}");
 }
 
 /// A symbol library's symbol shows its image from the document's images, and an object of a
@@ -1923,14 +1923,14 @@ fn an_ai_symbol_librarys_symbols_bring_their_images_and_style_links() {
 }
 
 /// The instances of a symbol library's symbols that would draw more than
-/// [`vectorcraft_doc::depth::MAX_DRAWN_DEPTH`] objects deep go, with the note saying so, and a
+/// [`vansoncraft_doc::depth::MAX_DRAWN_DEPTH`] objects deep go, with the note saying so, and a
 /// document that has symbols already keeps them.
 #[test]
 fn an_ai_symbol_librarys_instances_drawn_too_deep_go() {
     // C0 is a square, and each later symbol holds an instance of the one before it. The template
     // box's center is (100.5, 50.5): art space's origin is at canvas (8091, 8242).
     let instance = |name: &str| format!("/SymbolInstance :\n({name}) /SymbolRef ,\n1 0 0 -1 -8091 8242 /RTransformMatrix\n;\n9 () XW\n");
-    let count = vectorcraft_doc::depth::MAX_DRAWN_DEPTH + 10;
+    let count = vansoncraft_doc::depth::MAX_DRAWN_DEPTH + 10;
     let mut defs = symbol_def("C0", &symbol_square(-2.0, -2.0, 2.0, 2.0), 5);
     for i in 1..count {
         defs.push_str(&symbol_def(&format!("C{i}"), &instance(&format!("C{}", i - 1)), 5));
@@ -1943,11 +1943,11 @@ fn an_ai_symbol_librarys_instances_drawn_too_deep_go() {
     assert_eq!(d.symbols.len(), count, "{warnings:?}");
     let instances = d.symbols.iter().filter(|s| matches!(s.art.kind, NodeKind::SymbolInstance { .. })).count();
     assert!(instances < count - 1, "{instances}");
-    assert!(warnings.contains(&vectorcraft_doc::depth::symbols_note()), "{warnings:?}");
+    assert!(warnings.contains(&vansoncraft_doc::depth::symbols_note()), "{warnings:?}");
     // A document with symbols keeps its own.
     let mut part = pdf_part(10.0, 86.0);
     let mine = Node::group(part.alloc_id(), vec![]);
-    part.symbols.push(vectorcraft_doc::Symbol { name: "Mine".into(), art: std::sync::Arc::new(mine), dynamic: false });
+    part.symbols.push(vansoncraft_doc::Symbol { name: "Mine".into(), art: std::sync::Arc::new(mine), dynamic: false });
     let (d, warnings, _) = crate::layered_ai(&private(&text), part, vec![], false, true, 1.0);
     assert_eq!(symbol_names(&d), ["Mine"], "{warnings:?}");
 }
@@ -1967,20 +1967,20 @@ fn an_ai_file_without_layers_keeps_its_patterns_apart_from_the_pdf_parts_tilings
     let part = || {
         let mut part = pdf_part(10.0, 86.0);
         let id = part.alloc_id();
-        let square = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(0.0, 0.0, 9.0, 9.0));
-        let tiling = std::sync::Arc::new(Node::path(id, square, vectorcraft_doc::Appearance::default()));
-        let tile = vectorcraft_geom::Rect::new(0.0, 0.0, 9.0, 9.0);
-        part.patterns.push(vectorcraft_doc::PatternDef { tile, ..vectorcraft_doc::PatternDef::new("Pattern 1", vec![tiling]) });
+        let square = vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(0.0, 0.0, 9.0, 9.0));
+        let tiling = std::sync::Arc::new(Node::path(id, square, vansoncraft_doc::Appearance::default()));
+        let tile = vansoncraft_geom::Rect::new(0.0, 0.0, 9.0, 9.0);
+        part.patterns.push(vansoncraft_doc::PatternDef { tile, ..vansoncraft_doc::PatternDef::new("Pattern 1", vec![tiling]) });
         part
     };
     let width = |d: &Document, name: &str| d.pattern(name).map(|p| p.tile.width());
     let swatch_pattern = |d: &Document| match d.swatch("Dots").map(|s| &s.paint) {
-        Some(vectorcraft_color::Paint::Pattern { pattern, .. }) => Some(pattern.clone()),
+        Some(vansoncraft_color::Paint::Pattern { pattern, .. }) => Some(pattern.clone()),
         _ => None,
     };
     fn painted(n: &Node, out: &mut Vec<String>) {
-        for p in vectorcraft_doc::swatches::node_paints(n) {
-            if let vectorcraft_color::Paint::Pattern { pattern, .. } = p {
+        for p in vansoncraft_doc::swatches::node_paints(n) {
+            if let vansoncraft_color::Paint::Pattern { pattern, .. } = p {
                 out.push(pattern.clone());
             }
         }
@@ -1990,7 +1990,7 @@ fn an_ai_file_without_layers_keeps_its_patterns_apart_from_the_pdf_parts_tilings
     }
     let brushed = |d: &Document| {
         let mut out = vec![];
-        for b in vectorcraft_brush::library(d) {
+        for b in vansoncraft_brush::library(d) {
             for a in b.art() {
                 painted(a, &mut out);
             }
@@ -2029,7 +2029,7 @@ fn an_ai_file_without_layers_keeps_its_patterns_apart_from_the_pdf_parts_tilings
 /// does an EPS that comes in as its page.
 #[test]
 fn ai_variable_library_pdf_fallback() {
-    use vectorcraft_testkit::ai::{XmlValue, sample_variable_sets, variable_library_data, xml_element, xml_text};
+    use vansoncraft_testkit::ai::{XmlValue, sample_variable_sets, variable_library_data, xml_element, xml_text};
     let check = |d: &Document, warnings: &[String]| {
         let vars = &d.variables;
         assert_eq!((vars.variables.len(), vars.datasets.len()), (5, 3), "{warnings:?}");
@@ -2079,7 +2079,7 @@ fn ai_variable_library_pdf_fallback() {
 /// nothing, and the note counts them. Another object with the same id as the group is left alone.
 #[test]
 fn ai_variable_bindings_bind_the_objects_they_name() {
-    use vectorcraft_testkit::ai::{XmlValue, named, variable_library_data, xml_element, xml_node};
+    use vansoncraft_testkit::ai::{XmlValue, named, variable_library_data, xml_element, xml_node};
     let declare = |name: &str, t: Option<&str>, art: Option<XmlValue>| {
         let mut attributes: Vec<(&str, XmlValue)> = t.map(|t| ("trait", XmlValue::Str(t))).into_iter().collect();
         attributes.push(("varName", XmlValue::Unicode(name)));
@@ -2170,11 +2170,11 @@ fn editing_data_in_the_units_of_a_user_unit_page_comes_in_at_the_pages_size() {
     let art = native(&(layer("Jig", true, &square(10, 10)) + &layer("Parts", true, &square(30, 110)) + &layer("Old", false, line)));
     let page = in_points(pdf_part(10.0, 86.0), 10.0);
     let first = |d: &Document, l: usize| d.layers[l].children().unwrap()[0].visual_bounds().unwrap();
-    let near = |r: vectorcraft_geom::Rect, want: [f64; 4]| [r.x0, r.y0, r.x1, r.y1].iter().zip(want).all(|(a, b)| (a - b).abs() < 1e-6);
+    let near = |r: vansoncraft_geom::Rect, want: [f64; 4]| [r.x0, r.y0, r.x1, r.y1].iter().zip(want).all(|(a, b)| (a - b).abs() < 1e-6);
     let (d, w, read) = crate::layered_ai(&private(&art), page.clone(), vec![], false, false, 10.0);
     assert!(read, "{w:?}");
     assert_eq!(names(&d), ["Jig", "Parts", "Old"]);
-    assert_eq!(d.artboards[0].rect, vectorcraft_geom::Rect::new(0.0, 0.0, 1000.0, 1000.0));
+    assert_eq!(d.artboards[0].rect, vansoncraft_geom::Rect::new(0.0, 0.0, 1000.0, 1000.0));
     // The square on the artboard and the one above it, ten times as large and as far from its corner.
     assert!(near(first(&d, 0), [100.0, 860.0, 140.0, 900.0]), "{:?}", first(&d, 0));
     assert!(near(first(&d, 1), [300.0, -140.0, 340.0, -100.0]), "{:?}", first(&d, 1));
@@ -2188,7 +2188,7 @@ fn editing_data_in_the_units_of_a_user_unit_page_comes_in_at_the_pages_size() {
     let points = native(&layer("Jig", true, "0 0 1 0 k\n100 100 m\n140 100 L\n140 140 L\n100 140 L\nf")).replace(" 0 0 100 100", " 0 0 1000 1000");
     let (d, w, read) = crate::layered_ai(&private(&points), page, vec![], false, false, 10.0);
     assert!(read, "{w:?}");
-    assert_eq!(d.artboards[0].rect, vectorcraft_geom::Rect::new(0.0, 0.0, 1000.0, 1000.0));
+    assert_eq!(d.artboards[0].rect, vansoncraft_geom::Rect::new(0.0, 0.0, 1000.0, 1000.0));
     assert!(near(first(&d, 0), [100.0, 860.0, 140.0, 900.0]), "{:?}", first(&d, 0));
 }
 
@@ -2227,8 +2227,8 @@ fn an_ai_files_ruler_guides_come_in_on_their_layers() {
         assert!(read, "{w:?}");
         let jig = d.layers[0].id;
         let want = [
-            vectorcraft_doc::Guide { layer: Some(jig), ..vectorcraft_doc::Guide::new(false, 60.0 * k) },
-            vectorcraft_doc::Guide { artboard: Some(d.artboards[0].id), layer: Some(jig), ..vectorcraft_doc::Guide::new(true, 20.0 * k) },
+            vansoncraft_doc::Guide { layer: Some(jig), ..vansoncraft_doc::Guide::new(false, 60.0 * k) },
+            vansoncraft_doc::Guide { artboard: Some(d.artboards[0].id), layer: Some(jig), ..vansoncraft_doc::Guide::new(true, 20.0 * k) },
         ];
         assert_eq!(guide_lines(&d), want);
         assert_eq!(d.layers[0].children().map_or(0, |c| c.iter().filter(|c| !c.is_ruler_guide()).count()), 1, "the square alone");
@@ -2251,7 +2251,7 @@ fn an_eps_of_its_art_box_keeps_the_guides_of_its_first_artboard() {
     let (board, layer) = (r.document.artboards[0].id, r.document.layers[0].id);
     assert_eq!(
         guide_lines(&r.document),
-        [vectorcraft_doc::Guide { artboard: Some(board), layer: Some(layer), ..vectorcraft_doc::Guide::new(true, 25.0) }]
+        [vansoncraft_doc::Guide { artboard: Some(board), layer: Some(layer), ..vansoncraft_doc::Guide::new(true, 25.0) }]
     );
 }
 
@@ -2266,7 +2266,7 @@ fn a_user_unit_page_cropped_to_the_art_is_read_in_its_units() {
     let page = in_points(pdf_part(10.0, 86.0), 10.0);
     let (d, w, read) = crate::layered_ai(&private(&art), page, vec![], false, false, 10.0);
     assert!(read, "{w:?}");
-    assert_eq!(d.artboards[0].rect.size(), vectorcraft_geom::Size::new(500.0, 500.0));
+    assert_eq!(d.artboards[0].rect.size(), vansoncraft_geom::Size::new(500.0, 500.0));
     // The square, 36 down the artboard, ten times as large and as far.
     let b = d.layers[0].children().unwrap()[0].visual_bounds().unwrap();
     assert!([b.x0 - 100.0, b.y0 - 360.0, b.x1 - 140.0, b.y1 - 400.0].iter().all(|v| v.abs() < 1e-6), "{b:?}");
@@ -2282,15 +2282,15 @@ fn type_on_the_copies_of_a_page_cropped_to_the_art_is_read_once() {
     let art = native(&layer("Art", true, &(square(10, 10) + &text_object(0)))).replace("%AI3_Cropmarks: 0 0 100 100", "%AI3_Cropmarks: 0 0 50 50");
     let mut pdf = pdf_part(10.0, 86.0);
     let mut second = pdf.artboards[0].clone();
-    (second.id, second.rect) = (2, vectorcraft_geom::Rect::new(120.0, 0.0, 220.0, 100.0));
+    (second.id, second.rect) = (2, vansoncraft_geom::Rect::new(120.0, 0.0, 220.0, 100.0));
     pdf.artboards.push(second);
     let copy = pdf_part(130.0, 86.0).layers[0].children().unwrap()[0].as_ref().clone();
     let layer_id = pdf.layers[0].id;
     let id = pdf.alloc_id();
     pdf.insert(Some(layer_id), 1, Node { id, ..copy }).unwrap();
     for x in [30.0, 150.0] {
-        let style = vectorcraft_doc::CharStyle { size: 14.0, ..Default::default() };
-        let text = vectorcraft_doc::TextObject::point(vectorcraft_geom::Point::new(x, 40.0), "Hi", style);
+        let style = vansoncraft_doc::CharStyle { size: 14.0, ..Default::default() };
+        let text = vansoncraft_doc::TextObject::point(vansoncraft_geom::Point::new(x, 40.0), "Hi", style);
         let id = pdf.alloc_id();
         pdf.insert(Some(layer_id), 2, Node::new(id, NodeKind::Text(Box::new(text)))).unwrap();
     }
@@ -2320,8 +2320,8 @@ fn a_pdf_of_its_second_artboard_is_compared_on_that_artboard() {
     let art = native(&(boards + &layer("Art", true, &(square(10, 10) + "\n" + &square(180, 50) + "\n" + &text_object(0)))));
     // The page: the second artboard, its square 30 from the left and 46 down, and the type.
     let mut pdf = pdf_part(30.0, 46.0);
-    let style = vectorcraft_doc::CharStyle { size: 14.0, ..Default::default() };
-    let text = vectorcraft_doc::TextObject::point(vectorcraft_geom::Point::new(40.0, 20.0), "Hi", style);
+    let style = vansoncraft_doc::CharStyle { size: 14.0, ..Default::default() };
+    let text = vansoncraft_doc::TextObject::point(vansoncraft_geom::Point::new(40.0, 20.0), "Hi", style);
     let (layer_id, id) = (pdf.layers[0].id, pdf.alloc_id());
     pdf.insert(Some(layer_id), 1, Node::new(id, NodeKind::Text(Box::new(text)))).unwrap();
     let (d, w, read) = crate::layered_ai(&private(&art), pdf, vec![], false, false, 1.0);
@@ -2345,7 +2345,7 @@ const TWO_BOARDS: &str = "%_/Document :\n%_/Dictionary :\n%_/Array :\n\
 fn two_pages(second: Option<(f64, f64)>) -> Document {
     let mut page = pdf_part(10.0, 86.0);
     let mut board = page.artboards[0].clone();
-    (board.id, board.rect) = (2, vectorcraft_geom::Rect::new(120.0, 0.0, 220.0, 100.0));
+    (board.id, board.rect) = (2, vansoncraft_geom::Rect::new(120.0, 0.0, 220.0, 100.0));
     page.artboards.push(board);
     if let Some((x, y)) = second {
         let other = pdf_part(120.0 + x, y);
@@ -2380,10 +2380,10 @@ fn art_only_the_second_page_draws_makes_the_file_come_in_as_its_pdf_part() {
     let art = native(&(TWO_BOARDS.to_string() + &layer("Live", true, &square(10, 10))));
     // A 60-point square on the second page, 20 from its left and 20 down.
     let mut page = two_pages(None);
-    let path = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(140.0, 20.0, 200.0, 80.0));
-    let paint = vectorcraft_color::Paint::solid(vectorcraft_color::Color::cmyk(0.0, 0.0, 0.0, 1.0));
-    let appearance = vectorcraft_doc::Appearance {
-        items: vec![vectorcraft_doc::AppearanceItem::Fill(vectorcraft_doc::FillLayer::new(paint))],
+    let path = vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(140.0, 20.0, 200.0, 80.0));
+    let paint = vansoncraft_color::Paint::solid(vansoncraft_color::Color::cmyk(0.0, 0.0, 0.0, 1.0));
+    let appearance = vansoncraft_doc::Appearance {
+        items: vec![vansoncraft_doc::AppearanceItem::Fill(vansoncraft_doc::FillLayer::new(paint))],
         ..Default::default()
     };
     let node = Node::path(page.alloc_id(), path, appearance);
@@ -2418,7 +2418,7 @@ fn the_later_pages_of_a_pdf_of_some_artboards_are_not_compared() {
     // The PDF part: a page for the second artboard, then one for the fourth.
     let mut pdf = pdf_part(30.0, 46.0);
     let mut second = pdf.artboards[0].clone();
-    (second.id, second.rect) = (2, vectorcraft_geom::Rect::new(120.0, 0.0, 220.0, 100.0));
+    (second.id, second.rect) = (2, vansoncraft_geom::Rect::new(120.0, 0.0, 220.0, 100.0));
     pdf.artboards.push(second);
     let other = pdf_part(130.0, 66.0);
     let fourth = pdf.reid(&other.layers[0].children().unwrap()[0]);
@@ -2452,14 +2452,14 @@ fn two_pages_with_type(squares: [(f64, u32); 2]) -> Document {
     let at = |(x, y): (f64, u32), page: f64| pdf_part(page + x, 100.0 - f64::from(y) - 4.0);
     let mut pdf = at(squares[0], 0.0);
     let mut second = pdf.artboards[0].clone();
-    (second.id, second.rect) = (2, vectorcraft_geom::Rect::new(120.0, 0.0, 220.0, 100.0));
+    (second.id, second.rect) = (2, vansoncraft_geom::Rect::new(120.0, 0.0, 220.0, 100.0));
     pdf.artboards.push(second);
     let other = at(squares[1], 120.0);
     let square = pdf.reid(&other.layers[0].children().unwrap()[0]);
     let layer_id = pdf.layers[0].id;
     pdf.insert(Some(layer_id), 1, square).unwrap();
-    let style = vectorcraft_doc::CharStyle { size: 14.0, ..Default::default() };
-    let text = vectorcraft_doc::TextObject::point(vectorcraft_geom::Point::new(150.0, 20.0), "Hi", style);
+    let style = vansoncraft_doc::CharStyle { size: 14.0, ..Default::default() };
+    let text = vansoncraft_doc::TextObject::point(vansoncraft_geom::Point::new(150.0, 20.0), "Hi", style);
     let id = pdf.alloc_id();
     pdf.insert(Some(layer_id), 2, Node::new(id, NodeKind::Text(Box::new(text)))).unwrap();
     pdf
@@ -2561,10 +2561,10 @@ fn an_unseen_text_object_on_the_second_page_is_weighed_while_the_first_page_diff
     let art = native_with_text(&(TWO_BOARDS.to_string() + &layer("Art", true, &(square(10, 10) + "\n" + big + "\n" + &text_object(0)))), &doc);
     // The first page draws the 60-point square in black.
     let mut page = two_pages(None);
-    let path = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(20.0, 20.0, 80.0, 80.0));
-    let paint = vectorcraft_color::Paint::solid(vectorcraft_color::Color::cmyk(0.0, 0.0, 0.0, 1.0));
-    let appearance = vectorcraft_doc::Appearance {
-        items: vec![vectorcraft_doc::AppearanceItem::Fill(vectorcraft_doc::FillLayer::new(paint))],
+    let path = vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(20.0, 20.0, 80.0, 80.0));
+    let paint = vansoncraft_color::Paint::solid(vansoncraft_color::Color::cmyk(0.0, 0.0, 0.0, 1.0));
+    let appearance = vansoncraft_doc::Appearance {
+        items: vec![vansoncraft_doc::AppearanceItem::Fill(vansoncraft_doc::FillLayer::new(paint))],
         ..Default::default()
     };
     let node = Node::path(page.alloc_id(), path, appearance);
@@ -2630,7 +2630,7 @@ fn an_ai_file_that_cant_be_read_through_its_editing_data_keeps_its_pdf_part() {
     let (d, w, read) = crate::layered_ai(&private(&cropped), pdf.clone(), vec![], false, false, 1.0);
     assert!(read, "{w:?}");
     assert_eq!(names(&d), ["Jig"]);
-    assert_eq!(d.artboards[0].rect.size(), vectorcraft_geom::Size::new(50.0, 50.0));
+    assert_eq!(d.artboards[0].rect.size(), vansoncraft_geom::Size::new(50.0, 50.0));
 }
 
 /// #2034: editing data for a page of another size gives both sizes in points, in an EPS's note and
@@ -2814,18 +2814,18 @@ fn an_ai_file_read_as_its_pdf_part_keeps_its_artboard_layout() {
     let layer_id = pdf.layers[0].id;
     pdf.insert(Some(layer_id), 1, second).unwrap();
     let mut page = pdf.artboards[0].clone();
-    (page.id, page.rect) = (2, vectorcraft_geom::Rect::new(120.0, 0.0, 220.0, 100.0));
+    (page.id, page.rect) = (2, vansoncraft_geom::Rect::new(120.0, 0.0, 220.0, 100.0));
     pdf.artboards.push(page);
     let squares = |d: &Document| d.layers[0].children().unwrap().iter().map(|n| n.visual_bounds().unwrap().origin()).collect::<Vec<_>>();
     let (d, w, read) = crate::layered_ai(&private(&unread(&[(0, 0), (0, -150)])), pdf.clone(), vec![], false, false, 1.0);
     assert!(!read && w.iter().any(|w| w.contains("layers weren't read")), "{w:?}");
     let rects: Vec<_> = d.artboards.iter().map(|a| a.rect).collect();
-    assert_eq!(rects, [vectorcraft_geom::Rect::new(0.0, 0.0, 100.0, 100.0), vectorcraft_geom::Rect::new(0.0, 150.0, 100.0, 250.0)]);
+    assert_eq!(rects, [vansoncraft_geom::Rect::new(0.0, 0.0, 100.0, 100.0), vansoncraft_geom::Rect::new(0.0, 150.0, 100.0, 250.0)]);
     let board_names: Vec<_> = d.artboards.iter().map(|a| a.name.as_str()).collect();
     assert_eq!(board_names, ["at 0 0", "at 0 -150"]);
     let moved = squares(&d);
     assert!((moved[0] - squares(&pdf)[0]).hypot() < 1e-6, "the first page's art stays: {moved:?}");
-    assert!((moved[1] - vectorcraft_geom::Point::new(10.0, 160.0)).hypot() < 1e-6, "the second's goes with its page: {moved:?}");
+    assert!((moved[1] - vansoncraft_geom::Point::new(10.0, 160.0)).hypot() < 1e-6, "the second's goes with its page: {moved:?}");
     // Artboards that don't match the pages leave them in a row.
     for list in [&[(0, 0)][..], &[(0, 0), (0, -150), (200, 0)]] {
         let (d, _, _) = crate::layered_ai(&private(&unread(list)), pdf.clone(), vec![], false, false, 1.0);
@@ -2837,9 +2837,9 @@ fn an_ai_file_read_as_its_pdf_part_keeps_its_artboard_layout() {
     let (d, _, read) = crate::layered_ai(&private(&unread(&[(0, 0), (0, -150)])), in_points(pdf.clone(), 10.0), vec![], false, false, 10.0);
     assert!(!read);
     let rects: Vec<_> = d.artboards.iter().map(|a| a.rect).collect();
-    assert_eq!(rects, [vectorcraft_geom::Rect::new(0.0, 0.0, 1000.0, 1000.0), vectorcraft_geom::Rect::new(0.0, 1500.0, 1000.0, 2500.0)]);
+    assert_eq!(rects, [vansoncraft_geom::Rect::new(0.0, 0.0, 1000.0, 1000.0), vansoncraft_geom::Rect::new(0.0, 1500.0, 1000.0, 2500.0)]);
     let moved = squares(&d);
-    assert!((moved[1] - vectorcraft_geom::Point::new(100.0, 1600.0)).hypot() < 1e-6, "the second's art goes with its page: {moved:?}");
+    assert!((moved[1] - vansoncraft_geom::Point::new(100.0, 1600.0)).hypot() < 1e-6, "the second's art goes with its page: {moved:?}");
 }
 
 /// A `.ai` read as its PDF part opens on the page of the artboard its editing data names as the
@@ -2864,7 +2864,7 @@ fn an_ai_file_read_as_its_pdf_part_keeps_its_active_artboard() {
     };
     let mut pdf = pdf_part(10.0, 10.0);
     let mut page = pdf.artboards[0].clone();
-    (page.id, page.rect) = (2, vectorcraft_geom::Rect::new(120.0, 0.0, 220.0, 100.0));
+    (page.id, page.rect) = (2, vansoncraft_geom::Rect::new(120.0, 0.0, 220.0, 100.0));
     pdf.artboards.push(page);
     let opened = |before: &str, active: &str| {
         let (d, w, read) = crate::layered_ai(&private(&unread(before, active)), pdf.clone(), vec![], false, false, 1.0);
@@ -2912,7 +2912,7 @@ fn an_ai_file_with_no_layers_keeps_its_active_artboard() {
     };
     let mut pdf = pdf_part(10.0, 10.0);
     let mut page = pdf.artboards[0].clone();
-    (page.id, page.rect) = (2, vectorcraft_geom::Rect::new(120.0, 0.0, 220.0, 100.0));
+    (page.id, page.rect) = (2, vansoncraft_geom::Rect::new(120.0, 0.0, 220.0, 100.0));
     pdf.artboards.push(page.clone());
     let opened = |pdf: &Document, active: &str| {
         let data = no_layers(active);
@@ -2927,11 +2927,11 @@ fn an_ai_file_with_no_layers_keeps_its_active_artboard() {
     assert_eq!(opened(&pdf, ""), None);
     // Not a page per artboard, or a page of another size: the pages aren't the artboards.
     let mut three = pdf.clone();
-    (page.id, page.rect) = (3, vectorcraft_geom::Rect::new(240.0, 0.0, 340.0, 100.0));
+    (page.id, page.rect) = (3, vansoncraft_geom::Rect::new(240.0, 0.0, 340.0, 100.0));
     three.artboards.push(page);
     assert_eq!(opened(&three, "%_1 /Int (CropAreaActive) ,\n"), None);
     let mut other_size = pdf.clone();
-    other_size.artboards[1].rect = vectorcraft_geom::Rect::new(120.0, 0.0, 320.0, 100.0);
+    other_size.artboards[1].rect = vansoncraft_geom::Rect::new(120.0, 0.0, 320.0, 100.0);
     assert_eq!(opened(&other_size, "%_1 /Int (CropAreaActive) ,\n"), None);
 }
 
@@ -2947,12 +2947,12 @@ fn art_moved_with_its_page_moves_its_pattern_tile() {
     // The PDF part: the second page 20 points right of the first, with a pattern-filled square.
     let mut pdf = pdf_part(10.0, 10.0);
     let mut page = pdf.artboards[0].clone();
-    (page.id, page.rect) = (2, vectorcraft_geom::Rect::new(120.0, 0.0, 220.0, 100.0));
+    (page.id, page.rect) = (2, vansoncraft_geom::Rect::new(120.0, 0.0, 220.0, 100.0));
     pdf.artboards.push(page);
-    let path = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(130.0, 10.0, 134.0, 14.0));
-    let paint = vectorcraft_color::Paint::Pattern { pattern: "Dots".into(), xf: vectorcraft_geom::Affine::IDENTITY };
-    let appearance = vectorcraft_doc::Appearance {
-        items: vec![vectorcraft_doc::AppearanceItem::Fill(vectorcraft_doc::FillLayer::new(paint))],
+    let path = vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(130.0, 10.0, 134.0, 14.0));
+    let paint = vansoncraft_color::Paint::Pattern { pattern: "Dots".into(), xf: vansoncraft_geom::Affine::IDENTITY };
+    let appearance = vansoncraft_doc::Appearance {
+        items: vec![vansoncraft_doc::AppearanceItem::Fill(vansoncraft_doc::FillLayer::new(paint))],
         ..Default::default()
     };
     let (id, layer_id) = (pdf.alloc_id(), pdf.layers[0].id);
@@ -2960,11 +2960,11 @@ fn art_moved_with_its_page_moves_its_pattern_tile() {
     let (d, w, read) = crate::layered_ai(&private(&art), pdf, vec![], false, false, 1.0);
     assert!(!read, "{w:?}");
     let square = &d.layers[0].children().unwrap()[1];
-    assert_eq!(square.visual_bounds().unwrap().origin(), vectorcraft_geom::Point::new(10.0, 160.0));
-    let Some(vectorcraft_color::Paint::Pattern { xf, .. }) = square.appearance.fill().map(|f| &f.paint) else {
+    assert_eq!(square.visual_bounds().unwrap().origin(), vansoncraft_geom::Point::new(10.0, 160.0));
+    let Some(vansoncraft_color::Paint::Pattern { xf, .. }) = square.appearance.fill().map(|f| &f.paint) else {
         panic!("the square keeps its pattern fill: {:?}", square.appearance);
     };
-    assert_eq!(*xf, vectorcraft_geom::Affine::translate(vectorcraft_geom::Vec2::new(-120.0, 150.0)));
+    assert_eq!(*xf, vansoncraft_geom::Affine::translate(vansoncraft_geom::Vec2::new(-120.0, 150.0)));
 }
 
 #[test]
@@ -2976,7 +2976,7 @@ fn a_gray_is_a_grayscale_colour() {
     let r = import(&eps(page, &art)).unwrap();
     assert_eq!(names(&r.document), ["Art"], "{:?}", r.warnings);
     let fill = r.document.layers[0].children().unwrap()[0].appearance.fill().and_then(|f| f.paint.color());
-    assert_eq!(fill, Some(vectorcraft_color::Color::gray(0.75)));
+    assert_eq!(fill, Some(vansoncraft_color::Color::gray(0.75)));
     assert!(r.warnings.is_empty(), "{:?}", r.warnings);
 }
 
@@ -3059,7 +3059,7 @@ fn text_object(story: u32) -> String {
     format!("/AI11Text :\n0 /FreeUndo ,\n0 /FrameIndex ,\n{story} /StoryIndex ,\n2 /TextAntialiasing ,\n;\n")
 }
 
-fn text_of(l: &Node) -> Vec<&vectorcraft_doc::TextObject> {
+fn text_of(l: &Node) -> Vec<&vansoncraft_doc::TextObject> {
     l.children().into_iter().flatten().filter_map(|n| if let NodeKind::Text(t) = &n.kind { Some(&**t) } else { None }).collect()
 }
 
@@ -3080,9 +3080,9 @@ fn type_on_a_hidden_layer_comes_from_the_text_document() {
     let [.., e, f] = a.xf.as_coeffs();
     assert!((e - 58.5).abs() < 1e-6 && (f - 38.5).abs() < 1e-6, "{:?}", a.xf);
     assert_eq!(a.runs[0].style.size, 14.0);
-    assert_eq!(a.para.justify, vectorcraft_doc::Justify::Left);
+    assert_eq!(a.para.justify, vansoncraft_doc::Justify::Left);
     // Centred type is anchored at its middle.
-    assert_eq!(b.para.justify, vectorcraft_doc::Justify::Center);
+    assert_eq!(b.para.justify, vansoncraft_doc::Justify::Center);
     let [.., e, f] = b.xf.as_coeffs();
     assert!((e - 50.0).abs() < 1e-6 && (f - 50.0).abs() < 1e-6, "{:?}", b.xf);
     assert!(!r.warnings.iter().any(|w| w.contains("couldn't be read")), "{:?}", r.warnings);
@@ -3121,8 +3121,8 @@ fn type_from_the_text_document_takes_its_character_styles_attributes() {
     let texts = text_of(&r.document.layers[1]);
     assert_eq!(texts.iter().map(|t| t.plain_text()).collect::<Vec<_>>(), ["Normal", "Based", "Own"], "{:?}", r.warnings);
     let style = |i: usize| (texts[i].runs[0].style.fill.clone(), texts[i].runs[0].style.leading);
-    let solid = vectorcraft_color::Paint::solid;
-    use vectorcraft_color::Color;
+    let solid = vansoncraft_color::Paint::solid;
+    use vansoncraft_color::Color;
     assert_eq!(style(0), (solid(Color::rgb(0.0, 0.0, 0.0)), Some(18.0)), "the normal style's");
     assert_eq!(style(1), (solid(Color::rgb(1.0, 0.0, 0.0)), Some(18.0)), "its style's colour, the leading of the one it's based on");
     assert_eq!(style(2), (solid(Color::cmyk(0.0, 1.0, 0.0, 0.0)), Some(18.0)), "the run's own colour");
@@ -3170,7 +3170,7 @@ fn a_story_without_runs_takes_the_normal_styles() {
     for t in texts {
         let style = &t.runs[0].style;
         assert!((style.size - 12.0).abs() < 1e-9, "{}: {}", t.plain_text(), style.size);
-        assert_eq!(style.fill, vectorcraft_color::Paint::solid(vectorcraft_color::Color::rgb(0.0, 0.0, 1.0)), "{}", t.plain_text());
+        assert_eq!(style.fill, vansoncraft_color::Paint::solid(vansoncraft_color::Color::rgb(0.0, 0.0, 1.0)), "{}", t.plain_text());
         assert!((t.para.first_line_indent - 6.0).abs() < 1e-9 && !t.para.hyphenate, "{}: {:?}", t.plain_text(), t.para);
     }
 }
@@ -3218,9 +3218,9 @@ fn with_text(doc: &str, from: &str, to: &str) -> String {
 }
 
 /// The centres of `t`'s glyphs that draw, as it is laid out.
-fn glyph_centres(t: &vectorcraft_doc::TextObject) -> Vec<kurbo::Point> {
+fn glyph_centres(t: &vansoncraft_doc::TextObject) -> Vec<kurbo::Point> {
     use kurbo::Shape;
-    let l = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t);
+    let l = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), t);
     l.glyphs.iter().filter(|g| !g.outline.elements().is_empty()).map(|g| g.outline.bounding_box().center()).collect()
 }
 
@@ -3260,9 +3260,9 @@ fn vertical_area_type_keeps_its_orientation() {
     let texts = text_of(&r.document.layers[1]);
     assert_eq!(texts.len(), 1, "{:?}", r.warnings);
     let t = texts[0];
-    assert!(matches!(t.kind, vectorcraft_doc::TextKind::Area { .. }), "{:?}", t.kind);
+    assert!(matches!(t.kind, vansoncraft_doc::TextKind::Area { .. }), "{:?}", t.kind);
     assert!(t.vertical);
-    let vectorcraft_doc::TextKind::Area { frame } = &t.kind else { panic!("area") };
+    let vansoncraft_doc::TextKind::Area { frame } = &t.kind else { panic!("area") };
     let frame = frame.bounds().unwrap();
     let c = glyph_centres(t);
     assert!(!c.is_empty());
@@ -3271,7 +3271,7 @@ fn vertical_area_type_keeps_its_orientation() {
     assert!(c.first().unwrap().x > c.last().unwrap().x, "the first column is the rightmost: {c:?}");
     assert!(c.iter().all(|p| p.x > frame.x0 - 1.0 && p.x < frame.x1 + 1.0), "inside the frame {frame:?}: {c:?}");
     // The first column where the file has it: its centre line 8 points left of the right edge.
-    let first = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t).baselines()[0].0.x;
+    let first = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), t).baselines()[0].0.x;
     assert!((first - (frame.x1 - 8.0)).abs() < 1e-6, "{first} in {frame:?}");
 }
 
@@ -3329,7 +3329,7 @@ fn stroked_type_keeps_its_cap_join_and_miter_limit() {
     // Four runs over "abcdefgh": "ab" stroked with round caps and joins at a miter limit of 4, "cd"
     // with projecting caps and bevel joins at 2.5, "ef" stroked without the keys (the defaults), and
     // "gh" with the keys but no stroke.
-    use vectorcraft_doc::{LineCap, LineJoin};
+    use vansoncraft_doc::{LineCap, LineJoin};
     let doc = text_document(&[("abcdefgh\r", 0, (8200.0, 8180.0), (0.0, 0.0), 0.0)]);
     let run = |n: u32, own: &str| {
         format!(
@@ -3675,14 +3675,14 @@ fn a_copy_that_a_layers_look_draws_takes_the_pages_type_of_that_copy() {
 fn pdf_box_with_type(text: Option<&str>) -> Document {
     let mut d = Document::new(100.0, 100.0);
     let layer_id = d.layers[0].id;
-    let path = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(10.0, 70.0, 50.0, 90.0));
-    let paint = vectorcraft_color::Paint::solid(vectorcraft_color::Color::cmyk(0.0, 0.0, 1.0, 0.0));
-    let item = vectorcraft_doc::AppearanceItem::Fill(vectorcraft_doc::FillLayer::new(paint));
-    let square = Node::path(d.alloc_id(), path, vectorcraft_doc::Appearance { items: vec![item], ..Default::default() });
+    let path = vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(10.0, 70.0, 50.0, 90.0));
+    let paint = vansoncraft_color::Paint::solid(vansoncraft_color::Color::cmyk(0.0, 0.0, 1.0, 0.0));
+    let item = vansoncraft_doc::AppearanceItem::Fill(vansoncraft_doc::FillLayer::new(paint));
+    let square = Node::path(d.alloc_id(), path, vansoncraft_doc::Appearance { items: vec![item], ..Default::default() });
     d.insert(Some(layer_id), 0, square).unwrap();
     if let Some(text) = text {
-        let style = vectorcraft_doc::CharStyle { size: 6.0, ..Default::default() };
-        let text = vectorcraft_doc::TextObject::point(vectorcraft_geom::Point::new(12.0, 84.0), text, style);
+        let style = vansoncraft_doc::CharStyle { size: 6.0, ..Default::default() };
+        let text = vansoncraft_doc::TextObject::point(vansoncraft_geom::Point::new(12.0, 84.0), text, style);
         let id = d.alloc_id();
         d.insert(Some(layer_id), 1, Node::new(id, NodeKind::Text(Box::new(text)))).unwrap();
     }
@@ -3947,8 +3947,8 @@ fn type_the_page_draws_of_a_text_object_on_a_hidden_layer_stays_hidden() {
 /// or taken from the page, and are applied once where the type comes with other art.
 #[test]
 fn type_keeps_the_opacity_and_blend_mode_of_its_text_object() {
-    use vectorcraft_color::BlendMode;
-    use vectorcraft_doc::Knockout;
+    use vansoncraft_color::BlendMode;
+    use vansoncraft_doc::Knockout;
     let states = |d: &Document| {
         let mut v = vec![];
         d.walk(|n| {
@@ -4007,8 +4007,8 @@ fn type_keeps_the_opacity_and_blend_mode_of_its_text_object() {
     // the text object doesn't have (a fill's) stays.
     let pdf = |state: (f32, BlendMode)| {
         let mut pdf = pdf_part(10.0, 86.0);
-        let style = vectorcraft_doc::CharStyle { size: 14.0, ..Default::default() };
-        let text = vectorcraft_doc::TextObject::point(vectorcraft_geom::Point::new(58.5, 38.5), "Hi there", style);
+        let style = vansoncraft_doc::CharStyle { size: 14.0, ..Default::default() };
+        let text = vansoncraft_doc::TextObject::point(vansoncraft_geom::Point::new(58.5, 38.5), "Hi there", style);
         let mut text = Node::new(pdf.alloc_id(), NodeKind::Text(Box::new(text)));
         (text.opacity, text.blend) = state;
         let layer_id = pdf.layers[0].id;
@@ -4211,15 +4211,15 @@ fn type_on_a_later_artboard_of_an_ai_file_goes_to_its_text_object() {
     // The PDF part: the second page 20 points right of the first, the type 50 down it.
     let mut pdf = pdf_part(10.0, 86.0);
     let mut page = pdf.artboards[0].clone();
-    (page.id, page.rect) = (2, vectorcraft_geom::Rect::new(120.0, 0.0, 220.0, 100.0));
+    (page.id, page.rect) = (2, vansoncraft_geom::Rect::new(120.0, 0.0, 220.0, 100.0));
     pdf.artboards.push(page);
-    let style = vectorcraft_doc::CharStyle { size: 14.0, ..Default::default() };
-    let text = vectorcraft_doc::TextObject::point(vectorcraft_geom::Point::new(178.5, 50.0), "Hi there", style);
+    let style = vansoncraft_doc::CharStyle { size: 14.0, ..Default::default() };
+    let text = vansoncraft_doc::TextObject::point(vansoncraft_geom::Point::new(178.5, 50.0), "Hi there", style);
     let (id, layer_id) = (pdf.alloc_id(), pdf.layers[0].id);
     pdf.insert(Some(layer_id), 1, Node::new(id, NodeKind::Text(Box::new(text)))).unwrap();
     let (d, w, read) = crate::layered_ai(&private(&art), pdf, vec![], false, false, 1.0);
     assert!(read, "{w:?}");
-    assert_eq!(d.artboards[1].rect, vectorcraft_geom::Rect::new(0.0, 150.0, 100.0, 250.0));
+    assert_eq!(d.artboards[1].rect, vansoncraft_geom::Rect::new(0.0, 150.0, 100.0, 250.0));
     let texts = text_of(&d.layers[0]);
     assert_eq!(texts.len(), 1, "{w:?}");
     let [.., e, f] = texts[0].xf.as_coeffs();
@@ -4239,15 +4239,15 @@ fn page_type_on_a_later_artboard_moves_its_pattern_tile() {
     let art = native_with_text(&(boards.to_string() + &layer("Art", true, &(square(10, 10) + &text_object(0)))), &doc);
     let mut pdf = pdf_part(10.0, 86.0);
     let mut page = pdf.artboards[0].clone();
-    (page.id, page.rect) = (2, vectorcraft_geom::Rect::new(120.0, 0.0, 220.0, 100.0));
+    (page.id, page.rect) = (2, vansoncraft_geom::Rect::new(120.0, 0.0, 220.0, 100.0));
     pdf.artboards.push(page);
-    let style = vectorcraft_doc::CharStyle { size: 14.0, ..Default::default() };
-    let text = vectorcraft_doc::TextObject::point(vectorcraft_geom::Point::new(178.5, 50.0), "Hi there", style);
+    let style = vansoncraft_doc::CharStyle { size: 14.0, ..Default::default() };
+    let text = vansoncraft_doc::TextObject::point(vansoncraft_geom::Point::new(178.5, 50.0), "Hi there", style);
     let (id, layer_id) = (pdf.alloc_id(), pdf.layers[0].id);
     let mut node = Node::new(id, NodeKind::Text(Box::new(text)));
-    let paint = vectorcraft_color::Paint::Pattern { pattern: "Dots".into(), xf: vectorcraft_geom::Affine::IDENTITY };
-    node.appearance = vectorcraft_doc::Appearance {
-        items: vec![vectorcraft_doc::AppearanceItem::Fill(vectorcraft_doc::FillLayer::new(paint))],
+    let paint = vansoncraft_color::Paint::Pattern { pattern: "Dots".into(), xf: vansoncraft_geom::Affine::IDENTITY };
+    node.appearance = vansoncraft_doc::Appearance {
+        items: vec![vansoncraft_doc::AppearanceItem::Fill(vansoncraft_doc::FillLayer::new(paint))],
         ..Default::default()
     }
     .into();
@@ -4256,10 +4256,10 @@ fn page_type_on_a_later_artboard_moves_its_pattern_tile() {
     assert!(read, "{w:?}");
     let texts: Vec<&Node> = d.layers[0].children().unwrap().iter().filter(|n| matches!(n.kind, NodeKind::Text(_))).map(|n| &**n).collect();
     assert_eq!(texts.len(), 1, "{w:?}");
-    let Some(vectorcraft_color::Paint::Pattern { xf, .. }) = texts[0].appearance.fill().map(|f| &f.paint) else {
+    let Some(vansoncraft_color::Paint::Pattern { xf, .. }) = texts[0].appearance.fill().map(|f| &f.paint) else {
         panic!("the page's type keeps its pattern fill: {:?}", texts[0].appearance);
     };
-    assert_eq!(*xf, vectorcraft_geom::Affine::translate(vectorcraft_geom::Vec2::new(-120.0, 150.0)));
+    assert_eq!(*xf, vansoncraft_geom::Affine::translate(vansoncraft_geom::Vec2::new(-120.0, 150.0)));
 }
 
 /// A global process colour (`Xk`) or a pattern fill on a sublayer no longer sends a `.ai` to its
@@ -4286,7 +4286,7 @@ fn a_global_colour_or_a_pattern_fill_keeps_the_sublayers_of_an_ai_file() {
     let lawn = &d.layers[0].children().unwrap()[0];
     assert_eq!((lawn.name.as_deref(), kinds(lawn)), (Some("Lawn"), vec!["path"]), "{notes:?}");
     let fill = lawn.children().unwrap()[0].appearance.fill().map(|f| f.paint.clone());
-    assert!(matches!(&fill, Some(vectorcraft_color::Paint::Pattern { pattern, .. }) if pattern == "Dots"), "{fill:?}");
+    assert!(matches!(&fill, Some(vansoncraft_color::Paint::Pattern { pattern, .. }) if pattern == "Dots"), "{fill:?}");
 }
 
 /// A `.ai` whose PDF part is older than its editing copy draws less than its layers: trusted, the
@@ -4470,16 +4470,16 @@ fn area_type_and_type_on_a_path_come_from_the_text_document() {
     assert_eq!(texts.len(), 2, "{:?}", r.warnings);
     let (area, path) = (texts[0], texts[1]);
     assert_eq!(area.plain_text(), "Area type\nSecond");
-    let vectorcraft_doc::TextKind::Area { frame } = &area.kind else { panic!("area type: {:?}", area.kind) };
+    let vansoncraft_doc::TextKind::Area { frame } = &area.kind else { panic!("area type: {:?}", area.kind) };
     // Art y 20..40 is 60..80 down the 100 pt page.
     let b = frame.bounds().unwrap();
     assert!((b.x0 - 10.0).abs() < 1e-6 && (b.y0 - 60.0).abs() < 1e-6 && (b.x1 - 60.0).abs() < 1e-6 && (b.y1 - 80.0).abs() < 1e-6, "{b:?}");
-    assert_eq!(area.para.justify, vectorcraft_doc::Justify::Center);
+    assert_eq!(area.para.justify, vansoncraft_doc::Justify::Center);
     assert_eq!((area.para.first_line_indent, area.para.left_indent, area.para.space_before), (4.0, 6.0, 3.0));
     let style = &area.runs[0].style;
     assert_eq!((style.size, style.tracking, style.h_scale), (9.0, 50.0, 150.0));
-    assert_eq!(style.fill.color(), Some(vectorcraft_color::Color::rgb(1.0, 0.0, 0.0)));
-    let vectorcraft_doc::TextKind::OnPath { path: p, start, end } = &path.kind else { panic!("type on a path: {:?}", path.kind) };
+    assert_eq!(style.fill.color(), Some(vansoncraft_color::Color::rgb(1.0, 0.0, 0.0)));
+    let vansoncraft_doc::TextKind::OnPath { path: p, start, end } = &path.kind else { panic!("type on a path: {:?}", path.kind) };
     assert!((start - 0.25).abs() < 1e-3 && end.is_none(), "{start} {end:?}");
     assert_eq!(p.bounds().unwrap().width(), 40.0);
     assert_eq!(path.runs[0].style.size, 8.0);
@@ -4503,10 +4503,10 @@ fn type_on_a_path_keeps_its_type_on_a_path_options() {
     let texts = text_of(&r.document.layers[1]);
     assert_eq!(texts.len(), 2, "{:?}", r.warnings);
     let (flipped, plain) = (texts[0], texts[1]);
-    assert_eq!((flipped.path_effect, flipped.path_align), (vectorcraft_doc::PathEffect::Skew, vectorcraft_doc::PathAlign::Ascender));
-    assert_eq!((plain.path_effect, plain.path_align), (vectorcraft_doc::PathEffect::Rainbow, vectorcraft_doc::PathAlign::Baseline));
-    let first_x = |t: &vectorcraft_doc::TextObject| {
-        let vectorcraft_doc::TextKind::OnPath { path, .. } = &t.kind else { panic!("type on a path: {:?}", t.kind) };
+    assert_eq!((flipped.path_effect, flipped.path_align), (vansoncraft_doc::PathEffect::Skew, vansoncraft_doc::PathAlign::Ascender));
+    assert_eq!((plain.path_effect, plain.path_align), (vansoncraft_doc::PathEffect::Rainbow, vansoncraft_doc::PathAlign::Baseline));
+    let first_x = |t: &vansoncraft_doc::TextObject| {
+        let vansoncraft_doc::TextKind::OnPath { path, .. } = &t.kind else { panic!("type on a path: {:?}", t.kind) };
         let Some(kurbo::PathEl::MoveTo(p)) = path.to_bezpath().elements().first().copied() else { panic!("a path") };
         p.x
     };
@@ -4537,11 +4537,11 @@ fn area_type_keeps_its_area_type_options() {
     assert_eq!(texts.len(), 3, "{:?}", r.warnings);
     let a = &texts[0].area;
     assert_eq!((a.rows, a.columns, a.gutter, a.row_gutter), (2, 3, 4.0, Some(6.0)));
-    assert_eq!((a.first_baseline, a.first_baseline_min), (vectorcraft_doc::FirstBaseline::Fixed, 9.0));
+    assert_eq!((a.first_baseline, a.first_baseline_min), (vansoncraft_doc::FirstBaseline::Fixed, 9.0));
     let b = &texts[1].area;
     assert_eq!((b.rows, b.columns, b.gutter, b.row_gutter), (1, 2, 5.0, None));
-    assert_eq!(b.first_baseline, vectorcraft_doc::FirstBaseline::CapHeight);
-    assert_eq!(texts[2].area, vectorcraft_doc::AreaOptions::default());
+    assert_eq!(b.first_baseline, vansoncraft_doc::FirstBaseline::CapHeight);
+    assert_eq!(texts[2].area, vansoncraft_doc::AreaOptions::default());
 }
 
 /// A point type frame at the point (`x`, `y`) of the art.
@@ -4709,9 +4709,9 @@ fn a_hidden_text_object_that_cant_be_made_takes_the_pages_hidden_type() {
     ]));
     let spare = layer("Spare", false, &(text_object(1) + &text_object(2)));
     let art = native_with_text(&(layer("Art", true, &format!("{}\n{}", square(10, 10), text_object(0))) + &spare), &doc);
-    let style = vectorcraft_doc::CharStyle { size: 14.0, ..Default::default() };
+    let style = vansoncraft_doc::CharStyle { size: 14.0, ..Default::default() };
     let text = |d: &mut Document, s: &str, y: f64| {
-        Node::new(d.alloc_id(), NodeKind::Text(Box::new(vectorcraft_doc::TextObject::point(vectorcraft_geom::Point::new(58.5, y), s, style.clone()))))
+        Node::new(d.alloc_id(), NodeKind::Text(Box::new(vansoncraft_doc::TextObject::point(vansoncraft_geom::Point::new(58.5, y), s, style.clone()))))
     };
     // The last text object's type over "Known", in words or in marks only.
     for secret in ["Secret", "?!"] {
@@ -4792,7 +4792,7 @@ fn a_thai_story_stays_one_text_object() {
     let art = native_with_text(&layer("Art", true, &format!("{}\nu\n{}U\n", square(10, 10), frame_object(0, 0))), &doc);
     let mut page = pdf_part(10.0, 86.0);
     let layer_id = page.layers[0].id;
-    let style = vectorcraft_doc::CharStyle { size: 14.0, ..Default::default() };
+    let style = vansoncraft_doc::CharStyle { size: 14.0, ..Default::default() };
     // Doc y 40 is the frame's top: the words on its first line, the marks a little above it.
     let pieces = [
         ("\u{0E2A}\u{0E38}\u{0E02}\u{0E2A}\u{0E19}\u{0E15}", 10.0, 53.0),
@@ -4801,7 +4801,7 @@ fn a_thai_story_stays_one_text_object() {
         ("\u{0E31}\u{0E34}", 58.0, 41.0),
     ];
     for (i, (text, x, y)) in pieces.iter().enumerate() {
-        let t = vectorcraft_doc::TextObject::point(vectorcraft_geom::Point::new(*x, *y), text, style.clone());
+        let t = vansoncraft_doc::TextObject::point(vansoncraft_geom::Point::new(*x, *y), text, style.clone());
         let n = Node::new(page.alloc_id(), NodeKind::Text(Box::new(t)));
         page.insert(Some(layer_id), 1 + i, n).unwrap();
     }
@@ -4877,10 +4877,10 @@ fn type_round_a_circle_is_spaced_as_the_file_lays_it_out() {
     let texts = text_of(&r.document.layers[1]);
     assert_eq!(texts.len(), 1, "{:?}", r.warnings);
     let t = texts[0];
-    assert!(matches!(t.kind, vectorcraft_doc::TextKind::OnPath { .. }), "{:?}", t.kind);
+    assert!(matches!(t.kind, vansoncraft_doc::TextKind::OnPath { .. }), "{:?}", t.kind);
     assert!((t.path_spacing - 8.0).abs() < 0.05, "{}", t.path_spacing);
     // Laid out, the glyphs' centres are 40/48 of their advances apart round the circle.
-    let layout = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t);
+    let layout = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), t);
     let centres: Vec<(f64, f64)> = layout
         .glyphs
         .iter()
@@ -4929,9 +4929,9 @@ fn aligned_type_round_a_circle_runs_along_its_path_as_the_file_lays_it_out() {
     let texts = text_of(&r.document.layers[1]);
     assert_eq!(texts.len(), 1, "{:?}", r.warnings);
     let t = texts[0];
-    assert_eq!(t.path_align, vectorcraft_doc::PathAlign::Ascender);
+    assert_eq!(t.path_align, vansoncraft_doc::PathAlign::Ascender);
     assert!((t.path_spacing - 8.0).abs() < 0.05, "{}", t.path_spacing);
-    let layout = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t);
+    let layout = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), t);
     let centres: Vec<(f64, f64)> = layout
         .glyphs
         .iter()
@@ -4971,9 +4971,9 @@ fn aligned_type_lies_as_far_from_its_path_as_the_file_lays_it_out() {
     let all: Vec<(f64, f64)> = points.iter().map(|(x, y)| canvas(*x, *y)).collect();
     let segment = |i: usize| (0..4).map(|j| format!("{} {}", all[i * 3 + j].0, all[i * 3 + j].1)).collect::<Vec<_>>().join(" ");
     for (key, align, inside) in [
-        (0, vectorcraft_doc::PathAlign::Ascender, 0.83 * 12.0),
-        (2, vectorcraft_doc::PathAlign::Center, 0.328 * 12.0),
-        (1, vectorcraft_doc::PathAlign::Descender, -0.295 * 12.0),
+        (0, vansoncraft_doc::PathAlign::Ascender, 0.83 * 12.0),
+        (2, vansoncraft_doc::PathAlign::Center, 0.328 * 12.0),
+        (1, vansoncraft_doc::PathAlign::Descender, -0.295 * 12.0),
     ] {
         let frame = format!(
             "<< /0 << /0 [ 0 0 ] /1 << /0 [ {} ] >> /2 << /0 2 /6 [ 2.0 5.99 ] /11 << /2 {key} >> >> >> >>",
@@ -4986,7 +4986,7 @@ fn aligned_type_lies_as_far_from_its_path_as_the_file_lays_it_out() {
         let texts = text_of(&r.document.layers[1]);
         assert_eq!(texts.len(), 1, "{align:?}: {:?}", r.warnings);
         assert_eq!(texts[0].path_align, align);
-        let layout = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), texts[0]);
+        let layout = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), texts[0]);
         assert_eq!(layout.glyphs.len(), 8);
         // The four cubics stray up to 0.011 from the circle.
         for g in &layout.glyphs {
@@ -5037,7 +5037,7 @@ fn wrapped_area(below: &str, above: &str, other: Option<&str>) -> Document {
 }
 
 /// The area type of `d` (its first text object).
-fn area_text(d: &Document) -> vectorcraft_doc::TextObject {
+fn area_text(d: &Document) -> vansoncraft_doc::TextObject {
     let mut found = None;
     d.walk(|n| {
         if let NodeKind::Text(t) = &n.kind
@@ -5054,9 +5054,9 @@ fn wrap_area_after_open() {
     let d = wrapped_area("", &wrap_bar(true), None);
     let t = area_text(&d);
     assert_eq!(t.wrap.len(), 1, "one wrap shape, the bar's");
-    assert_eq!(t.wrap[0].wrap, vectorcraft_doc::TextWrap { offset: 2.0, invert: false });
+    assert_eq!(t.wrap[0].wrap, vansoncraft_doc::TextWrap { offset: 2.0, invert: false });
     // Each line keeps to one side of the bar and its 2-point offset.
-    let lay = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &t);
+    let lay = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &t);
     assert!(lay.lines.len() > 1);
     let spans: Vec<(f64, f64)> = lay.lines.iter().map(|l| l.avail).collect();
     assert!(spans.iter().all(|(a, b)| *b <= 38.0 + 1e-6 || *a >= 62.0 - 1e-6), "{spans:?}");
@@ -5075,7 +5075,7 @@ fn no_wrap_metadata_unchanged() {
     d.walk(|n| wraps += usize::from(n.extras().wrap.is_some()));
     assert_eq!(wraps, 0);
     // The lines span the frame, through the bar.
-    let lay = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &t);
+    let lay = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &t);
     assert!(
         lay.lines.iter().all(|l| l.avail.0 <= 10.0 + 1e-6 && l.avail.1 >= 90.0 - 1e-6),
         "{:?}",
@@ -5096,7 +5096,7 @@ fn a_wrapped_text_object_stays_a_wrap_object() {
     let (d, notes) = crate::ai_alone(&private(&native_with_text(&layers, &doc))).unwrap();
     let kids = d.layers[0].children().unwrap();
     assert_eq!(kids.len(), 2, "{notes:?}");
-    assert_eq!(kids[1].extras().wrap, Some(vectorcraft_doc::TextWrap { offset: 4.0, invert: false }), "{notes:?}");
+    assert_eq!(kids[1].extras().wrap, Some(vansoncraft_doc::TextWrap { offset: 4.0, invert: false }), "{notes:?}");
     let NodeKind::Text(area) = &kids[0].kind else { panic!("area type") };
     assert_eq!(area.wrap.len(), 1, "the area type wraps around the text object above it");
 }
@@ -5206,7 +5206,7 @@ fn a_copied_area_type_object_is_framed_where_its_own_art_path_is() {
     let r = import(&eps(&page_square(10, 10), &art)).unwrap();
     let texts = text_of(&r.document.layers[1]);
     assert_eq!(texts.len(), 1, "{:?}", r.warnings);
-    let vectorcraft_doc::TextKind::Area { frame } = &texts[0].kind else { panic!("area type: {:?}", texts[0].kind) };
+    let vansoncraft_doc::TextKind::Area { frame } = &texts[0].kind else { panic!("area type: {:?}", texts[0].kind) };
     // Art y 50..70 is 30..50 down the 100 pt page.
     let b = frame.bounds().unwrap();
     assert!((b.x0 - 30.0).abs() < 1e-6 && (b.y0 - 30.0).abs() < 1e-6 && (b.x1 - 80.0).abs() < 1e-6 && (b.y1 - 50.0).abs() < 1e-6, "{b:?}");
@@ -5226,7 +5226,7 @@ fn a_copied_flipped_type_on_a_path_flips_its_own_art_path() {
     let r = import(&eps(&page_square(10, 10), &art)).unwrap();
     let texts = text_of(&r.document.layers[1]);
     assert_eq!(texts.len(), 1, "{:?}", r.warnings);
-    let vectorcraft_doc::TextKind::OnPath { path, .. } = &texts[0].kind else { panic!("type on a path: {:?}", texts[0].kind) };
+    let vansoncraft_doc::TextKind::OnPath { path, .. } = &texts[0].kind else { panic!("type on a path: {:?}", texts[0].kind) };
     // The copy's path runs from x 30 to x 80 at art y 50, so flipped it starts at x 80, 50 down the page.
     let Some(kurbo::PathEl::MoveTo(first)) = path.to_bezpath().elements().first().copied() else { panic!("a path") };
     assert_eq!((first.x, first.y), (80.0, 50.0));
@@ -5304,7 +5304,7 @@ fn envelope_options_keep_the_source_text_hidden_under_its_outlined_appearance() 
 /// A family that is installed, for type that must draw as itself; `None` (the test is skipped)
 /// when no font is available.
 fn installed_family() -> Option<String> {
-    let db = vectorcraft_text::FontDb::global();
+    let db = vansoncraft_text::FontDb::global();
     let plain = |f: &String| !f.is_empty() && f.chars().all(|c| c.is_ascii_alphanumeric() || c == ' ');
     ["DejaVu Sans", "Liberation Sans", "Noto Sans", "Source Sans 3", "Arial", "Helvetica"]
         .iter()
@@ -5318,7 +5318,7 @@ fn to_art(p: kurbo::Point) -> (f64, f64) {
     (p.x, 100.0 - p.y)
 }
 
-/// What the live envelope `envelope` (on the page axes) draws, as VectorCraft draws it: the
+/// What the live envelope `envelope` (on the page axes) draws, as VansonCraft draws it: the
 /// format's paths (each subpath filled on its own, in the color its type is drawn in) and the
 /// page's PostScript for them.
 fn drawn_envelope(envelope: &Node) -> (String, String) {
@@ -5355,7 +5355,7 @@ fn drawn_envelope(envelope: &Node) -> (String, String) {
         }
     }
     let (mut art, mut page) = (String::new(), String::new());
-    walk(&vectorcraft_effects::expand_live_deep(None, envelope), [0.0; 3], &mut art, &mut page);
+    walk(&vansoncraft_effects::expand_live_deep(None, envelope), [0.0; 3], &mut art, &mut page);
     (art, page)
 }
 
@@ -5419,22 +5419,22 @@ fn type_envelope_text(family: &str, paint: Option<&str>) -> String {
 fn arc_envelope(text: &Node, bend: f64) -> Node {
     let mut text = text.clone();
     text.visible = true;
-    let kind = vectorcraft_doc::live::EnvelopeKind::Warp {
+    let kind = vansoncraft_doc::live::EnvelopeKind::Warp {
         style: "arc".into(),
         bend,
         h: 0.0,
         v: 0.0,
         horizontal: true,
-        version: vectorcraft_doc::live::WARP_NET,
+        version: vansoncraft_doc::live::WARP_NET,
     };
     Node::new(
-        vectorcraft_doc::NodeId(1_000_000),
+        vansoncraft_doc::NodeId(1_000_000),
         NodeKind::Envelope {
             content: vec![std::sync::Arc::new(text)],
             kind: Box::new(kind),
             fidelity: 50.0,
             editing: false,
-            options: vectorcraft_doc::live::EnvelopeOptions::NEW,
+            options: vansoncraft_doc::live::EnvelopeOptions::NEW,
             frame: Box::default(),
         },
     )
@@ -5520,7 +5520,7 @@ fn an_envelope_of_white_type_that_draws_apart_from_its_drawn_art_keeps_it() {
     let Some(family) = installed_family() else { return };
     let doc = type_envelope_text(&family, Some("/0 << /0 1 /1 [ 1.0 1.0 1.0 1.0 ] >>"));
     let text = made_envelope_type(&doc);
-    assert_eq!(text_fill(&text), Some(vectorcraft_color::Color::rgb(1.0, 1.0, 1.0)));
+    assert_eq!(text_fill(&text), Some(vansoncraft_color::Color::rgb(1.0, 1.0, 1.0)));
     let (drawn, page) = drawn_envelope(&arc_envelope(&text, -30.0));
     // A dark square under it, so the page shows the white type.
     let ground = "0 0 0 1 k\n0 0 m\n100 0 L\n100 100 L\n0 100 L\nf\n";
@@ -5669,7 +5669,7 @@ fn layers_with_objects_that_come_in_as_the_page_art_leave_an_envelope_of_type_it
 /// take the place of (#3179).
 #[test]
 fn an_envelope_of_type_bound_to_a_visibility_variable_keeps_its_drawn_art() {
-    use vectorcraft_testkit::ai::{XmlValue, named, variable_library_data, xml_element, xml_node};
+    use vansoncraft_testkit::ai::{XmlValue, named, variable_library_data, xml_element, xml_node};
     let Some(family) = installed_family() else { return };
     let doc = type_envelope_text(&family, None);
     let (drawn, page) = drawn_envelope(&arc_envelope(&made_envelope_type(&doc), 30.0));
@@ -5715,10 +5715,10 @@ fn rising_grid() -> String {
 /// [`rising_grid`] on the page axes as a mesh envelope reads it: its points from the top left, row
 /// by row, and their handles (towards the next column, the previous one, the next row and the
 /// previous one; none out of the grid).
-fn rising_kind() -> vectorcraft_doc::live::EnvelopeKind {
+fn rising_kind() -> vansoncraft_doc::live::EnvelopeKind {
     use kurbo::{Point, Vec2};
     let z = Vec2::ZERO;
-    vectorcraft_doc::live::EnvelopeKind::Mesh {
+    vansoncraft_doc::live::EnvelopeKind::Mesh {
         rows: 1,
         cols: 1,
         points: vec![Point::new(20.0, 27.0), Point::new(80.0, 39.0), Point::new(20.0, 60.0), Point::new(80.0, 60.0)],
@@ -5740,7 +5740,7 @@ fn drawn_anchors(n: &Node) -> Vec<kurbo::Point> {
         }
     }
     let mut out = vec![];
-    walk(&vectorcraft_effects::expand_live_deep(None, n), &mut out);
+    walk(&vansoncraft_effects::expand_live_deep(None, n), &mut out);
     out
 }
 
@@ -5749,17 +5749,17 @@ fn drawn_anchors(n: &Node) -> Vec<kurbo::Point> {
 /// the type is editable, and new text fills the same shape (#3179).
 #[test]
 fn a_warp_of_type_opens_as_a_mesh_on_its_saved_grid_and_keeps_its_shape_when_its_text_changes() {
-    use vectorcraft_doc::live::EnvelopeKind;
+    use vansoncraft_doc::live::EnvelopeKind;
     let Some(family) = installed_family() else { return };
     let doc = type_envelope_text(&family, None);
     let mut text = made_envelope_type(&doc);
     text.visible = true;
-    let options = vectorcraft_doc::live::EnvelopeOptions::NEW;
+    let options = vansoncraft_doc::live::EnvelopeOptions::NEW;
     let shaped = |text: Node| {
         let content = vec![std::sync::Arc::new(text)];
         let kind = Box::new(rising_kind());
         Node::new(
-            vectorcraft_doc::NodeId(1_000_000),
+            vansoncraft_doc::NodeId(1_000_000),
             NodeKind::Envelope { content, kind, fidelity: 50.0, editing: false, options, frame: Box::default() },
         )
     };
@@ -5791,7 +5791,7 @@ fn a_warp_of_type_opens_as_a_mesh_on_its_saved_grid_and_keeps_its_shape_when_its
     // reaches each corner of the grid.
     let NodeKind::Text(t) = &mut std::sync::Arc::make_mut(&mut content[0]).kind else { panic!("type") };
     let style = t.runs[0].style.clone();
-    t.runs = vec![vectorcraft_doc::TextRun::new("HIH", style)];
+    t.runs = vec![vansoncraft_doc::TextRun::new("HIH", style)];
     (t.cached_bounds, t.cached_ink) = (None, None);
     t.cached_baselines.clear();
     let anchors = drawn_anchors(&live);
@@ -5807,7 +5807,7 @@ fn a_warp_of_type_opens_as_a_mesh_on_its_saved_grid_and_keeps_its_shape_when_its
 /// as files draw it (#6644).
 #[test]
 fn a_warp_of_stroked_type_maps_from_its_bounds_with_strokes_where_its_drawn_art_does() {
-    use vectorcraft_doc::live::{envelope_content_boxes, envelope_stroke_margin};
+    use vansoncraft_doc::live::{envelope_content_boxes, envelope_stroke_margin};
     let Some(family) = installed_family() else { return };
     // "FLUX" stroked 4 points wide in black.
     let stroked = "/53 << /99 /CAITextPaint /0 << /0 2 /1 [ 1.0 0.0 1.0 0.0 0.0 ] >> >> /54 << /99 /CAITextPaint /0 << /0 2 /1 [ 1.0 0.0 0.0 0.0 1.0 ] >> >> /57 true /63 4.0";
@@ -5817,11 +5817,11 @@ fn a_warp_of_stroked_type_maps_from_its_bounds_with_strokes_where_its_drawn_art_
     assert!(matches!(&text.kind, NodeKind::Text(t) if t.runs[0].style.stroke_width == 4.0), "{text:?}");
     let content = vec![std::sync::Arc::new(text)];
     let (with, without) = envelope_content_boxes(&content, kurbo::Affine::IDENTITY).unwrap();
-    let mut options = vectorcraft_doc::live::EnvelopeOptions::NEW;
+    let mut options = vansoncraft_doc::live::EnvelopeOptions::NEW;
     options.bounds_margin = envelope_stroke_margin(with, without).unwrap();
     assert!(options.bounds_margin.iter().all(|m| *m > 0.0), "{options:?}");
     let shaped = Node::new(
-        vectorcraft_doc::NodeId(1_000_000),
+        vansoncraft_doc::NodeId(1_000_000),
         NodeKind::Envelope { content, kind: Box::new(rising_kind()), fidelity: 50.0, editing: false, options, frame: Box::default() },
     );
     let (drawn, page) = drawn_stroked_envelope(&shaped);
@@ -5854,16 +5854,16 @@ fn drawn_stroked_envelope(envelope: &Node) -> (String, String) {
     if let NodeKind::Envelope { content, .. } = &mut unstroked.kind {
         for c in content.iter_mut() {
             if let NodeKind::Text(t) = &mut std::sync::Arc::make_mut(c).kind {
-                t.runs.iter_mut().for_each(|r| r.style.stroke = vectorcraft_color::Paint::None);
+                t.runs.iter_mut().for_each(|r| r.style.stroke = vansoncraft_color::Paint::None);
             }
         }
     }
     let (fills, fill_page) = drawn_envelope(&unstroked);
     let [r, g, b] = stroke.paint.color().map_or([0.0; 3], |c| c.to_rgb());
     let join = match stroke.join {
-        vectorcraft_doc::LineJoin::Miter => 0,
-        vectorcraft_doc::LineJoin::Round => 1,
-        vectorcraft_doc::LineJoin::Bevel => 2,
+        vansoncraft_doc::LineJoin::Miter => 0,
+        vansoncraft_doc::LineJoin::Round => 1,
+        vansoncraft_doc::LineJoin::Bevel => 2,
     };
     let (w, limit) = (stroke.width, stroke.miter_limit);
     let mut art = format!("{fills}0 0 0 0 {r} {g} {b} XA\n{w} w\n{join} j\n{limit} M\n");
@@ -5872,7 +5872,7 @@ fn drawn_stroked_envelope(envelope: &Node) -> (String, String) {
         let (x, y) = to_art(p);
         format!("{x} {y}")
     };
-    vectorcraft_effects::expand_live_deep(None, &unstroked).walk(&mut |n| {
+    vansoncraft_effects::expand_live_deep(None, &unstroked).walk(&mut |n| {
         let NodeKind::Path { path, .. } = &n.kind else { return };
         for el in path.to_bezpath().elements() {
             match *el {
@@ -5901,7 +5901,7 @@ fn drawn_stroked_envelope(envelope: &Node) -> (String, String) {
 
 /// An envelope of type with a character stroke, Distort Appearance on, whose drawn art strokes the
 /// bent glyph outlines at the stroke's own weight (as `.ai` files draw the strokes of type in an
-/// envelope, however much the grid squeezes or stretches it) opens live: VectorCraft draws the
+/// envelope, however much the grid squeezes or stretches it) opens live: VansonCraft draws the
 /// stroke that way too (#6644).
 #[test]
 fn an_envelope_of_stroked_type_whose_drawn_art_strokes_the_bent_outlines_at_the_weight_opens_live() {
@@ -5912,17 +5912,17 @@ fn an_envelope_of_stroked_type_whose_drawn_art_strokes_the_bent_outlines_at_the_
     let mut text = made_envelope_type(&doc);
     text.visible = true;
     assert!(
-        matches!(&text.kind, NodeKind::Text(t) if t.runs[0].style.stroke_width == 1.5 && t.runs[0].style.stroke_join == vectorcraft_doc::LineJoin::Round),
+        matches!(&text.kind, NodeKind::Text(t) if t.runs[0].style.stroke_width == 1.5 && t.runs[0].style.stroke_join == vansoncraft_doc::LineJoin::Round),
         "{text:?}"
     );
     let shaped = Node::new(
-        vectorcraft_doc::NodeId(1_000_000),
+        vansoncraft_doc::NodeId(1_000_000),
         NodeKind::Envelope {
             content: vec![std::sync::Arc::new(text)],
             kind: Box::new(rising_kind()),
             fidelity: 50.0,
             editing: false,
-            options: vectorcraft_doc::live::EnvelopeOptions::NEW,
+            options: vansoncraft_doc::live::EnvelopeOptions::NEW,
             frame: Box::default(),
         },
     );
@@ -5945,9 +5945,9 @@ fn a_warp_of_type_without_a_saved_grid_keeps_its_drawn_art() {
     let mut text = made_envelope_type(&doc);
     text.visible = true;
     let content = vec![std::sync::Arc::new(text)];
-    let options = vectorcraft_doc::live::EnvelopeOptions::NEW;
+    let options = vansoncraft_doc::live::EnvelopeOptions::NEW;
     let shaped = Node::new(
-        vectorcraft_doc::NodeId(1_000_000),
+        vansoncraft_doc::NodeId(1_000_000),
         NodeKind::Envelope { content, kind: Box::new(rising_kind()), fidelity: 50.0, editing: false, options, frame: Box::default() },
     );
     let (drawn, page) = drawn_envelope(&shaped);
@@ -5978,7 +5978,7 @@ fn type_envelope_editing(keys: &str, shape: &str, drawn: &str) -> String {
 /// envelope on that grid moved onto the drawn art (#3179).
 #[test]
 fn a_warp_of_type_in_edit_contents_whose_grid_stayed_behind_opens_on_its_drawn_art() {
-    use vectorcraft_doc::live::EnvelopeKind;
+    use vansoncraft_doc::live::EnvelopeKind;
     let Some(family) = installed_family() else { return };
     let doc = type_envelope_text(&family, None);
     let mut text = made_envelope_type(&doc);
@@ -5988,9 +5988,9 @@ fn a_warp_of_type_in_edit_contents_whose_grid_stayed_behind_opens_on_its_drawn_a
     let EnvelopeKind::Mesh { rows, cols, points, handles } = rising_kind() else { panic!("a mesh") };
     let want: Vec<kurbo::Point> = points.iter().map(|p| *p + by).collect();
     let kind = EnvelopeKind::Mesh { rows, cols, points: want.clone(), handles };
-    let options = vectorcraft_doc::live::EnvelopeOptions::NEW;
+    let options = vansoncraft_doc::live::EnvelopeOptions::NEW;
     let shaped = Node::new(
-        vectorcraft_doc::NodeId(1_000_000),
+        vansoncraft_doc::NodeId(1_000_000),
         NodeKind::Envelope {
             content: vec![std::sync::Arc::new(text)],
             kind: Box::new(kind),
@@ -6025,7 +6025,7 @@ fn a_warp_of_type_in_edit_contents_whose_grid_stayed_behind_opens_on_its_drawn_a
 /// come: with one check too few for both, the next envelope, whose first try opens it, gets it.
 #[test]
 fn a_warp_of_type_tried_again_leaves_the_next_envelope_its_check() {
-    use vectorcraft_doc::live::EnvelopeKind;
+    use vansoncraft_doc::live::EnvelopeKind;
     let Some(family) = installed_family() else { return };
     let story = ("FLUX\r", 0, (8170.0, 8180.0), (0.0, 0.0), 0.0);
     let mut doc = text_document(&[story, story]).replace("(Helvetica)", &format!("({family})"));
@@ -6037,9 +6037,9 @@ fn a_warp_of_type_tried_again_leaves_the_next_envelope_its_check() {
     // The first envelope, of story 0, draws as its saved grid and not as its warp: two checks.
     let mut shown = text.clone();
     shown.visible = true;
-    let options = vectorcraft_doc::live::EnvelopeOptions::NEW;
+    let options = vansoncraft_doc::live::EnvelopeOptions::NEW;
     let shaped = Node::new(
-        vectorcraft_doc::NodeId(1_000_000),
+        vansoncraft_doc::NodeId(1_000_000),
         NodeKind::Envelope {
             content: vec![std::sync::Arc::new(shown)],
             kind: Box::new(rising_kind()),
@@ -6098,7 +6098,7 @@ fn a_warp_of_type_tried_again_leaves_the_next_envelope_its_check() {
 }
 
 /// The fill of the first run of type `n`.
-fn text_fill(n: &Node) -> Option<vectorcraft_color::Color> {
+fn text_fill(n: &Node) -> Option<vansoncraft_color::Color> {
     let NodeKind::Text(t) = &n.kind else { return None };
     t.runs.first().and_then(|r| r.style.fill.color())
 }
@@ -6169,8 +6169,8 @@ fn comic_style() -> String {
 fn type_with_a_stacked_art_style_comes_in_as_type_with_that_appearance() {
     // GUARDS: a style of more than one fill (or with effects on a fill) left the type as its drawn look,
     // outlines that can't be retyped (comic lettering made with Illustrator's Appearance panel).
-    use vectorcraft_color::BlendMode;
-    use vectorcraft_doc::AppearanceItem;
+    use vansoncraft_color::BlendMode;
+    use vansoncraft_doc::AppearanceItem;
     let doc = text_document(&[("Bang\r", 0, (8200.0, 8180.0), (0.0, 0.0), 0.0)]);
     // The look: the style's drawing round where the type lies (its anchor is at (58.5, 61.5)).
     let drawing = "0 0 1 0 k\n54 56 m\n100 56 L\n100 80 L\n54 80 L\nf";
@@ -6330,11 +6330,11 @@ fn plain_warped_look() -> String {
     });
     let mut text = text.unwrap_or_else(|| panic!("no type: {notes:?}"));
     text.appearance = warped_appearance().into();
-    drawn_as_operators(&outlines_of(&vectorcraft_effects::expand_outlined(None, &text, None).unwrap()))
+    drawn_as_operators(&outlines_of(&vansoncraft_effects::expand_outlined(None, &text, None).unwrap()))
 }
 
 /// The appearance that [`warped_style`] at 40% on the object reads as.
-fn warped_appearance() -> vectorcraft_doc::Appearance {
+fn warped_appearance() -> vansoncraft_doc::Appearance {
     let art = warped_file(&warped_style(40.0, WarpOn::Object), "TILT\r", 1, "");
     let (d, notes) = crate::ai_alone(&private(&art)).unwrap();
     let mut out = None;
@@ -6369,7 +6369,7 @@ fn warped_type_that_draws_apart_from_its_look_comes_in_as_the_look() {
 /// though its live warp draws apart from its look.
 #[test]
 fn warped_type_bound_to_a_text_variable_stays_bound_type() {
-    use vectorcraft_testkit::ai::{XmlValue, named, variable_library_data, xml_element, xml_node};
+    use vansoncraft_testkit::ai::{XmlValue, named, variable_library_data, xml_element, xml_node};
     let attributes =
         [("trait", XmlValue::Str("textcontent")), ("varName", XmlValue::Unicode("v_text")), ("docRef", XmlValue::Raw("/XMLUIDREF : (type_x5F_1) ;"))];
     let declared = [xml_node(1, "variable", XmlValue::Str(""), &attributes, &[])];
@@ -6691,7 +6691,7 @@ fn type_with_convert_to_shape_comes_in_as_type_with_it_live() {
 fn type_with_a_variable_width_stroke_keeps_it_live() {
     // GUARDS: other objects with a variable-width stroke come in as their drawn look; type keeps the
     // stroke, since its drawn look can't be retyped.
-    use vectorcraft_doc::AppearanceItem;
+    use vansoncraft_doc::AppearanceItem;
     let doc = text_document(&[("Bang\r", 0, (8200.0, 8180.0), (0.0, 0.0), 0.0)]);
     let style = "%AI9_BeginArtStyles\n/KnownStyle :\n(Tapered) /Name ,\n/ActiveStyle :\n/CompoundFilter :\n(Chain Style Filter) 0 0 /Filter ,\n1 /Visible ,\n\
         /CompoundFilter :\n(Stack Style Filter) 0 0 /Filter ,\n1 /Visible ,\n/BasicFilter :\n(Stroke Style Filter) 0 0 /Filter ,\n1 /Visible ,\n\
@@ -6754,9 +6754,9 @@ fn a_placed_file_at_its_boxs_corner_matches_the_page() {
     // The page: the square in 50% grey, as the PDF part draws the image.
     let mut page = Document::new(100.0, 100.0);
     let id = page.alloc_id();
-    let path = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(30.0, 30.0, 70.0, 70.0));
-    let grey = vectorcraft_doc::FillLayer::new(vectorcraft_color::Paint::solid(vectorcraft_color::Color::gray(0.5)));
-    let n = Node::path(id, path, vectorcraft_doc::Appearance { items: vec![vectorcraft_doc::AppearanceItem::Fill(grey)], ..Default::default() });
+    let path = vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(30.0, 30.0, 70.0, 70.0));
+    let grey = vansoncraft_doc::FillLayer::new(vansoncraft_color::Paint::solid(vansoncraft_color::Color::gray(0.5)));
+    let n = Node::path(id, path, vansoncraft_doc::Appearance { items: vec![vansoncraft_doc::AppearanceItem::Fill(grey)], ..Default::default() });
     let l = page.layers[0].id;
     page.insert(Some(l), 0, n).unwrap();
     let (d, w, read) = crate::layered_ai(&private(&data), page, vec![], false, false, 1.0);
@@ -6790,7 +6790,7 @@ fn placed_page_two(hidden: bool) -> String {
 }
 
 /// The placed document of `n`, with its bounds.
-fn placed_document(n: &Node) -> (&vectorcraft_doc::PlacedDocument, vectorcraft_geom::Rect) {
+fn placed_document(n: &Node) -> (&vansoncraft_doc::PlacedDocument, vansoncraft_geom::Rect) {
     let NodeKind::PlacedDocument(p) = &n.kind else { panic!("{:?}", n.kind) };
     (p, n.geometric_bounds().unwrap())
 }
@@ -6802,15 +6802,15 @@ fn a_placed_pdf_page_is_a_placed_document_where_its_image_would_be() {
     let data = native(&layer("Jig", true, &placed_page_two(false))).replace("%AI5_NumLayers", "%AI3_TemplateBox: 100 50 100 50\n%AI5_NumLayers");
     let mut page = Document::new(100.0, 100.0);
     let id = page.alloc_id();
-    let path = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(30.0, 30.0, 70.0, 70.0));
-    let grey = vectorcraft_doc::FillLayer::new(vectorcraft_color::Paint::solid(vectorcraft_color::Color::gray(0.5)));
-    let n = Node::path(id, path, vectorcraft_doc::Appearance { items: vec![vectorcraft_doc::AppearanceItem::Fill(grey)], ..Default::default() });
+    let path = vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(30.0, 30.0, 70.0, 70.0));
+    let grey = vansoncraft_doc::FillLayer::new(vansoncraft_color::Paint::solid(vansoncraft_color::Color::gray(0.5)));
+    let n = Node::path(id, path, vansoncraft_doc::Appearance { items: vec![vansoncraft_doc::AppearanceItem::Fill(grey)], ..Default::default() });
     let l = page.layers[0].id;
     page.insert(Some(l), 0, n).unwrap();
     let (d, w, read) = crate::layered_ai(&private(&data), page, vec![], false, false, 1.0);
     assert!(read, "{w:?}");
     let (p, b) = placed_document(&d.layers[0].children().unwrap()[0]);
-    assert_eq!((p.link.path.as_str(), p.link.page, p.page_box, p.bounding), ("/files/pages.pdf", Some(2), vectorcraft_doc::PageBox::Media, false));
+    assert_eq!((p.link.path.as_str(), p.link.page, p.page_box, p.bounding), ("/files/pages.pdf", Some(2), vansoncraft_doc::PageBox::Media, false));
     assert_eq!((p.width, p.height), (40.0, 40.0));
     assert!([b.x0 - 30.0, b.y0 - 30.0, b.x1 - 70.0, b.y1 - 70.0].iter().all(|v| v.abs() < 0.01), "on the page's square: {b:?}");
     assert!(d.images[&p.key].is_proxy(), "the preview until the file is read");
@@ -6826,7 +6826,7 @@ fn a_placed_pdf_page_in_an_opacity_mask_is_a_placed_document() {
     let mask = square.extras().mask.clone().unwrap_or_else(|| panic!("{notes:?}"));
     let art = if let NodeKind::Group { children, .. } = &mask.art.kind { children[0].clone() } else { mask.art.clone() };
     let (p, _) = placed_document(&art);
-    assert_eq!((p.link.page, p.page_box), (Some(2), vectorcraft_doc::PageBox::Media));
+    assert_eq!((p.link.page, p.page_box), (Some(2), vansoncraft_doc::PageBox::Media));
 }
 
 /// A placed PDF page whose box is too small for a finite placement stays a linked image.
@@ -6848,7 +6848,7 @@ fn a_placed_pdf_page_too_small_to_place_stays_a_linked_image() {
 /// binds, so the binding is kept.
 #[test]
 fn a_placed_pdf_page_bound_to_an_image_variable_stays_a_linked_image() {
-    use vectorcraft_testkit::ai::{XmlValue, variable_library_data, xml_element, xml_node};
+    use vansoncraft_testkit::ai::{XmlValue, variable_library_data, xml_element, xml_node};
     let declared = vec![xml_node(
         1,
         "variable",
@@ -6879,9 +6879,9 @@ fn a_small_placed_file_goes_where_it_draws_closer_to_the_page() {
     let data = native(&layer("Jig", true, &place)).replace("%AI5_NumLayers", "%AI3_TemplateBox: 211.5 -211.5 211.5 -211.5\n%AI5_NumLayers");
     let mut page = Document::new(100.0, 100.0);
     let id = page.alloc_id();
-    let path = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(30.0, 30.0, 32.0, 32.0));
-    let grey = vectorcraft_doc::FillLayer::new(vectorcraft_color::Paint::solid(vectorcraft_color::Color::gray(0.5)));
-    let n = Node::path(id, path, vectorcraft_doc::Appearance { items: vec![vectorcraft_doc::AppearanceItem::Fill(grey)], ..Default::default() });
+    let path = vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(30.0, 30.0, 32.0, 32.0));
+    let grey = vansoncraft_doc::FillLayer::new(vansoncraft_color::Paint::solid(vansoncraft_color::Color::gray(0.5)));
+    let n = Node::path(id, path, vansoncraft_doc::Appearance { items: vec![vansoncraft_doc::AppearanceItem::Fill(grey)], ..Default::default() });
     let l = page.layers[0].id;
     page.insert(Some(l), 0, n).unwrap();
     let (d, w, read) = crate::layered_ai(&private(&data), page, vec![], false, false, 1.0);
@@ -6914,15 +6914,15 @@ fn text_a_placed_file_covers_only_at_its_first_placement_is_kept() {
     let mut page = Document::new(100.0, 100.0);
     let l = page.layers[0].id;
     for (rect, color) in [
-        (vectorcraft_geom::Rect::new(30.0, 30.0, 70.0, 70.0), vectorcraft_color::Color::BLACK),
-        (vectorcraft_geom::Rect::new(21.5, 46.5, 28.0, 52.0), vectorcraft_color::Color::Cmyk { c: 0.0, m: 1.0, y: 0.0, k: 0.0 }),
+        (vansoncraft_geom::Rect::new(30.0, 30.0, 70.0, 70.0), vansoncraft_color::Color::BLACK),
+        (vansoncraft_geom::Rect::new(21.5, 46.5, 28.0, 52.0), vansoncraft_color::Color::Cmyk { c: 0.0, m: 1.0, y: 0.0, k: 0.0 }),
     ] {
         let id = page.alloc_id();
-        let fill = vectorcraft_doc::FillLayer::new(vectorcraft_color::Paint::solid(color));
+        let fill = vansoncraft_doc::FillLayer::new(vansoncraft_color::Paint::solid(color));
         let n = Node::path(
             id,
-            vectorcraft_geom::shapes::rectangle(rect),
-            vectorcraft_doc::Appearance { items: vec![vectorcraft_doc::AppearanceItem::Fill(fill)], ..Default::default() },
+            vansoncraft_geom::shapes::rectangle(rect),
+            vansoncraft_doc::Appearance { items: vec![vansoncraft_doc::AppearanceItem::Fill(fill)], ..Default::default() },
         );
         page.insert(Some(l), 0, n).unwrap();
     }

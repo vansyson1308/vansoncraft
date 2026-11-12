@@ -1,10 +1,10 @@
 //! Direct-selection Copy and Cut tests (#2122).
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{NodeId, NodeKind};
-use vectorcraft_engine::Session;
-use vectorcraft_geom::FillRule;
-use vectorcraft_testkit::invariants::check_session;
+use vansoncraft_doc::{NodeId, NodeKind};
+use vansoncraft_engine::Session;
+use vansoncraft_geom::FillRule;
+use vansoncraft_testkit::invariants::check_session;
 
 fn run(s: &mut Session, command: &str, params: Value) -> Value {
     s.execute(command, &params).unwrap()
@@ -174,7 +174,7 @@ fn pen_tool_drawing_copies_whole_path_not_single_anchor() {
     let mut s = Session::new();
     run(&mut s, "file.new", json!({"width": 200, "height": 200}));
     // Start drawing with Pen tool
-    s.select_tool("pen", vectorcraft_engine::ViewInfo::default()).unwrap();
+    s.select_tool("pen", vansoncraft_engine::ViewInfo::default()).unwrap();
     let id = NodeId(run(&mut s, "path.create", json!({"anchors": [{"x": 10, "y": 10}]}))["id"].as_u64().unwrap());
     run(&mut s, "path.appendAnchor", json!({"id": id.0, "x": 50, "y": 10}));
     run(&mut s, "path.appendAnchor", json!({"id": id.0, "x": 50, "y": 50}));
@@ -530,7 +530,7 @@ fn group_selection_of_one_member_copies_and_cuts_only_that_member() {
     let mut s = Session::new();
     run(&mut s, "file.new", json!({"width": 200, "height": 200}));
     let (compound, m) = compound_of(&mut s, 2);
-    s.select_tool("groupSelection", vectorcraft_engine::ViewInfo::default()).unwrap();
+    s.select_tool("groupSelection", vansoncraft_engine::ViewInfo::default()).unwrap();
     run(&mut s, "select.set", json!({"ids": [m[1].0]}));
     run(&mut s, "edit.copy", json!({}));
     assert_eq!(s.clipboard.nodes.iter().map(|n| n.id).collect::<Vec<_>>(), [m[1]]);
@@ -548,7 +548,7 @@ fn every_member_selected_whole_copies_and_cuts_the_compound() {
     let mut s = Session::new();
     run(&mut s, "file.new", json!({"width": 200, "height": 200}));
     let (compound, m) = compound_of(&mut s, 2);
-    s.select_tool("groupSelection", vectorcraft_engine::ViewInfo::default()).unwrap();
+    s.select_tool("groupSelection", vansoncraft_engine::ViewInfo::default()).unwrap();
     run(&mut s, "select.set", json!({"ids": [m[0].0, m[1].0]}));
     run(&mut s, "edit.copy", json!({}));
     assert_eq!(s.clipboard.nodes.iter().map(|n| n.id).collect::<Vec<_>>(), [compound]);
@@ -642,7 +642,7 @@ fn a_copied_member_takes_the_compounds_graphic_style() {
         let expected: Vec<String> = if link.is_some() { vec!["Compound".into()] } else { vec![] };
         let case = format!("compound styled: {compound_styled}, gradient: {gradient}");
 
-        s.select_tool("groupSelection", vectorcraft_engine::ViewInfo::default()).unwrap();
+        s.select_tool("groupSelection", vansoncraft_engine::ViewInfo::default()).unwrap();
         run(&mut s, "select.set", json!({"ids": [m0.0]}));
         run(&mut s, "edit.copy", json!({}));
         assert_eq!(s.clipboard.nodes[0].id, m0);
@@ -731,7 +731,7 @@ fn a_copied_member_keeps_the_compounds_gradient_where_it_was() {
     assert!(expected.has_unplaced_gradient(), "the compound's gradient is fitted to its bounds");
     assert_eq!((bounds.x0, bounds.x1), (10.0, 100.0));
     expected.pin_gradients(bounds);
-    s.select_tool("groupSelection", vectorcraft_engine::ViewInfo::default()).unwrap();
+    s.select_tool("groupSelection", vansoncraft_engine::ViewInfo::default()).unwrap();
     run(&mut s, "select.set", json!({"ids": [m[0].0]}));
     run(&mut s, "edit.copy", json!({}));
     let member = &s.clipboard.nodes[0];
@@ -754,7 +754,7 @@ fn the_only_member_of_a_compound_of_one_copies_the_compound() {
     run(&mut s, "edit.cut", json!({}));
     assert_eq!(members_of(&s, compound), Some(vec![m[1]]), "Cut leaves a compound of one");
     // Its one member selected whole is every member selected whole.
-    s.select_tool("groupSelection", vectorcraft_engine::ViewInfo::default()).unwrap();
+    s.select_tool("groupSelection", vansoncraft_engine::ViewInfo::default()).unwrap();
     run(&mut s, "select.set", json!({"ids": [m[1].0]}));
     run(&mut s, "edit.copy", json!({}));
     assert_eq!(s.clipboard.nodes.iter().map(|n| n.id).collect::<Vec<_>>(), [compound]);

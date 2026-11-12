@@ -23,10 +23,10 @@
 //! Each gesture is one undo step (`addon.pen.*`, and `path.*` where the standard command does it).
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{NodeId, NodeKind};
-use vectorcraft_geom::{Anchor, BezPath, Point, Rect, SubPath, Vec2, constrain_angle_from};
-use vectorcraft_pathops::addons::pathtools::SMOOTH_RATIO;
-use vectorcraft_pathops::addons::pen::{leave_handle, straighten_segment};
+use vansoncraft_doc::{NodeId, NodeKind};
+use vansoncraft_geom::{Anchor, BezPath, Point, Rect, SubPath, Vec2, constrain_angle_from};
+use vansoncraft_pathops::addons::pathtools::SMOOTH_RATIO;
+use vansoncraft_pathops::addons::pen::{leave_handle, straighten_segment};
 
 use crate::direct::hit_handle;
 use crate::draw2::{anchor_in, hit_segment, segment_in, shown_paths};

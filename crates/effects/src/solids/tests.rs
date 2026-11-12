@@ -1,6 +1,6 @@
 use serde_json::json;
-use vectorcraft_doc::{Document, NodeId};
-use vectorcraft_geom::{Affine, BezPath, Point, Shape};
+use vansoncraft_doc::{Document, NodeId};
+use vansoncraft_geom::{Affine, BezPath, Point, Shape};
 
 use super::*;
 
@@ -235,11 +235,11 @@ fn a_fills_walls_are_drawn_before_the_stroke_faces_over_them() {
     }
     // Strokes aligned inside or outside keep the fill's walls, in that order. A dashed stroke
     // leaves the fill's walls in the gaps between its dashes, and they keep their depths.
-    use vectorcraft_doc::StrokeAlign;
+    use vansoncraft_doc::StrokeAlign;
     for (dash, align) in [(true, StrokeAlign::Center), (false, StrokeAlign::Inside), (false, StrokeAlign::Outside)] {
         let mut n = stroked(&letter_c());
         if let Some(AppearanceItem::Stroke(s)) = n.appearance.items.iter_mut().find(|i| matches!(i, AppearanceItem::Stroke(_))) {
-            s.dash = dash.then(|| vectorcraft_doc::Dash { pattern: vec![12.0, 12.0], offset: 0.0, align_corners: false });
+            s.dash = dash.then(|| vansoncraft_doc::Dash { pattern: vec![12.0, 12.0], offset: 0.0, align_corners: false });
             s.align = align;
         }
         n.appearance.effects.push(fx(EXTRUDE, views[1].clone()));
@@ -293,12 +293,12 @@ fn the_draw_order_moves_a_fill_wall_before_the_stroke_faces_it_overlaps() {
     assert!(Paints::of(&stroke(&|_| {}), true) == Paints::Stroke);
     assert!(Paints::of(&stroke(&|_| {}), false) == Paints::Other, "an open shape");
     assert!(Paints::of(&stroke(&|s| s.width = 0.0), true) == Paints::Other, "no width");
-    let dash = vectorcraft_doc::Dash { pattern: vec![4.0, 4.0], offset: 0.0, align_corners: false };
+    let dash = vansoncraft_doc::Dash { pattern: vec![4.0, 4.0], offset: 0.0, align_corners: false };
     assert!(Paints::of(&stroke(&|s| s.dash = Some(dash.clone())), true) == Paints::Other, "dashes");
     assert!(Paints::of(&stroke(&|s| s.brush = Some("brush".into())), true) == Paints::Other);
     assert!(Paints::of(&stroke(&|s| s.paint = Paint::None), true) == Paints::Other);
     assert!(Paints::of(&stroke(&|s| s.paint = Paint::Pattern { pattern: "p".into(), xf: Affine::IDENTITY }), true) == Paints::Other, "a pattern");
-    use vectorcraft_doc::color::{Gradient, GradientKind, GradientPaint, GradientStop};
+    use vansoncraft_doc::color::{Gradient, GradientKind, GradientPaint, GradientStop};
     let gradient = |opacity: f32| {
         let mut end = GradientStop::new(1.0, RED);
         end.opacity = opacity;
@@ -344,7 +344,7 @@ fn a_stroke_past_the_limits_is_left_out() {
             Point::new(20_000.0 + r * c, 20_000.0 + r * s)
         })
         .collect();
-    let path = PathData::single(vectorcraft_geom::SubPath::polyline(&points, true));
+    let path = PathData::single(vansoncraft_geom::SubPath::polyline(&points, true));
     for id in [EXTRUDE, INFLATE] {
         let mut n = Node::path(NodeId(1), path.clone(), Appearance::basic(Paint::solid(RED), Paint::solid(BLUE), 2.0));
         n.appearance.effects.push(fx(id, json!({})));
@@ -380,7 +380,7 @@ fn a_flat_inflate_draws_the_strokes_front_above_the_fills() {
 fn inflate_sees_the_fill_and_the_stroke_from_one_eye() {
     let mut n = stroked_rect(100.0);
     if let Some(AppearanceItem::Stroke(s)) = n.appearance.items.iter_mut().find(|i| matches!(i, AppearanceItem::Stroke(_))) {
-        s.align = vectorcraft_doc::StrokeAlign::Outside;
+        s.align = vansoncraft_doc::StrokeAlign::Outside;
     }
     let params = json!({"volume": 100, "depth": 100, "perspectiveAngle": 120, "rotationX": 15, "rotationY": 160, "rotationZ": 0});
     n.appearance.effects.push(fx(INFLATE, params));
@@ -420,7 +420,7 @@ fn a_translucent_stroke_is_a_surface_of_its_own() {
 /// gradient itself and no mask.
 #[test]
 fn a_masked_surface_under_a_colored_light_keeps_the_shared_face_order() {
-    use vectorcraft_doc::color::{Gradient, GradientKind, GradientPaint, GradientStop};
+    use vansoncraft_doc::color::{Gradient, GradientKind, GradientPaint, GradientStop};
     let mut half = GradientStop::new(1.0, RED);
     half.opacity = 0.5;
     let gradient = GradientPaint::new(Gradient::new(GradientKind::Linear, vec![GradientStop::new(0.0, RED), half]));
@@ -524,7 +524,7 @@ fn an_earlier_perspective_strength_draws_as_its_angle() {
             n.appearance.effects.push(Effect { id: id.into(), params, visible: true });
             art(&n, id).unwrap().visual_bounds().unwrap()
         };
-        let angle = vectorcraft_three_d::perspective_from_strength(0.6);
+        let angle = vansoncraft_three_d::perspective_from_strength(0.6);
         let old = with(view(json!({"perspective": 60})));
         let new = with(view(json!({"perspectiveAngle": angle})));
         let none = with(view(json!({})));
@@ -566,7 +566,7 @@ fn an_earlier_light_direction_shades_as_its_rotation_and_height() {
                 colours(&art, &mut out);
                 out
             };
-            let (r, h, behind) = vectorcraft_three_d::light_from_azimuth_elevation(azimuth, elevation);
+            let (r, h, behind) = vansoncraft_three_d::light_from_azimuth_elevation(azimuth, elevation);
             let old = with(json!({"lightAzimuth": azimuth, "lightElevation": elevation}));
             let new = with(json!({"lightRotation": r, "lightHeight": h, "lightBehind": behind}));
             assert!(!old.is_empty() && old.len() == new.len(), "{id}");
@@ -640,7 +640,7 @@ fn legacy_white_inflate_keeps_polygon_faces_and_its_seam_range() {
         assert!(matches!(face.kind, NodeKind::Path { .. }));
         let AppearanceItem::Stroke(stroke) = &face.appearance.items[1] else { panic!("seam") };
         assert!((0.05..=0.75).contains(&stroke.width));
-        assert_eq!(stroke.join, vectorcraft_doc::LineJoin::Miter);
+        assert_eq!(stroke.join, vansoncraft_doc::LineJoin::Miter);
     }
     // A tiny shape exercises the lower bound, which otherwise disappears at grazing angles.
     n.transform(Affine::scale(0.001), false);
@@ -839,7 +839,7 @@ fn classic_bevel_height_extent_and_cap_shape_the_solid() {
 /// the shading does not cover the transparent part; an opaque gradient needs no mask.
 #[test]
 fn classic_shading_keeps_a_gradients_transparency() {
-    use vectorcraft_doc::color::{Gradient, GradientKind, GradientPaint, GradientStop};
+    use vansoncraft_doc::color::{Gradient, GradientKind, GradientPaint, GradientStop};
     for (end, masked) in [(0.25, true), (1.0, false)] {
         let mut stop = GradientStop::new(1.0, RED);
         stop.opacity = end;
@@ -874,7 +874,7 @@ fn classic_shading_keeps_a_gradients_transparency() {
 /// and its front cap is in front of the square's walls.
 #[test]
 fn a_member_in_a_transparent_gradient_keeps_the_shared_face_order() {
-    use vectorcraft_doc::color::{Gradient, GradientKind, GradientPaint, GradientStop};
+    use vansoncraft_doc::color::{Gradient, GradientKind, GradientPaint, GradientStop};
     let square = |b: &mut BezPath, x0: f64, x1: f64, clockwise: bool| {
         let corners = [(x0, x0), (x1, x0), (x1, x1), (x0, x1)];
         let mut points = corners.to_vec();

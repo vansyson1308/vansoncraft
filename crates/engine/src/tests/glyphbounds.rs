@@ -2,8 +2,8 @@
 //! Distribute measure that kind of type by the ink of its glyphs instead of its em box or frame.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{NodeId, NodeKind};
-use vectorcraft_geom::Rect;
+use vansoncraft_doc::{NodeId, NodeKind};
+use vansoncraft_geom::Rect;
 
 use crate::*;
 
@@ -36,7 +36,7 @@ fn em(s: &Session, id: NodeId) -> Rect {
 /// The ink of the type's glyphs on the page.
 fn ink(s: &Session, id: NodeId) -> Rect {
     let NodeKind::Text(t) = &s.doc().unwrap().doc.node(id).unwrap().kind else { panic!("type") };
-    t.xf.transform_rect_bbox(vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t).ink_bounds().unwrap())
+    t.xf.transform_rect_bbox(vansoncraft_text::layout(vansoncraft_text::FontDb::global(), t).ink_bounds().unwrap())
 }
 
 fn close(a: f64, b: f64) -> bool {

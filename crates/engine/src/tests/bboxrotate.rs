@@ -3,10 +3,10 @@
 //! the box to the page again.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{Node, OrientedBox};
-use vectorcraft_geom::{Point, Rect};
-use vectorcraft_tools::bbox::Handle;
-use vectorcraft_tools::{Mods, PointerEvent, PointerKind};
+use vansoncraft_doc::{Node, OrientedBox};
+use vansoncraft_geom::{Point, Rect};
+use vansoncraft_tools::bbox::Handle;
+use vansoncraft_tools::{Mods, PointerEvent, PointerKind};
 
 use crate::*;
 
@@ -335,10 +335,10 @@ fn native_files_keep_the_angle() {
     let plain = rect(&mut s, 0.0, 0.0, 10.0, 10.0);
     let a = turned_rect(&mut s);
     let data = s.execute("document.save", &json!({})).unwrap()["dataBase64"].as_str().unwrap().to_string();
-    let text = String::from_utf8(vectorcraft_format::base64_decode(&data).unwrap()).unwrap();
+    let text = String::from_utf8(vansoncraft_format::base64_decode(&data).unwrap()).unwrap();
     // Only turned objects write it.
     assert_eq!(text.matches("bbox_angle").count(), 1);
-    s.execute("document.open", &json!({"name": "turned.vectorcraft", "dataBase64": data})).unwrap();
+    s.execute("document.open", &json!({"name": "turned.vansoncraft", "dataBase64": data})).unwrap();
     assert!(near(angle(&s, a), 45.0));
     assert_eq!(angle(&s, plain), 0.0);
     sel(&mut s, &[a]);

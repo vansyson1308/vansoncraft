@@ -157,7 +157,7 @@ pub(super) fn set_type(s: &mut Session, p: &Value) -> Result<Value> {
     let mut spec = spec_of(s, id)?;
     // The series to retype: `seriesIndexes`, else, with no `id`, a selection made only of this graph's series (Group
     // Selection). Anything else selected, the graph itself for one, is the whole graph.
-    let count = spec.rows.iter().map(Vec::len).max().unwrap_or(0).min(vectorcraft_doc::MAX_GRAPH_SERIES);
+    let count = spec.rows.iter().map(Vec::len).max().unwrap_or(0).min(vansoncraft_doc::MAX_GRAPH_SERIES);
     // A file's list of right-axis series, kept to series the graph has, at most once each.
     spec.right_series.retain(|i| *i < count);
     spec.right_series.sort_unstable();
@@ -262,10 +262,10 @@ pub(super) fn set_type(s: &mut Session, p: &Value) -> Result<Value> {
     spec.ticks_between_labels = switch_or(p, "ticksBetweenLabels", spec.ticks_between_labels, C)?;
     if let Some(v) = text_param(p, "piePosition", C)? {
         spec.pie_position =
-            vectorcraft_doc::PiePosition::parse(v).ok_or_else(|| bad(C, format!("unknown piePosition `{v}` (even, ratio or stacked)")))?;
+            vansoncraft_doc::PiePosition::parse(v).ok_or_else(|| bad(C, format!("unknown piePosition `{v}` (even, ratio or stacked)")))?;
     }
     if let Some(v) = text_param(p, "pieSort", C)? {
-        spec.pie_sort = vectorcraft_doc::PieSort::parse(v).ok_or_else(|| bad(C, format!("unknown pieSort `{v}` (none, all or first)")))?;
+        spec.pie_sort = vansoncraft_doc::PieSort::parse(v).ok_or_else(|| bad(C, format!("unknown pieSort `{v}` (none, all or first)")))?;
     }
     for (key, slot) in
         [("prefix", &mut spec.prefix), ("suffix", &mut spec.suffix), ("rightPrefix", &mut spec.right_prefix), ("rightSuffix", &mut spec.right_suffix)]

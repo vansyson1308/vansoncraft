@@ -6,8 +6,8 @@
 
 use skrifa::instance::{LocationRef, Size};
 use skrifa::{FontRef, MetadataProvider};
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::NodeKind;
+use vansoncraft_color::{Color, Paint};
+use vansoncraft_doc::NodeKind;
 
 use super::tests::{all, bounds, fill, read};
 

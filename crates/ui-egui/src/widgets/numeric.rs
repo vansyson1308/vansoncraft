@@ -203,7 +203,7 @@ fn unit_field_from(
 /// decimal comma is read ([`decimal_point`]) after the `%` is dropped, so `12,5%` is 12.5% and
 /// `1,000%` is refused as thousands rather than read as 1%.
 pub(super) fn share_of(text: &str, value: f64) -> Option<f64> {
-    let percent = vectorcraft_doc::parse_number(&decimal_point(text.trim().strip_suffix('%')?))?;
+    let percent = vansoncraft_doc::parse_number(&decimal_point(text.trim().strip_suffix('%')?))?;
     Some(value * percent / 100.0)
 }
 
@@ -934,7 +934,7 @@ pub(super) fn field_number(buf: &str, suffix: &str, parentheses: bool) -> Option
     let bare = bare.replace(['%', '°'], "");
     let bare = bare.trim();
     let bare = if parentheses { bare.strip_prefix('(').and_then(|b| b.strip_suffix(')')).unwrap_or(bare) } else { bare };
-    vectorcraft_doc::parse_number(&decimal_point(bare))
+    vansoncraft_doc::parse_number(&decimal_point(bare))
 }
 
 /// The text [`plain_field`] shows for `value`: at most `decimals` places, without trailing zeros,

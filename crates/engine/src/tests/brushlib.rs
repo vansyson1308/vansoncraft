@@ -4,8 +4,8 @@
 //! documents' brushes, and files that can't be read.
 
 use serde_json::{Value, json};
-use vectorcraft_brush::BrushKind;
-use vectorcraft_doc::{NodeId, NodeKind};
+use vansoncraft_brush::BrushKind;
+use vansoncraft_doc::{NodeId, NodeKind};
 
 use crate::*;
 
@@ -19,7 +19,7 @@ fn run(s: &mut Session, id: &str, p: Value) -> Value {
     s.execute(id, &p).unwrap_or_else(|e| panic!("{id} {p}: {e}"))
 }
 
-fn doc(s: &Session) -> &vectorcraft_doc::Document {
+fn doc(s: &Session) -> &vansoncraft_doc::Document {
     &s.doc().unwrap().doc
 }
 
@@ -28,11 +28,11 @@ fn undo_len(s: &Session) -> usize {
 }
 
 fn brushes(s: &Session) -> Vec<String> {
-    vectorcraft_brush::library(doc(s)).into_iter().map(|b| b.name).collect()
+    vansoncraft_brush::library(doc(s)).into_iter().map(|b| b.name).collect()
 }
 
-fn brush(s: &Session, name: &str) -> vectorcraft_brush::Brush {
-    vectorcraft_brush::find(doc(s), name).unwrap_or_else(|| panic!("no brush {name}"))
+fn brush(s: &Session, name: &str) -> vansoncraft_brush::Brush {
+    vansoncraft_brush::find(doc(s), name).unwrap_or_else(|| panic!("no brush {name}"))
 }
 
 fn strs(v: &Value) -> Vec<&str> {
@@ -40,12 +40,12 @@ fn strs(v: &Value) -> Vec<&str> {
 }
 
 /// The patterns a brush's art fills with.
-fn art_patterns(b: &vectorcraft_brush::Brush) -> Vec<String> {
+fn art_patterns(b: &vansoncraft_brush::Brush) -> Vec<String> {
     let mut out = vec![];
     for a in b.art() {
         a.walk(&mut |n| {
             for it in &n.appearance.items {
-                if let vectorcraft_color::Paint::Pattern { pattern, .. } = it.paint() {
+                if let vansoncraft_color::Paint::Pattern { pattern, .. } = it.paint() {
                     out.push(pattern.clone());
                 }
             }
@@ -63,20 +63,20 @@ fn folder(name: &str) -> std::path::PathBuf {
 
 /// Pattern `name` (a 4 pt dot of `color` in a 10 pt tile) with its swatch, as one step.
 fn add_pattern(s: &mut Session, name: &str, color: &str) {
-    let color = vectorcraft_color::Color::from_hex(color).unwrap();
+    let color = vansoncraft_color::Color::from_hex(color).unwrap();
     s.edit("Pattern", |d, _| {
-        let dot = vectorcraft_doc::Node::path(
+        let dot = vansoncraft_doc::Node::path(
             d.alloc_id(),
-            vectorcraft_geom::shapes::ellipse(vectorcraft_geom::Rect::new(0.0, 0.0, 4.0, 4.0)),
-            vectorcraft_doc::Appearance::basic(vectorcraft_color::Paint::solid(color), vectorcraft_color::Paint::None, 0.0),
+            vansoncraft_geom::shapes::ellipse(vansoncraft_geom::Rect::new(0.0, 0.0, 4.0, 4.0)),
+            vansoncraft_doc::Appearance::basic(vansoncraft_color::Paint::solid(color), vansoncraft_color::Paint::None, 0.0),
         );
-        let def = vectorcraft_doc::PatternDef {
-            tile: vectorcraft_geom::Rect::new(0.0, 0.0, 10.0, 10.0),
-            ..vectorcraft_doc::PatternDef::new(name, vec![std::sync::Arc::new(dot)])
+        let def = vansoncraft_doc::PatternDef {
+            tile: vansoncraft_geom::Rect::new(0.0, 0.0, 10.0, 10.0),
+            ..vansoncraft_doc::PatternDef::new(name, vec![std::sync::Arc::new(dot)])
         };
-        d.swatches.push(vectorcraft_color::Swatch {
+        d.swatches.push(vansoncraft_color::Swatch {
             name: name.into(),
-            paint: vectorcraft_color::Paint::Pattern { pattern: name.into(), xf: Default::default() },
+            paint: vansoncraft_color::Paint::Pattern { pattern: name.into(), xf: Default::default() },
             global: false,
             spot: false,
         });
@@ -152,11 +152,11 @@ fn the_builtin_libraries_are_original_brushes_generated_in_code() {
         assert!(lib.len() >= 4, "{id}");
         for b in &lib.brushes {
             assert_eq!(b.kind.type_id(), kind, "{}", b.name);
-            let mut line = vectorcraft_geom::BezPath::new();
+            let mut line = vansoncraft_geom::BezPath::new();
             line.move_to((0.0, 0.0));
             line.curve_to((60.0, -40.0), (140.0, 40.0), (200.0, 0.0));
-            let stroke = vectorcraft_doc::StrokeLayer::new(vectorcraft_color::Paint::solid(vectorcraft_color::Color::BLACK), 1.0);
-            assert!(!vectorcraft_brush::stroke_pieces(&lib.doc, b, &line, &stroke).is_empty(), "{} draws nothing", b.name);
+            let stroke = vansoncraft_doc::StrokeLayer::new(vansoncraft_color::Paint::solid(vansoncraft_color::Color::BLACK), 1.0);
+            assert!(!vansoncraft_brush::stroke_pieces(&lib.doc, b, &line, &stroke).is_empty(), "{} draws nothing", b.name);
         }
     }
     // The resources their art uses come with them: Striped Ribbon's pattern, Sparkles' symbol.
@@ -168,7 +168,7 @@ fn the_builtin_libraries_are_original_brushes_generated_in_code() {
     assert!(matches!(&sparkles.art.kind, NodeKind::SymbolInstance { symbol, .. } if symbol == "Sparkle"));
     assert!(shapes.doc.symbols.iter().any(|x| x.name == "Sparkle"));
     // None of them is a default brush.
-    let defaults: Vec<&str> = vectorcraft_brush::defaults().iter().map(|b| b.name.as_str()).collect();
+    let defaults: Vec<&str> = vansoncraft_brush::defaults().iter().map(|b| b.name.as_str()).collect();
     for id in ids {
         let (_, lib) = cmd::brushlib::library(&s, id).unwrap();
         assert!(lib.brushes.iter().all(|b| !defaults.contains(&b.name.as_str())), "{id}");
@@ -177,7 +177,7 @@ fn the_builtin_libraries_are_original_brushes_generated_in_code() {
 }
 
 /// Whether `p` lies inside the polygon through `pts` (even-odd ray cast).
-fn inside(p: vectorcraft_geom::Point, pts: &[vectorcraft_geom::Point]) -> bool {
+fn inside(p: vansoncraft_geom::Point, pts: &[vansoncraft_geom::Point]) -> bool {
     let mut odd = false;
     for (i, a) in pts.iter().enumerate() {
         let b = pts[(i + 1) % pts.len()];
@@ -189,7 +189,7 @@ fn inside(p: vectorcraft_geom::Point, pts: &[vectorcraft_geom::Point]) -> bool {
 }
 
 /// Every anchor of the paths in `nodes` and their descendants.
-fn anchors(nodes: &[&vectorcraft_doc::Node]) -> Vec<vectorcraft_geom::Point> {
+fn anchors(nodes: &[&vansoncraft_doc::Node]) -> Vec<vansoncraft_geom::Point> {
     let mut out = vec![];
     for n in nodes {
         n.walk(&mut |c| out.extend(c.path_data().into_iter().flat_map(|p| p.subpaths.iter().flat_map(|sp| sp.anchors.iter().map(|a| a.p)))));
@@ -204,8 +204,8 @@ fn anchors(nodes: &[&vectorcraft_doc::Node]) -> Vec<vectorcraft_geom::Point> {
 /// undo step, once, applied, and through a saved library unchanged.
 #[test]
 fn the_dry_media_library_holds_grainy_art_brushes_with_bounded_art() {
-    use vectorcraft_brush::{ArtScale, Colorization};
-    use vectorcraft_geom::FillRule;
+    use vansoncraft_brush::{ArtScale, Colorization};
+    use vansoncraft_geom::FillRule;
     let mut s = session();
     let (info, lib) = cmd::brushlib::library(&s, "dry-media").unwrap();
     assert_eq!((info.name.as_str(), info.category, lib.name.as_str()), ("Dry Media", "builtIn", "Dry Media"));
@@ -225,7 +225,7 @@ fn the_dry_media_library_holds_grainy_art_brushes_with_bounded_art() {
                 assert_eq!(*rule, FillRule::EvenOdd, "{}", b.name);
                 // The gaps lie inside the band and apart from each other, so each one is a hole.
                 let body = anchors(&[&*children[0]]);
-                let boxes: Vec<vectorcraft_geom::Rect> = children[1..].iter().map(|c| c.path_data().unwrap().bounds().unwrap()).collect();
+                let boxes: Vec<vansoncraft_geom::Rect> = children[1..].iter().map(|c| c.path_data().unwrap().bounds().unwrap()).collect();
                 for (i, c) in children[1..].iter().enumerate() {
                     assert!(anchors(&[&**c]).iter().all(|p| inside(*p, &body)), "{}: gap {i} leaves the band", b.name);
                     let r = boxes[i];
@@ -240,22 +240,22 @@ fn the_dry_media_library_holds_grainy_art_brushes_with_bounded_art() {
         assert!(pts.iter().all(|p| p.x.is_finite() && p.y.is_finite()));
         assert!(paths <= 80 && pts.len() <= 500, "{}: {paths} paths, {} anchors", b.name, pts.len());
         assert_eq!(holes > 0, gaps, "{}: {holes} gaps", b.name);
-        let r = vectorcraft_geom::Rect::from_points(pts[0], pts[0]);
+        let r = vansoncraft_geom::Rect::from_points(pts[0], pts[0]);
         let r = pts.iter().fold(r, |r, p| r.union_pt(*p));
         assert!(r.x0 >= 0.0 && r.x0 < 0.5 && r.x1 <= 100.0 && r.x1 > 99.5, "{}: {r:?}", b.name);
         assert!((r.height() - height).abs() <= height * 0.25 && r.y0 < 0.0 && r.y1 > 0.0, "{}: {r:?}", b.name);
         total += pts.len();
         // Finite art on a curve and on a 2 pt path.
         for (line, width) in [(vec![(0.0, 0.0), (60.0, -40.0), (140.0, 40.0), (200.0, 0.0)], 1.0), (vec![(0.0, 0.0), (2.0, 0.0)], 3.0)] {
-            let mut bp = vectorcraft_geom::BezPath::new();
+            let mut bp = vansoncraft_geom::BezPath::new();
             bp.move_to(line[0]);
             if line.len() == 4 {
                 bp.curve_to(line[1], line[2], line[3]);
             } else {
                 bp.line_to(line[1]);
             }
-            let stroke = vectorcraft_doc::StrokeLayer::new(vectorcraft_color::Paint::solid(vectorcraft_color::Color::BLACK), width);
-            let pieces = vectorcraft_brush::stroke_pieces(&lib.doc, b, &bp, &stroke);
+            let stroke = vansoncraft_doc::StrokeLayer::new(vansoncraft_color::Paint::solid(vansoncraft_color::Color::BLACK), width);
+            let pieces = vansoncraft_brush::stroke_pieces(&lib.doc, b, &bp, &stroke);
             let drawn = anchors(&pieces.iter().collect::<Vec<_>>());
             assert!(!drawn.is_empty() && drawn.iter().all(|p| p.x.is_finite() && p.y.is_finite()), "{} on {line:?}", b.name);
         }
@@ -267,7 +267,7 @@ fn the_dry_media_library_holds_grainy_art_brushes_with_bounded_art() {
     let fnv = bytes.bytes().fold(0xcbf2_9ce4_8422_2325_u64, |h, b| (h ^ u64::from(b)).wrapping_mul(0x0100_0000_01b3));
     assert_eq!(fnv, 12_859_086_488_513_909_464, "the Dry Media art changed");
     // Names of their own: no default brush's, no other built-in library's.
-    let defaults: Vec<&str> = vectorcraft_brush::defaults().iter().map(|b| b.name.as_str()).collect();
+    let defaults: Vec<&str> = vansoncraft_brush::defaults().iter().map(|b| b.name.as_str()).collect();
     let others: Vec<String> = cmd::brushlib::BUILTIN
         .iter()
         .filter(|b| b.id != "dry-media")
@@ -299,7 +299,7 @@ fn the_dry_media_library_holds_grainy_art_brushes_with_bounded_art() {
     // Saved as a library and loaded back: the same brushes, in the document's order.
     let saved = run(&mut s, "brush.saveLibrary", json!({ "names": names, "name": "Dry" }));
     let b64 = saved["dataBase64"].as_str().unwrap().to_string();
-    let r = run(&mut s, "brush.loadLibrary", json!({"dataBase64": b64, "name": "Dry.vectorcraft"}));
+    let r = run(&mut s, "brush.loadLibrary", json!({"dataBase64": b64, "name": "Dry.vansoncraft"}));
     let (_, reopened) = cmd::brushlib::library(&s, r["library"].as_str().unwrap()).unwrap();
     assert_eq!(reopened.len(), lib.len());
     for b in &lib.brushes {
@@ -312,7 +312,7 @@ fn the_dry_media_library_holds_grainy_art_brushes_with_bounded_art() {
 /// in one step, not twice, and saved as a library they reopen unchanged.
 #[test]
 fn the_bristle_brushes_library_covers_every_tip_shape_within_the_bristle_ranges() {
-    use vectorcraft_brush::{Bristle, BristleShape};
+    use vansoncraft_brush::{Bristle, BristleShape};
     let mut s = session();
     let (_, lib) = cmd::brushlib::library(&s, "bristle-brushes").unwrap();
     assert_eq!(lib.name, "Bristle Brushes");
@@ -348,7 +348,7 @@ fn the_bristle_brushes_library_covers_every_tip_shape_within_the_bristle_ranges(
     ];
     assert!(every.iter().all(|x| shapes.contains(x)), "{shapes:?}");
     // Names of its own: no default brush's, no other built-in library's, none twice.
-    let defaults: Vec<&str> = vectorcraft_brush::defaults().iter().map(|b| b.name.as_str()).collect();
+    let defaults: Vec<&str> = vansoncraft_brush::defaults().iter().map(|b| b.name.as_str()).collect();
     let others: Vec<String> = cmd::brushlib::BUILTIN
         .iter()
         .filter(|b| b.id != "bristle-brushes")
@@ -373,7 +373,7 @@ fn the_bristle_brushes_library_covers_every_tip_shape_within_the_bristle_ranges(
     // Saved as a library and loaded back: the same brushes, in the same order.
     let saved = run(&mut s, "brush.saveLibrary", json!({ "names": names, "name": "Bristles" }));
     let b64 = saved["dataBase64"].as_str().unwrap().to_string();
-    let r = run(&mut s, "brush.loadLibrary", json!({"dataBase64": b64, "name": "Bristles.vectorcraft"}));
+    let r = run(&mut s, "brush.loadLibrary", json!({"dataBase64": b64, "name": "Bristles.vansoncraft"}));
     let (_, reopened) = cmd::brushlib::library(&s, r["library"].as_str().unwrap()).unwrap();
     assert_eq!(reopened.brushes, lib.brushes);
 }
@@ -384,21 +384,21 @@ fn a_saved_library_reopens_and_its_brushes_join_another_document_in_one_step() {
     let mut s = kit();
     s.brush_libraries.set_user_dir(Some(dir.to_string_lossy().to_string()));
     let r = run(&mut s, "brush.saveLibrary", json!({"user": true, "name": "Inks", "names": ["My Nib", "Dotted Band"]}));
-    assert_eq!((r["library"].as_str(), r["count"].as_u64()), (Some("user/Inks.vectorcraft"), Some(2)));
+    assert_eq!((r["library"].as_str(), r["count"].as_u64()), (Some("user/Inks.vansoncraft"), Some(2)));
     let path = r["path"].as_str().unwrap().to_string();
     let list = run(&mut s, "brush.libraries", json!({}));
     let user: Vec<&Value> = list["libraries"].as_array().unwrap().iter().filter(|l| l["category"] == "user").collect();
     assert_eq!(user.len(), 1);
     assert_eq!((user[0]["name"].as_str(), user[0]["count"].as_u64()), (Some("Inks"), Some(2)));
     // The file is a document: the two brushes and the pattern their art uses, no art.
-    let saved = vectorcraft_format::load(&std::fs::read(&path).unwrap()).unwrap();
-    let names: Vec<String> = vectorcraft_brush::library(&saved).into_iter().map(|b| b.name).collect();
+    let saved = vansoncraft_format::load(&std::fs::read(&path).unwrap()).unwrap();
+    let names: Vec<String> = vansoncraft_brush::library(&saved).into_iter().map(|b| b.name).collect();
     assert_eq!(names, ["My Nib", "Dotted Band"]);
     assert_eq!(saved.patterns.iter().map(|p| p.name.as_str()).collect::<Vec<_>>(), ["Dots"]);
     assert!(saved.layers.iter().all(|l| l.children().is_none_or(|c| c.is_empty())));
     // Loading the file gives that User Defined library.
     let r = run(&mut s, "brush.loadLibrary", json!({ "path": path }));
-    assert_eq!((r["library"].as_str(), r["name"].as_str()), (Some("user/Inks.vectorcraft"), Some("Inks")));
+    assert_eq!((r["library"].as_str(), r["name"].as_str()), (Some("user/Inks.vansoncraft"), Some("Inks")));
 
     // Into a new document: Dotted Band and its pattern, as one step.
     run(&mut s, "file.new", json!({"width": 100, "height": 100}));
@@ -420,7 +420,7 @@ fn a_saved_library_reopens_and_its_brushes_join_another_document_in_one_step() {
     run(&mut s, "edit.redo", json!({}));
     // Again: already there, so no step and no copy.
     let before = undo_len(&s);
-    let r = run(&mut s, "brush.addFromLibrary", json!({"library": "user/Inks.vectorcraft", "names": ["Dotted Band", "My Nib", "Dotted Band"]}));
+    let r = run(&mut s, "brush.addFromLibrary", json!({"library": "user/Inks.vansoncraft", "names": ["Dotted Band", "My Nib", "Dotted Band"]}));
     assert_eq!((strs(&r["names"]), strs(&r["existing"]), strs(&r["added"])), (vec!["Dotted Band", "My Nib"], vec!["Dotted Band"], vec!["My Nib"]));
     assert_eq!(undo_len(&s), before + 1, "My Nib was new");
     let before = undo_len(&s);
@@ -461,10 +461,10 @@ fn library_brushes_bring_their_patterns_and_symbols_rename_clashes_and_apply() {
     let r = run(&mut s, "brush.addFromLibrary", json!({"library": "art-ribbons", "names": ["Striped Ribbon", "Wave"]}));
     assert_eq!((strs(&r["names"]), strs(&r["existing"])), (vec!["Striped Ribbon", "Wave 2"], vec!["Striped Ribbon", "Wave 2"]));
     assert_eq!(undo_len(&s), before);
-    assert!(doc(&s).pattern("Pinstripes 3").is_none() && vectorcraft_brush::find(doc(&s), "Striped Ribbon 2").is_none());
+    assert!(doc(&s).pattern("Pinstripes 3").is_none() && vansoncraft_brush::find(doc(&s), "Striped Ribbon 2").is_none());
     // Undo of the first add takes the brushes, the pattern and the brush stroke back.
     run(&mut s, "edit.undo", json!({}));
-    assert!(vectorcraft_brush::find(doc(&s), "Striped Ribbon").is_none() && doc(&s).pattern("Pinstripes 2").is_none());
+    assert!(vansoncraft_brush::find(doc(&s), "Striped Ribbon").is_none() && doc(&s).pattern("Pinstripes 2").is_none());
     assert!(doc(&s).node(NodeId(path)).unwrap().appearance.stroke().is_none_or(|st| st.brush.is_none()));
     // A scatter brush brings the symbol it scatters.
     let r = run(&mut s, "brush.addFromLibrary", json!({"library": "Scatter Shapes", "name": "Sparkles"}));
@@ -515,7 +515,7 @@ fn pasted_brushed_art_brings_the_patterns_its_brush_art_uses() {
     run(&mut s, "edit.copy", json!({}));
     run(&mut s, "file.new", json!({"width": 200, "height": 200}));
     run(&mut s, "edit.paste", json!({}));
-    assert!(vectorcraft_brush::find(doc(&s), "Dotted Band").is_some());
+    assert!(vansoncraft_brush::find(doc(&s), "Dotted Band").is_some());
     assert!(doc(&s).pattern("Dots").is_some(), "the brush's art is filled with it");
 }
 
@@ -525,7 +525,7 @@ fn other_documents_brushes_load_and_unreadable_files_are_errors() {
     // Another document's brushes load as a library, without its art.
     let b64 = run(&mut s, "document.serialize", json!({}))["dataBase64"].as_str().unwrap().to_string();
     let count = brushes(&s).len();
-    let r = run(&mut s, "brush.loadLibrary", json!({"dataBase64": b64, "name": "Poster.vectorcraft"}));
+    let r = run(&mut s, "brush.loadLibrary", json!({"dataBase64": b64, "name": "Poster.vansoncraft"}));
     assert_eq!((r["name"].as_str(), r["count"].as_u64()), (Some("Poster"), Some(count as u64)));
     let (_, lib) = cmd::brushlib::library(&s, r["library"].as_str().unwrap()).unwrap();
     assert!(lib.doc.layers.iter().all(|l| l.children().is_none_or(|c| c.is_empty())));
@@ -533,13 +533,13 @@ fn other_documents_brushes_load_and_unreadable_files_are_errors() {
     // An SVG has the default brushes, as it does opened.
     let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="10" height="10"/></svg>"##;
     let r = run(&mut s, "brush.loadLibrary", json!({"data": svg, "name": "Box.svg"}));
-    assert_eq!(r["count"].as_u64(), Some(vectorcraft_brush::defaults().len() as u64), "{r}");
+    assert_eq!(r["count"].as_u64(), Some(vansoncraft_brush::defaults().len() as u64), "{r}");
     // Files that aren't documents, missing files and damaged native files are errors.
     assert!(s.execute("brush.loadLibrary", &json!({"data": "hello", "name": "x.txt"})).is_err());
-    assert!(s.execute("brush.loadLibrary", &json!({"path": "/no/such/Library.vectorcraft"})).is_err());
+    assert!(s.execute("brush.loadLibrary", &json!({"path": "/no/such/Library.vansoncraft"})).is_err());
     let dir = folder("bad");
     std::fs::create_dir_all(&dir).unwrap();
-    let bad = dir.join("Broken.vectorcraft");
+    let bad = dir.join("Broken.vansoncraft");
     std::fs::write(&bad, b"{\"format\": \"vectorcraft\", \"doc\": 7").unwrap();
     assert!(s.execute("brush.loadLibrary", &json!({"path": bad.to_string_lossy()})).is_err());
     // A damaged file in the user folder isn't listed.
@@ -558,6 +558,6 @@ fn other_documents_brushes_load_and_unreadable_files_are_errors() {
     // Without a path the library comes back as the file's bytes.
     let mut s = kit();
     let r = run(&mut s, "brush.saveLibrary", json!({"names": ["My Nib"]}));
-    let bytes = vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap();
-    assert_eq!(vectorcraft_brush::library(&vectorcraft_format::load(&bytes).unwrap()).len(), 1);
+    let bytes = vansoncraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap();
+    assert_eq!(vansoncraft_brush::library(&vansoncraft_format::load(&bytes).unwrap()).len(), 1);
 }

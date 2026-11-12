@@ -4,12 +4,12 @@
 //! options checked.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::NodeKind;
+use vansoncraft_doc::NodeKind;
 
 use super::*;
 
 fn b64(bytes: &[u8]) -> String {
-    vectorcraft_format::base64_encode(bytes)
+    vansoncraft_format::base64_encode(bytes)
 }
 
 /// An inch-wide red square and a black diagonal, with the thinnest pen.
@@ -51,7 +51,7 @@ fn file_place_places_a_plot_file_as_one_group() {
     let r = s.execute("file.place", &p).unwrap();
     assert_eq!((&r["format"], r["ids"].as_array().map(Vec::len)), (&json!("hpgl"), Some(1)), "{r}");
     let doc = &s.doc().unwrap().doc;
-    let group = doc.node(vectorcraft_doc::NodeId(r["ids"][0].as_u64().unwrap())).unwrap();
+    let group = doc.node(vansoncraft_doc::NodeId(r["ids"][0].as_u64().unwrap())).unwrap();
     let NodeKind::Group { children, clip, .. } = &group.kind else { panic!("a group, got {:?}", group.kind) };
     assert_eq!((children.len(), *clip), (2, false), "the art's bounds, not clipped");
 }
@@ -110,7 +110,7 @@ fn the_dialogs_and_the_format_list_name_hpgl() {
 }
 
 fn bytes(v: &Value) -> Vec<u8> {
-    vectorcraft_format::base64_decode(v["dataBase64"].as_str().expect("dataBase64")).unwrap()
+    vansoncraft_format::base64_decode(v["dataBase64"].as_str().expect("dataBase64")).unwrap()
 }
 
 /// Two 100 pt artboards side by side, a 30 pt square on each, the second one red.

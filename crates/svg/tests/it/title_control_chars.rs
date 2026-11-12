@@ -1,5 +1,5 @@
-use vectorcraft_doc::Document;
-use vectorcraft_svg::{ExportOptions, export, import};
+use vansoncraft_doc::Document;
+use vansoncraft_svg::{ExportOptions, export, import};
 
 #[test]
 fn title_and_description_control_chars_are_filtered() {

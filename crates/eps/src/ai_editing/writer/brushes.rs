@@ -14,10 +14,10 @@ use std::collections::HashSet;
 use std::fmt::Write;
 use std::sync::Arc;
 
-use vectorcraft_brush::{ArtBrush, ArtScale, Brush, BrushKind, Calligraphic, Colorization, Direction, Scatter, Variation};
-use vectorcraft_color::{BlendMode, Paint};
-use vectorcraft_doc::{Appearance, AppearanceItem, Node, NodeId, NodeKind, StrokeLayer};
-use vectorcraft_geom::{Affine, PathData, SubPath};
+use vansoncraft_brush::{ArtBrush, ArtScale, Brush, BrushKind, Calligraphic, Colorization, Direction, Scatter, Variation};
+use vansoncraft_color::{BlendMode, Paint};
+use vansoncraft_doc::{Appearance, AppearanceItem, Node, NodeId, NodeKind, StrokeLayer};
+use vansoncraft_geom::{Affine, PathData, SubPath};
 
 use super::{Writer, Xy};
 use crate::ai_ops;
@@ -187,7 +187,7 @@ fn plain_art(art: &Node) -> bool {
                 && i.opacity() >= 1.0
                 && i.blend() == BlendMode::Normal
                 && matches!(i.paint(), Paint::Solid { .. } | Paint::None)
-                && !matches!(i, AppearanceItem::Stroke(s) if !vectorcraft_effects::stroke::is_plain(s))
+                && !matches!(i, AppearanceItem::Stroke(s) if !vansoncraft_effects::stroke::is_plain(s))
         });
         // A group's own fills and strokes aren't written.
         let group_paint = matches!(n.kind, NodeKind::Group { .. }) && items.iter().any(|i| !i.paint().is_none());
@@ -288,7 +288,7 @@ impl Writer<'_> {
         }
         self.brush_set.done = true;
         let doc = self.doc;
-        let lib = self.brushes.get_or_insert_with(|| vectorcraft_brush::library(doc)).clone();
+        let lib = self.brushes.get_or_insert_with(|| vansoncraft_brush::library(doc)).clone();
         if !self.brushes_live {
             self.brush_set.left_out = !lib.is_empty();
             return;
@@ -386,7 +386,7 @@ impl Writer<'_> {
         let frame = art
             .geometric_bounds()
             .filter(|b| b.width() > 0.0 && b.height() > 0.0)
-            .and_then(|b| vectorcraft_geom::shapes::rectangle(b).subpaths.first().cloned());
+            .and_then(|b| vansoncraft_geom::shapes::rectangle(b).subpaths.first().cloned());
         match frame {
             Some(frame) if self.take_objects(2) => {
                 self.line("u\n0 XR");
@@ -516,7 +516,7 @@ impl Writer<'_> {
     /// its stroke (a file without brushes opens with a new document's). Warns when a brush is left
     /// out.
     pub(in crate::ai_editing) fn brush_blocks(&mut self) -> (String, String) {
-        let stored = self.doc.unknown.contains_key(vectorcraft_brush::DOC_KEY);
+        let stored = self.doc.unknown.contains_key(vansoncraft_brush::DOC_KEY);
         if !stored && self.brush_set.live_written == 0 {
             return (String::new(), String::new());
         }

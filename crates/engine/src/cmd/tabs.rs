@@ -1,7 +1,7 @@
 //! Window → Type → Tabs: tab stops of the selected text objects' paragraphs.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{NodeKind, TabAlign, TabStop};
+use vansoncraft_doc::{NodeKind, TabAlign, TabStop};
 
 use super::typecmd::{TextRange, para_span, refresh_bounds, text_targets};
 use super::{CommandSpec, Result, Session, bad, cmd, has_selection};
@@ -203,7 +203,7 @@ mod tests {
     /// a paragraph with fewer stops targeted beside it keeps the limit.
     #[test]
     fn stops_can_be_removed_from_a_paragraph_holding_more_than_the_limit() {
-        use vectorcraft_doc::{NodeId, NodeKind, TabAlign, TabStop};
+        use vansoncraft_doc::{NodeId, NodeKind, TabAlign, TabStop};
         let mut s = Session::new();
         s.execute("file.new", &json!({})).unwrap();
         let id = NodeId(s.execute("text.create", &json!({"x": 10, "y": 20, "text": "a\tb\nc\td"})).unwrap()["id"].as_u64().unwrap());
@@ -276,7 +276,7 @@ mod tests {
     /// typing session: the typing is its own undo step, as when the stops change.
     #[test]
     fn setting_the_same_stops_ends_the_typing() {
-        use vectorcraft_tools::{PointerEvent, PointerKind};
+        use vansoncraft_tools::{PointerEvent, PointerKind};
 
         use crate::ViewInfo;
         let mut s = Session::new();
@@ -286,7 +286,7 @@ mod tests {
         s.execute("text.tabs.set", &stops).unwrap();
         let v = ViewInfo::default();
         s.select_tool("type", v).unwrap();
-        let b = s.doc().unwrap().doc.bounds_of(&[vectorcraft_doc::NodeId(id)], false).unwrap();
+        let b = s.doc().unwrap().doc.bounds_of(&[vansoncraft_doc::NodeId(id)], false).unwrap();
         for kind in [PointerKind::Down, PointerKind::Up] {
             s.pointer(&PointerEvent::new(kind, b.x1 - 1.0, b.center().y), v).unwrap();
         }
@@ -307,8 +307,8 @@ mod tests {
         let id = s.execute("text.create", &json!({"x": 10, "y": 20, "text": "AAA\t20", "size": 12})).unwrap()["id"].as_u64().unwrap();
         s.execute("text.tabs.set", &json!({"stops": [{"position": 200, "align": "left", "leader": ".", "alignOn": "."}]})).unwrap();
         let st = s.doc().unwrap();
-        let Some(vectorcraft_doc::NodeKind::Text(t)) = st.doc.node(vectorcraft_doc::NodeId(id)).map(|n| &n.kind) else { panic!() };
-        let lay = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t);
+        let Some(vansoncraft_doc::NodeKind::Text(t)) = st.doc.node(vansoncraft_doc::NodeId(id)).map(|n| &n.kind) else { panic!() };
+        let lay = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), t);
         let x_of = |b: usize| lay.glyphs.iter().find(|g| g.byte == b).unwrap().origin.x;
         let (from, to) = (x_of(3), x_of(4));
         assert!(to - from > 150.0, "{from}..{to}");

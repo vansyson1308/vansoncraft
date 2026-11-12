@@ -1,5 +1,5 @@
 use super::state::{SUBJECT_COMMANDS, enabled, has_subject, waits_for_ime};
-use super::{Value, VectorcraftApp, json};
+use super::{Value, VansoncraftApp, json};
 
 /// What a menu click runs: items whose label ends with "…" and that carry default params open a
 /// generic parameter dialog (fields = the defaults) instead of running immediately. A script of the
@@ -40,7 +40,7 @@ fn queried_dialog(id: &str) -> Option<(&'static str, &'static [&'static str])> {
 }
 
 /// The dialog (kind, fields) the menu item of command `id` opens, as the reference app's does.
-pub(super) fn menu_dialog(app: &VectorcraftApp, id: &str) -> Option<(&'static str, Value)> {
+pub(super) fn menu_dialog(app: &VansoncraftApp, id: &str) -> Option<(&'static str, Value)> {
     if let Some(found) = crate::addons::arrange::dialog(app, id) {
         return Some(found);
     }
@@ -88,7 +88,7 @@ pub(super) fn menu_dialog(app: &VectorcraftApp, id: &str) -> Option<(&'static st
 
 /// The event a focused text field takes for Edit-menu command `id` (Select All, Cut, Copy,
 /// Paste), as the same keys would send it.
-pub(super) fn field_event(app: &mut VectorcraftApp, id: &str) -> Option<egui::Event> {
+pub(super) fn field_event(app: &mut VansoncraftApp, id: &str) -> Option<egui::Event> {
     Some(match id {
         "select.all" => egui::Event::Key { key: egui::Key::A, physical_key: None, pressed: true, repeat: false, modifiers: egui::Modifiers::COMMAND },
         "edit.copy" => egui::Event::Copy,
@@ -103,7 +103,7 @@ pub(super) fn field_event(app: &mut VectorcraftApp, id: &str) -> Option<egui::Ev
 /// Copy and Paste act on the field's text, as their keys do. While its keys select every artboard
 /// ([`crate::panels::artboards::selects_all`]), Select All does too. Everything else (and those
 /// commands with no field focused) goes to [`invoke`].
-pub fn invoke_from_system_menu(app: &mut VectorcraftApp, ctx: &egui::Context, id: &str, p: Value) {
+pub fn invoke_from_system_menu(app: &mut VansoncraftApp, ctx: &egui::Context, id: &str, p: Value) {
     match focused_text_field(ctx).and_then(|f| Some((f, field_event(app, id)?))) {
         Some((field, e)) => to_field(ctx, field, e),
         None if id == "select.all" && crate::panels::artboards::selects_all(app, ctx) => crate::panels::artboards::select_all(app),
@@ -125,7 +125,7 @@ pub(super) fn to_field(ctx: &egui::Context, field: egui::Id, e: egui::Event) {
 /// Invoke a menu/command id with UI side effects (dialogs for "…" commands that need input).
 /// Object › Graph › Type… or Data… (`id`): its dialog, with the selected graph's current values
 /// (the command's query).
-pub(crate) fn graph_dialog(app: &mut VectorcraftApp, id: &str) -> Result<Value, String> {
+pub(crate) fn graph_dialog(app: &mut VansoncraftApp, id: &str) -> Result<Value, String> {
     // Graph Data: the worksheet.
     if id == "graph.setData" {
         return crate::dialogs::graph_data::open(app);
@@ -135,7 +135,7 @@ pub(crate) fn graph_dialog(app: &mut VectorcraftApp, id: &str) -> Result<Value, 
     app.run("ui.paramDialog", json!({"command": id, "label": label, "params": fields})).map(|_| json!({ "dialog": "command" }))
 }
 
-pub fn invoke(app: &mut VectorcraftApp, id: &str, p: Value) {
+pub fn invoke(app: &mut VansoncraftApp, id: &str, p: Value) {
     if waits_for_ime(app, id) {
         return;
     }
@@ -170,7 +170,7 @@ pub fn invoke(app: &mut VectorcraftApp, id: &str, p: Value) {
         return;
     }
     // Help links: the command returns the URL; a menu click opens it (agents just get the URL).
-    if matches!(id, "help.discord" | "help.website" | "help.appPage" | "help.github") {
+    if id == "help.github" {
         app.open_link(id);
         return;
     }
@@ -207,7 +207,7 @@ pub fn invoke(app: &mut VectorcraftApp, id: &str, p: Value) {
 
 /// The dialogs the Envelope, Variables, Pathfinder, Repeat, type, graph and View commands open when called without
 /// params; whether `id` was one of them.
-fn open_view_dialog(app: &mut VectorcraftApp, id: &str, p: &Value) -> bool {
+fn open_view_dialog(app: &mut VansoncraftApp, id: &str, p: &Value) -> bool {
     // Envelope Distort: Warp Options, Envelope Mesh and Envelope Options, from the selection.
     if crate::dialogs::envelope::opens(id) && p.as_object().is_none_or(|o| o.is_empty()) {
         if let Err(e) = crate::dialogs::envelope::open(app, id) {
@@ -277,7 +277,7 @@ fn open_view_dialog(app: &mut VectorcraftApp, id: &str, p: &Value) -> bool {
     }
     // New View…: a name dialog, starting from the first free "View N".
     if id == "view.saved.new" && p.as_object().is_none_or(|o| o.is_empty()) {
-        let name = app.session.active().map(|d| vectorcraft_engine::doc::SavedView::default_name(&d.doc.views)).unwrap_or_default();
+        let name = app.session.active().map(|d| vansoncraft_engine::doc::SavedView::default_name(&d.doc.views)).unwrap_or_default();
         let _ = app.run("ui.paramDialog", json!({"command": id, "label": "New View", "params": {"name": name}}));
         return true;
     }
@@ -318,10 +318,10 @@ fn open_view_dialog(app: &mut VectorcraftApp, id: &str, p: &Value) -> bool {
 
 /// The dialogs the selection, raster, wrap, blend and Expand commands open, and the panel the Asset Export commands
 /// open, when called without params; whether `id` was one of them.
-fn open_object_dialog(app: &mut VectorcraftApp, id: &str, p: &Value) -> bool {
+fn open_object_dialog(app: &mut VansoncraftApp, id: &str, p: &Value) -> bool {
     // Save Selection…: a name dialog, starting from the first free "Selection N".
     if id == "select.save" && p.as_object().is_none_or(|o| o.is_empty()) {
-        let name = app.session.active().map(|d| vectorcraft_engine::doc::SavedSelection::default_name(&d.doc.saved_selections)).unwrap_or_default();
+        let name = app.session.active().map(|d| vansoncraft_engine::doc::SavedSelection::default_name(&d.doc.saved_selections)).unwrap_or_default();
         let _ = app.run("ui.paramDialog", json!({"command": id, "label": "Save Selection", "params": {"name": name}}));
         return true;
     }

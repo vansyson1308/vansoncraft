@@ -12,8 +12,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use serde_json::{Value, json};
-use vectorcraft_doc::Document;
-use vectorcraft_doc::color::{Color, cms::Model};
+use vansoncraft_doc::Document;
+use vansoncraft_doc::color::{Color, cms::Model};
 
 use crate::adjust::{LUT, curve_at, curve_points_on, lookup, sample};
 use crate::raster::color_param;

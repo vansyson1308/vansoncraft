@@ -5,10 +5,10 @@
 
 use std::sync::{Arc, LazyLock};
 
-use vectorcraft_color::{Color, Paint, Swatch, SwatchLibrary};
-use vectorcraft_doc::pattern::pattern_paint;
-use vectorcraft_doc::{Appearance, Document, Node, NodeId, PatternDef, TileType};
-use vectorcraft_geom::{PathData, Point, Rect, SubPath, shapes};
+use vansoncraft_color::{Color, Paint, Swatch, SwatchLibrary};
+use vansoncraft_doc::pattern::pattern_paint;
+use vansoncraft_doc::{Appearance, Document, Node, NodeId, PatternDef, TileType};
+use vansoncraft_geom::{PathData, Point, Rect, SubPath, shapes};
 
 use super::Result;
 use super::clipboard::Clipboard;
@@ -456,7 +456,7 @@ mod tests {
                 .art
                 .iter()
                 .map(|n| match &n.kind {
-                    vectorcraft_doc::NodeKind::Path { path, .. } => path.bounds().unwrap_or_else(|| panic!("{}: an empty mark", p.name)),
+                    vansoncraft_doc::NodeKind::Path { path, .. } => path.bounds().unwrap_or_else(|| panic!("{}: an empty mark", p.name)),
                     _ => panic!("{}: a mark that is not a path", p.name),
                 })
                 .collect();
@@ -494,11 +494,11 @@ mod tests {
     }
 
     /// The paths of pattern `p`'s art, each with its fill rule.
-    fn paths(p: &PatternDef) -> Vec<(&PathData, vectorcraft_geom::FillRule)> {
+    fn paths(p: &PatternDef) -> Vec<(&PathData, vansoncraft_geom::FillRule)> {
         p.art
             .iter()
             .map(|n| match &n.kind {
-                vectorcraft_doc::NodeKind::Path { path, rule, .. } => (path, *rule),
+                vansoncraft_doc::NodeKind::Path { path, rule, .. } => (path, *rule),
                 _ => panic!("{}: art that is not a path", p.name),
             })
             .collect()
@@ -547,8 +547,8 @@ mod tests {
                         let inside = b.x0 <= at.x && at.x <= b.x1 && b.y0 <= at.y && at.y <= b.y1;
                         let turns = if inside { kurbo::Shape::winding(bp, at) } else { 0 };
                         match rule {
-                            vectorcraft_geom::FillRule::EvenOdd => turns % 2 != 0,
-                            vectorcraft_geom::FillRule::NonZero => turns != 0,
+                            vansoncraft_geom::FillRule::EvenOdd => turns % 2 != 0,
+                            vansoncraft_geom::FillRule::NonZero => turns != 0,
                         }
                     })
                 })
@@ -579,5 +579,5 @@ mod tests {
         }
     }
 
-    type BezPathFill = (vectorcraft_geom::BezPath, vectorcraft_geom::FillRule);
+    type BezPathFill = (vansoncraft_geom::BezPath, vansoncraft_geom::FillRule);
 }

@@ -3,17 +3,17 @@ use super::*;
 use crate::{dialogs, theme};
 use egui::{Event, Modifiers, PointerButton};
 use serde_json::Value;
-use vectorcraft_effects::revolve_options;
-use vectorcraft_engine::Session;
+use vansoncraft_effects::revolve_options;
+use vansoncraft_engine::Session;
 
 struct Harness {
-    app: VectorcraftApp,
+    app: VansoncraftApp,
     ctx: egui::Context,
 }
 
 impl Harness {
     fn new() -> Self {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.run("file.new", json!({"width":300,"height":300})).unwrap();
         app.run("path.create", json!({"d":"M150 40 L180 60 L180 140 L150 160"})).unwrap();
         app.run("paint.setFill", json!({"color":"#338ad6"})).unwrap();
@@ -295,7 +295,7 @@ impl Harness {
         for (id, p) in build {
             h.app.run(id, p.clone()).unwrap();
         }
-        h.app.run("effect.dialog", json!({"effect": vectorcraft_effects::EXTRUDE})).unwrap();
+        h.app.run("effect.dialog", json!({"effect": vansoncraft_effects::EXTRUDE})).unwrap();
         h.app.ui.dialog.as_mut().unwrap().fields.insert("preview".into(), json!(on));
         h.settle();
         h
@@ -316,7 +316,7 @@ impl Harness {
 }
 
 fn an_image() -> Vec<(&'static str, Value)> {
-    let data = vectorcraft_format::base64_encode(&crate::tests_sysclip::blue_png());
+    let data = vansoncraft_format::base64_encode(&crate::tests_sysclip::blue_png());
     vec![("file.place", json!({"name": "blue.png", "dataBase64": data, "link": false, "at": [150, 150]}))]
 }
 

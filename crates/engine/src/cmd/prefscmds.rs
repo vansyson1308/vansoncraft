@@ -9,7 +9,7 @@ use serde_json::{Map, Value, json};
 use super::{CommandSpec, EngineError, Result, Session, always, bad, cmd, str_param, switch_or, text_param};
 use crate::Prefs;
 use crate::units::Measure;
-use vectorcraft_doc::{GridPrefs, Unit};
+use vansoncraft_doc::{GridPrefs, Unit};
 
 /// What kind of value a preference holds.
 #[derive(Clone, Copy, Debug)]
@@ -353,7 +353,7 @@ pub const PREF_SPECS: &[PrefSpec] = &[
     p!("openDocumentsAsTabs", "User Interface", "", "Open Documents As Tabs", bool),
     p!("largeTabs", "User Interface", "", "Large Tabs", bool),
     p!("systemTitleBar", "User Interface", "", "System Title Bar", bool),
-    p!("appTitleBar", "User Interface", "", "VectorCraft Title Bar on Every Desktop", bool),
+    p!("appTitleBar", "User Interface", "", "VansonCraft Title Bar on Every Desktop", bool),
     p!("uiScaling", "User Interface", "UI Scaling", "Scale", num(0.75, 2.0, "×")),
     p!("scaleCursorWithUi", "User Interface", "UI Scaling", "Scale Cursor Proportional to UI", bool),
     // `auto` or a language code the shell registers (`zh-hant`); the shell shows it as a dropdown.
@@ -472,7 +472,7 @@ fn validate_group(key: &str, current: &Value, v: &Value) -> std::result::Result<
             cur.merged(v).map(|o| json!(o))
         }
         "glyphSnap" => {
-            let cur: vectorcraft_tools::GlyphSnap = serde_json::from_value(current.clone()).unwrap_or_default();
+            let cur: vansoncraft_tools::GlyphSnap = serde_json::from_value(current.clone()).unwrap_or_default();
             cur.merged(v).map(|o| json!(o))
         }
         "perspectiveWidget" => {
@@ -480,7 +480,7 @@ fn validate_group(key: &str, current: &Value, v: &Value) -> std::result::Result<
             if let (Some(o), Some(p)) = (merged.as_object_mut(), v.as_object()) {
                 o.extend(p.clone());
             }
-            serde_json::from_value::<vectorcraft_tools::distort::perspective::widget::WidgetOptions>(merged)
+            serde_json::from_value::<vansoncraft_tools::distort::perspective::widget::WidgetOptions>(merged)
                 .map(|o| json!(o))
                 .map_err(|e| e.to_string())
         }
@@ -583,7 +583,7 @@ fn writable_folder(path: &str) -> std::result::Result<(), String> {
     let refused = |e: std::io::Error| format!("Data Recovery can't keep copies in {path}: {e}");
     std::fs::read_dir(dir).map_err(refused)?;
     let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |t| t.as_nanos());
-    let check = dir.join(format!(".vectorcraft-write-check-{}-{nanos}", std::process::id()));
+    let check = dir.join(format!(".vansoncraft-write-check-{}-{nanos}", std::process::id()));
     std::fs::create_dir(&check).map_err(refused)?;
     std::fs::remove_dir(&check).map_err(refused)
 }
@@ -730,19 +730,19 @@ impl Session {
             let folder = self.prefs.fonts_folder.trim();
             // A folder an automation caller chose is read without following its links out of it.
             let confined = crate::file_access::current().is_some();
-            vectorcraft_text::set_user_font_dirs_confined(if folder.is_empty() { vec![] } else { vec![folder.into()] }, confined);
+            vansoncraft_text::set_user_font_dirs_confined(if folder.is_empty() { vec![] } else { vec![folder.into()] }, confined);
             // Once the fonts were scanned, scan again now: the folder's fonts appear (or go) in the
             // font menus, and type in them lays out again. The first scan reads it anyway.
-            if vectorcraft_text::FontDb::global().installed_fonts_changed() {
+            if vansoncraft_text::FontDb::global().installed_fonts_changed() {
                 // Its result only counts the faces cataloged.
                 let _ = super::fonts::rescan(self, &serde_json::Value::Null);
             }
         }
         if hyphen_exceptions_changed {
             // Preferences › Hyphenation › Exceptions (#394): the layout reads the process-wide list.
-            vectorcraft_text::set_hyphenation_exceptions(&self.prefs.hyphenation_exceptions);
+            vansoncraft_text::set_hyphenation_exceptions(&self.prefs.hyphenation_exceptions);
         }
-        vectorcraft_render::set_default_threads(u16::try_from(self.prefs.render_threads).ok());
+        vansoncraft_render::set_default_threads(u16::try_from(self.prefs.render_threads).ok());
         for st in &mut self.docs {
             if history_changed {
                 st.history.limit = self.prefs.history_states as usize;
@@ -786,7 +786,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Export Preferences",
             [],
             None,
-            "{path?} write the preferences as a JSON file {format: \"vectorcraft-preferences\", version: 1, prefs: {key: value, …}}: every preference prefs.list lists and the eyedropper, perspectiveWidget, pathfinder and glyphSnap groups, without the folder preferences fontsFolder, pluginsFolder, recoveryFolder and templatesFolder and without saved presets; a file over 1 MB, which prefs.import would refuse, is an error and is not written → {path, count}; without path → {data: the file's text, count}",
+            "{path?} write the preferences as a JSON file {format: \"vansoncraft-preferences\", version: 1, prefs: {key: value, …}}: every preference prefs.list lists and the eyedropper, perspectiveWidget, pathfinder and glyphSnap groups, without the folder preferences fontsFolder, pluginsFolder, recoveryFolder and templatesFolder and without saved presets; a file over 1 MB, which prefs.import would refuse, is an error and is not written → {path, count}; without path → {data: the file's text, count}",
             always,
             export
         ),
@@ -803,7 +803,10 @@ pub fn specs() -> Vec<CommandSpec> {
 }
 
 /// The `format` of a preferences file (`prefs.export`, `prefs.import`).
-pub const PREFS_FORMAT: &str = "vectorcraft-preferences";
+pub const PREFS_FORMAT: &str = "vansoncraft-preferences";
+/// The `format` of preferences files exported before the project took the name VansonCraft:
+/// `prefs.import` still reads them.
+pub const FORMER_PREFS_FORMAT: &str = "vectorcraft-preferences"; // brand-ok: files saved before the rename
 
 /// The `version` `prefs.export` writes; `prefs.import` refuses a newer one.
 pub const PREFS_VERSION: u64 = 1;
@@ -848,12 +851,12 @@ fn read_prefs_file(bytes: &[u8]) -> std::result::Result<Map<String, Value>, Stri
     let v: Value = serde_json::from_slice(bytes).map_err(|e| format!("not a preferences file: {e}"))?;
     let Some(file) = v.as_object() else { return Err("not a preferences file: no JSON object".into()) };
     match file.get("format").and_then(Value::as_str) {
-        Some(PREFS_FORMAT) => {}
+        Some(PREFS_FORMAT | FORMER_PREFS_FORMAT) => {}
         Some(format) => return Err(format!("not a preferences file (format `{format}`)")),
         None => return Err("not a preferences file: no `format`".into()),
     }
     match file.get("version").and_then(Value::as_u64) {
-        Some(v) if v > PREFS_VERSION => return Err(format!("the file was saved by a newer version of VectorCraft (version {v})")),
+        Some(v) if v > PREFS_VERSION => return Err(format!("the file was saved by a newer version of VansonCraft (version {v})")),
         Some(1..) => {}
         _ => return Err("not a preferences file: no `version`".into()),
     }

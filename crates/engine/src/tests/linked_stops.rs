@@ -2,8 +2,8 @@
 //! stops following swatch edits, spot stops on their plate and as Separation and DeviceN shadings in PDF.
 
 use serde_json::{Value, json};
-use vectorcraft_color::{Color, GradientPaint, GradientStop, Paint};
-use vectorcraft_render::proof;
+use vansoncraft_color::{Color, GradientPaint, GradientStop, Paint};
+use vansoncraft_render::proof;
 
 use crate::*;
 
@@ -17,7 +17,7 @@ fn run(s: &mut Session, id: &str, p: Value) -> Value {
     s.execute(id, &p).unwrap_or_else(|e| panic!("{id} {p}: {e}"))
 }
 
-fn doc(s: &Session) -> &vectorcraft_doc::Document {
+fn doc(s: &Session) -> &vansoncraft_doc::Document {
     &s.doc().unwrap().doc
 }
 
@@ -113,15 +113,15 @@ fn spot_stops_separate_on_their_plate() {
         *c
     });
     assert!(links.contains(&Some(("Ink".to_string(), 0.6))), "{links:?}");
-    let c = vectorcraft_color::cms::active();
+    let c = vansoncraft_color::cms::active();
     let st = gradient(&s, id).gradient.stops[0].clone();
     let ink = proof::inks(doc(&s), &c, &st.color, Some(("Ink", st.tint)), proof::Intent::RelativeColorimetric);
     assert_eq!((ink.cmyk, ink.spot), ([0.0; 4], Some(("Ink".to_string(), 0.6))));
 }
 
 fn pdf_of(s: &Session) -> (String, Vec<String>) {
-    let opts = vectorcraft_pdf::PdfOptions { created: Some(0), ..vectorcraft_pdf::PdfOptions::uncompressed() };
-    let r = vectorcraft_pdf::export_with_report(doc(s), &opts).unwrap();
+    let opts = vansoncraft_pdf::PdfOptions { created: Some(0), ..vansoncraft_pdf::PdfOptions::uncompressed() };
+    let r = vansoncraft_pdf::export_with_report(doc(s), &opts).unwrap();
     (String::from_utf8_lossy(&r.bytes).into_owned(), r.warnings)
 }
 
@@ -232,7 +232,7 @@ fn linked_stops_round_trip() {
     let (mut s, id) = setup();
     run(&mut s, "paint.editGradient", ink_to_white(30.0));
     let d = doc(&s).clone();
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&d, false)).unwrap();
+    let back = vansoncraft_format::load(&vansoncraft_format::save(&d, false)).unwrap();
     assert_eq!(back.node(id).unwrap().appearance.fill_paint(), d.node(id).unwrap().appearance.fill_paint());
     // Stops from before links read as unlinked.
     let old: GradientStop = serde_json::from_value(json!({"offset": 0.5, "color": {"model": "rgb", "r": 1, "g": 0, "b": 0}})).unwrap();
@@ -321,16 +321,16 @@ fn perceptual_spot_gradients_with_rgb_stops_in_a_cmyk_document_export_as_device_
     // A CMYK document, or a conversion to a CMYK destination, writes the RGB stop in CMYK: a
     // DeviceN shading, not an image.
     let mut cmyk = doc(&s).clone();
-    cmyk.color_mode = vectorcraft_doc::ColorMode::Cmyk;
-    let plain = vectorcraft_pdf::PdfOptions { created: Some(0), ..vectorcraft_pdf::PdfOptions::uncompressed() };
+    cmyk.color_mode = vansoncraft_doc::ColorMode::Cmyk;
+    let plain = vansoncraft_pdf::PdfOptions { created: Some(0), ..vansoncraft_pdf::PdfOptions::uncompressed() };
     let mut converted = plain.clone();
-    converted.settings.output = vectorcraft_pdf::OutputSettings {
-        conversion: vectorcraft_pdf::ColorConversion::Destination,
-        destination: vectorcraft_pdf::DOCUMENT_CMYK.into(),
+    converted.settings.output = vansoncraft_pdf::OutputSettings {
+        conversion: vansoncraft_pdf::ColorConversion::Destination,
+        destination: vansoncraft_pdf::DOCUMENT_CMYK.into(),
         ..Default::default()
     };
     for (what, d, opts) in [("CMYK document", &cmyk, &plain), ("CMYK destination", doc(&s), &converted)] {
-        let r = vectorcraft_pdf::export_with_report(d, opts).unwrap();
+        let r = vansoncraft_pdf::export_with_report(d, opts).unwrap();
         let pdf = String::from_utf8_lossy(&r.bytes);
         assert!(!pdf.contains("/Subtype/Image"), "{what}: no image");
         assert!(pdf.contains("/ShadingType 2") && pdf.contains("/Ink]/DeviceCMYK"), "{what}: a DeviceN shading with Ink");
@@ -339,12 +339,12 @@ fn perceptual_spot_gradients_with_rgb_stops_in_a_cmyk_document_export_as_device_
     // A conversion to an RGB destination keeps the RGB stop in RGB, in a CMYK document too: an
     // image, with the spot warning.
     let mut to_rgb = plain.clone();
-    to_rgb.settings.output = vectorcraft_pdf::OutputSettings {
-        conversion: vectorcraft_pdf::ColorConversion::Destination,
-        destination: vectorcraft_color::cms::SRGB.into(),
+    to_rgb.settings.output = vansoncraft_pdf::OutputSettings {
+        conversion: vansoncraft_pdf::ColorConversion::Destination,
+        destination: vansoncraft_color::cms::SRGB.into(),
         ..Default::default()
     };
-    let r = vectorcraft_pdf::export_with_report(&cmyk, &to_rgb).unwrap();
+    let r = vansoncraft_pdf::export_with_report(&cmyk, &to_rgb).unwrap();
     assert!(String::from_utf8_lossy(&r.bytes).contains("/Subtype/Image"), "RGB destination: an image");
     assert!(r.warnings.iter().any(|w| w.contains("spot")), "RGB destination: {:?}", r.warnings);
 }
@@ -358,28 +358,28 @@ fn classic_spot_gradients_with_rgb_stops_in_a_cmyk_document_export_as_device_n_s
     // A CMYK document, or a conversion to a CMYK destination, writes the RGB stop in CMYK: a
     // DeviceN shading that keeps the ink.
     let mut cmyk = doc(&s).clone();
-    cmyk.color_mode = vectorcraft_doc::ColorMode::Cmyk;
-    let plain = vectorcraft_pdf::PdfOptions { created: Some(0), ..vectorcraft_pdf::PdfOptions::uncompressed() };
+    cmyk.color_mode = vansoncraft_doc::ColorMode::Cmyk;
+    let plain = vansoncraft_pdf::PdfOptions { created: Some(0), ..vansoncraft_pdf::PdfOptions::uncompressed() };
     let mut converted = plain.clone();
-    converted.settings.output = vectorcraft_pdf::OutputSettings {
-        conversion: vectorcraft_pdf::ColorConversion::Destination,
-        destination: vectorcraft_pdf::DOCUMENT_CMYK.into(),
+    converted.settings.output = vansoncraft_pdf::OutputSettings {
+        conversion: vansoncraft_pdf::ColorConversion::Destination,
+        destination: vansoncraft_pdf::DOCUMENT_CMYK.into(),
         ..Default::default()
     };
     for (what, d, opts) in [("CMYK document", &cmyk, &plain), ("CMYK destination", doc(&s), &converted)] {
-        let r = vectorcraft_pdf::export_with_report(d, opts).unwrap();
+        let r = vansoncraft_pdf::export_with_report(d, opts).unwrap();
         let pdf = String::from_utf8_lossy(&r.bytes);
         assert!(pdf.contains("/ShadingType 2") && pdf.contains("/Ink]/DeviceCMYK"), "{what}: a DeviceN shading with Ink");
         assert!(!r.warnings.iter().any(|w| w.contains("spot")), "{what}: {:?}", r.warnings);
     }
     // A conversion to an RGB destination keeps the RGB stop in RGB, in a CMYK document too.
     let mut to_rgb = plain.clone();
-    to_rgb.settings.output = vectorcraft_pdf::OutputSettings {
-        conversion: vectorcraft_pdf::ColorConversion::Destination,
-        destination: vectorcraft_color::cms::SRGB.into(),
+    to_rgb.settings.output = vansoncraft_pdf::OutputSettings {
+        conversion: vansoncraft_pdf::ColorConversion::Destination,
+        destination: vansoncraft_color::cms::SRGB.into(),
         ..Default::default()
     };
-    let r = vectorcraft_pdf::export_with_report(&cmyk, &to_rgb).unwrap();
+    let r = vansoncraft_pdf::export_with_report(&cmyk, &to_rgb).unwrap();
     assert!(!String::from_utf8_lossy(&r.bytes).contains("/DeviceN"), "RGB destination: no DeviceN shading");
     assert!(r.warnings.iter().any(|w| w.contains("spot")), "RGB destination: {:?}", r.warnings);
 }
@@ -423,7 +423,7 @@ fn freeform_gradients_without_points_warn_about_spot_stops() {
     // A freeform field with no points of its own: the colors come from the stops, the first
     // linked to the spot swatch.
     let mut g = gradient(&s, id);
-    g.freeform = Some(vectorcraft_color::Freeform::default());
+    g.freeform = Some(vansoncraft_color::Freeform::default());
     g.gradient.stops[0].swatch = Some("Ink".into());
     let d = std::sync::Arc::make_mut(&mut s.doc_mut().unwrap().doc);
     d.node_mut(id).unwrap().appearance.set_fill(Paint::Gradient(Box::new(g)));

@@ -9,10 +9,10 @@
 //! geometry.
 
 use serde_json::{Map, Value, json};
-use vectorcraft_doc::{Document, LiveCorners, LiveShape, NodeId, NodeKind, Selection};
-use vectorcraft_geom::corners::{Corner, cut_corners};
-use vectorcraft_geom::shapes::CornerKind;
-use vectorcraft_geom::{Affine, BezPath, PathData, Point, Vec2};
+use vansoncraft_doc::{Document, LiveCorners, LiveShape, NodeId, NodeKind, Selection};
+use vansoncraft_geom::corners::{Corner, cut_corners};
+use vansoncraft_geom::shapes::CornerKind;
+use vansoncraft_geom::{Affine, BezPath, PathData, Point, Vec2};
 
 use crate::{Action, Overlay, PointerEvent, ToolContext};
 

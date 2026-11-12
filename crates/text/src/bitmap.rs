@@ -7,7 +7,7 @@ use kurbo::{Affine, Rect};
 use skrifa::GlyphId;
 use skrifa::bitmap::{BitmapData, BitmapFormat, BitmapStrikes, Origin};
 use skrifa::instance::Size;
-use vectorcraft_doc::ImageBlob;
+use vansoncraft_doc::ImageBlob;
 
 /// The most pixels along either side of a glyph image read from a font, as its PNG header gives
 /// them. Emoji strikes are at most a few hundred pixels (Apple Color Emoji's largest is 160): a

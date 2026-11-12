@@ -3,8 +3,8 @@ use std::sync::Arc;
 
 use image::{DynamicImage, ImageBuffer, Luma, Rgb};
 use serde_json::{Value, json};
-use vectorcraft_doc::{ImageBlob, ImageObject, LinkInfo, Node, NodeId, NodeKind};
-use vectorcraft_geom::Affine;
+use vansoncraft_doc::{ImageBlob, ImageObject, LinkInfo, Node, NodeId, NodeKind};
+use vansoncraft_geom::Affine;
 
 use super::{Background, Match, REMOVE_BACKGROUND as C, Settings, level, levels};
 use crate::Session;
@@ -36,7 +36,7 @@ fn framed() -> image::RgbaImage {
 /// A session with `bytes` opened as a document, its image selected.
 fn open(bytes: &[u8]) -> (Session, NodeId) {
     let mut s = Session::new();
-    s.execute("document.open", &json!({"name": "art.png", "dataBase64": vectorcraft_format::base64_encode(bytes)})).unwrap();
+    s.execute("document.open", &json!({"name": "art.png", "dataBase64": vansoncraft_format::base64_encode(bytes)})).unwrap();
     s.execute("select.all", &json!({})).unwrap();
     let id = s.doc().unwrap().selection.objects[0];
     (s, id)
@@ -361,7 +361,7 @@ fn the_resolution_is_kept() {
 
 #[test]
 fn a_cmyk_image_is_refused() {
-    let inks = vectorcraft_doc::cmyk::Inks::new(4, 2, [0, 0, 0, 0].repeat(8)).unwrap();
+    let inks = vansoncraft_doc::cmyk::Inks::new(4, 2, [0, 0, 0, 0].repeat(8)).unwrap();
     let tiff = ImageBlob::cmyk_tiff(&inks).unwrap();
     let (mut s, id) = open(&tiff.bytes);
     let before = (image_of(&s, id), undo_len(&s));
@@ -397,7 +397,7 @@ fn a_linked_image_is_embedded_and_one_that_shows_its_preview_is_refused() {
     let bytes = png(DynamicImage::ImageRgba8(framed()));
     let (mut s, _) = open(&bytes);
     let linked = place_linked(&mut s, "linked", ImageBlob::png(bytes.clone()), (12, 10));
-    let clip = vectorcraft_doc::links::PlacementOptions { clip: true, ..Default::default() };
+    let clip = vansoncraft_doc::links::PlacementOptions { clip: true, ..Default::default() };
     s.edit("Placement", |d, _| {
         if let Some(NodeKind::Image(im)) = d.node_mut(linked).map(|n| &mut n.kind) {
             im.placement = clip;

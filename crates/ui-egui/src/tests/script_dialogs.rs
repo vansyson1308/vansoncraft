@@ -3,30 +3,30 @@
 //! given by a run with nobody to ask.
 
 use serde_json::{Value, json};
-use vectorcraft_engine::Session;
+use vansoncraft_engine::Session;
 
 use crate::dialogs::script_run::{CLOSE_KIND, NOTICE_KIND};
-use crate::{VectorcraftApp, dialogs, menus, script_runs};
+use crate::{VansoncraftApp, dialogs, menus, script_runs};
 
-fn app() -> VectorcraftApp {
-    let mut app = VectorcraftApp::new(Session::new(), crate::Services::default());
+fn app() -> VansoncraftApp {
+    let mut app = VansoncraftApp::new(Session::new(), crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     app.session.prefs.show_external_script_warning = false;
     app
 }
 
-fn objects(app: &VectorcraftApp) -> usize {
+fn objects(app: &VansoncraftApp) -> usize {
     app.session.doc().unwrap().doc.layers.iter().map(|l| l.children().map_or(0, Vec::len)).sum()
 }
 
 const DRAW: &str = "vc.run('shape.rectangle', {x:0,y:0,width:10,height:10});";
 
-fn start(app: &mut VectorcraftApp, source: &str) {
+fn start(app: &mut VansoncraftApp, source: &str) {
     menus::run_ui_command(app, "ui.runScript", &json!({"source": source, "name": "d.js"})).unwrap().unwrap();
 }
 
 /// Polls the run until it ends, or until its dialog is open (true).
-fn until_dialog(app: &mut VectorcraftApp) -> bool {
+fn until_dialog(app: &mut VansoncraftApp) -> bool {
     for _ in 0..10_000 {
         if !app.session.script_running() {
             return false;
@@ -39,7 +39,7 @@ fn until_dialog(app: &mut VectorcraftApp) -> bool {
     panic!("the script neither ended nor opened a dialog");
 }
 
-fn answer(app: &mut VectorcraftApp, answer: &str) {
+fn answer(app: &mut VansoncraftApp, answer: &str) {
     app.ui.dialog.as_mut().unwrap().fields.insert("answer".into(), json!(answer));
     dialogs::confirm(app).unwrap();
 }
@@ -55,7 +55,7 @@ thread_local! {
 
 /// One headless frame of the dialog layer and the shortcuts, in a window of `size`. Each key pressed
 /// in it is let go in a second frame, as a person lets go of it.
-fn frame(app: &mut VectorcraftApp, events: Vec<egui::Event>, size: egui::Vec2) {
+fn frame(app: &mut VansoncraftApp, events: Vec<egui::Event>, size: egui::Vec2) {
     let ctx = CTX.with(Clone::clone);
     let released: Vec<egui::Event> = events
         .iter()
@@ -83,7 +83,7 @@ fn key(k: egui::Key) -> egui::Event {
 
 const WINDOW: egui::Vec2 = egui::vec2(1200.0, 800.0);
 
-fn log(app: &VectorcraftApp) -> Value {
+fn log(app: &VansoncraftApp) -> Value {
     app.session.script_report().unwrap()["log"].clone()
 }
 
@@ -173,7 +173,7 @@ fn a_prompt_text_past_the_limit_keeps_the_dialog_open() {
     let mut app = app();
     start(&mut app, "vc.log(prompt('Name', ''));");
     assert!(until_dialog(&mut app));
-    let long = "x".repeat(vectorcraft_engine::script::dialogs::MAX_PROMPT_BYTES + 1);
+    let long = "x".repeat(vansoncraft_engine::script::dialogs::MAX_PROMPT_BYTES + 1);
     app.ui.dialog.as_mut().unwrap().fields.insert("value".into(), json!(long));
     assert!(dialogs::confirm(&mut app).is_err());
     assert_eq!(app.ui.dialog.as_ref().unwrap().kind, NOTICE_KIND, "the refused answer leaves the dialog open");

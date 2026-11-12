@@ -34,7 +34,7 @@ pub(crate) use text::{edge_coverage, edge_grid, type_reach};
 impl Renderer {
     pub fn new() -> Self {
         // Envelopes map type from its glyphs here too, without an engine session.
-        vectorcraft_text::register_envelope_ink();
+        vansoncraft_text::register_envelope_ink();
         Self {
             texts: FrameCache::new(lru::TEXT_BUDGET, 1024),
             text_ids: PtrMap::default(),
@@ -109,8 +109,8 @@ impl Renderer {
     /// set in one of the document's composite fonts draws in the document's definition, also when
     /// no session has registered it (a document that is not in front, or read from a file).
     pub fn render(&mut self, doc: &Document, width: u32, height: u32, view: Affine, opts: &RenderOptions) -> Rendered {
-        let _lent = vectorcraft_text::FontDb::global().lend_composite_fonts(&doc.composite_fonts);
-        let _frame = vectorcraft_text::KeptLayoutsFrame::begin();
+        let _lent = vansoncraft_text::FontDb::global().lend_composite_fonts(&doc.composite_fonts);
+        let _frame = vansoncraft_text::KeptLayoutsFrame::begin();
         self.render_as(doc, width, height, view, opts, false, 1)
     }
 
@@ -342,8 +342,8 @@ impl Renderer {
     pub fn render_region_inks(&mut self, doc: &Document, region: Rect, scale: f64, opts: &RenderOptions) -> Vec<u8> {
         let (w, h) = region_pixels(region, scale);
         let view = Affine::scale(scale) * Affine::translate((-region.x0, -region.y0));
-        let _lent = vectorcraft_text::FontDb::global().lend_composite_fonts(&doc.composite_fonts);
-        let _frame = vectorcraft_text::KeptLayoutsFrame::begin();
+        let _lent = vansoncraft_text::FontDb::global().lend_composite_fonts(&doc.composite_fonts);
+        let _frame = vansoncraft_text::KeptLayoutsFrame::begin();
         self.render_as(doc, w, h, view, opts, true, 1).pixels
     }
 
@@ -359,7 +359,7 @@ impl Renderer {
 
     /// [`Self::render_node`] with `opts` (e.g. [`RenderOptions::mark_undecoded_images`]).
     pub fn render_node_with(&mut self, doc: &Document, n: &Arc<Node>, w: u16, h: u16, view: Affine, opts: &RenderOptions) -> Option<Rendered> {
-        let _lent = vectorcraft_text::FontDb::global().lend_composite_fonts(&doc.composite_fonts);
+        let _lent = vansoncraft_text::FontDb::global().lend_composite_fonts(&doc.composite_fonts);
         self.check_plugins(doc);
         self.check_symbols(doc);
         let visible = view.inverse().transform_rect_bbox(Rect::new(0.0, 0.0, w as f64, h as f64));
@@ -438,7 +438,7 @@ impl Renderer {
         background: Option<[u8; 4]>,
         opts: &RenderOptions,
     ) -> Option<Rendered> {
-        let _lent = vectorcraft_text::FontDb::global().lend_composite_fonts(&doc.composite_fonts);
+        let _lent = vansoncraft_text::FontDb::global().lend_composite_fonts(&doc.composite_fonts);
         self.check_plugins(doc);
         self.check_symbols(doc);
         let b = brush_fx::cull_bounds(&doc.symbol_boxes(), n)?;

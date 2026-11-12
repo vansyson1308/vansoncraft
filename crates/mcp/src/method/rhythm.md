@@ -8,7 +8,7 @@ character, varying curvature more (SP-XI-2, SP-XI-5). Parallel families give a s
 SP-XII-23, SP-XII-24); contours continue across gaps (SP-XII-2). Invented shapes tend to repeat as
 "pet forms" (SP-XIII-2). Hide the construction; mechanical jitter is not "dither" (SP-XIV-17).
 
-**With VectorCraft.**
+**With VansonCraft.**
 - `study.lines {ids}`: `directions` (length-weighted orientation histogram), `spread` (0 = one
   orientation, 1 = no dominant one, which includes horizontals and verticals evenly split),
   `straightShare`, `curvatureVariation` (any wiggle raises it; read it with `inflections`: an

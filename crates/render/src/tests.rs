@@ -1,7 +1,7 @@
 use super::*;
-use vectorcraft_color::{Color, Gradient, GradientPaint, Paint};
-use vectorcraft_doc::{Appearance, Node};
-use vectorcraft_geom::shapes;
+use vansoncraft_color::{Color, Gradient, GradientPaint, Paint};
+use vansoncraft_doc::{Appearance, Node};
+use vansoncraft_geom::shapes;
 
 mod adjust;
 mod alternate;
@@ -168,7 +168,7 @@ fn multiply_blend() {
     let mut d = Document::new(100.0, 100.0);
     let a = rect_node(&mut d, Rect::new(0.0, 0.0, 100.0, 100.0), Paint::solid(Color::rgb(1.0, 1.0, 0.0)), Paint::None, 0.0);
     let mut b = rect_node(&mut d, Rect::new(0.0, 0.0, 100.0, 100.0), Paint::solid(Color::rgb(0.0, 1.0, 1.0)), Paint::None, 0.0);
-    b.blend = vectorcraft_color::BlendMode::Multiply;
+    b.blend = vansoncraft_color::BlendMode::Multiply;
     let l = d.layers[0].id;
     d.insert(Some(l), 0, a).unwrap();
     d.insert(Some(l), 1, b).unwrap();
@@ -226,7 +226,7 @@ fn hidden_and_culled() {
 fn far_instance(art: Rect) -> Document {
     let mut d = Document::new(100.0, 100.0);
     let art = rect_node(&mut d, art, Paint::solid(Color::rgb(1.0, 0.0, 0.0)), Paint::None, 0.0);
-    d.symbols.push(vectorcraft_doc::Symbol { dynamic: false, name: "Far".into(), art: Arc::new(art) });
+    d.symbols.push(vansoncraft_doc::Symbol { dynamic: false, name: "Far".into(), art: Arc::new(art) });
     let (id, l) = (d.alloc_id(), d.layers[0].id);
     d.insert(Some(l), 0, Node::new(id, NodeKind::SymbolInstance { symbol: "Far".into(), xf: Affine::translate((-50.0, -50.0)) })).unwrap();
     d
@@ -254,9 +254,9 @@ fn an_instance_is_culled_by_the_effects_in_its_art() {
     // 8 pt to the right, reaches into it.
     let mut d = Document::new(100.0, 100.0);
     let mut art = rect_node(&mut d, Rect::new(-1.0, -1.0, 1.0, 1.0), Paint::solid(Color::BLACK), Paint::None, 0.0);
-    let shadow = vectorcraft_doc::Effect { id: "stylize.dropShadow".into(), params: serde_json::json!({"x": 8, "y": 0, "blur": 0}), visible: true };
+    let shadow = vansoncraft_doc::Effect { id: "stylize.dropShadow".into(), params: serde_json::json!({"x": 8, "y": 0, "blur": 0}), visible: true };
     art.appearance.effects.push(shadow);
-    d.symbols.push(vectorcraft_doc::Symbol { dynamic: false, name: "Dot".into(), art: Arc::new(art) });
+    d.symbols.push(vansoncraft_doc::Symbol { dynamic: false, name: "Dot".into(), art: Arc::new(art) });
     let (id, l) = (d.alloc_id(), d.layers[0].id);
     d.insert(Some(l), 0, Node::new(id, NodeKind::SymbolInstance { symbol: "Dot".into(), xf: Affine::translate((-5.0, 20.0)) })).unwrap();
     let img = Renderer::new().render(&d, 100, 100, Affine::IDENTITY, &RenderOptions::default());
@@ -268,14 +268,14 @@ fn a_repeat_of_an_instance_is_culled_by_the_effects_in_its_art() {
     // The instance of the test above as the one copy of a one-by-one grid repeat.
     let mut d = Document::new(100.0, 100.0);
     let mut art = rect_node(&mut d, Rect::new(-1.0, -1.0, 1.0, 1.0), Paint::solid(Color::BLACK), Paint::None, 0.0);
-    let shadow = vectorcraft_doc::Effect { id: "stylize.dropShadow".into(), params: serde_json::json!({"x": 8, "y": 0, "blur": 0}), visible: true };
+    let shadow = vansoncraft_doc::Effect { id: "stylize.dropShadow".into(), params: serde_json::json!({"x": 8, "y": 0, "blur": 0}), visible: true };
     art.appearance.effects.push(shadow);
-    d.symbols.push(vectorcraft_doc::Symbol { dynamic: false, name: "Dot".into(), art: Arc::new(art) });
+    d.symbols.push(vansoncraft_doc::Symbol { dynamic: false, name: "Dot".into(), art: Arc::new(art) });
     let instance = Node::new(d.alloc_id(), NodeKind::SymbolInstance { symbol: "Dot".into(), xf: Affine::translate((-5.0, 20.0)) });
-    let grid = vectorcraft_doc::TileType::Grid;
+    let grid = vansoncraft_doc::TileType::Grid;
     let kind =
-        vectorcraft_doc::RepeatKind::Grid { h_spacing: 0.0, v_spacing: 0.0, rows: 1, cols: 1, grid_type: grid, flip_rows: false, flip_cols: false };
-    let repeat = Node::new(d.alloc_id(), NodeKind::Repeat(vectorcraft_doc::RepeatSpec { kind, source: vec![Arc::new(instance)] }));
+        vansoncraft_doc::RepeatKind::Grid { h_spacing: 0.0, v_spacing: 0.0, rows: 1, cols: 1, grid_type: grid, flip_rows: false, flip_cols: false };
+    let repeat = Node::new(d.alloc_id(), NodeKind::Repeat(vansoncraft_doc::RepeatSpec { kind, source: vec![Arc::new(instance)] }));
     let l = d.layers[0].id;
     d.insert(Some(l), 0, repeat).unwrap();
     let img = Renderer::new().render(&d, 100, 100, Affine::IDENTITY, &RenderOptions::default());
@@ -291,13 +291,13 @@ fn past_the_measured_placements_an_instance_is_culled_by_an_estimate_of_its_art_
     // after them: its square lies left of the view, and the shadow reaches into it.
     let mut d = Document::new(100.0, 100.0);
     let mut art = rect_node(&mut d, Rect::new(-1.0, -1.0, 1.0, 1.0), Paint::solid(Color::BLACK), Paint::None, 0.0);
-    let shadow = vectorcraft_doc::Effect { id: "stylize.dropShadow".into(), params: serde_json::json!({"x": 8, "y": 0, "blur": 0}), visible: true };
+    let shadow = vansoncraft_doc::Effect { id: "stylize.dropShadow".into(), params: serde_json::json!({"x": 8, "y": 0, "blur": 0}), visible: true };
     art.appearance.effects.push(shadow);
-    d.symbols.push(vectorcraft_doc::Symbol { dynamic: false, name: "Spot".into(), art: Arc::new(art) });
+    d.symbols.push(vansoncraft_doc::Symbol { dynamic: false, name: "Spot".into(), art: Arc::new(art) });
     for name in ["Dot", "Late"] {
         let spot = Node::new(d.alloc_id(), NodeKind::SymbolInstance { symbol: "Spot".into(), xf: Affine::IDENTITY });
         let group = Node::group(d.alloc_id(), vec![Arc::new(spot)]);
-        d.symbols.push(vectorcraft_doc::Symbol { dynamic: false, name: name.into(), art: Arc::new(group) });
+        d.symbols.push(vansoncraft_doc::Symbol { dynamic: false, name: name.into(), art: Arc::new(group) });
     }
     let l = d.layers[0].id;
     for i in 0..4100 {
@@ -318,12 +318,12 @@ fn past_the_measured_placements_an_instance_is_culled_by_an_estimate_of_its_art_
 /// most 20,000 times ([`FrameStats::symbol_art`]); measuring the art for every placement would take
 /// 2^30 measurements or more. The frame runs on a thread of its own, and the test fails when it
 /// has not finished after 300 s.
-fn nested_instances_are_culled_in_bounded_time(effect: Option<vectorcraft_doc::Effect>) {
+fn nested_instances_are_culled_in_bounded_time(effect: Option<vansoncraft_doc::Effect>) {
     let mut d = Document::new(100.0, 100.0);
     let mut art = rect_node(&mut d, Rect::new(0.0, 0.0, 1.0, 1.0), Paint::solid(Color::BLACK), Paint::None, 0.0);
-    let shadow = vectorcraft_doc::Effect { id: "stylize.dropShadow".into(), params: serde_json::json!({"x": 2, "y": 0, "blur": 0}), visible: true };
+    let shadow = vansoncraft_doc::Effect { id: "stylize.dropShadow".into(), params: serde_json::json!({"x": 2, "y": 0, "blur": 0}), visible: true };
     art.appearance.effects.push(shadow);
-    d.symbols.push(vectorcraft_doc::Symbol { dynamic: false, name: "S30".into(), art: Arc::new(art) });
+    d.symbols.push(vansoncraft_doc::Symbol { dynamic: false, name: "S30".into(), art: Arc::new(art) });
     let instance = |d: &mut Document, symbol: String, xf: Affine| {
         let mut n = Node::new(d.alloc_id(), NodeKind::SymbolInstance { symbol, xf });
         n.appearance.effects.extend(effect.clone());
@@ -336,7 +336,7 @@ fn nested_instances_are_culled_in_bounded_time(effect: Option<vectorcraft_doc::E
             pair.push(Arc::new(instance(&mut d, next.clone(), xf)));
         }
         let group = Node::group(d.alloc_id(), pair);
-        d.symbols.push(vectorcraft_doc::Symbol { dynamic: false, name: format!("S{i}"), art: Arc::new(group) });
+        d.symbols.push(vansoncraft_doc::Symbol { dynamic: false, name: format!("S{i}"), art: Arc::new(group) });
     }
     let first = instance(&mut d, "S0".into(), Affine::translate((-100_000.0, 0.0)));
     let l = d.layers[0].id;
@@ -362,7 +362,7 @@ fn nested_instances_with_effects_are_culled_in_bounded_time() {
 #[test]
 fn nested_instances_with_geometry_effects_of_their_own_are_culled_in_bounded_time() {
     // Each instance's Transform effect reshapes the art it shows before the effects in that art run.
-    let moved = vectorcraft_doc::Effect { id: "distort.transform".into(), params: serde_json::json!({"moveH": 1}), visible: true };
+    let moved = vansoncraft_doc::Effect { id: "distort.transform".into(), params: serde_json::json!({"moveH": 1}), visible: true };
     nested_instances_are_culled_in_bounded_time(Some(moved));
 }
 
@@ -373,9 +373,9 @@ fn a_scaled_instance_is_culled_by_the_effects_in_its_art_as_placed() {
     // (10, 110).
     let mut d = Document::new(100.0, 100.0);
     let mut art = rect_node(&mut d, Rect::new(-1.0, -1.0, 1.0, 1.0), Paint::solid(Color::rgb(1.0, 0.0, 0.0)), Paint::None, 0.0);
-    let double = vectorcraft_doc::Effect { id: "distort.transform".into(), params: serde_json::json!({"scaleH": 200, "scaleV": 200}), visible: true };
+    let double = vansoncraft_doc::Effect { id: "distort.transform".into(), params: serde_json::json!({"scaleH": 200, "scaleV": 200}), visible: true };
     art.appearance.effects.push(double);
-    d.symbols.push(vectorcraft_doc::Symbol { dynamic: false, name: "Dot".into(), art: Arc::new(art) });
+    d.symbols.push(vansoncraft_doc::Symbol { dynamic: false, name: "Dot".into(), art: Arc::new(art) });
     let (id, l) = (d.alloc_id(), d.layers[0].id);
     let xf = Affine::translate((-50.0, 50.0)) * Affine::scale(30.0);
     d.insert(Some(l), 0, Node::new(id, NodeKind::SymbolInstance { symbol: "Dot".into(), xf })).unwrap();
@@ -391,12 +391,12 @@ fn an_instance_is_culled_by_the_art_its_9_slice_guides_move() {
     // starts at x 110, out of view.
     let mut d = Document::new(100.0, 100.0);
     let bar = rect_node(&mut d, Rect::new(10.0, 40.0, 70.0, 60.0), Paint::solid(Color::rgb(1.0, 0.0, 0.0)), Paint::None, 0.0);
-    d.symbols.push(vectorcraft_doc::Symbol { dynamic: false, name: "Bar".into(), art: Arc::new(bar) });
+    d.symbols.push(vansoncraft_doc::Symbol { dynamic: false, name: "Bar".into(), art: Arc::new(bar) });
     let frame = rect_node(&mut d, Rect::new(0.0, 0.0, 100.0, 100.0), Paint::None, Paint::None, 0.0);
     let inner = Node::new(d.alloc_id(), NodeKind::SymbolInstance { symbol: "Bar".into(), xf: Affine::IDENTITY });
     let art = Node::group(d.alloc_id(), vec![Arc::new(frame), Arc::new(inner)]);
-    d.symbols.push(vectorcraft_doc::Symbol { dynamic: false, name: "Panel".into(), art: Arc::new(art) });
-    d.set_symbol_nine_slice("Panel", Some(vectorcraft_doc::SymbolNineSlice::default()));
+    d.symbols.push(vansoncraft_doc::Symbol { dynamic: false, name: "Panel".into(), art: Arc::new(art) });
+    d.set_symbol_nine_slice("Panel", Some(vansoncraft_doc::SymbolNineSlice::default()));
     let (id, l) = (d.alloc_id(), d.layers[0].id);
     let xf = Affine::translate((110.0, 0.0)) * Affine::scale_non_uniform(2.0, 1.0);
     d.insert(Some(l), 0, Node::new(id, NodeKind::SymbolInstance { symbol: "Panel".into(), xf })).unwrap();
@@ -411,14 +411,14 @@ fn an_instance_is_culled_by_the_art_nested_9_slice_guides_move() {
     // to 270 while the frame starts at x 110, out of view.
     let mut d = Document::new(100.0, 100.0);
     let bar = rect_node(&mut d, Rect::new(10.0, 40.0, 70.0, 60.0), Paint::solid(Color::rgb(1.0, 0.0, 0.0)), Paint::None, 0.0);
-    d.symbols.push(vectorcraft_doc::Symbol { dynamic: false, name: "Bar".into(), art: Arc::new(bar) });
+    d.symbols.push(vansoncraft_doc::Symbol { dynamic: false, name: "Bar".into(), art: Arc::new(bar) });
     let frame = rect_node(&mut d, Rect::new(0.0, 0.0, 100.0, 100.0), Paint::None, Paint::None, 0.0);
     let inner = Node::new(d.alloc_id(), NodeKind::SymbolInstance { symbol: "Bar".into(), xf: Affine::IDENTITY });
     let art = Node::group(d.alloc_id(), vec![Arc::new(frame), Arc::new(inner)]);
-    d.symbols.push(vectorcraft_doc::Symbol { dynamic: false, name: "Panel".into(), art: Arc::new(art) });
-    d.set_symbol_nine_slice("Panel", Some(vectorcraft_doc::SymbolNineSlice::default()));
+    d.symbols.push(vansoncraft_doc::Symbol { dynamic: false, name: "Panel".into(), art: Arc::new(art) });
+    d.set_symbol_nine_slice("Panel", Some(vansoncraft_doc::SymbolNineSlice::default()));
     let panel = Node::new(d.alloc_id(), NodeKind::SymbolInstance { symbol: "Panel".into(), xf: Affine::IDENTITY });
-    d.symbols.push(vectorcraft_doc::Symbol { dynamic: false, name: "Holder".into(), art: Arc::new(panel) });
+    d.symbols.push(vansoncraft_doc::Symbol { dynamic: false, name: "Holder".into(), art: Arc::new(panel) });
     let (id, l) = (d.alloc_id(), d.layers[0].id);
     let xf = Affine::translate((110.0, 0.0)) * Affine::scale_non_uniform(2.0, 1.0);
     d.insert(Some(l), 0, Node::new(id, NodeKind::SymbolInstance { symbol: "Holder".into(), xf })).unwrap();
@@ -435,13 +435,13 @@ fn an_instance_that_only_moves_is_culled_by_the_art_its_9_slice_guides_move() {
     // x 105, out of view.
     let mut d = Document::new(100.0, 100.0);
     let bar = rect_node(&mut d, Rect::new(-9.9, -1.0, 0.1, 1.0), Paint::solid(Color::rgb(1.0, 0.0, 0.0)), Paint::None, 0.0);
-    d.symbols.push(vectorcraft_doc::Symbol { dynamic: false, name: "Bar".into(), art: Arc::new(bar) });
+    d.symbols.push(vansoncraft_doc::Symbol { dynamic: false, name: "Bar".into(), art: Arc::new(bar) });
     let frame = rect_node(&mut d, Rect::new(-10.0, -10.0, 10.0, 10.0), Paint::None, Paint::None, 0.0);
     let inner = Node::new(d.alloc_id(), NodeKind::SymbolInstance { symbol: "Bar".into(), xf: Affine::IDENTITY });
     let art = Node::group(d.alloc_id(), vec![Arc::new(frame), Arc::new(inner)]);
-    d.symbols.push(vectorcraft_doc::Symbol { dynamic: false, name: "Panel".into(), art: Arc::new(art) });
-    d.unknown.insert(vectorcraft_doc::SYMBOL_SIZES.into(), serde_json::json!({ "Panel": [2.0, 2.0] }));
-    d.set_symbol_nine_slice("Panel", Some(vectorcraft_doc::SymbolNineSlice::default()));
+    d.symbols.push(vansoncraft_doc::Symbol { dynamic: false, name: "Panel".into(), art: Arc::new(art) });
+    d.unknown.insert(vansoncraft_doc::SYMBOL_SIZES.into(), serde_json::json!({ "Panel": [2.0, 2.0] }));
+    d.set_symbol_nine_slice("Panel", Some(vansoncraft_doc::SymbolNineSlice::default()));
     let (id, l) = (d.alloc_id(), d.layers[0].id);
     let xf = Affine::translate((115.0, 50.0));
     d.insert(Some(l), 0, Node::new(id, NodeKind::SymbolInstance { symbol: "Panel".into(), xf })).unwrap();
@@ -457,7 +457,7 @@ fn an_instance_with_a_geometry_effect_is_culled_by_its_reshaped_art() {
     let id = d.layers[0].children().unwrap()[0].id;
     let inst = d.node_mut(id).unwrap();
     inst.kind = NodeKind::SymbolInstance { symbol: "Far".into(), xf: Affine::translate((-100.0, 10.0)) };
-    let effect = vectorcraft_doc::Effect { id: "distort.transform".into(), params: serde_json::json!({"moveH": 150}), visible: true };
+    let effect = vansoncraft_doc::Effect { id: "distort.transform".into(), params: serde_json::json!({"moveH": 150}), visible: true };
     inst.appearance.effects.push(effect);
     assert_eq!(Renderer::new().render(&d, 100, 100, Affine::IDENTITY, &RenderOptions::default()).pixel(60, 20), [255, 0, 0, 255]);
 }
@@ -470,10 +470,10 @@ fn an_instance_with_a_geometry_effect_is_culled_by_the_effects_in_its_reshaped_a
     // reaches into the view.
     let mut d = Document::new(100.0, 100.0);
     let scale = serde_json::json!({"scaleH": 400, "scaleV": 400});
-    let effect = || vectorcraft_doc::Effect { id: "distort.transform".into(), params: scale.clone(), visible: true };
+    let effect = || vansoncraft_doc::Effect { id: "distort.transform".into(), params: scale.clone(), visible: true };
     let mut art = rect_node(&mut d, Rect::new(-1.0, -1.0, 1.0, 1.0), Paint::solid(Color::rgb(1.0, 0.0, 0.0)), Paint::None, 0.0);
     art.appearance.effects.push(effect());
-    d.symbols.push(vectorcraft_doc::Symbol { dynamic: false, name: "Dot".into(), art: Arc::new(art) });
+    d.symbols.push(vansoncraft_doc::Symbol { dynamic: false, name: "Dot".into(), art: Arc::new(art) });
     let (id, l) = (d.alloc_id(), d.layers[0].id);
     let mut instance = Node::new(id, NodeKind::SymbolInstance { symbol: "Dot".into(), xf: Affine::translate((-11.0, 20.0)) });
     instance.appearance.effects.push(effect());
@@ -515,7 +515,7 @@ fn outline_doc() -> (Document, Vec<(&'static str, NodeId)>) {
     let mut d = Document::new(100.0, 100.0);
     let mut ids = vec![];
     let black = || Paint::solid(Color::BLACK);
-    let offset = |by: f64| vectorcraft_doc::Effect { id: "path.offsetPath".into(), params: serde_json::json!({ "offset": by }), visible: true };
+    let offset = |by: f64| vansoncraft_doc::Effect { id: "path.offsetPath".into(), params: serde_json::json!({ "offset": by }), visible: true };
     let compound = |d: &mut Document, outer: Rect, hole: Rect| {
         let children = [outer, hole].map(|r| Arc::new(rect_node(d, r, Paint::None, Paint::None, 0.0))).to_vec();
         let mut n = Node::new(d.alloc_id(), NodeKind::Compound { children, rule: FillRule::EvenOdd });
@@ -586,7 +586,7 @@ fn outline_doc() -> (Document, Vec<(&'static str, NodeId)>) {
     for n in [square, holed, fx_path, fx_compound, guide, clip, traced] {
         d.insert(Some(l), usize::MAX, Arc::unwrap_or_clone(n)).unwrap();
     }
-    let layer = Node::layer(d.alloc_id(), "Preview off", vectorcraft_doc::LayerColor::Preset(1));
+    let layer = Node::layer(d.alloc_id(), "Preview off", vansoncraft_doc::LayerColor::Preset(1));
     let off = d.insert(None, usize::MAX, layer).unwrap();
     if let Some(NodeKind::Layer { preview, .. }) = d.node_mut(off).map(|n| &mut n.kind) {
         *preview = false;
@@ -689,7 +689,7 @@ fn outline_view_draws_paths_from_kept_geometry() {
 /// exports, it draws its result. A group that is not an Image Trace object draws its members.
 #[test]
 fn trace_source_draws_the_source_image_of_the_listed_objects() {
-    use vectorcraft_doc::{ImageBlob, ImageObject};
+    use vansoncraft_doc::{ImageBlob, ImageObject};
     let img = image::RgbaImage::from_pixel(1, 1, image::Rgba([255, 0, 0, 255]));
     let mut png = vec![];
     img.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
@@ -713,7 +713,7 @@ fn trace_source_draws_the_source_image_of_the_listed_objects() {
     let other = group(&mut d, 70.0, false);
     let ids = Arc::new(vec![plain.id, blurred.id, other.id]);
     let mut holder = Node::group(d.alloc_id(), vec![Arc::new(blurred)]);
-    holder.appearance.effects.push(vectorcraft_doc::Effect { id: "blur.gaussian".into(), params: serde_json::json!({ "radius": 1 }), visible: true });
+    holder.appearance.effects.push(vansoncraft_doc::Effect { id: "blur.gaussian".into(), params: serde_json::json!({ "radius": 1 }), visible: true });
     let l = d.layers[0].id;
     for n in [plain, holder, other] {
         d.insert(Some(l), usize::MAX, n).unwrap();
@@ -737,7 +737,7 @@ fn trace_source_draws_the_source_image_of_the_listed_objects() {
 
 #[test]
 fn trace_source_applies_the_hidden_image_mask() {
-    use vectorcraft_doc::{ImageBlob, ImageObject, NodeKind, OpacityMask};
+    use vansoncraft_doc::{ImageBlob, ImageObject, NodeKind, OpacityMask};
 
     let mut png = Vec::new();
     image::RgbaImage::from_pixel(1, 1, image::Rgba([255, 0, 0, 255])).write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
@@ -809,8 +809,8 @@ fn arrowheads_render() {
     assert!(r.pixel(85, 50)[0] > 200, "nothing past the tip");
 }
 
-use vectorcraft_doc::Arrowhead;
-use vectorcraft_geom::Point;
+use vansoncraft_doc::Arrowhead;
+use vansoncraft_geom::Point;
 
 /// A red 10..90 square masked by a white square covering only its left half (10..50),
 /// plus a mid-grey strip (50..70) — rendered both multi- and single-threaded.
@@ -821,7 +821,7 @@ fn masked_doc(clip: bool, invert: bool) -> Document {
     let grey = rect_node(&mut d, Rect::new(50.0, 10.0, 70.0, 90.0), Paint::solid(Color::rgb(0.5, 0.5, 0.5)), Paint::None, 0.0);
     let gid = d.alloc_id();
     let art = Node::group(gid, vec![Arc::new(white), Arc::new(grey)]);
-    let mut m = vectorcraft_doc::OpacityMask::new(art, clip);
+    let mut m = vansoncraft_doc::OpacityMask::new(art, clip);
     m.invert = invert;
     n.extras_mut().mask = Some(Box::new(m));
     let l = d.layers[0].id;
@@ -855,7 +855,7 @@ fn opacity_mask_without_clip_and_inverted() {
 
 #[test]
 fn opacity_mask_art_root_applies_its_own_mask() {
-    use vectorcraft_doc::OpacityMask;
+    use vansoncraft_doc::OpacityMask;
 
     let mut d = Document::new(100.0, 100.0);
     let mut object = rect_node(&mut d, Rect::new(10.0, 10.0, 90.0, 90.0), Paint::solid(Color::rgb(1.0, 0.0, 0.0)), Paint::None, 0.0);
@@ -879,7 +879,7 @@ fn opacity_mask_art_root_applies_its_own_mask() {
 
 #[test]
 fn undecodable_image_in_mask_art_root_mask_leaves_out_outer_object() {
-    use vectorcraft_doc::{ImageBlob, ImageObject, NodeKind, OpacityMask};
+    use vansoncraft_doc::{ImageBlob, ImageObject, NodeKind, OpacityMask};
 
     let mut d = Document::new(100.0, 100.0);
     d.images.insert("broken-root-mask-image".into(), ImageBlob::new("image/png", b"not a PNG".to_vec()));
@@ -909,7 +909,7 @@ fn undecodable_image_in_mask_art_root_mask_leaves_out_outer_object() {
 
 #[test]
 fn placed_symbol_art_root_applies_its_own_mask() {
-    use vectorcraft_doc::{NodeKind, OpacityMask};
+    use vansoncraft_doc::{NodeKind, OpacityMask};
 
     for grouped in [true, false] {
         let mut d = Document::new(100.0, 100.0);
@@ -917,7 +917,7 @@ fn placed_symbol_art_root_applies_its_own_mask() {
         let mut art = if grouped { Node::group(d.alloc_id(), vec![Arc::new(red)]) } else { red };
         let inner = rect_node(&mut d, Rect::new(10.0, 10.0, 50.0, 90.0), Paint::solid(Color::WHITE), Paint::None, 0.0);
         art.extras_mut().mask = Some(Box::new(OpacityMask::new(inner, true)));
-        d.symbols.push(vectorcraft_doc::Symbol { dynamic: false, name: "Masked".into(), art: Arc::new(art) });
+        d.symbols.push(vansoncraft_doc::Symbol { dynamic: false, name: "Masked".into(), art: Arc::new(art) });
         let instance = Node::new(d.alloc_id(), NodeKind::SymbolInstance { symbol: "Masked".into(), xf: Affine::IDENTITY });
         d.insert(Some(d.layers[0].id), 0, instance).unwrap();
 
@@ -929,7 +929,7 @@ fn placed_symbol_art_root_applies_its_own_mask() {
 
 #[test]
 fn node_thumbnail_applies_the_root_mask() {
-    use vectorcraft_doc::OpacityMask;
+    use vansoncraft_doc::OpacityMask;
 
     let mut d = Document::new(100.0, 100.0);
     let mut node = rect_node(&mut d, Rect::new(10.0, 10.0, 90.0, 90.0), Paint::solid(Color::rgb(1.0, 0.0, 0.0)), Paint::None, 0.0);
@@ -987,7 +987,7 @@ fn node_renders_follow_the_supersample_and_precise_options() {
     // Blended at half opacity over both, so the group composites offscreen.
     let mut over = rect_node(&mut d, Rect::new(30.0, 60.0, 70.0, 80.0), Paint::solid(Color::rgb(0.9, 0.7, 0.1)), Paint::None, 0.0);
     over.opacity = 0.5;
-    over.blend = vectorcraft_color::BlendMode::Multiply;
+    over.blend = vansoncraft_color::BlendMode::Multiply;
     let group = Node::group(d.alloc_id(), vec![Arc::new(left), Arc::new(right), Arc::new(over)]);
     let l = d.layers[0].id;
     d.insert(Some(l), 0, group.clone()).unwrap();
@@ -1015,7 +1015,7 @@ fn node_renders_follow_the_supersample_and_precise_options() {
 
 #[test]
 fn opacity_mask_with_undecodable_image_leaves_out_object() {
-    use vectorcraft_doc::{Effect, ImageBlob, ImageObject, NodeKind, OpacityMask};
+    use vansoncraft_doc::{Effect, ImageBlob, ImageObject, NodeKind, OpacityMask};
 
     let mut d = Document::new(100.0, 100.0);
     d.images.insert("broken-mask-image".into(), ImageBlob::new("image/png", b"not a PNG".to_vec()));
@@ -1061,8 +1061,8 @@ fn opacity_mask_with_undecodable_image_leaves_out_object() {
 
 #[test]
 fn opacity_mask_with_missing_image_in_pattern_leaves_out_object() {
-    use vectorcraft_doc::pattern::{PatternDef, pattern_paint};
-    use vectorcraft_doc::{ImageObject, NodeKind, OpacityMask};
+    use vansoncraft_doc::pattern::{PatternDef, pattern_paint};
+    use vansoncraft_doc::{ImageObject, NodeKind, OpacityMask};
 
     let mut d = Document::new(100.0, 100.0);
     let image = ImageObject {
@@ -1093,8 +1093,8 @@ fn opacity_mask_with_missing_image_in_pattern_leaves_out_object() {
 
 #[test]
 fn opacity_mask_with_marked_image_in_pattern_draws_object() {
-    use vectorcraft_doc::pattern::{PatternDef, pattern_paint};
-    use vectorcraft_doc::{ImageBlob, ImageObject, NodeKind, OpacityMask};
+    use vansoncraft_doc::pattern::{PatternDef, pattern_paint};
+    use vansoncraft_doc::{ImageBlob, ImageObject, NodeKind, OpacityMask};
 
     let mut d = Document::new(100.0, 100.0);
     d.images.insert("cut-mask".into(), ImageBlob::new("image/png", b"not a PNG: pattern mask".to_vec()));
@@ -1120,7 +1120,7 @@ fn opacity_mask_with_marked_image_in_pattern_draws_object() {
 
 #[test]
 fn complete_image_mask_with_blur_reuses_cached_raster() {
-    use vectorcraft_doc::{Effect, ImageBlob, ImageObject, NodeKind, OpacityMask};
+    use vansoncraft_doc::{Effect, ImageBlob, ImageObject, NodeKind, OpacityMask};
 
     let mut png = Vec::new();
     image::DynamicImage::ImageRgba8(image::RgbaImage::from_pixel(20, 20, image::Rgba([255, 255, 255, 255])))
@@ -1157,7 +1157,7 @@ fn complete_image_mask_with_blur_reuses_cached_raster() {
 
 #[test]
 fn missing_image_mask_with_blur_stays_incomplete_from_cached_raster() {
-    use vectorcraft_doc::{Effect, ImageObject, NodeKind, OpacityMask};
+    use vansoncraft_doc::{Effect, ImageObject, NodeKind, OpacityMask};
 
     let mut d = Document::new(100.0, 100.0);
     let image = ImageObject {
@@ -1189,7 +1189,7 @@ fn missing_image_mask_with_blur_stays_incomplete_from_cached_raster() {
 
 #[test]
 fn missing_image_mask_with_rasterize_and_shadow_keeps_incomplete_content_raster() {
-    use vectorcraft_doc::{Effect, ImageObject, NodeKind, OpacityMask};
+    use vansoncraft_doc::{Effect, ImageObject, NodeKind, OpacityMask};
 
     let mut d = Document::new(100.0, 100.0);
     let image = ImageObject {
@@ -1234,7 +1234,7 @@ fn missing_image_mask_with_rasterize_and_shadow_keeps_incomplete_content_raster(
 
 #[test]
 fn undecodable_image_in_nested_opacity_mask_leaves_out_outer_object() {
-    use vectorcraft_doc::{ImageBlob, ImageObject, NodeKind, OpacityMask};
+    use vansoncraft_doc::{ImageBlob, ImageObject, NodeKind, OpacityMask};
 
     let mut d = Document::new(100.0, 100.0);
     d.images.insert("broken-nested-mask-image".into(), ImageBlob::new("image/png", b"not a nested PNG".to_vec()));
@@ -1264,10 +1264,10 @@ fn undecodable_image_in_nested_opacity_mask_leaves_out_outer_object() {
 /// art leaves them uncovered, as they draw without the mask; with Clip on they are hidden.
 #[test]
 fn blend_step_shadows_draw_under_an_unclipped_opacity_mask() {
-    use vectorcraft_doc::live::{BlendSpacing, BlendSpec};
-    use vectorcraft_doc::{NodeKind, OpacityMask};
+    use vansoncraft_doc::live::{BlendSpacing, BlendSpec};
+    use vansoncraft_doc::{NodeKind, OpacityMask};
 
-    let shadow = vectorcraft_doc::Effect { id: "stylize.dropShadow".into(), params: serde_json::json!({"x": 15, "y": 15, "blur": 0}), visible: true };
+    let shadow = vansoncraft_doc::Effect { id: "stylize.dropShadow".into(), params: serde_json::json!({"x": 15, "y": 15, "blur": 0}), visible: true };
     let blend = |d: &mut Document, mask: Option<bool>| {
         let end = |d: &mut Document, x: f64| {
             let mut n = rect_node(d, Rect::new(x, 10.0, x + 10.0, 20.0), Paint::solid(Color::rgb(1.0, 0.0, 0.0)), Paint::None, 0.0);
@@ -1311,7 +1311,7 @@ fn small_masks_render_over_their_objects_only() {
         let square = Rect::new(x, y, x + 4.0, y + 4.0);
         let mut n = rect_node(&mut d, square, Paint::solid(Color::rgb(1.0, 0.0, 0.0)), Paint::None, 0.0);
         let white = rect_node(&mut d, square, Paint::solid(Color::WHITE), Paint::None, 0.0);
-        n.extras_mut().mask = Some(Box::new(vectorcraft_doc::OpacityMask::new(white, true)));
+        n.extras_mut().mask = Some(Box::new(vansoncraft_doc::OpacityMask::new(white, true)));
         d.insert(Some(l), usize::MAX, n).unwrap();
     }
     let mut r = Renderer::new();
@@ -1365,7 +1365,7 @@ fn trim_view_clips_to_artboards() {
 fn drop_shadow_profile_and_cache() {
     let mut d = Document::new(100.0, 100.0);
     let mut n = rect_node(&mut d, Rect::new(20.0, 20.0, 60.0, 60.0), Paint::solid(Color::WHITE), Paint::None, 0.0);
-    n.appearance.effects.push(vectorcraft_doc::Effect {
+    n.appearance.effects.push(vansoncraft_doc::Effect {
         id: "stylize.dropShadow".into(),
         params: serde_json::json!({"x": 10.0, "y": 10.0, "blur": 4.0, "opacity": 75.0}),
         visible: true,
@@ -1397,7 +1397,7 @@ fn blend_mode_on_a_single_fill_is_exact_without_a_layer() {
     let mut d = Document::new(100.0, 100.0);
     let red = rect_node(&mut d, Rect::new(0.0, 0.0, 50.0, 100.0), Paint::solid(Color::rgb(1.0, 0.0, 0.0)), Paint::None, 0.0);
     let mut over = rect_node(&mut d, Rect::new(25.0, 0.0, 75.0, 100.0), Paint::solid(Color::rgb(0.5, 0.5, 1.0)), Paint::None, 0.0);
-    over.blend = vectorcraft_color::BlendMode::Multiply;
+    over.blend = vansoncraft_color::BlendMode::Multiply;
     let l = d.layers[0].id;
     d.insert(Some(l), 0, red).unwrap();
     d.insert(Some(l), 1, over).unwrap();
@@ -1423,8 +1423,8 @@ fn invalid_dash_pattern_strokes_solid() {
         bp.move_to((10.0, 50.0));
         bp.line_to((90.0, 50.0));
         let id = d.alloc_id();
-        let mut n = Node::path(id, vectorcraft_geom::PathData::from_bezpath(&bp), Appearance::basic(Paint::None, Paint::solid(Color::BLACK), 6.0));
-        n.appearance.stroke_mut().unwrap().dash = dash.map(|pattern| vectorcraft_doc::Dash { pattern, ..Default::default() });
+        let mut n = Node::path(id, vansoncraft_geom::PathData::from_bezpath(&bp), Appearance::basic(Paint::None, Paint::solid(Color::BLACK), 6.0));
+        n.appearance.stroke_mut().unwrap().dash = dash.map(|pattern| vansoncraft_doc::Dash { pattern, ..Default::default() });
         let l = d.layers[0].id;
         d.insert(Some(l), 0, n).unwrap();
         d
@@ -1449,12 +1449,12 @@ fn solid_dashes_draw_dashed_strokes_as_solid_lines() {
         bp.move_to((10.0, 50.0));
         bp.line_to((90.0, 50.0));
         let id = d.alloc_id();
-        let mut n = Node::path(id, vectorcraft_geom::PathData::from_bezpath(&bp), Appearance::basic(Paint::None, Paint::solid(Color::BLACK), 6.0));
+        let mut n = Node::path(id, vansoncraft_geom::PathData::from_bezpath(&bp), Appearance::basic(Paint::None, Paint::solid(Color::BLACK), 6.0));
         let st = n.appearance.stroke_mut().unwrap();
-        st.dash = dash.then(|| vectorcraft_doc::Dash { pattern: vec![8.0, 8.0], ..Default::default() });
+        st.dash = dash.then(|| vansoncraft_doc::Dash { pattern: vec![8.0, 8.0], ..Default::default() });
         if shadow {
             let params = serde_json::json!({"x": 4, "y": 4, "blur": 1, "opacity": 100});
-            st.effects.push(vectorcraft_doc::Effect { id: "stylize.dropShadow".into(), params, visible: true });
+            st.effects.push(vansoncraft_doc::Effect { id: "stylize.dropShadow".into(), params, visible: true });
         }
         let l = d.layers[0].id;
         d.insert(Some(l), 0, n).unwrap();
@@ -1498,8 +1498,8 @@ fn decode_failures_counts_this_threads_images_only() {
 /// image's pixels are not kept.
 #[test]
 fn a_kept_decoded_image_is_drawn_without_decoding_it() {
-    use vectorcraft_doc::cmyk::Inks;
-    use vectorcraft_doc::{ImageBlob, ImageObject, NodeKind};
+    use vansoncraft_doc::cmyk::Inks;
+    use vansoncraft_doc::{ImageBlob, ImageObject, NodeKind};
     // The image has pixels no other test uses, since every test shares the store, and half of
     // them are partly transparent.
     let img = image::RgbaImage::from_fn(37, 23, |x, y| image::Rgba([(x * 7) as u8, (y * 11) as u8, 99, if (x + y) % 2 == 0 { 255 } else { 77 }]));
@@ -1530,8 +1530,8 @@ fn a_kept_decoded_image_is_drawn_without_decoding_it() {
 /// before either is made: past it, the image is read as other images are (reduced), not whole.
 #[test]
 fn cmyk_images_past_the_allowance_are_not_decoded_whole() {
-    use vectorcraft_doc::ImageBlob;
-    use vectorcraft_doc::cmyk::Inks;
+    use vansoncraft_doc::ImageBlob;
+    use vansoncraft_doc::cmyk::Inks;
     let cmyk = ImageBlob::cmyk_tiff(&Inks::new(64, 48, [11, 22, 33, 44].repeat(64 * 48)).unwrap()).unwrap();
     let whole = with_allowance(1 << 20, || crate::blobs::blob_pixmap(&cmyk, false)).map(|(_, pm)| (pm.width(), pm.height()));
     assert_eq!(whole, Some((64, 48)), "within the allowance, whole");
@@ -1545,7 +1545,7 @@ fn cmyk_images_past_the_allowance_are_not_decoded_whole() {
 /// Anti-aliased Images off, #394).
 #[test]
 fn images_take_their_nearest_pixel_without_smoothing() {
-    use vectorcraft_doc::{ImageBlob, ImageObject, NodeKind};
+    use vansoncraft_doc::{ImageBlob, ImageObject, NodeKind};
     let img = image::RgbaImage::from_fn(2, 1, |x, _| image::Rgba(if x == 0 { [0, 0, 0, 255] } else { [255, 255, 255, 255] }));
     let mut png = vec![];
     img.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
@@ -1570,7 +1570,7 @@ fn images_take_their_nearest_pixel_without_smoothing() {
 /// nothing drawn offscreen; any other mask goes through the offscreen mask.
 #[test]
 fn an_image_masked_by_a_white_shape_draws_as_if_clipped() {
-    use vectorcraft_doc::{ImageBlob, ImageObject, NodeKind, OpacityMask};
+    use vansoncraft_doc::{ImageBlob, ImageObject, NodeKind, OpacityMask};
     let img = image::RgbaImage::from_pixel(2, 2, image::Rgba([255, 0, 0, 255]));
     let mut png = vec![];
     img.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
@@ -1625,7 +1625,7 @@ fn an_image_masked_by_a_white_shape_draws_as_if_clipped() {
 /// mip's average.
 #[test]
 fn a_pixelated_image_draws_reduced_without_mips() {
-    use vectorcraft_doc::{ImageBlob, ImageObject, NodeKind};
+    use vansoncraft_doc::{ImageBlob, ImageObject, NodeKind};
     let img = image::RgbaImage::from_fn(64, 64, |x, y| image::Rgba(if (x + y) % 2 == 0 { [255, 0, 0, 255] } else { [0, 0, 255, 255] }));
     let mut png = vec![];
     img.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
@@ -1714,7 +1714,7 @@ fn truncated_png(w: u32, h: u32) -> Vec<u8> {
 /// (`mark_undecoded_images`) it draws as a crossed gray box; an export draws nothing there.
 #[test]
 fn an_undecodable_image_is_tried_once_and_marked_on_screen() {
-    use vectorcraft_doc::{ImageBlob, ImageObject, NodeKind};
+    use vansoncraft_doc::{ImageBlob, ImageObject, NodeKind};
     let png = truncated_png(61, 47);
     assert_eq!(image::ImageReader::new(std::io::Cursor::new(&png)).with_guessed_format().unwrap().into_dimensions().unwrap(), (61, 47));
     let mut d = Document::new(80.0, 60.0);
@@ -1749,8 +1749,8 @@ fn an_undecodable_image_is_tried_once_and_marked_on_screen() {
 
 #[test]
 fn pattern_tile_follows_undecoded_image_mark_in_both_cache_orders() {
-    use vectorcraft_doc::pattern::{PatternDef, pattern_paint};
-    use vectorcraft_doc::{ImageBlob, ImageObject, NodeKind};
+    use vansoncraft_doc::pattern::{PatternDef, pattern_paint};
+    use vansoncraft_doc::{ImageBlob, ImageObject, NodeKind};
 
     let mut d = Document::new(80.0, 80.0);
     d.images.insert("cut-pattern".into(), ImageBlob::new("image/png", b"not a PNG: pattern fill".to_vec()));
@@ -1790,7 +1790,7 @@ fn pattern_tile_follows_undecoded_image_mark_in_both_cache_orders() {
 /// mark only while the option is on.
 #[test]
 fn raster_effects_follow_the_undecoded_image_mark() {
-    use vectorcraft_doc::{Effect, ImageBlob, ImageObject, NodeKind};
+    use vansoncraft_doc::{Effect, ImageBlob, ImageObject, NodeKind};
     let mut d = Document::new(80.0, 60.0);
     d.images.insert("cut".into(), ImageBlob::new("image/png", truncated_png(43, 31)));
     let id = d.alloc_id();
@@ -1818,7 +1818,7 @@ fn raster_effects_follow_the_undecoded_image_mark() {
 /// A gray image within the allowance draws its gray levels.
 #[test]
 fn a_gray_image_draws_its_gray_levels() {
-    use vectorcraft_doc::{ImageBlob, ImageObject, NodeKind};
+    use vansoncraft_doc::{ImageBlob, ImageObject, NodeKind};
     let img = image::GrayImage::from_fn(2, 1, |x, _| image::Luma([if x == 0 { 40 } else { 200 }]));
     let mut png = vec![];
     img.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
@@ -1851,7 +1851,7 @@ fn encoded(img: image::DynamicImage, format: image::ImageFormat) -> Vec<u8> {
 /// allowance and draws its colors; the file's own size is kept.
 #[test]
 fn a_png_past_the_allowance_draws_at_reduced_size() {
-    use vectorcraft_doc::{ImageBlob, ImageObject, NodeKind};
+    use vansoncraft_doc::{ImageBlob, ImageObject, NodeKind};
     let img = image::ImageBuffer::<image::Rgba<u16>, _>::from_fn(400, 400, |x, _| {
         if x < 200 { image::Rgba([51400, 10280, 10280, 65535]) } else { image::Rgba([10280, 10280, 51400, 65535]) }
     });
@@ -1962,13 +1962,13 @@ fn supersampled_art_leaves_no_seam_between_shapes_that_meet() {
     let layer = d.layers[0].id;
     // Two triangles sharing the diagonal of the square (10, 10)–(90, 90).
     for pts in [[(10.0, 10.0), (90.0, 10.0), (90.0, 90.0)], [(10.0, 10.0), (90.0, 90.0), (10.0, 90.0)]] {
-        let mut b = vectorcraft_geom::BezPath::new();
+        let mut b = vansoncraft_geom::BezPath::new();
         b.move_to(pts[0]);
         b.line_to(pts[1]);
         b.line_to(pts[2]);
         b.close_path();
         let id = d.alloc_id();
-        d.insert(Some(layer), 0, Node::path(id, vectorcraft_geom::PathData::from_bezpath(&b), Appearance::basic(red(), Paint::None, 0.0))).unwrap();
+        d.insert(Some(layer), 0, Node::path(id, vansoncraft_geom::PathData::from_bezpath(&b), Appearance::basic(red(), Paint::None, 0.0))).unwrap();
     }
     let draw = |supersample: bool| {
         let opts = RenderOptions { background: Some([255, 255, 255, 255]), precise: true, supersample, ..Default::default() };
@@ -1998,8 +1998,8 @@ fn supersampled_art_leaves_no_seam_between_shapes_that_meet() {
 fn supersampled_outlines_stay_one_pixel_wide() {
     let _fonts = crate::tests_fontchange::fonts_steady();
     let mut d = Document::new(100.0, 100.0);
-    let style = vectorcraft_doc::text::CharStyle { size: 30.0, ..Default::default() };
-    let text = vectorcraft_doc::text::TextObject::point(vectorcraft_geom::Point::new(60.0, 80.0), "H", style);
+    let style = vansoncraft_doc::text::CharStyle { size: 30.0, ..Default::default() };
+    let text = vansoncraft_doc::text::TextObject::point(vansoncraft_geom::Point::new(60.0, 80.0), "H", style);
     let t = Node::new(d.alloc_id(), NodeKind::Text(Box::new(text)));
     d.insert(Some(d.layers[0].id), 0, t).unwrap();
     let n = rect_node(&mut d, Rect::new(20.0, 20.0, 50.5, 80.0), Paint::solid(Color::rgb(1.0, 0.0, 0.0)), Paint::None, 0.0);
@@ -2059,7 +2059,7 @@ fn supersampled_outlines_stay_one_pixel_wide() {
 /// under a butt cap (PDF 32000-1 8.5.3.2, SVG 2 "Path data" zero-length segments).
 #[test]
 fn zero_length_subpaths_draw_dots_with_their_cap() {
-    let dots = |cap: vectorcraft_doc::LineCap| {
+    let dots = |cap: vansoncraft_doc::LineCap| {
         let mut d = Document::new(100.0, 100.0);
         let mut bp = BezPath::new();
         for at in [(30.0, 50.0), (70.0, 50.0)] {
@@ -2067,26 +2067,26 @@ fn zero_length_subpaths_draw_dots_with_their_cap() {
             bp.line_to(at);
         }
         let id = d.alloc_id();
-        let mut n = Node::path(id, vectorcraft_geom::PathData::from_bezpath(&bp), Appearance::basic(Paint::None, Paint::solid(Color::BLACK), 10.0));
+        let mut n = Node::path(id, vansoncraft_geom::PathData::from_bezpath(&bp), Appearance::basic(Paint::None, Paint::solid(Color::BLACK), 10.0));
         n.appearance.stroke_mut().unwrap().cap = cap;
         let l = d.layers[0].id;
         d.insert(Some(l), 0, n).unwrap();
         render(&d)
     };
     let (black, white) = ([0, 0, 0, 255], [255, 255, 255, 255]);
-    let round = dots(vectorcraft_doc::LineCap::Round);
+    let round = dots(vansoncraft_doc::LineCap::Round);
     for x in [30, 70] {
         assert_eq!(round.pixel(x, 50), black, "round dot at {x}");
         assert_eq!(round.pixel(x + 2, 52), black, "inside the round dot at {x}");
         assert_eq!(round.pixel(x + 4, 54), white, "the round dot's corner at {x}");
     }
-    let square = dots(vectorcraft_doc::LineCap::Square);
+    let square = dots(vansoncraft_doc::LineCap::Square);
     for x in [30, 70] {
         assert_eq!(square.pixel(x, 50), black, "square dot at {x}");
         assert_eq!(square.pixel(x + 4, 54), black, "the square dot's corner at {x}");
         assert_eq!(square.pixel(x + 6, 50), white, "past the square dot at {x}");
     }
-    let butt = dots(vectorcraft_doc::LineCap::Butt);
+    let butt = dots(vansoncraft_doc::LineCap::Butt);
     assert_eq!(butt.pixels.iter().filter(|&&p| p != 255).count(), 0, "a butt cap draws no dot");
 }
 
@@ -2098,8 +2098,8 @@ fn dashed_stroke_opacity_folds_into_its_colour() {
     let dashed = |d: &mut Document, object: f32, stroke: f32| {
         let mut n = rect_node(d, Rect::new(20.0, 20.0, 80.0, 60.0), Paint::None, Paint::solid(Color::rgb(0.2, 0.4, 0.9)), 6.0);
         let st = n.appearance.stroke_mut().unwrap();
-        st.dash = Some(vectorcraft_doc::Dash { pattern: vec![4.0, 1.0], ..Default::default() });
-        st.cap = vectorcraft_doc::LineCap::Round;
+        st.dash = Some(vansoncraft_doc::Dash { pattern: vec![4.0, 1.0], ..Default::default() });
+        st.cap = vansoncraft_doc::LineCap::Round;
         st.opacity = stroke;
         n.opacity = object;
         n

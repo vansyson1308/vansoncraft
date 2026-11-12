@@ -4,11 +4,11 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use serde_json::{Value, json};
-use vectorcraft_plugins::host::{
+use vansoncraft_plugins::host::{
     CALL_BAD_JSON, CALL_BAD_UTF8, CALL_COMMAND_FAILED, CALL_LIMIT, CALL_NO_CONTEXT, CALL_NO_RESULT, CALL_NOT_ALLOWED, CALL_OUTSIDE_MEMORY,
     CallFailure, MAX_CALL_DATA, MAX_CALLS,
 };
-use vectorcraft_plugins::{Error, Limits, Manifest, Plugin, wat as tpl};
+use vansoncraft_plugins::{Error, Limits, Manifest, Plugin, wat as tpl};
 
 const INPUT: &str = r#"{"objects":[]}"#;
 
@@ -53,7 +53,7 @@ fn calling(id: &str, first: &str) -> Plugin {
 
 /// Runs `p` with a bridge that answers every call with `answer` → the run's result and the calls it
 /// got.
-fn run_with(p: &Plugin, answer: impl Fn(&str) -> Result<Value, CallFailure>) -> (vectorcraft_plugins::Result<Vec<u8>>, Vec<(String, Value)>) {
+fn run_with(p: &Plugin, answer: impl Fn(&str) -> Result<Value, CallFailure>) -> (vansoncraft_plugins::Result<Vec<u8>>, Vec<(String, Value)>) {
     let mut seen = Vec::new();
     let mut bridge = |id: &str, args: &Value| {
         seen.push((id.to_string(), args.clone()));
@@ -194,14 +194,14 @@ fn calls_cost_instructions() {
 #[test]
 fn cancel_stops_a_run_at_its_next_call() {
     let p = calling("test.call.cancel", &[expect(&select_all(), 0), expect(&select_all(), 0)].concat());
-    let token = vectorcraft_doc::cancel::CancelToken::new();
+    let token = vansoncraft_doc::cancel::CancelToken::new();
     let mut calls = 0;
     let mut bridge = |_: &str, _: &Value| {
         calls += 1;
         token.cancel();
         Ok(Value::Null)
     };
-    let (out, _) = vectorcraft_doc::cancel::scope(&token, None, || p.run_calling(INPUT.as_bytes(), b"{}", p.limits(), &mut bridge));
+    let (out, _) = vansoncraft_doc::cancel::scope(&token, None, || p.run_calling(INPUT.as_bytes(), b"{}", p.limits(), &mut bridge));
     assert_eq!(out, Err(Error::Cancelled));
     assert_eq!(calls, 1);
 }
@@ -211,7 +211,7 @@ fn cancel_stops_a_run_at_its_next_call() {
 /// does, also when the plug-in goes on.
 #[test]
 fn without_a_bridge_a_call_returns_no_context() {
-    let no_context = |out: vectorcraft_plugins::Result<Vec<u8>>| {
+    let no_context = |out: vansoncraft_plugins::Result<Vec<u8>>| {
         let e = out.unwrap_err();
         assert!(matches!(e, Error::Abi(_)) && e.to_string().contains("no command can be called here"), "{e}");
     };

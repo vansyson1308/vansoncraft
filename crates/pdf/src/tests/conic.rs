@@ -2,10 +2,10 @@
 //! turns the angle about the center into the ramp: written exactly, read back as conic gradients,
 //! and drawn as images where a sweep shading can't be written.
 
-use vectorcraft_color::{Color, Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop, Paint};
-use vectorcraft_doc::{Appearance, Document, Node};
-use vectorcraft_geom::{Point, Rect, shapes};
-use vectorcraft_testkit::raster::{assert_similar, render_artboard};
+use vansoncraft_color::{Color, Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop, Paint};
+use vansoncraft_doc::{Appearance, Document, Node};
+use vansoncraft_geom::{Point, Rect, shapes};
+use vansoncraft_testkit::raster::{assert_similar, render_artboard};
 
 use crate::*;
 

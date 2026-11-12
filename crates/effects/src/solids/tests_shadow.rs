@@ -1,7 +1,7 @@
 use serde_json::json;
-use vectorcraft_doc::color::Color;
-use vectorcraft_doc::{Document, NodeId};
-use vectorcraft_geom::{Affine, BezPath};
+use vansoncraft_doc::color::Color;
+use vansoncraft_doc::{Document, NodeId};
+use vansoncraft_geom::{Affine, BezPath};
 
 use super::*;
 
@@ -130,7 +130,7 @@ fn a_masked_member_casts_its_part_of_the_shadow_in_its_mask() {
         let mut masked = square_node(2, 200.0);
         let mut cover = square_node(3, 200.0);
         cover.appearance.items = Appearance::basic(Paint::solid(Color::WHITE), Paint::None, 0.0).items;
-        masked.extras_mut().mask = Some(Box::new(vectorcraft_doc::OpacityMask::new(cover, true)));
+        masked.extras_mut().mask = Some(Box::new(vansoncraft_doc::OpacityMask::new(cover, true)));
         let mut g = Node::group(NodeId(9), vec![Arc::new(square_node(1, 0.0)), Arc::new(masked)]);
         g.appearance.effects.push(crate::new_effect(id, &json!({"shadow": true})).unwrap());
         let lit = art(&g, id).unwrap_or_else(|| panic!("{id}"));

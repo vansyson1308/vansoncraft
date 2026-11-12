@@ -6,10 +6,10 @@
 use std::sync::Arc;
 
 use serde_json::{Value, json};
-use vectorcraft_color::Color;
-use vectorcraft_color::swatch::REGISTRATION;
-use vectorcraft_doc::overprint::{OverprintBlack, is_white};
-use vectorcraft_doc::{ColorMode, Node, NodeKind};
+use vansoncraft_color::Color;
+use vansoncraft_color::swatch::REGISTRATION;
+use vansoncraft_doc::overprint::{OverprintBlack, is_white};
+use vansoncraft_doc::{ColorMode, Node, NodeKind};
 
 use super::super::super::colorcmds::{Recolor, Scope};
 use super::super::super::overprint::edit_counted;

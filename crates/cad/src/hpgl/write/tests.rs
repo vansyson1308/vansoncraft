@@ -4,9 +4,9 @@
 use std::sync::Arc;
 
 use kurbo::{PathEl, Shape as _};
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::{Appearance, AppearanceItem, CharStyle, Document, LayerColor, Node, NodeKind, TextObject};
-use vectorcraft_geom::{PathData, Point, Rect, shapes};
+use vansoncraft_color::{Color, Paint};
+use vansoncraft_doc::{Appearance, AppearanceItem, CharStyle, Document, LayerColor, Node, NodeKind, TextObject};
+use vansoncraft_geom::{PathData, Point, Rect, shapes};
 
 use super::*;
 
@@ -136,7 +136,7 @@ fn a_filled_path_is_its_closed_outline_and_a_stroke_its_line() {
 #[test]
 fn a_gradient_mesh_is_its_outline() {
     let d = doc_with(|d| {
-        let mesh = vectorcraft_doc::live::GradientMesh::from_surface(4, 4, &|u, v| Point::new(10.0 + u * 50.0, 10.0 + v * 50.0), &|u, _| {
+        let mesh = vansoncraft_doc::live::GradientMesh::from_surface(4, 4, &|u, v| Point::new(10.0 + u * 50.0, 10.0 + v * 50.0), &|u, _| {
             if u < 0.5 { Color::rgb8(255, 0, 0) } else { Color::rgb8(0, 0, 255) }
         });
         vec![Node::new(d.alloc_id(), NodeKind::Mesh(mesh))]
@@ -154,12 +154,12 @@ fn a_gradient_mesh_is_its_outline() {
 }
 
 /// A square gradient mesh, 30 pt a side, at `x`.
-fn mesh_at(x: f64) -> vectorcraft_doc::live::GradientMesh {
-    vectorcraft_doc::live::GradientMesh::from_surface(4, 4, &|u, v| Point::new(x + u * 30.0, 10.0 + v * 30.0), &|_, _| Color::BLACK)
+fn mesh_at(x: f64) -> vansoncraft_doc::live::GradientMesh {
+    vansoncraft_doc::live::GradientMesh::from_surface(4, 4, &|u, v| Point::new(x + u * 30.0, 10.0 + v * 30.0), &|_, _| Color::BLACK)
 }
 
 fn blend_of(d: &mut Document, keys: Vec<Node>, steps: u32) -> Node {
-    let spec = vectorcraft_doc::BlendSpec { spacing: vectorcraft_doc::BlendSpacing::Steps(steps), ..Default::default() };
+    let spec = vansoncraft_doc::BlendSpec { spacing: vansoncraft_doc::BlendSpacing::Steps(steps), ..Default::default() };
     Node::new(d.alloc_id(), NodeKind::Blend { children: keys.into_iter().map(Arc::new).collect(), spec: Box::new(spec) })
 }
 
@@ -252,7 +252,7 @@ fn layers_guides_and_images_that_draw_nothing_are_left_out() {
             *guide = true;
         }
         let ruler = Node::new(d.alloc_id(), NodeKind::RulerGuide { vertical: true, pos: 50.0, artboard: None });
-        let image = vectorcraft_doc::ImageObject {
+        let image = vansoncraft_doc::ImageObject {
             key: "raster-1".into(),
             width: 4,
             height: 2,
@@ -287,7 +287,7 @@ fn the_crop_marks_of_a_layer_left_out_are_left_out() {
         let mut d = doc_with(|d| vec![stroked(d, rect(10.0, 10.0, 60.0, 40.0), Color::BLACK)]);
         let layer = d.layers[0].id;
         if let Some(n) = d.node_mut(layer) {
-            n.appearance.effects.push(vectorcraft_doc::Effect { id: "cropMarks".into(), params: serde_json::json!({}), visible: true });
+            n.appearance.effects.push(vansoncraft_doc::Effect { id: "cropMarks".into(), params: serde_json::json!({}), visible: true });
             if let NodeKind::Layer { printable, template: t, .. } = &mut n.kind {
                 (*printable, *t) = (template, template);
             }
@@ -301,7 +301,7 @@ fn the_crop_marks_of_a_layer_left_out_are_left_out() {
 fn the_crop_marks_of_a_guide_are_left_out() {
     let guide = |d: &mut Document| {
         let mut g = stroked(d, rect(10.0, 10.0, 60.0, 40.0), Color::BLACK);
-        g.appearance.effects.push(vectorcraft_doc::Effect { id: "cropMarks".into(), params: serde_json::json!({}), visible: true });
+        g.appearance.effects.push(vansoncraft_doc::Effect { id: "cropMarks".into(), params: serde_json::json!({}), visible: true });
         if let NodeKind::Path { guide, .. } = &mut g.kind {
             *guide = true;
         }
@@ -325,7 +325,7 @@ fn inline_graphics_in_type_are_left_out_with_a_warning() {
     let d = doc_with(|d| {
         let style = CharStyle { size: 30.0, fill: Paint::solid(Color::BLACK), ..CharStyle::default() };
         let mut t = TextObject::point(Point::new(10.0, 60.0), "O", style.clone());
-        t.runs.push(vectorcraft_doc::TextRun::inline(vectorcraft_doc::InlineArt::new("mark"), style));
+        t.runs.push(vansoncraft_doc::TextRun::inline(vansoncraft_doc::InlineArt::new("mark"), style));
         vec![Node::new(d.alloc_id(), NodeKind::Text(Box::new(t)))]
     });
     let out = plot(&d, &opts(&d));
@@ -335,7 +335,7 @@ fn inline_graphics_in_type_are_left_out_with_a_warning() {
 /// A gradient's pen is the average of its stops' colors.
 #[test]
 fn a_gradient_takes_the_average_of_its_stops() {
-    let mut g = vectorcraft_color::GradientPaint::new(Default::default());
+    let mut g = vansoncraft_color::GradientPaint::new(Default::default());
     g.gradient.stops[0].color = Color::rgb8(255, 0, 0);
     g.gradient.stops[1].color = Color::rgb8(0, 0, 255);
     let d =
@@ -388,7 +388,7 @@ fn a_pattern_takes_the_color_of_its_first_visible_fill() {
     }
     let shown = filled(&mut d, rect(5.0, 0.0, 10.0, 5.0), Color::rgb8(0, 0, 255));
     let art = [hidden, faded, clear_fill, shown].map(Arc::new).to_vec();
-    d.patterns.push(vectorcraft_doc::PatternDef::new("tiles", art));
+    d.patterns.push(vansoncraft_doc::PatternDef::new("tiles", art));
     let path = Node::path(
         d.alloc_id(),
         rect(10.0, 10.0, 50.0, 50.0),
@@ -570,10 +570,10 @@ fn blend_steps_a_spine_turns_onto_the_region_are_drawn() {
         let mut spine = BezPath::new();
         spine.move_to((-100.0, -200.0));
         spine.quad_to((-100.0, -60.0), (-260.0, -60.0));
-        let spec = vectorcraft_doc::BlendSpec {
-            spacing: vectorcraft_doc::BlendSpacing::Steps(20),
+        let spec = vansoncraft_doc::BlendSpec {
+            spacing: vansoncraft_doc::BlendSpacing::Steps(20),
             spine: Some(PathData::from_bezpath(&spine)),
-            orientation: vectorcraft_doc::BlendOrientation::AlignToPath,
+            orientation: vansoncraft_doc::BlendOrientation::AlignToPath,
             ..Default::default()
         };
         vec![Node::new(d.alloc_id(), NodeKind::Blend { children: keys.into_iter().map(Arc::new).collect(), spec: Box::new(spec) })]
@@ -672,7 +672,7 @@ fn symbol_doc(art: Node, instance: impl FnOnce(&mut Node)) -> Document {
         instance(&mut n);
         vec![n]
     });
-    d.symbols.push(vectorcraft_doc::Symbol { dynamic: false, name: "s".into(), art: Arc::new(art) });
+    d.symbols.push(vansoncraft_doc::Symbol { dynamic: false, name: "s".into(), art: Arc::new(art) });
     d
 }
 
@@ -681,10 +681,10 @@ fn symbol_doc(art: Node, instance: impl FnOnce(&mut Node)) -> Document {
 fn symbols_nested_too_deep_are_left_out_with_a_warning() {
     let mut d = doc_with(|d| vec![Node::new(d.alloc_id(), NodeKind::SymbolInstance { symbol: "s9".into(), xf: Affine::IDENTITY })]);
     let art = stroked(&mut d, rect(10.0, 10.0, 60.0, 40.0), Color::BLACK);
-    d.symbols.push(vectorcraft_doc::Symbol { dynamic: false, name: "s0".into(), art: Arc::new(art) });
+    d.symbols.push(vansoncraft_doc::Symbol { dynamic: false, name: "s0".into(), art: Arc::new(art) });
     for i in 1..10 {
         let inner = Node::new(d.alloc_id(), NodeKind::SymbolInstance { symbol: format!("s{}", i - 1), xf: Affine::IDENTITY });
-        d.symbols.push(vectorcraft_doc::Symbol { dynamic: false, name: format!("s{i}"), art: Arc::new(inner) });
+        d.symbols.push(vansoncraft_doc::Symbol { dynamic: false, name: format!("s{i}"), art: Arc::new(inner) });
     }
     let out = plot(&d, &opts(&d));
     assert!(out.warnings.iter().any(|w| w == TOO_DEEP), "{:?}", out.warnings);
@@ -705,7 +705,7 @@ fn a_stained_symbol_instance_takes_its_stain() {
 fn a_symbol_draws_its_art_with_its_effects() {
     let mut d = Document::new(200.0, 100.0);
     let mut art = stroked(&mut d, line((10.0, 10.0), (20.0, 10.0)), Color::BLACK);
-    art.appearance.effects.push(vectorcraft_doc::Effect {
+    art.appearance.effects.push(vansoncraft_doc::Effect {
         id: "distort.transform".into(),
         params: serde_json::json!({"moveH": 30.0}),
         visible: true,
@@ -720,7 +720,7 @@ fn a_symbol_draws_its_art_with_its_effects() {
 fn symbol_art_an_effect_moves_onto_the_artboard_is_drawn() {
     let mut d = Document::new(200.0, 100.0);
     let mut art = stroked(&mut d, line((-30.0, 10.0), (-20.0, 10.0)), Color::BLACK);
-    art.appearance.effects.push(vectorcraft_doc::Effect {
+    art.appearance.effects.push(vansoncraft_doc::Effect {
         id: "distort.transform".into(),
         params: serde_json::json!({"moveH": 40.0}),
         visible: true,
@@ -731,7 +731,7 @@ fn symbol_art_an_effect_moves_onto_the_artboard_is_drawn() {
         let n = Node::new(d.alloc_id(), NodeKind::SymbolInstance { symbol: "s".into(), xf: Affine::IDENTITY });
         vec![Node::group(d.alloc_id(), vec![Arc::new(n)])]
     });
-    grouped.symbols.push(vectorcraft_doc::Symbol { dynamic: false, name: "s".into(), art: Arc::new(art.clone()) });
+    grouped.symbols.push(vansoncraft_doc::Symbol { dynamic: false, name: "s".into(), art: Arc::new(art.clone()) });
     assert_eq!(text(&plot(&grouped, &opts(&grouped))), "IN;PU;SP1;PU141,1270;PD282,1270;PU;SP0;");
     // Other art off the artboard is still skipped: a blend there doesn't spend the live art's
     // limit (1,000 objects in tests) before the blend on the artboard.
@@ -741,7 +741,7 @@ fn symbol_art_an_effect_moves_onto_the_artboard_is_drawn() {
         let on = vec![stroked(d, line((10.0, 10.0), (10.0, 20.0)), Color::BLACK), stroked(d, line((30.0, 10.0), (30.0, 20.0)), Color::BLACK)];
         vec![blend_of(d, off, 1_200), blend_of(d, on, 1)]
     });
-    d.symbols.push(vectorcraft_doc::Symbol { dynamic: false, name: "unused".into(), art: Arc::new(art) });
+    d.symbols.push(vansoncraft_doc::Symbol { dynamic: false, name: "unused".into(), art: Arc::new(art) });
     let out = plot(&d, &opts(&d));
     assert!(out.warnings.is_empty(), "{:?}", out.warnings);
     assert_eq!(text(&out).matches("PD").count(), 3, "{}", text(&out));

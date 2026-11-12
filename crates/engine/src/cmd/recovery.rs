@@ -29,7 +29,7 @@
 //! a heartbeat newer than the one another app wrote when taking the area over marks it running
 //! again.
 //!
-//! Each copy is two entries: `<area>/<file>.vectorcraft` (the native document, written as a save
+//! Each copy is two entries: `<area>/<file>.vansoncraft` (the native document, written as a save
 //! writes it, without its images) and `<area>/<file>.json` (its title, original path and format,
 //! when it was written, and its images). The images are entries of their own, `<area>/img-…blob`,
 //! named by their content and shared by the area's copies: a copy written again writes only the
@@ -44,7 +44,7 @@ use std::sync::{Arc, Mutex, Weak};
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use vectorcraft_doc::{Document, ImageBlob};
+use vansoncraft_doc::{Document, ImageBlob};
 
 use super::fileio::{self, SAVE_FORMATS, SaveJob, SaveMode, SavePlan};
 use super::{CommandSpec, EngineError, Result, Session, bad, cmd, str_param};
@@ -55,7 +55,7 @@ use crate::DocState;
 pub const COMPLEX_OBJECTS: usize = 20_000;
 
 /// The extension of a copy's document entry.
-const DOC_EXT: &str = ".vectorcraft";
+const DOC_EXT: &str = ".vansoncraft";
 /// The extension of a copy's details entry.
 const META_EXT: &str = ".json";
 /// The extension of an image entry (see [`blob_name`]).
@@ -137,7 +137,7 @@ pub trait RecoveryStore: Send + Sync {
     fn remove_empty_area(&self, _area: &str) {}
     /// The clock heartbeats are judged by (Unix seconds; `None`: none, so no area counts as gone).
     fn now(&self) -> Option<i64> {
-        vectorcraft_doc::metadata::now_unix()
+        vansoncraft_doc::metadata::now_unix()
     }
 }
 
@@ -472,7 +472,7 @@ impl RecoveryStore for FolderStore {
             Self::create_area(dir)?;
             Self::own_area(dir)?;
         }
-        vectorcraft_format::write_atomic(&f, bytes).map_err(|e| Self::file_error(&f, &e))
+        vansoncraft_format::write_atomic(&f, bytes).map_err(|e| Self::file_error(&f, &e))
     }
     fn remove(&self, name: &str) -> std::result::Result<(), String> {
         let f = self.file(name)?;
@@ -926,7 +926,7 @@ fn blob_name(bytes: &Arc<Vec<u8>>) -> String {
 
 /// The MIME type of a linked image's preview (JPEG or PNG), as a save names it.
 fn proxy_mime(bytes: &[u8]) -> &'static str {
-    if bytes.starts_with(&[0xff, 0xd8]) { "image/jpeg" } else { vectorcraft_doc::links::PROXY_MIME }
+    if bytes.starts_with(&[0xff, 0xd8]) { "image/jpeg" } else { vansoncraft_doc::links::PROXY_MIME }
 }
 
 /// Remove the image entries of `area` no copy's details name any more. Best effort: an entry left
@@ -1140,7 +1140,7 @@ pub fn jobs(s: &mut Session, store: &Arc<dyn RecoveryStore>) -> Result<(Vec<Reco
     let mut taken: Vec<String> =
         copies_in(&store.list().map_err(EngineError::Other)?).into_iter().filter(|(a, _)| *a == area).map(|(_, f)| f).collect();
     taken.extend(s.documents().iter().filter_map(|d| d.recovery.as_ref()).map(|c| c.file.clone()));
-    let native = fileio::format("vectorcraft").ok_or_else(|| EngineError::Other("no native format".into()))?;
+    let native = fileio::format("vansoncraft").ok_or_else(|| EngineError::Other("no native format".into()))?;
     let saved = store.now();
     let mut out = vec![];
     for st in s.documents().iter().filter(|st| skip_reason(s, st).is_none()) {
@@ -1169,7 +1169,7 @@ pub fn jobs(s: &mut Session, store: &Arc<dyn RecoveryStore>) -> Result<(Vec<Reco
             title: title.clone(),
             path: st.path.clone(),
             format: st.format.to_string(),
-            native_pdf_compatible: if matches!(st.format, "vectorcraft" | "template") {
+            native_pdf_compatible: if matches!(st.format, "vansoncraft" | "template") {
                 st.save_options.get("pdfCompatible").and_then(Value::as_bool)
             } else {
                 None
@@ -1426,7 +1426,7 @@ fn targets(s: &mut Session, store: &dyn RecoveryStore, cmd: &str, p: &Value) -> 
                 out.push((area.to_string(), files, hold));
             }
             (Owner::Mine, Some(f)) => return Err(bad(cmd, format!("`{f}` is the copy of a document open now"))),
-            (Owner::Running, Some(f)) => return Err(bad(cmd, format!("`{f}` belongs to a VectorCraft that is running"))),
+            (Owner::Running, Some(f)) => return Err(bad(cmd, format!("`{f}` belongs to a VansonCraft that is running"))),
             _ => {}
         }
     }
@@ -1497,7 +1497,7 @@ fn restore_one(s: &mut Session, store: &Arc<dyn RecoveryStore>, file: &str) -> R
     st.links_from = links_from;
     st.imported_from = meta.imported_from.clone();
     st.import_losses = meta.import_losses.clone();
-    st.format = SAVE_FORMATS.iter().copied().find(|f| *f == meta.format).unwrap_or("vectorcraft");
+    st.format = SAVE_FORMATS.iter().copied().find(|f| *f == meta.format).unwrap_or("vansoncraft");
     if let Some(pdf) = meta.native_pdf_compatible {
         st.save_options.insert("pdfCompatible".into(), json!(pdf));
     }
@@ -1561,7 +1561,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Recovery Data",
             [],
             None,
-            "{} the recovery copies in the store → {copies: [{file (\"<area>/<name>\"), title, path (the document's file, if it had one), format, saved (Unix seconds or null), open (the copy of a document open here), running (kept by another VectorCraft that is running)}], location}; copies neither open nor running were left behind by a crash; under automation read roots, path is null when the document's file is outside them, and location when the recovery folder is",
+            "{} the recovery copies in the store → {copies: [{file (\"<area>/<name>\"), title, path (the document's file, if it had one), format, saved (Unix seconds or null), open (the copy of a document open here), running (kept by another VansonCraft that is running)}], location}; copies neither open nor running were left behind by a crash; under automation read roots, path is null when the document's file is outside them, and location when the recovery folder is",
             has_store,
             list
         ),
@@ -1570,7 +1570,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Restore Recovered Documents",
             [],
             None,
-            "{file?} open a copy left behind by a crash (default: every one; a running VectorCraft's copies are never taken) as a new document titled \"<name> [Recovered]\": modified, and Save asks where to save it (suggesting its original file) → {restored: [{index, title, file, path, warnings, missingLinks, modifiedLinks, updatedLinks}], failed: [{file, error}] (damaged copies, when restoring every one; a named one fails the command)}; under automation read roots, path is null when the original file is outside them. The copy moves to this app's area and stays until the document is saved or closed",
+            "{file?} open a copy left behind by a crash (default: every one; a running VansonCraft's copies are never taken) as a new document titled \"<name> [Recovered]\": modified, and Save asks where to save it (suggesting its original file) → {restored: [{index, title, file, path, warnings, missingLinks, modifiedLinks, updatedLinks}], failed: [{file, error}] (damaged copies, when restoring every one; a named one fails the command)}; under automation read roots, path is null when the original file is outside them. The copy moves to this app's area and stays until the document is saved or closed",
             has_store,
             restore
         ),
@@ -1579,7 +1579,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Discard Recovered Documents",
             [],
             None,
-            "{file?} delete a copy left behind by a crash (default: every one; copies of open documents and of running VectorCraft apps stay) → {discarded: [file…]}",
+            "{file?} delete a copy left behind by a crash (default: every one; copies of open documents and of running VansonCraft apps stay) → {discarded: [file…]}",
             has_store,
             discard
         ),

@@ -2,9 +2,9 @@
 //! proxy and type (M3.16) and the interactive annotator (M3.17).
 
 use serde_json::{Value, json};
-use vectorcraft_color::{Color, Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop, Paint};
-use vectorcraft_geom::Point;
-use vectorcraft_tools::{Mods, PointerEvent, PointerKind, ToolKey};
+use vansoncraft_color::{Color, Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop, Paint};
+use vansoncraft_geom::Point;
+use vansoncraft_tools::{Mods, PointerEvent, PointerKind, ToolKey};
 
 use crate::*;
 
@@ -19,7 +19,7 @@ fn rect(s: &mut Session, x: f64, y: f64, w: f64, h: f64) -> NodeId {
     NodeId(r["id"].as_u64().unwrap())
 }
 
-fn node(s: &Session, id: NodeId) -> &vectorcraft_doc::Node {
+fn node(s: &Session, id: NodeId) -> &vansoncraft_doc::Node {
     s.doc().unwrap().doc.node(id).unwrap()
 }
 
@@ -88,7 +88,7 @@ fn three_stops() -> GradientPaint {
 }
 
 fn gradient_param(g: &GradientPaint) -> Value {
-    json!({ "gradient": vectorcraft_tools::params::gradient_params(g) })
+    json!({ "gradient": vansoncraft_tools::params::gradient_params(g) })
 }
 
 #[test]
@@ -241,8 +241,8 @@ fn free_distort_maps_gradients_once() {
     // An affine distort (a sheared parallelogram) maps the gradient exactly like object.transform.
     s.execute("object.distort", &json!({"corners": [[20, 0], [120, 0], [100, 100], [0, 100]]})).unwrap();
     let g = fill_geom(&s, id);
-    let mut want = GradientGeom::fit(GradientKind::Linear, vectorcraft_geom::Rect::new(0.0, 0.0, 100.0, 100.0), 0.0);
-    want.transform(vectorcraft_geom::Affine::new([1.0, 0.0, -0.2, 1.0, 20.0, 0.0]), GradientKind::Linear);
+    let mut want = GradientGeom::fit(GradientKind::Linear, vansoncraft_geom::Rect::new(0.0, 0.0, 100.0, 100.0), 0.0);
+    want.transform(vansoncraft_geom::Affine::new([1.0, 0.0, -0.2, 1.0, 20.0, 0.0]), GradientKind::Linear);
     assert!(g.start.distance(want.start) < 1e-6 && g.end.distance(want.end) < 1e-6, "{g:?} vs {want:?}");
 }
 
@@ -253,9 +253,9 @@ fn text(s: &mut Session, x: f64, y: f64) -> NodeId {
     NodeId(r["id"].as_u64().unwrap())
 }
 
-fn text_obj(s: &Session, id: NodeId) -> &vectorcraft_doc::TextObject {
+fn text_obj(s: &Session, id: NodeId) -> &vansoncraft_doc::TextObject {
     match &node(s, id).kind {
-        vectorcraft_doc::NodeKind::Text(t) => t,
+        vansoncraft_doc::NodeKind::Text(t) => t,
         k => panic!("not text: {k:?}"),
     }
 }
@@ -460,14 +460,14 @@ fn dither_is_a_fill_gradient_option_that_saves_and_loads() {
     assert_eq!(s.doc().unwrap().history.undo.len(), undo + 1, "one undo step");
     // The params carry it, so a swatch and a copied paint keep it.
     let g = fill_gradient(&s, id);
-    assert_eq!(vectorcraft_tools::params::gradient_params(&g)["dither"], json!(true));
+    assert_eq!(vansoncraft_tools::params::gradient_params(&g)["dither"], json!(true));
     let mut q = gradient_param(&g);
     q["name"] = json!("Smooth");
     s.execute("swatch.new", &q).unwrap();
     let Some(Paint::Gradient(sw)) = s.doc().unwrap().doc.swatch("Smooth").map(|w| w.paint.clone()) else { panic!("a gradient swatch") };
     assert!(sw.gradient.dither);
     // Saved and opened again.
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = vansoncraft_format::load(&vansoncraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
     let Paint::Gradient(saved) = back.node(id).unwrap().appearance.fill_paint() else { panic!("a gradient fill") };
     assert!(saved.gradient.dither, "the native file keeps dither");
     // Written only when on, so files without it (older ones) open with it off.
@@ -514,7 +514,7 @@ fn an_outlined_stroke_leaves_dither_behind() {
 /// anything but classic or perceptual is refused without editing.
 #[test]
 fn method_is_a_gradient_option_that_saves_and_loads() {
-    use vectorcraft_color::GradientMethod;
+    use vansoncraft_color::GradientMethod;
     let mut s = session();
     let id = rect(&mut s, 0.0, 0.0, 100.0, 100.0);
     let stops = json!([{"offset": 0, "color": "#0000ff"}, {"offset": 1, "color": "#ffff00"}]);
@@ -527,14 +527,14 @@ fn method_is_a_gradient_option_that_saves_and_loads() {
     assert_eq!(g.gradient.stops.len(), 2, "the stops stay as they were");
     assert_eq!(s.doc().unwrap().history.undo.len(), undo + 1, "one undo step");
     // The params carry it, so a swatch and a copied paint keep it.
-    assert_eq!(vectorcraft_tools::params::gradient_params(&g)["method"], json!("perceptual"));
+    assert_eq!(vansoncraft_tools::params::gradient_params(&g)["method"], json!("perceptual"));
     let mut q = gradient_param(&g);
     q["name"] = json!("Even");
     s.execute("swatch.new", &q).unwrap();
     let Some(Paint::Gradient(sw)) = s.doc().unwrap().doc.swatch("Even").map(|w| w.paint.clone()) else { panic!("a gradient swatch") };
     assert_eq!(sw.gradient.method, GradientMethod::Perceptual);
     // Saved and opened again.
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = vansoncraft_format::load(&vansoncraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
     let Paint::Gradient(saved) = back.node(id).unwrap().appearance.fill_paint() else { panic!("a gradient fill") };
     assert_eq!(saved.gradient.method, GradientMethod::Perceptual, "the native file keeps the method");
     // Strokes take it too.
@@ -554,12 +554,12 @@ fn method_is_a_gradient_option_that_saves_and_loads() {
     assert_eq!(node(&s, id).appearance, before);
     s.execute("paint.editGradient", &json!({"method": "Classic", "stroke": false})).unwrap();
     assert_eq!(fill_gradient(&s, id).gradient.method, GradientMethod::Classic);
-    assert!(vectorcraft_tools::params::gradient_params(&fill_gradient(&s, id)).get("method").is_none());
+    assert!(vansoncraft_tools::params::gradient_params(&fill_gradient(&s, id)).get("method").is_none());
     // With dither: one edit sets both, and the params carry both back.
     s.execute("paint.editGradient", &json!({"method": "perceptual", "dither": true, "stroke": false})).unwrap();
     let g = fill_gradient(&s, id);
     assert!(g.gradient.dither && g.gradient.method == GradientMethod::Perceptual);
-    let p = vectorcraft_tools::params::gradient_params(&g);
+    let p = vansoncraft_tools::params::gradient_params(&g);
     assert_eq!((&p["method"], &p["dither"]), (&json!("perceptual"), &json!(true)));
     s.execute("paint.setFill", &json!({"gradient": p})).unwrap();
     let back = fill_gradient(&s, id);
@@ -608,19 +608,19 @@ fn a_conic_gradient_is_set_edited_transformed_and_saved() {
     let g = fill_geom(&s, id);
     let before = g.param_at(GradientKind::Conic, p);
     s.execute("object.rotate", &json!({"angle": 30, "origin": [200, 150]})).unwrap();
-    let r = vectorcraft_geom::Affine::rotate_about(-30f64.to_radians(), Point::new(200.0, 150.0));
+    let r = vansoncraft_geom::Affine::rotate_about(-30f64.to_radians(), Point::new(200.0, 150.0));
     let after = fill_geom(&s, id).param_at(GradientKind::Conic, r * p);
     assert!((after - before).abs() < 1e-9, "{before} vs {after}");
     // The params give it back, and the native format keeps it.
     s.execute("paint.editGradient", &json!({"aspect": -60})).unwrap();
     let want = fill_gradient(&s, id);
-    let params = vectorcraft_tools::params::gradient_params(&want);
+    let params = vansoncraft_tools::params::gradient_params(&want);
     assert_eq!((params["kind"].as_str(), params["aspect"].as_f64()), (Some("conic"), Some(-60.0)));
     s.execute("paint.setFill", &json!({"gradient": {"kind": "linear"}})).unwrap();
     s.execute("paint.setFill", &json!({ "gradient": params })).unwrap();
     let got = fill_gradient(&s, id);
     assert_eq!((&got.gradient, got.geom), (&want.gradient, want.geom));
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = vansoncraft_format::load(&vansoncraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
     let Paint::Gradient(g) = back.node(id).unwrap().appearance.fill_paint() else { panic!("the gradient is lost") };
     assert_eq!((g.gradient.kind, g.geom), (GradientKind::Conic, want.geom));
 }
@@ -789,19 +789,19 @@ fn a_diamond_gradient_is_set_edited_transformed_and_saved() {
     // A rotation carries it along.
     let before = m.param_at(GradientKind::Diamond, p);
     s.execute("object.rotate", &json!({"angle": 30, "origin": [200, 150]})).unwrap();
-    let r = vectorcraft_geom::Affine::rotate_about(-30f64.to_radians(), Point::new(200.0, 150.0));
+    let r = vansoncraft_geom::Affine::rotate_about(-30f64.to_radians(), Point::new(200.0, 150.0));
     let after = fill_geom(&s, id).param_at(GradientKind::Diamond, r * p);
     assert!((after - before).abs() < 1e-9, "{before} vs {after}");
     // The params give it back, and the native format keeps it.
     s.execute("paint.editGradient", &json!({"aspect": 60})).unwrap();
     let want = fill_gradient(&s, id);
-    let params = vectorcraft_tools::params::gradient_params(&want);
+    let params = vansoncraft_tools::params::gradient_params(&want);
     assert_eq!((params["kind"].as_str(), params["aspect"].as_f64()), (Some("diamond"), Some(60.0)));
     s.execute("paint.setFill", &json!({"gradient": {"kind": "linear"}})).unwrap();
     s.execute("paint.setFill", &json!({ "gradient": params })).unwrap();
     let got = fill_gradient(&s, id);
     assert_eq!((&got.gradient, got.geom), (&want.gradient, want.geom));
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = vansoncraft_format::load(&vansoncraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
     let Paint::Gradient(g) = back.node(id).unwrap().appearance.fill_paint() else { panic!("the gradient is lost") };
     assert_eq!((g.gradient.kind, g.geom), (GradientKind::Diamond, want.geom));
 }
@@ -887,14 +887,14 @@ fn making_a_gradient_diamond_is_one_undo_step() {
 /// undo step while an edit that changes nothing records none.
 #[test]
 fn a_gradient_takes_a_spread_and_a_count() {
-    use vectorcraft_color::GradientSpread;
+    use vansoncraft_color::GradientSpread;
     let mut s = session();
     let id = rect(&mut s, 100.0, 100.0, 200.0, 100.0);
     for kind in ["linear", "radial", "conic", "diamond"] {
         s.execute("paint.setFill", &json!({"gradient": {"kind": kind, "spread": "Reflect", "repeats": 4}})).unwrap();
         let g = fill_gradient(&s, id);
         assert_eq!((g.gradient.spread, g.gradient.repeats), (GradientSpread::Reflect, 4), "{kind}");
-        let params = vectorcraft_tools::params::gradient_params(&g);
+        let params = vansoncraft_tools::params::gradient_params(&g);
         assert_eq!((params["spread"].as_str(), params["repeats"].as_u64()), (Some("reflect"), Some(4)), "{kind}");
         s.execute("paint.setFill", &json!({"gradient": {"kind": "linear"}})).unwrap();
         assert_eq!(fill_gradient(&s, id).gradient.spread, GradientSpread::Pad, "a new gradient pads");
@@ -912,12 +912,12 @@ fn a_gradient_takes_a_spread_and_a_count() {
     assert_eq!(fill_gradient(&s, id).gradient.repeats, 2, "Pad keeps the count for later");
     s.execute("edit.undo", &json!({})).unwrap();
     assert_eq!(fill_gradient(&s, id), g);
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = vansoncraft_format::load(&vansoncraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
     let Paint::Gradient(saved) = back.node(id).unwrap().appearance.fill_paint() else { panic!("the gradient is lost") };
     assert_eq!((saved.gradient.spread, saved.gradient.repeats), (GradientSpread::Repeat, 2));
     // The params of a gradient that pads give back the count it keeps.
     s.execute("paint.editGradient", &json!({"spread": "pad"})).unwrap();
-    let params = vectorcraft_tools::params::gradient_params(&fill_gradient(&s, id));
+    let params = vansoncraft_tools::params::gradient_params(&fill_gradient(&s, id));
     s.execute("paint.setFill", &json!({"gradient": {"kind": "linear"}})).unwrap();
     s.execute("paint.setFill", &json!({ "gradient": params })).unwrap();
     assert_eq!((fill_gradient(&s, id).gradient.spread, fill_gradient(&s, id).gradient.repeats), (GradientSpread::Pad, 2), "{params}");
@@ -956,7 +956,7 @@ fn a_bad_spread_or_count_is_refused() {
     // A repeating gradient turned freeform: its params, which carry no spread, set it again.
     s.execute("paint.editGradient", &json!({"kind": "radial", "spread": "reflect"})).unwrap();
     s.execute("paint.editGradient", &json!({"kind": "freeform"})).unwrap();
-    let params = vectorcraft_tools::params::gradient_params(&fill_gradient(&s, id));
+    let params = vansoncraft_tools::params::gradient_params(&fill_gradient(&s, id));
     assert!(params.get("spread").is_none(), "{params}");
     s.execute("paint.setFill", &json!({ "gradient": params })).unwrap();
 }
@@ -965,7 +965,7 @@ fn a_bad_spread_or_count_is_refused() {
 /// freeform one, which keeps no spread.
 #[test]
 fn a_spread_for_a_selected_gradient_leaves_a_freeform_default_alone() {
-    use vectorcraft_color::GradientSpread;
+    use vansoncraft_color::GradientSpread;
     let mut s = session();
     let a = rect(&mut s, 0.0, 0.0, 100.0, 100.0);
     s.execute("paint.setFill", &json!({"gradient": {"kind": "linear"}})).unwrap();
@@ -979,7 +979,7 @@ fn a_spread_for_a_selected_gradient_leaves_a_freeform_default_alone() {
 /// A preset keeps its spread and count: saved from a gradient, applied to another object.
 #[test]
 fn a_gradient_preset_keeps_its_spread() {
-    use vectorcraft_color::GradientSpread;
+    use vansoncraft_color::GradientSpread;
     let mut s = session();
     let a = rect(&mut s, 0.0, 0.0, 100.0, 100.0);
     s.execute("paint.setFill", &json!({"gradient": {"kind": "conic", "spread": "reflect", "repeats": 5}})).unwrap();

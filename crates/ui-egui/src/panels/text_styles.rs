@@ -12,13 +12,13 @@ use std::cell::RefCell;
 
 use egui::{Color32, Sense, Ui, vec2};
 use serde_json::{Map, Value, json};
-use vectorcraft_doc::Document;
-use vectorcraft_engine::cmd::{fileio, textstyles};
+use vansoncraft_doc::Document;
+use vansoncraft_engine::cmd::{fileio, textstyles};
 
 use super::character::{end_typing, text_editing, text_style};
 use super::memo::Memo;
 use super::{alt_held, pstate, selection_len, set_pstate};
-use crate::VectorcraftApp;
+use crate::VansoncraftApp;
 use crate::theme::Tokens;
 use crate::widgets::{self, menu_item};
 
@@ -65,7 +65,7 @@ impl Kind {
 /// The styles highlighted in the panel, in the order they were picked, among the styles `listed`:
 /// the styles a Shift-click, a Cmd/Ctrl-click or Select All Unused highlighted together while
 /// [`Kind::key`] still holds the style it held then, else the one style in [`Kind::key`].
-fn highlighted(app: &VectorcraftApp, ctx: &egui::Context, kind: Kind, listed: &[&str]) -> Vec<String> {
+fn highlighted(app: &VansoncraftApp, ctx: &egui::Context, kind: Kind, listed: &[&str]) -> Vec<String> {
     let document = app.session.active().map(|st| st.uid);
     if pstate::<Option<u64>>(ctx, kind.document_key()) != document {
         set_pstate(ctx, kind.document_key(), document);
@@ -96,7 +96,7 @@ fn highlight_made(ctx: &egui::Context, kind: Kind, names: Vec<String>) {
 
 /// Duplicates the styles `names` (`charStyle.duplicate`, `paraStyle.duplicate`) in one undo step
 /// and highlights the copies.
-fn duplicate(app: &mut VectorcraftApp, ctx: &egui::Context, kind: Kind, names: &[String]) {
+fn duplicate(app: &mut VansoncraftApp, ctx: &egui::Context, kind: Kind, names: &[String]) {
     let p = kind.prefix();
     let made = if let [name] = names {
         app.run(&format!("{p}.duplicate"), json!({ "name": name })).map(|r| vec![r])
@@ -139,7 +139,7 @@ fn row_dropped(ui: &Ui, button: &egui::Response, kind: Kind, take: impl Fn(&str)
 }
 
 /// (name, attrs, uses) for every style, Normal first, listed once per document version.
-fn styles(app: &mut VectorcraftApp, kind: Kind) -> Vec<(String, Map<String, Value>, u64)> {
+fn styles(app: &mut VansoncraftApp, kind: Kind) -> Vec<(String, Map<String, Value>, u64)> {
     thread_local! {
         static MEMO: RefCell<[Memo<Document, Value>; 2]> = RefCell::new([Memo::default(), Memo::default()]);
     }
@@ -174,7 +174,7 @@ thread_local! {
 
 /// The selection's style name (Normal when none) and every one of its attributes, written as a
 /// style holds them, if text is selected.
-fn current(app: &VectorcraftApp, kind: Kind) -> Option<(Option<String>, Map<String, Value>)> {
+fn current(app: &VansoncraftApp, kind: Kind) -> Option<(Option<String>, Map<String, Value>)> {
     let (c, p) = text_style(app)?;
     Some(match kind {
         Kind::Char => (c.style_name.clone(), textstyles::char_attrs(&c)),
@@ -184,7 +184,7 @@ fn current(app: &VectorcraftApp, kind: Kind) -> Option<(Option<String>, Map<Stri
 
 /// Parameters targeting the selection: the Type tool's selected characters (paragraph styles: the
 /// paragraphs its selection or caret touches), or the selected objects.
-fn target(app: &VectorcraftApp, kind: Kind, mut p: Value) -> Value {
+fn target(app: &VansoncraftApp, kind: Kind, mut p: Value) -> Value {
     if let Some((id, a, b)) = text_editing(app) {
         p["id"] = json!(id.0);
         if kind == Kind::Para || b > a {
@@ -197,7 +197,7 @@ fn target(app: &VectorcraftApp, kind: Kind, mut p: Value) -> Value {
 
 /// [`target`] for applying a style: after Select All in threaded text, all the text of every
 /// frame of the story.
-fn apply_target(app: &VectorcraftApp, kind: Kind, mut p: Value) -> Value {
+fn apply_target(app: &VansoncraftApp, kind: Kind, mut p: Value) -> Value {
     match super::character::text_story(app) {
         Some(story) if text_editing(app).is_some() => {
             p["ids"] = json!(story.iter().map(|f| f.0).collect::<Vec<_>>());
@@ -209,7 +209,7 @@ fn apply_target(app: &VectorcraftApp, kind: Kind, mut p: Value) -> Value {
 
 /// Open New Character Style (`Kind::Para`: New Paragraph Style) to name a style made from the
 /// selected text: `ui.newCharStyle` and `ui.newParaStyle`.
-pub(crate) fn open_new(app: &mut VectorcraftApp, kind: Kind) -> Result<Value, String> {
+pub(crate) fn open_new(app: &mut VansoncraftApp, kind: Kind) -> Result<Value, String> {
     // A later typing preview must not restore the document from before this capture.
     end_typing(app);
     let t = target(app, kind, json!({}));
@@ -231,7 +231,7 @@ fn row_look(is_cur: bool, in_highlight: bool, hovered: bool, t: &Tokens) -> (Opt
 
 /// Opens `name`'s options: Character Style Options for a character style, Paragraph Style Options
 /// for a paragraph style.
-fn open_style_options(app: &mut VectorcraftApp, kind: Kind, name: &str) {
+fn open_style_options(app: &mut VansoncraftApp, kind: Kind, name: &str) {
     let command = if kind == Kind::Char { "ui.charStyleOptions" } else { "ui.paraStyleOptions" };
     app.run(command, json!({ "name": name })).ok();
 }
@@ -239,7 +239,7 @@ fn open_style_options(app: &mut VectorcraftApp, kind: Kind, name: &str) {
 /// The style list and its New and Delete buttons. Shift-click highlights every style from the
 /// last one clicked without Shift through this one, and Cmd/Ctrl-click adds or removes one; both
 /// leave the text as it is. Delete deletes every highlighted style but the Normal style.
-pub fn show(app: &mut VectorcraftApp, ui: &mut Ui, kind: Kind) {
+pub fn show(app: &mut VansoncraftApp, ui: &mut Ui, kind: Kind) {
     let t = Tokens::get(ui.ctx());
     let all = styles(app, kind);
     let cur = current(app, kind);
@@ -372,7 +372,7 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui, kind: Kind) {
 /// Delete deletes every highlighted style but the Normal style. Load Character Styles… (Load
 /// Paragraph Styles…) and Load All Styles… add the styles of a document picked in an open dialog
 /// ([`load`]); they are off without an open document or an open dialog.
-pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui, kind: Kind) {
+pub fn menu(app: &mut VansoncraftApp, ui: &mut Ui, kind: Kind) {
     let all = styles(app, kind);
     let listed: Vec<&str> = all.iter().map(|s| s.0.as_str()).collect();
     let many = highlighted(app, ui.ctx(), kind, &listed);
@@ -442,7 +442,7 @@ pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui, kind: Kind) {
 /// `ui.loadParaStyles`, `ui.loadAllStyles`): the engine command `load` (`charStyle.load`,
 /// `paraStyle.load`, `textStyle.loadAll`) on the document at `path`, else on one picked in an open
 /// dialog. A cancelled dialog loads nothing.
-pub(crate) fn load(app: &mut VectorcraftApp, load: &str, path: Option<String>) -> Result<Value, String> {
+pub(crate) fn load(app: &mut VansoncraftApp, load: &str, path: Option<String>) -> Result<Value, String> {
     let path = match path {
         Some(path) => path,
         None => {

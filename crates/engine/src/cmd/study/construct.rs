@@ -6,9 +6,9 @@
 //! in SVG), added as one undo step. The objects they start from are never changed.
 
 use serde_json::{Value, json};
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::{Appearance, Document, Node, NodeId, NodeKind};
-use vectorcraft_geom::{PathData, Point, SubPath};
+use vansoncraft_color::{Color, Paint};
+use vansoncraft_doc::{Appearance, Document, Node, NodeId, NodeKind};
+use vansoncraft_geom::{PathData, Point, SubPath};
 
 use super::geometry::{MAX_POINTS, Shape, convex_hull, long_axis, rdp_closed, reduce_closed, rotated, scanline, shape_of, signed_area2};
 use super::{flag, num, r3, targets, whole};
@@ -233,7 +233,7 @@ fn splitmix(state: &mut u64) -> f64 {
 /// `p` with the rounding noise of the turn back taken off (to a millionth of a point) and kept
 /// inside the shape's bounds, so a line never pokes out of its shape by 1e-14 and an
 /// edges-included search such as `document.find {within}` still finds it.
-fn settle(p: Point, b: vectorcraft_geom::Rect) -> Point {
+fn settle(p: Point, b: vansoncraft_geom::Rect) -> Point {
     let r = |v: f64| (v * 1e6).round() / 1e6;
     Point::new(r(p.x).clamp(b.x0, b.x1), r(p.y).clamp(b.y0, b.y1))
 }
@@ -445,8 +445,8 @@ pub(super) fn compare(s: &mut Session, p: &Value) -> Result<Value> {
         "method": format!("both objects' paths filled by their fill rule and sampled at the centres of a {cols} × {rows} grid; with normalize, a is first scaled by height and centred on b. It measures silhouettes, not likeness: a good drawing can differ from its reference on purpose."),
     });
     if image {
-        let png = vectorcraft_render::Rendered { width: cols as u32, height: rows as u32, pixels: px }.to_png().map_err(crate::EngineError::Other)?;
-        out["pngBase64"] = json!(vectorcraft_format::base64_encode(&png));
+        let png = vansoncraft_render::Rendered { width: cols as u32, height: rows as u32, pixels: px }.to_png().map_err(crate::EngineError::Other)?;
+        out["pngBase64"] = json!(vansoncraft_format::base64_encode(&png));
     }
     Ok(out)
 }

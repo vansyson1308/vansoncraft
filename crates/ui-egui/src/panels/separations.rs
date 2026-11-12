@@ -5,10 +5,10 @@
 
 use egui::{Sense, Ui, vec2};
 use serde_json::{Value, json};
-use vectorcraft_color::cms::{self, Intent, ProfileKind};
-use vectorcraft_render::proof;
+use vansoncraft_color::cms::{self, Intent, ProfileKind};
+use vansoncraft_render::proof;
 
-use crate::VectorcraftApp;
+use crate::VansoncraftApp;
 use crate::theme::Tokens;
 use crate::widgets::{self, dim_label, menu_item};
 
@@ -22,13 +22,13 @@ const PROOF_TARGETS: [(&str, &str); 7] = [
     ("tritanopia", "Color blindness – Tritanopia-type"),
 ];
 
-fn run(app: &mut VectorcraftApp, id: &str, p: Value) {
+fn run(app: &mut VansoncraftApp, id: &str, p: Value) {
     if let Err(e) = app.run(id, p) {
         app.ui.status = e;
     }
 }
 
-fn plates_section(app: &mut VectorcraftApp, ui: &mut Ui) {
+fn plates_section(app: &mut VansoncraftApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let v = proof::view();
     let on = v.separations.is_some();
@@ -85,7 +85,7 @@ pub(crate) fn profile_dropdown(ui: &mut Ui, id: &str, current: &str, kind: Profi
 
 /// The Color Settings section (Edit › Color Settings… / Assign Profile…), scrolled into view once
 /// when one of those commands opened the panel ([`crate::state::UiState::color_settings_scroll`]).
-fn settings_section(app: &mut VectorcraftApp, ui: &mut Ui) {
+fn settings_section(app: &mut VansoncraftApp, ui: &mut Ui) {
     let top = ui.cursor().top();
     settings_rows(app, ui);
     // Edit › Color Settings… / Assign Profile… opened the panel for this section: scroll it into
@@ -102,7 +102,7 @@ fn settings_section(app: &mut VectorcraftApp, ui: &mut Ui) {
 
 /// The section's rows: the RGB and CMYK working spaces, intent, black point compensation, Load
 /// Profile… and Gamut Check, and the profile the active document is assigned.
-fn settings_rows(app: &mut VectorcraftApp, ui: &mut Ui) {
+fn settings_rows(app: &mut VansoncraftApp, ui: &mut Ui) {
     let st = cms::active_settings();
     widgets::section_header(ui, tl!("Color Settings"));
     ui.horizontal(|ui| {
@@ -148,7 +148,7 @@ fn settings_rows(app: &mut VectorcraftApp, ui: &mut Ui) {
         }
     });
     if let Some(d) = app.session.active() {
-        let (_, cmyk) = vectorcraft_engine::cmd::colormgmt::doc_profiles(&d.doc);
+        let (_, cmyk) = vansoncraft_engine::cmd::colormgmt::doc_profiles(&d.doc);
         const WORKING: &str = "Working CMYK (don't tag)";
         ui.horizontal(|ui| {
             ui.label(tl!("Assign:"));
@@ -169,7 +169,7 @@ pub(crate) fn gamut_check_status(n: usize) -> String {
     }
 }
 
-fn proof_section(app: &mut VectorcraftApp, ui: &mut Ui) {
+fn proof_section(app: &mut VansoncraftApp, ui: &mut Ui) {
     let v = proof::view();
     widgets::section_header(ui, tl!("Proof Setup"));
     let cur = v.setup.target.id();
@@ -192,7 +192,7 @@ fn proof_section(app: &mut VectorcraftApp, ui: &mut Ui) {
     }
 }
 
-pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn show(app: &mut VansoncraftApp, ui: &mut Ui) {
     plates_section(app, ui);
     widgets::divider(ui);
     proof_section(app, ui);
@@ -200,7 +200,7 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
     settings_section(app, ui);
 }
 
-pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn menu(app: &mut VansoncraftApp, ui: &mut Ui) {
     let v = proof::view();
     if menu_item(ui, tl!("Overprint Preview"), true, v.overprint) {
         run(app, "view.overprintPreview", json!({}));
@@ -217,13 +217,13 @@ pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use vectorcraft_engine::Session;
+    use vansoncraft_engine::Session;
 
     /// The panel's Proof Setup list offers the targets of View › Proof Setup, in the same order and
     /// with the same labels, and each one is a target `view.proofSetup` accepts.
     #[test]
     fn proof_targets_match_the_proof_setup_menu() {
-        let app = VectorcraftApp::new(Session::new(), Default::default());
+        let app = VansoncraftApp::new(Session::new(), Default::default());
         let menu: Vec<(String, String)> = crate::menus::menu_entries(&app)
             .into_iter()
             .filter(|e| e.path == ["View", "Proof Setup"] && e.command.as_deref() == Some("view.proofSetup"))
@@ -251,7 +251,7 @@ mod tests {
         }
         // One frame of the panel in a scroll area VIEW points high, scrolled to `offset` when
         // given: where the section's Black Point Compensation box shows in the view.
-        fn frame(ctx: &egui::Context, app: &mut VectorcraftApp, offset: Option<f32>) -> f32 {
+        fn frame(ctx: &egui::Context, app: &mut VansoncraftApp, offset: Option<f32>) -> f32 {
             let mut top = 0.0;
             let mut out = ctx.run_ui(egui::RawInput::default(), |ui| {
                 top = ui.cursor().top();
@@ -266,7 +266,7 @@ mod tests {
         }
         let visible = |y: f32| (0.0..VIEW).contains(&y);
         for id in ["edit.assignProfile", "edit.colorSettings"] {
-            let mut app = VectorcraftApp::new(Session::new(), Default::default());
+            let mut app = VansoncraftApp::new(Session::new(), Default::default());
             app.run("file.new", json!({})).unwrap();
             let ctx = egui::Context::default();
             let before = frame(&ctx, &mut app, None);

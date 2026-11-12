@@ -1,38 +1,38 @@
 {
-  "id": "vectorcraft",
-  "name": "VectorCraft",
-  "upgradeCode": "601C6437-08AE-4645-ADCC-27F036C2EA2F",
+  "id": "vansoncraft",
+  "name": "VansonCraft",
+  "upgradeCode": "D175758B-B3BA-4FFB-9CF2-8D7B7029DF18",
   "sources": [
-    "vectorcraft.wxs"
+    "vansoncraft.wxs"
   ],
-  "icon": "assets/app-icon/vectorcraft.ico",
+  "icon": "assets/app-icon/vansoncraft.ico",
   "localization": [
-    "vectorcraft.en-us.wxl"
+    "vansoncraft.en-us.wxl"
   ],
   "extensions": [
     "UI",
     "Util"
   ],
   "payloads": [
-    "vectorcraft-cli.exe",
-    "vectorcraft.exe"
+    "vansoncraft-cli.exe",
+    "vansoncraft.exe"
   ],
   "registry": [
     [
       "-1",
-      "Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\vectorcraft.exe",
+      "Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\vansoncraft.exe",
       "",
-      "[#VectorcraftExe]"
+      "[#VansoncraftExe]"
     ],
     [
       "-1",
-      "Software\\VectorCraft",
+      "Software\\VansonCraft",
       "InstallDir",
       "[INSTALLFOLDER]"
     ],
     [
       "-1",
-      "Software\\VectorCraft",
+      "Software\\VansonCraft",
       "DesktopShortcut",
       "#1"
     ]

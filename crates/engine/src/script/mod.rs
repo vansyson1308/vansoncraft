@@ -17,10 +17,10 @@
 //! them. Ids given out in a run are never given out again for a document, also after an in-run
 //! undo or a rollback.
 //!
-//! The values here are VectorCraft's own limits: [`MAX_SOURCE_BYTES`], [`DEFAULT_FUEL`],
+//! The values here are VansonCraft's own limits: [`MAX_SOURCE_BYTES`], [`DEFAULT_FUEL`],
 //! [`MAX_FUEL`], [`SLICE_FUEL`], [`HEAP_BYTES`], [`MAX_HOST_CALLS`], [`GROWTH_OBJECTS`],
 //! [`GROWTH_BYTES`], [`MAX_CONTINUES`], [`MAX_LOG_LINES`], [`MAX_LOG_BYTES`], [`MAX_ARGS_BYTES`],
-//! and the 64 levels, 16 MiB and 1,048,576 entries of [`vectorcraft_js::DataLimits`]'s default,
+//! and the 64 levels, 16 MiB and 1,048,576 entries of [`vansoncraft_js::DataLimits`]'s default,
 //! and the console's ([`console`]).
 //!
 //! Before a run starts, its preprocessor lines are read ([`include`]): included files take the
@@ -41,7 +41,7 @@
 //!
 //! A script with `#targetengine name` runs in that named engine, which the session keeps with the
 //! globals its runs leave, at most [`MAX_ENGINES`] of them with [`ENGINE_HEAP_BYTES`] of heap each
-//! (VectorCraft's own limits). A script without the line, or with `main`, gets a new realm for each
+//! (VansonCraft's own limits). A script without the line, or with `main`, gets a new realm for each
 //! run. An engine keeps no document and no run: its host functions reach the run through a link
 //! that holds the run's host only while the run goes on. An error, a limit or a stop puts the
 //! documents back and keeps the engine's globals; an internal error drops the engine.
@@ -59,7 +59,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use serde_json::{Map, Value, json};
-use vectorcraft_js::{
+use vansoncraft_js::{
     Data, DataLimits, HostError, HostFunction, HostItem, Interrupt, LimitKind, Limits, Options, Progress, Realm, RunError, RunErrorKind,
 };
 
@@ -434,13 +434,13 @@ struct World {
 struct Choices {
     prefs: crate::Prefs,
     caps_lock: bool,
-    eyedropper_sample: Option<Arc<vectorcraft_doc::Node>>,
+    eyedropper_sample: Option<Arc<vansoncraft_doc::Node>>,
     global_edit_options: cmd::globaledit::Options,
     recent_urls: Vec<String>,
     gradient_stop: Option<(usize, cmd::gradient::StopOwner)>,
     freeform_point: Option<(usize, cmd::gradient::StopOwner)>,
     active_appearance_item: Option<cmd::appearance::ActiveItem>,
-    envelope_defaults: Option<(vectorcraft_doc::live::EnvelopeOptions, f64)>,
+    envelope_defaults: Option<(vansoncraft_doc::live::EnvelopeOptions, f64)>,
 }
 
 impl Choices {
@@ -723,7 +723,7 @@ struct Host {
     /// order: the error's mark ([`HostError::Marked`]) is its index.
     eval_failures: RefCell<Vec<(Arc<str>, u32, u32)>>,
     /// The realm's tag for the script ([`Realm::script_tag`]) once the run has started it, and
-    /// [`vectorcraft_js::UNKNOWN_SOURCE`] before.
+    /// [`vansoncraft_js::UNKNOWN_SOURCE`] before.
     script_tag: Cell<u32>,
     /// The run's name as its report gives it, which [`Host::name`] shortens for console lines.
     report_name: Arc<str>,
@@ -809,13 +809,13 @@ impl Host {
     /// and each file `$.evalFile` gave. A run that never started its script compiled nothing.
     fn keep_maps(&self) {
         let (Some(kept), tag) = (&self.kept_maps, self.script_tag.get()) else { return };
-        if tag == vectorcraft_js::UNKNOWN_SOURCE {
+        if tag == vansoncraft_js::UNKNOWN_SOURCE {
             return;
         }
         let mut kept = kept.borrow_mut();
         kept.keep(tag, std::mem::take(&mut *self.script_map.borrow_mut()), Some(self.report_name.clone()));
         for (n, map) in std::mem::take(&mut *self.eval_maps.borrow_mut()).into_iter().enumerate() {
-            match u32::try_from(n + 1).ok().and_then(|n| tag.checked_add(n)).filter(|t| *t != vectorcraft_js::UNKNOWN_SOURCE) {
+            match u32::try_from(n + 1).ok().and_then(|n| tag.checked_add(n)).filter(|t| *t != vansoncraft_js::UNKNOWN_SOURCE) {
                 Some(t) => kept.keep(t, map, None),
                 None => break,
             }
@@ -1257,7 +1257,7 @@ fn each_line(text: &str, mut done: impl FnMut(String, bool)) {
 /// `$.evalFile(path[, timeout])` runs a file and gives its last value, `$.fileName` is the file
 /// being run and `$.includePath` the `#includepath` list. Its other members are
 /// [`dollar::members`].
-fn dollar_object(link: &Link, info: dollar::RunInfo, localization: &Rc<vectorcraft_js::Localization>) -> Vec<(String, HostItem)> {
+fn dollar_object(link: &Link, info: dollar::RunInfo, localization: &Rc<vansoncraft_js::Localization>) -> Vec<(String, HostItem)> {
     let writer = |end: bool| {
         let l = link.clone();
         HostItem::TextFunction(function(move |a| {
@@ -1328,8 +1328,8 @@ fn eval_file(host: &Host, args: Vec<Data>) -> std::result::Result<Data, HostErro
         if f.line > 0 { host.placed(error, f.file, f.line, f.column) } else { error }
     })?;
     // A file without preprocessor lines is parsed here first, so its syntax error names its place.
-    let options = vectorcraft_js::Options { max_source_units: include::MAX_TOTAL_BYTES, ..vectorcraft_js::Options::default() };
-    if let Err(e) = vectorcraft_js::parse(&expanded.source, &options) {
+    let options = vansoncraft_js::Options { max_source_units: include::MAX_TOTAL_BYTES, ..vansoncraft_js::Options::default() };
+    if let Err(e) = vansoncraft_js::parse(&expanded.source, &options) {
         host.files.borrow_mut().end_eval();
         let (_, file, line, column) = expanded.map.locate(e.line, e.column);
         let message = format!("{file}:{line}:{column}: {}", e.message);
@@ -1465,7 +1465,7 @@ fn located(host: &Host, realm: &Realm, e: &RunError) -> (RunError, Option<Arc<st
             let (e, index, file) = map(&host.script_map.borrow());
             (e, (index > 0).then_some(file))
         }
-        n if n != vectorcraft_js::UNKNOWN_SOURCE => match host.eval_maps.borrow().get(n as usize - 1) {
+        n if n != vansoncraft_js::UNKNOWN_SOURCE => match host.eval_maps.borrow().get(n as usize - 1) {
             Some(m) => {
                 let (e, _, file) = map(m);
                 (e, Some(file))
@@ -1824,7 +1824,7 @@ impl Session {
             script_map: RefCell::default(),
             eval_maps: RefCell::default(),
             eval_failures: RefCell::default(),
-            script_tag: Cell::new(vectorcraft_js::UNKNOWN_SOURCE),
+            script_tag: Cell::new(vansoncraft_js::UNKNOWN_SOURCE),
             report_name: Arc::from(name.as_str()),
             kept_maps,
             started: clock(),
@@ -1903,7 +1903,7 @@ impl Session {
             return Some(self.script_failed(job, &e));
         }
         // A canceled request ends a sleep or a wait at this pump.
-        if vectorcraft_doc::cancel::check().is_err() {
+        if vansoncraft_doc::cancel::check().is_err() {
             self.script_stop.set();
         }
         if (job.host.waiting.get() || job.host.asleep().is_some() || job.host.dialogs.is_waiting()) && !self.script_stop.is_set() {

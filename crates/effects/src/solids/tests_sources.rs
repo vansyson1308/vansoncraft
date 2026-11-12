@@ -1,7 +1,7 @@
 use serde_json::json;
-use vectorcraft_doc::color::Color;
-use vectorcraft_doc::{AppearanceItem, BlendSpacing, BlendSpec, Document, FillLayer, ImageObject, NodeId, StrokeLayer, Symbol};
-use vectorcraft_geom::{Affine, shapes};
+use vansoncraft_doc::color::Color;
+use vansoncraft_doc::{AppearanceItem, BlendSpacing, BlendSpec, Document, FillLayer, ImageObject, NodeId, StrokeLayer, Symbol};
+use vansoncraft_geom::{Affine, shapes};
 
 use super::*;
 
@@ -185,7 +185,7 @@ fn a_clipping_groups_solid_is_built_from_its_art_inside_the_clip() {
     // path may be also takes a compound path there.
     let square = rect(80, 0.0, 0.0, 10.0, 10.0, 0.0);
     let mut compound =
-        Node::new(NodeId(81), NodeKind::Compound { children: vec![Arc::new(square.clone())], rule: vectorcraft_geom::FillRule::NonZero });
+        Node::new(NodeId(81), NodeKind::Compound { children: vec![Arc::new(square.clone())], rule: vansoncraft_geom::FillRule::NonZero });
     compound.appearance = square.appearance.clone();
     let mut seen = vec![];
     for levels in 60..70 {
@@ -377,7 +377,7 @@ fn a_symbol_holding_more_objects_than_the_work_limit_is_refused_before_its_art_i
 
 /// A gradient fill: a path filled with one is drawn in clip groups where it crosses 9-slice guides.
 fn gradient() -> Paint {
-    use vectorcraft_doc::color::{Gradient, GradientPaint};
+    use vansoncraft_doc::color::{Gradient, GradientPaint};
     Paint::Gradient(Box::new(GradientPaint::new(Gradient::default())))
 }
 
@@ -389,7 +389,7 @@ fn sliced(count: usize, fill: impl Fn() -> Paint) -> (Document, Node) {
         Arc::new(Node::path(NodeId(i as u64 + 1), shapes::rectangle(Rect::new(0.0, 0.0, 100.0, 100.0)), Appearance::basic(fill(), Paint::None, 0.0)))
     });
     d.symbols.push(Symbol { dynamic: true, name: "Sliced".into(), art: Arc::new(Node::group(NodeId(0), members.collect())) });
-    d.set_symbol_nine_slice("Sliced", Some(vectorcraft_doc::SymbolNineSlice::default()));
+    d.set_symbol_nine_slice("Sliced", Some(vansoncraft_doc::SymbolNineSlice::default()));
     let n = with(instance(30, "Sliced", Affine::scale(2.0)), EXTRUDE, json!({}));
     (d, n)
 }
@@ -412,7 +412,7 @@ fn a_dynamic_symbol_whose_overrides_would_place_too_many_objects_is_refused_befo
     // with a gradient, which places each in nine clip groups.
     let (d, mut n) = sliced(source::MAX_WORK / 20, || Paint::solid(Color::BLACK));
     n.extras_mut().symbol_overrides = (0..source::MAX_WORK / 20)
-        .map(|i| vectorcraft_doc::SymbolOverride { path: vec![i as u32], fill: Some(gradient()), ..Default::default() })
+        .map(|i| vansoncraft_doc::SymbolOverride { path: vec![i as u32], fill: Some(gradient()), ..Default::default() })
         .collect();
     let err = validate_three_d_in(Some(&d), &n, EXTRUDE, &json!({})).unwrap_err();
     assert!(err.contains("hold too many objects"), "{err}");
@@ -468,7 +468,7 @@ const MASK_ART: NodeId = NodeId(900);
 /// `n` with an opacity mask of white art covering `r`.
 fn masked_by(mut n: Node, r: Rect) -> Node {
     let art = Node::path(MASK_ART, shapes::rectangle(r), Appearance::basic(Paint::solid(Color::WHITE), Paint::None, 0.0));
-    n.extras_mut().mask = Some(Box::new(vectorcraft_doc::OpacityMask::new(art, true)));
+    n.extras_mut().mask = Some(Box::new(vansoncraft_doc::OpacityMask::new(art, true)));
     n
 }
 

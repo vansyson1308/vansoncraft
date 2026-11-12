@@ -3,7 +3,7 @@ use super::{
     Affine, Document, EngineError, NodeId, OrientedBox, Point, Rect, Result, Scaling, Session, Value, Vec2, bad, check_numbers, check_switches,
     effects, has_multi, ok, selected_roots, str_param,
 };
-use vectorcraft_doc::{NodeKind, TextKind};
+use vansoncraft_doc::{NodeKind, TextKind};
 
 impl Session {
     /// The bounds of `ids` the Transform panel and the bounding box measure: with Use Preview
@@ -54,7 +54,7 @@ impl Measure {
                 TextKind::Area { .. } => self.area,
                 TextKind::OnPath { .. } => false,
             }
-            && let Some(ink) = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t).ink_bounds()
+            && let Some(ink) = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), t).ink_bounds()
         {
             let r = t.xf.transform_rect_bbox(ink);
             return Some(if self.preview { r.inflate(t.char_stroke_outset(), t.char_stroke_outset()) } else { r });
@@ -138,7 +138,7 @@ fn align_to<'a>(s: &Session, p: &'a Value) -> Option<&'a str> {
 }
 
 /// The key guide `object.align` lines the objects up on (aligning to the key with one set,
-/// [`vectorcraft_doc::Selection::key_guide`]): its position, and whether it is vertical.
+/// [`vansoncraft_doc::Selection::key_guide`]): its position, and whether it is vertical.
 fn key_guide(s: &Session, p: &Value) -> Option<(f64, bool)> {
     let st = s.doc().ok()?;
     let g = st.doc.ruler_guide(st.selection.key_guide?)?;

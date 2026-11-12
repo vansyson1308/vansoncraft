@@ -10,7 +10,7 @@ contours as overlappings, accented and lost (SP-VIII-9..11). Shade only to expla
 lines in an easy direction; curve them for fullness, run them down the form for hardness, cross them
 for the dark next to the light; never scribble (SP-VIII-12..16).
 
-**With VectorCraft.**
+**With VansonCraft.**
 - Curves: draw with few anchors at the extremes and inflections, handles along the tangent
   (`draw_path` points with absolute `in`/`out`). `study.lines {ids}` reports inflections, corners,
   straight/curved share and curvature variation; a curve with many inflections it did not need

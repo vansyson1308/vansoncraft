@@ -10,8 +10,8 @@ use std::sync::{Arc, OnceLock};
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use vectorcraft_color::{BlendMode, Color, Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop, Paint};
-use vectorcraft_geom::Point;
+use vansoncraft_color::{BlendMode, Color, Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop, Paint};
+use vansoncraft_geom::Point;
 
 use crate::{
     Appearance, AppearanceItem, Arrowhead, Dash, Document, Effect, FillLayer, GraphicStyle, Knockout, LineCap, LineJoin, PatternDef, StrokeAlign,

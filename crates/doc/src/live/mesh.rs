@@ -379,7 +379,7 @@ fn top_object_corner_anchor(h_in: Point, a: Point, h_out: Point) -> bool {
 /// either end. `order` gives where each segment's first anchor and the segment itself come in the
 /// outline as drawn, which may run the other way; on a tie the one met first there wins.
 fn top_object_corner(segs: &[(CubicBez, bool)], order: &[(usize, usize)], r: Rect, q: Point) -> f64 {
-    use vectorcraft_geom::kurbo::ParamCurveNearest;
+    use vansoncraft_geom::kurbo::ParamCurveNearest;
     let n = segs.len();
     if n == 0 {
         return 0.0;
@@ -731,7 +731,7 @@ impl Outline {
 
     /// The place on the outline nearest `q`.
     fn nearest(&self, q: Point) -> f64 {
-        use vectorcraft_geom::kurbo::ParamCurveNearest;
+        use vansoncraft_geom::kurbo::ParamCurveNearest;
         let mut best = (f64::INFINITY, 0.0);
         for (i, c) in self.segs.iter().enumerate() {
             let near = c.nearest(q, 1e-9);
@@ -771,7 +771,7 @@ impl Outline {
         // Both ways: the outline's points from the cubic, and the cubic's points from the outline.
         // The outline is checked at even steps and at every anchor inside, so a spike or a notch
         // narrower than a step is not missed.
-        use vectorcraft_geom::kurbo::ParamCurveNearest;
+        use vansoncraft_geom::kurbo::ParamCurveNearest;
         let mut at: Vec<f64> = (0..=CHECK_POINTS).map(|i| len * i as f64 / CHECK_POINTS as f64).chain(anchors.iter().map(|(o, _)| *o)).collect();
         at.sort_by(f64::total_cmp);
         let line: Vec<Point> = at.iter().map(|o| self.point(a + o)).collect();
@@ -1486,7 +1486,7 @@ impl GradientMesh {
     /// The point of the mesh's outer edge nearest `p`: its squared distance from `p`, and its
     /// boundary patch and local (u, v).
     fn nearest_edge(&self, p: Point) -> Option<(f64, usize, usize, f64, f64)> {
-        use vectorcraft_geom::kurbo::ParamCurveNearest;
+        use vansoncraft_geom::kurbo::ParamCurveNearest;
         let (rows, cols) = (self.rows as usize, self.cols as usize);
         let mut best: Option<(f64, usize, usize, f64, f64)> = None;
         let mut take = |e: CubicBez, at: (usize, usize, Option<f64>, Option<f64>)| {
@@ -1672,7 +1672,7 @@ impl GradientMesh {
 
 /// Union of the geometric bounds of `nodes`.
 pub fn nodes_bounds(nodes: &[Arc<Node>]) -> Option<Rect> {
-    nodes.iter().fold(None, |acc, c| vectorcraft_geom::union_opt(acc, c.geometric_bounds()))
+    nodes.iter().fold(None, |acc, c| vansoncraft_geom::union_opt(acc, c.geometric_bounds()))
 }
 
 /// A `(rows+1)×(cols+1)` grid over `r` (row-major).

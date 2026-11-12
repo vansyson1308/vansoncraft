@@ -5,7 +5,7 @@
 //! [`MAX_CONSOLE_LINES`] lines and [`MAX_CONSOLE_BYTES`] of text, dropping its oldest lines first,
 //! and a line holds at most [`MAX_LINE_BYTES`], cut at a character boundary and ended with
 //! [`CUT_MARK`]. A script's name in its lines is cut the same way to [`MAX_NAME_BYTES`]. These are
-//! VectorCraft's own limits. A line break is a line feed, a carriage
+//! VansonCraft's own limits. A line break is a line feed, a carriage
 //! return or the two together. Other control characters show as their Unicode Control Pictures
 //! (U+2400 to U+2421), and the line and paragraph separators as U+2424.
 
@@ -40,7 +40,7 @@ pub enum Ending {
     Limit,
     /// `script.stop`, Stop or a cancel from the caller.
     Stopped,
-    /// A fault inside VectorCraft.
+    /// A fault inside VansonCraft.
     Internal,
 }
 

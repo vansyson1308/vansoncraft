@@ -17,7 +17,7 @@ mod tests;
 use std::cell::Cell;
 
 use kurbo::{BezPath, ParamCurve, PathEl, Point};
-use vectorcraft_geom::{FillRule, PathData, SubPath};
+use vansoncraft_geom::{FillRule, PathData, SubPath};
 
 use crate::{BoolOp, DEFAULT_PRECISION, PathOpsError, try_boolean, try_unite_all};
 
@@ -167,7 +167,7 @@ struct Contour {
 
 /// The outlines of `region` (an area with no overlaps) followed within a tolerance set by the
 /// bridge width: a twentieth of it, from 0.002 to 0.25 pt, raised for a curve that would need more
-/// than [`vectorcraft_geom::MAX_FLATTEN_PER_CURVE`] segments. Art reaching past
+/// than [`vansoncraft_geom::MAX_FLATTEN_PER_CURVE`] segments. Art reaching past
 /// [`MAX_STENCIL_EXTENT`] is refused.
 fn contours(region: &PathData, width: f64) -> Result<Vec<Contour>, PathOpsError> {
     if !within_extent(&region.to_bezpath()) {
@@ -263,7 +263,7 @@ fn follow(bp: &BezPath, tolerance: f64, room: usize) -> Result<Vec<Point>, PathO
             points.push(seg.start());
         }
         let mut over = false;
-        vectorcraft_geom::flatten([PathEl::MoveTo(seg.start()), seg.as_path_el()], tolerance, |el| match el {
+        vansoncraft_geom::flatten([PathEl::MoveTo(seg.start()), seg.as_path_el()], tolerance, |el| match el {
             PathEl::LineTo(p) if points.len() < limit => points.push(p),
             PathEl::LineTo(_) => over = true,
             _ => {}

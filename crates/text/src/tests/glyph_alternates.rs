@@ -4,7 +4,7 @@
 //! Kufi Murabba PIIIX).
 
 use kurbo::Point;
-use vectorcraft_doc::{CharStyle, TextRun};
+use vansoncraft_doc::{CharStyle, TextRun};
 
 use crate::test_fonts::{JOINING_ALTERNATES_FAMILY, JOINING_LETTERS, joining_alternates_font, source_sans_gid};
 use crate::*;

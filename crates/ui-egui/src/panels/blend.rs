@@ -10,11 +10,11 @@
 
 use egui::Ui;
 use serde_json::{Value, json};
-use vectorcraft_doc::NodeKind;
-use vectorcraft_doc::live::BlendSpineMode;
+use vansoncraft_doc::NodeKind;
+use vansoncraft_doc::live::BlendSpineMode;
 
 use super::selection_len;
-use crate::VectorcraftApp;
+use crate::VansoncraftApp;
 use crate::dialogs::blend_options::{SPACING, orientation_button};
 use crate::widgets;
 
@@ -28,7 +28,7 @@ const FIELD_W: f32 = 72.0;
 
 /// A row of flat buttons sharing the row's width, each (label, command): a click runs the command,
 /// and a button whose command is unavailable is dimmed.
-fn buttons(app: &mut VectorcraftApp, ui: &mut Ui, row: &[(&str, &str)]) {
+fn buttons(app: &mut VansoncraftApp, ui: &mut Ui, row: &[(&str, &str)]) {
     let gap = ui.spacing().item_spacing.x;
     let n = row.len() as f32;
     let width = ((ui.available_width() - gap * (n - 1.0)) / n).max(48.0);
@@ -44,14 +44,14 @@ fn buttons(app: &mut VectorcraftApp, ui: &mut Ui, row: &[(&str, &str)]) {
 
 /// Can `cmd` run on the selection? Make needs two or more objects, the other commands need a
 /// selected blend, and Reverse Spine needs every selected blend to have a spine.
-fn available(app: &VectorcraftApp, cmd: &str) -> bool {
+fn available(app: &VansoncraftApp, cmd: &str) -> bool {
     crate::menus::enabled(app, cmd)
         && (cmd != "object.blend.make" || selection_len(app) >= 2)
         && (cmd != "object.blend.reverseSpine" || !selects_blend_without_spine(app))
 }
 
 /// Is a blend made without a spine selected?
-fn selects_blend_without_spine(app: &VectorcraftApp) -> bool {
+fn selects_blend_without_spine(app: &VansoncraftApp) -> bool {
     let Ok(st) = app.session.doc() else { return false };
     st.selection.objects.iter().any(|id| matches!(st.doc.node(*id).map(|n| &n.kind), Some(NodeKind::Blend { spec, .. }) if spec.no_spine))
 }
@@ -68,7 +68,7 @@ fn spacing_params(mode: &str, steps: f64, distance: f64) -> Value {
 
 /// Spacing and Orientation, as `object.blend.info` reports them; a change runs
 /// `object.blend.options`.
-fn settings(app: &mut VectorcraftApp, ui: &mut Ui) {
+fn settings(app: &mut VansoncraftApp, ui: &mut Ui) {
     let info = app.session.execute("object.blend.info", &json!({})).unwrap_or_default();
     let unit = app.session.general_unit();
     let mode = info["spacing"].as_str().unwrap_or("smooth");
@@ -144,7 +144,7 @@ fn settings(app: &mut VectorcraftApp, ui: &mut Ui) {
 
 /// Create Spine: whether new blends get a spine. It shows the setting new blends take, whatever is
 /// selected, and a change runs `object.blend.createSpine`; blends already made keep theirs.
-fn create_spine(app: &mut VectorcraftApp, ui: &mut Ui) {
+fn create_spine(app: &mut VansoncraftApp, ui: &mut Ui) {
     let current = app.session.prefs.blend_options.unwrap_or_default().create_spine;
     let modes = BlendSpineMode::ALL;
     let labels = [tl!("Auto"), tl!("Always"), tl!("Never")];
@@ -162,7 +162,7 @@ fn create_spine(app: &mut VectorcraftApp, ui: &mut Ui) {
     }
 }
 
-pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn show(app: &mut VansoncraftApp, ui: &mut Ui) {
     let blend = crate::menus::enabled(app, "object.blend.release");
     buttons(app, ui, &[(tl!("Make"), "object.blend.make")]);
     create_spine(app, ui);

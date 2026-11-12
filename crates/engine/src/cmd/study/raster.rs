@@ -6,9 +6,9 @@
 //! bands of L*; the defaults split 0–100 into equal steps.
 
 use serde_json::{Value, json};
-use vectorcraft_geom::{Affine, Rect};
-use vectorcraft_render::Rendered;
-use vectorcraft_render::encode::{RasterExportOptions, RasterFormat};
+use vansoncraft_geom::{Affine, Rect};
+use vansoncraft_render::Rendered;
+use vansoncraft_render::encode::{RasterExportOptions, RasterFormat};
 
 use super::{flag, num, r3, whole};
 use crate::cmd::bad;
@@ -70,7 +70,7 @@ pub(super) fn lightness(s: &Session, p: &Value, c: &str, default_side: u64, max_
     let region = region_param(s, p, c)?;
     let scale = scale_param(p, region, default_side, max_side, c)?;
     let show_templates = flag(p, "showTemplates", c)?;
-    let (w, h) = vectorcraft_render::raster_size(region, scale).map_err(|e| bad(c, e))?;
+    let (w, h) = vansoncraft_render::raster_size(region, scale).map_err(|e| bad(c, e))?;
     let doc = &s.doc()?.doc;
     let mut opts = RasterExportOptions { background: Some([255; 3]), ..Default::default() }.render_options(RasterFormat::Png);
     if show_templates {
@@ -79,9 +79,9 @@ pub(super) fn lightness(s: &Session, p: &Value, c: &str, default_side: u64, max_
     }
     let (full, _) = crate::cmd::place::document::full_documents(doc);
     let view = Affine::scale(scale) * Affine::translate((-region.x0, -region.y0));
-    let img = vectorcraft_render::Renderer::new().render(&full, w, h, view, &opts);
+    let img = vansoncraft_render::Renderer::new().render(&full, w, h, view, &opts);
     // A cancelled render stops drawing: the picture is not whole.
-    vectorcraft_doc::cancel::check()?;
+    vansoncraft_doc::cancel::check()?;
     let rgba = img.to_straight();
     let lut = linear_lut();
     let l = rgba.as_chunks::<4>().0.iter().map(|px| lstar(&lut, px)).collect();
@@ -190,7 +190,7 @@ fn masses(group: &[u8], width: usize, height: usize, levels: usize, min: usize) 
 /// A PNG of `width` × `height` grey or RGB pixels, as base64.
 fn png_base64(width: u32, height: u32, rgba: Vec<u8>) -> Result<String> {
     let png = Rendered { width, height, pixels: rgba }.to_png().map_err(EngineError::Other)?;
-    Ok(vectorcraft_format::base64_encode(&png))
+    Ok(vansoncraft_format::base64_encode(&png))
 }
 
 fn region_json(r: Rect) -> Value {

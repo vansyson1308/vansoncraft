@@ -2,11 +2,11 @@
 //! https://www.w3.org/TR/css-masking-1/#ClipPathElement: `<text>` and `<use>` are clip path
 //! content).
 
-use vectorcraft_color::Paint;
-use vectorcraft_doc::{Document, Node, NodeKind, TextKind};
-use vectorcraft_geom::kurbo::Shape;
-use vectorcraft_geom::{Point, Rect};
-use vectorcraft_svg::{ExportOptions, export, import, import_with_report};
+use vansoncraft_color::Paint;
+use vansoncraft_doc::{Document, Node, NodeKind, TextKind};
+use vansoncraft_geom::kurbo::Shape;
+use vansoncraft_geom::{Point, Rect};
+use vansoncraft_svg::{ExportOptions, export, import, import_with_report};
 
 fn svg(body: &str) -> String {
     format!(r#"<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="400" height="300">{body}</svg>"#)
@@ -30,7 +30,7 @@ fn clip_group(n: &Node) -> (&Node, &[std::sync::Arc<Node>]) {
 
 /// The bounds of the region a clipping path clips to.
 fn clip_bounds(clip: &Node) -> Rect {
-    let (bp, _) = vectorcraft_effects::clip_outline(clip).expect("the clipping path clips to something");
+    let (bp, _) = vansoncraft_effects::clip_outline(clip).expect("the clipping path clips to something");
     bp.bounding_box()
 }
 
@@ -122,7 +122,7 @@ fn a_text_clip_path_with_a_clip_rule_or_a_clip_of_its_own_clips_by_its_outlines(
     let (clip, _) = clip_group(&top(&d)[0]);
     let shapes = clip.clip_shapes(None);
     assert_eq!(shapes.len(), 1);
-    assert_eq!(shapes[0].1, vectorcraft_geom::FillRule::EvenOdd);
+    assert_eq!(shapes[0].1, vansoncraft_geom::FillRule::EvenOdd);
 }
 
 #[test]
@@ -333,7 +333,7 @@ fn style_rules_for_paths_do_not_reach_a_text_in_a_clip_path() {
     let (clip, _) = clip_group(&top(&d)[0]);
     let shapes = clip.clip_shapes(None);
     assert_eq!(shapes.len(), 1);
-    assert_eq!(shapes[0].1, vectorcraft_geom::FillRule::EvenOdd);
+    assert_eq!(shapes[0].1, vansoncraft_geom::FillRule::EvenOdd);
 }
 
 #[test]

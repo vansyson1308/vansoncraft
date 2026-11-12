@@ -4,14 +4,14 @@
 //! (`panels::navigator`, `canvas::panes`).
 
 use super::*;
-use vectorcraft_engine::Session;
+use vansoncraft_engine::Session;
 
 /// The window, in points of the screen before UI Scaling.
 const WINDOW: egui::Vec2 = vec2(1200.0, 900.0);
 
 /// One canvas frame in a `WINDOW` window at `native` device pixels a point, with the interface
 /// zoomed by `ui_zoom`.
-fn frame(app: &mut VectorcraftApp, ctx: &egui::Context, (native, ui_zoom): (f32, f32), events: Vec<egui::Event>) {
+fn frame(app: &mut VansoncraftApp, ctx: &egui::Context, (native, ui_zoom): (f32, f32), events: Vec<egui::Event>) {
     ctx.set_zoom_factor(ui_zoom);
     let mut input = egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(Pos2::ZERO, WINDOW / ui_zoom)), events, ..Default::default() };
     input.viewports.entry(egui::ViewportId::ROOT).or_default().native_pixels_per_point = Some(native);
@@ -21,10 +21,10 @@ fn frame(app: &mut VectorcraftApp, ctx: &egui::Context, (native, ui_zoom): (f32,
 
 /// A 512 × 512 pt document shown at `native` device pixels a point and UI Scaling `ui_zoom`, with a
 /// controlled render worker, and the receiver of the frames it is asked to render.
-fn shown(native: f32, ui_zoom: f32) -> (VectorcraftApp, egui::Context, std::sync::mpsc::Receiver<crate::render_worker::Job>) {
+fn shown(native: f32, ui_zoom: f32) -> (VansoncraftApp, egui::Context, std::sync::mpsc::Receiver<crate::render_worker::Job>) {
     let ctx = egui::Context::default();
     crate::theme::install_fonts(&ctx);
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 512, "height": 512})).unwrap();
     app.canvas.worker_started = true;
     let (worker, jobs, _done) = crate::render_worker::Worker::test_channel();
@@ -125,7 +125,7 @@ fn a_click_at_the_true_size_position_selects_the_object_drawn_there_at_every_ui_
         frame(&mut app, &ctx, (native, ui_zoom), vec![button(true)]);
         frame(&mut app, &ctx, (native, ui_zoom), vec![button(false)]);
         let selected = app.session.active().unwrap().selection.objects.clone();
-        assert_eq!(selected, vec![vectorcraft_doc::NodeId(id)], "{at}: a click at {p:?}");
+        assert_eq!(selected, vec![vansoncraft_doc::NodeId(id)], "{at}: a click at {p:?}");
         let device = rendered(&jobs) * square;
         let drawn = rect.min + vec2(device.x as f32, device.y as f32) / ppp;
         assert!((drawn - p).length() * ppp < 1.0, "{at}: drawn at {drawn:?}, not {p:?}");

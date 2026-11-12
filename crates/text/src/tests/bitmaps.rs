@@ -4,7 +4,7 @@
 use kurbo::{Point, Rect};
 use skrifa::MetadataProvider;
 use skrifa::instance::{LocationRef, Size};
-use vectorcraft_doc::CharStyle;
+use vansoncraft_doc::CharStyle;
 
 use crate::test_fonts::{COLOUR_CBDT_BEARINGS, COLOUR_CHAR, COLOUR_PPEM, colour_bitmap_family, colour_bitmap_font};
 use crate::*;

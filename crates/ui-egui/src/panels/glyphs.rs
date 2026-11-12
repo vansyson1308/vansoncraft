@@ -14,12 +14,12 @@ use std::collections::HashMap;
 
 use egui::{Color32, Sense, Stroke, StrokeKind, Ui, vec2};
 use serde_json::json;
-use vectorcraft_doc::{CharStyle, NodeId, NodeKind};
-use vectorcraft_geom::{Affine, BezPath, PathEl};
-use vectorcraft_text::FontDb;
+use vansoncraft_doc::{CharStyle, NodeId, NodeKind};
+use vansoncraft_geom::{Affine, BezPath, PathEl};
+use vansoncraft_text::FontDb;
 
 use super::{pstate, set_pstate};
-use crate::VectorcraftApp;
+use crate::VansoncraftApp;
 use crate::theme::Tokens;
 use crate::widgets::{self, menu_item};
 
@@ -32,7 +32,7 @@ const CELL_DEFAULT: usize = 2;
 /// The grid step in [`crate::state::UiState::glyphs_preview`]. `0` means [`CELL_DEFAULT`]; a
 /// stored step is `index + 1`. A value past the steps (a hand-edited preferences file) is the
 /// default too.
-fn cell_index(app: &VectorcraftApp) -> usize {
+fn cell_index(app: &VansoncraftApp) -> usize {
     match usize::from(app.ui.glyphs_preview) {
         0 => CELL_DEFAULT,
         n if n <= CELL_STEPS.len() => n - 1,
@@ -40,7 +40,7 @@ fn cell_index(app: &VectorcraftApp) -> usize {
     }
 }
 
-fn set_cell_index(app: &mut VectorcraftApp, index: usize) {
+fn set_cell_index(app: &mut VansoncraftApp, index: usize) {
     let index = index.min(CELL_STEPS.len() - 1);
     // `index + 1` is at most `CELL_STEPS.len()` (7), which fits in a `u8`.
     app.ui.glyphs_preview = (index + 1) as u8;
@@ -78,7 +78,7 @@ thread_local! {
 pub(crate) fn rasterize(path: &BezPath, w: usize, h: usize) -> Vec<u8> {
     let mut edges: Vec<(f64, f64, f64, f64)> = vec![];
     let (mut start, mut last) = (None, (0.0, 0.0));
-    vectorcraft_geom::kurbo::flatten(path, 0.1, |el| match el {
+    vansoncraft_geom::kurbo::flatten(path, 0.1, |el| match el {
         PathEl::MoveTo(p) => {
             if let Some(s) = start.replace((p.x, p.y)) {
                 edges.push((last.0, last.1, s.0, s.1));
@@ -133,7 +133,7 @@ pub(crate) fn rasterize(path: &BezPath, w: usize, h: usize) -> Vec<u8> {
     acc.into_iter().map(|v| (v.clamp(0.0, 1.0) * 255.0).round() as u8).collect()
 }
 
-fn glyph_texture(ctx: &egui::Context, face: &vectorcraft_text::FontFace, gid: u32, px: u32) -> egui::TextureHandle {
+fn glyph_texture(ctx: &egui::Context, face: &vansoncraft_text::FontFace, gid: u32, px: u32) -> egui::TextureHandle {
     let key = (face.id(), gid, px);
     if let Some(t) = TEX.with(|c| c.borrow().get(&key).cloned()) {
         return t;
@@ -164,7 +164,7 @@ fn glyph_texture(ctx: &egui::Context, face: &vectorcraft_text::FontFace, gid: u3
 /// one before its caret. Public behaviour: the Glyphs panel shows the selected character's glyph
 /// (the overview page cited at [`CELL_STEPS`]). Walks the runs, not the characters, so it stays
 /// cheap on every frame.
-fn selected_char(app: &VectorcraftApp) -> Option<char> {
+fn selected_char(app: &VansoncraftApp) -> Option<char> {
     selected_target(app).map(|t| t.ch)
 }
 
@@ -177,7 +177,7 @@ struct Target<'a> {
     style: &'a CharStyle,
 }
 
-fn selected_target(app: &VectorcraftApp) -> Option<Target<'_>> {
+fn selected_target(app: &VansoncraftApp) -> Option<Target<'_>> {
     let (id, a, b) = super::character::text_editing(app)?;
     let NodeKind::Text(t) = &app.session.active()?.doc.node(id)?.kind else { return None };
     let (at, range) = (a.min(b), a != b);
@@ -199,7 +199,7 @@ fn selected_target(app: &VectorcraftApp) -> Option<Target<'_>> {
 }
 
 /// Insert `ch` at the Type tool's caret, else append it to the selected text; whether it succeeded.
-fn insert(app: &mut VectorcraftApp, ctx: &egui::Context, ch: char) -> bool {
+fn insert(app: &mut VansoncraftApp, ctx: &egui::Context, ch: char) -> bool {
     let s = ch.to_string();
     if app.session.tool_wants_text() {
         let v = app.view_info();
@@ -222,13 +222,13 @@ fn insert(app: &mut VectorcraftApp, ctx: &egui::Context, ch: char) -> bool {
 }
 
 /// Browse and insert glyphs from the chosen font, with font controls below the glyph grid.
-pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn show(app: &mut VansoncraftApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let db = FontDb::global();
     let current = super::character::text_style(app).map(|(s, _)| (s.font_family, s.font_style));
     // The panel browses the current text's font unless another font was picked here.
     let picked: Option<(String, String)> = pstate(ui.ctx(), "gl-font");
-    let (family, style) = picked.or(current).unwrap_or_else(|| (vectorcraft_text::FALLBACK_FAMILY.to_string(), "Regular".to_string()));
+    let (family, style) = picked.or(current).unwrap_or_else(|| (vansoncraft_text::FALLBACK_FAMILY.to_string(), "Regular".to_string()));
     let subset: usize = pstate(ui.ctx(), "gl-subset");
     let (_, lo, hi) = SUBSETS[subset.min(SUBSETS.len() - 1)];
     let w = ui.available_width();
@@ -373,7 +373,7 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
 }
 
 /// The family and style menus of the font the panel browses, and Zoom Out and Zoom In.
-fn font_row(app: &mut VectorcraftApp, ui: &mut Ui, family: &str, style: &str, w: f32) {
+fn font_row(app: &mut VansoncraftApp, ui: &mut Ui, family: &str, style: &str, w: f32) {
     let db = FontDb::global();
     widgets::panel_footer_space(ui, 24.0);
     ui.horizontal(|ui| {
@@ -430,7 +430,7 @@ enum Pick {
 }
 
 /// The grid of Show › Alternates for Current Selection: the alternate glyphs of the Type tool's
-/// selected character as it stands in its word ([`vectorcraft_text::alternates_in_context`]: a
+/// selected character as it stands in its word ([`vansoncraft_text::alternates_in_context`]: a
 /// medial letter lists its medial form's alternates), in the face the text is set in, whatever font
 /// the panel browses, with that face's name under the grid. The glyph the shaper makes for the
 /// character with none of its own alternate features comes first, and the glyph the character is
@@ -438,7 +438,7 @@ enum Pick {
 /// that character alone (`text.setRangeStyle`, `salt=2`), as one undo step, so the text stays real
 /// text that joins its neighbors. A glyph no feature draws there replaces the character's glyph
 /// instead (`text.setGlyphAlternate`), and its tooltip says that it may not join.
-fn alternates(app: &mut VectorcraftApp, ui: &mut Ui, w: f32) {
+fn alternates(app: &mut VansoncraftApp, ui: &mut Ui, w: f32) {
     let t = Tokens::get(ui.ctx());
     let db = FontDb::global();
     let note = |ui: &mut Ui, text: &str| {
@@ -540,12 +540,12 @@ fn alternates(app: &mut VectorcraftApp, ui: &mut Ui, w: f32) {
 /// turned off, a glyph choice is taken away); a glyph no feature draws through
 /// `text.setGlyphAlternate`. The default glyph, or a variant the character already has, changes
 /// nothing.
-fn apply_alternate(app: &mut VectorcraftApp, id: NodeId, bytes: (usize, usize), features: &[String], has_choice: bool, pick: Pick) {
+fn apply_alternate(app: &mut VansoncraftApp, id: NodeId, bytes: (usize, usize), features: &[String], has_choice: bool, pick: Pick) {
     let (cmd, params) = match pick {
         Pick::Glyph(gid) => ("text.setGlyphAlternate", json!({"id": id.0, "start": bytes.0, "gid": gid})),
         Pick::Default | Pick::Feature(_) => {
             let tag = if let Pick::Feature(tag) = &pick { Some(tag.as_str()) } else { None };
-            let changes = vectorcraft_text::alternate_changes(features, tag);
+            let changes = vansoncraft_text::alternate_changes(features, tag);
             if changes.is_empty() && !has_choice {
                 return;
             }
@@ -583,11 +583,11 @@ struct FitTarget {
     family: String,
     available: bool,
     /// The alternates of the character in its word, from the face of its text.
-    found: Option<vectorcraft_text::ContextAlternates>,
+    found: Option<vansoncraft_text::ContextAlternates>,
 }
 
 impl Fit {
-    fn of(app: &VectorcraftApp, ui: &Ui, face: &vectorcraft_text::FontFace) -> Self {
+    fn of(app: &VansoncraftApp, ui: &Ui, face: &vansoncraft_text::FontFace) -> Self {
         let db = FontDb::global();
         let target = selected_target(app).map(|t| {
             let text_face = db.style_face(t.style).filter(|_| db.has_family(&t.style.font_family));
@@ -611,7 +611,7 @@ impl Fit {
     /// in its word, in the face the selected text is set in; or a glyph no feature reaches that
     /// the font's naming does not give to another letter (`A.salt` for `A`, `s.ss1` in a font
     /// with no `ss01`), which is drawn as a glyph choice. `None` when it is not.
-    fn pick(&self, face: &vectorcraft_text::FontFace, gid: u32) -> Option<Pick> {
+    fn pick(&self, face: &vansoncraft_text::FontFace, gid: u32) -> Option<Pick> {
         let t = self.target.as_ref().filter(|t| t.available)?;
         let found = t.found.as_ref().filter(|f| f.font_id == self.face_id)?;
         if gid == found.default {
@@ -626,7 +626,7 @@ impl Fit {
     /// Why [`Self::pick`] finds nothing for glyph `gid` of `face`, in the user's words: what the
     /// glyph belongs to (its letter and place in a word, from the font's own substitutions) and what
     /// the selection is, or that nothing is selected.
-    fn why(&self, face: &vectorcraft_text::FontFace, gid: u32) -> String {
+    fn why(&self, face: &vansoncraft_text::FontFace, gid: u32) -> String {
         let Some(t) = &self.target else { return tl!("Select one character with the Type tool first.").to_string() };
         if !t.available {
             return tl!("The selected character's font is not available.").to_string();
@@ -648,10 +648,10 @@ impl Fit {
         };
         let Some(origin) = face.glyph_origin(gid) else { return not_alternate() };
         let place = match origin.position() {
-            Some(vectorcraft_text::JoiningPosition::Initial) => Some(tl!("at the start of a word")),
-            Some(vectorcraft_text::JoiningPosition::Medial) => Some(tl!("in the middle of a word")),
-            Some(vectorcraft_text::JoiningPosition::Final) => Some(tl!("at the end of a word")),
-            Some(vectorcraft_text::JoiningPosition::Isolated) => Some(tl!("standing alone")),
+            Some(vansoncraft_text::JoiningPosition::Initial) => Some(tl!("at the start of a word")),
+            Some(vansoncraft_text::JoiningPosition::Medial) => Some(tl!("in the middle of a word")),
+            Some(vansoncraft_text::JoiningPosition::Final) => Some(tl!("at the end of a word")),
+            Some(vansoncraft_text::JoiningPosition::Isolated) => Some(tl!("standing alone")),
             None => None,
         };
         let (Some(place), true) = (place, origin.ch != t.ch) else { return not_alternate() };
@@ -670,7 +670,7 @@ impl Fit {
 
     /// Apply `pick` to the selected character, as a double-click on a variant of Show › Alternates
     /// for Current Selection does.
-    fn apply(&self, app: &mut VectorcraftApp, pick: Pick) {
+    fn apply(&self, app: &mut VansoncraftApp, pick: Pick) {
         let Some(t) = &self.target else { return };
         super::character::end_typing(app);
         apply_alternate(app, t.id, (t.byte, t.byte + t.ch.len_utf8()), &t.features, t.has_choice, pick);
@@ -678,7 +678,7 @@ impl Fit {
 }
 
 /// `name` of glyph `gid`, or `gid N`.
-fn glyph_label(face: &vectorcraft_text::FontFace, gid: u32) -> String {
+fn glyph_label(face: &vansoncraft_text::FontFace, gid: u32) -> String {
     face.glyph_name(gid).unwrap_or_else(|| format!("gid {gid}"))
 }
 
@@ -687,7 +687,7 @@ fn glyph_label(face: &vectorcraft_text::FontFace, gid: u32) -> String {
 /// presentation form itself is a fixed shape that neither joins its neighbors nor is joined by
 /// them; the letter takes the form its place in the word asks for, so the word stays joined.
 /// `None` when `c` is not such a form in this font.
-fn base_letter(face: &vectorcraft_text::FontFace, c: char, gid: u32) -> Option<char> {
+fn base_letter(face: &vansoncraft_text::FontFace, c: char, gid: u32) -> Option<char> {
     if !matches!(c, '\u{FB50}'..='\u{FDFF}' | '\u{FE70}'..='\u{FEFF}') {
         return None;
     }
@@ -698,7 +698,7 @@ fn base_letter(face: &vectorcraft_text::FontFace, c: char, gid: u32) -> Option<c
 
 /// The tooltip of an encoded glyph (a character): its code point and glyph, and what a
 /// double-click inserts.
-fn encoded_tip(face: &vectorcraft_text::FontFace, c: char, gid: u32) -> String {
+fn encoded_tip(face: &vansoncraft_text::FontFace, c: char, gid: u32) -> String {
     let head = format!("U+{:04X}  {c}  (glyph {gid})", c as u32);
     match base_letter(face, c, gid) {
         Some(base) => format!(
@@ -714,7 +714,7 @@ fn encoded_tip(face: &vectorcraft_text::FontFace, c: char, gid: u32) -> String {
 
 /// Double-click on character `c` of the grid: insert it, or its letter when it is an Arabic
 /// presentation form ([`base_letter`]), which the status says.
-fn insert_character(app: &mut VectorcraftApp, ctx: &egui::Context, face: &vectorcraft_text::FontFace, c: char, gid: u32) {
+fn insert_character(app: &mut VansoncraftApp, ctx: &egui::Context, face: &vansoncraft_text::FontFace, c: char, gid: u32) {
     match base_letter(face, c, gid) {
         Some(base) => {
             if insert(app, ctx, base) {
@@ -732,7 +732,7 @@ fn insert_character(app: &mut VectorcraftApp, ctx: &egui::Context, face: &vector
 
 /// The tooltip of a glyph no character maps (Show › Entire Font): its name from the font, `gid N`
 /// when it has none, its id, and the feature that gives it, if one does.
-fn unencoded_tip(face: &vectorcraft_text::FontFace, gid: u32) -> String {
+fn unencoded_tip(face: &vansoncraft_text::FontFace, gid: u32) -> String {
     let name = face.glyph_name(gid).unwrap_or_else(|| format!("gid {gid}"));
     let glyph = crate::i18n::fmt(tl!("glyph {id}"), &[("id", &gid.to_string())]);
     match face.feature_reaching(gid) {
@@ -742,11 +742,11 @@ fn unencoded_tip(face: &vectorcraft_text::FontFace, gid: u32) -> String {
 }
 
 /// The alternates of the character at `byte` of text `id` in its word, and the glyph it is drawn
-/// with ([`vectorcraft_text::alternates_in_context`]). Kept in egui's temporary data until the
+/// with ([`vansoncraft_text::alternates_in_context`]). Kept in egui's temporary data until the
 /// document, the character or the face changes, as [`super::character`] keeps the kerning at the
 /// caret.
-fn alternates_found(app: &VectorcraftApp, ui: &Ui, id: NodeId, byte: usize, face_id: u32) -> Option<vectorcraft_text::ContextAlternates> {
-    type Found = Option<vectorcraft_text::ContextAlternates>;
+fn alternates_found(app: &VansoncraftApp, ui: &Ui, id: NodeId, byte: usize, face_id: u32) -> Option<vansoncraft_text::ContextAlternates> {
+    type Found = Option<vansoncraft_text::ContextAlternates>;
     let state = app.session.active();
     let key = state.map(|s| (s.uid, s.revision, id, byte, face_id));
     let slot = ui.scope_id().with("gl-alternates-found");
@@ -757,7 +757,7 @@ fn alternates_found(app: &VectorcraftApp, ui: &Ui, id: NodeId, byte: usize, face
         return found;
     }
     let found = state.and_then(|s| s.doc.node(id)).and_then(|node| match &node.kind {
-        NodeKind::Text(text) => vectorcraft_text::alternates_in_context(FontDb::global(), text, byte),
+        NodeKind::Text(text) => vansoncraft_text::alternates_in_context(FontDb::global(), text, byte),
         _ => None,
     });
     if let Some(key) = key {
@@ -781,7 +781,7 @@ fn zoom_button(ui: &mut Ui, id: &str, label: &str, tip: &str, enabled: bool) -> 
     resp.on_hover_text(tl!(tip)).clicked() && enabled
 }
 
-pub fn menu(_app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn menu(_app: &mut VansoncraftApp, ui: &mut Ui) {
     if menu_item(ui, tl!("Use the Selected Text's Font"), true, false) {
         set_pstate::<Option<(String, String)>>(ui.ctx(), "gl-font", None);
     }
@@ -804,29 +804,29 @@ mod tests {
 
     use super::*;
 
-    fn shapes(ctx: &egui::Context, app: &mut VectorcraftApp, events: Vec<egui::Event>) -> Vec<Shape> {
+    fn shapes(ctx: &egui::Context, app: &mut VansoncraftApp, events: Vec<egui::Event>) -> Vec<Shape> {
         let raw = egui::RawInput { screen_rect: Some(Rect::from_min_size(Pos2::ZERO, vec2(280.0, 420.0))), events, ..Default::default() };
         let mut out = ctx.run_ui(raw, |ui| show(app, ui));
         out.textures_delta.clear();
         out.shapes.into_iter().map(|c| c.shape).collect()
     }
 
-    fn frame(ctx: &egui::Context, app: &mut VectorcraftApp, events: Vec<egui::Event>) -> (Vec<(String, Pos2)>, Vec<f32>) {
+    fn frame(ctx: &egui::Context, app: &mut VansoncraftApp, events: Vec<egui::Event>) -> (Vec<(String, Pos2)>, Vec<f32>) {
         let shapes = shapes(ctx, app, events);
         (text_anchors(&shapes), square_sides(&shapes))
     }
 
     /// The Type tool editing `text` in a new document.
-    fn editing(text: &str) -> (VectorcraftApp, serde_json::Value) {
-        let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), Default::default());
+    fn editing(text: &str) -> (VansoncraftApp, serde_json::Value) {
+        let mut app = VansoncraftApp::new(vansoncraft_engine::Session::new(), Default::default());
         app.run("file.new", json!({"width": 400, "height": 200})).unwrap();
         app.session.select_tool("type", Default::default()).unwrap();
         let id = app.run("text.create", json!({"x": 20, "y": 50, "text": text})).unwrap()["id"].clone();
-        app.session.apply_actions(vec![vectorcraft_tools::Action::Notify("text.editNew".into())]).unwrap();
+        app.session.apply_actions(vec![vansoncraft_tools::Action::Notify("text.editNew".into())]).unwrap();
         (app, id)
     }
 
-    fn select(app: &mut VectorcraftApp, start: usize, end: usize) {
+    fn select(app: &mut VansoncraftApp, start: usize, end: usize) {
         app.session.set_tool_option("select", &json!({"start": start, "end": end}));
     }
 
@@ -890,7 +890,7 @@ mod tests {
             .unwrap_or_else(|| panic!("{label} missing in {texts:?}"))
     }
 
-    fn click(ctx: &egui::Context, app: &mut VectorcraftApp, at: Pos2) {
+    fn click(ctx: &egui::Context, app: &mut VansoncraftApp, at: Pos2) {
         let button = |pressed| egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
         frame(ctx, app, vec![egui::Event::PointerMoved(at), button(true)]);
         frame(ctx, app, vec![button(false)]);
@@ -958,7 +958,7 @@ mod tests {
     }
 
     /// The panel menu's texts and where each is drawn.
-    fn menu_texts(ctx: &egui::Context, app: &mut VectorcraftApp, events: Vec<egui::Event>) -> Vec<(String, Pos2)> {
+    fn menu_texts(ctx: &egui::Context, app: &mut VansoncraftApp, events: Vec<egui::Event>) -> Vec<(String, Pos2)> {
         let raw = egui::RawInput { screen_rect: Some(Rect::from_min_size(Pos2::ZERO, vec2(280.0, 420.0))), events, ..Default::default() };
         let mut out = ctx.run_ui(raw, |ui| menu(app, ui));
         out.textures_delta.clear();
@@ -966,7 +966,7 @@ mod tests {
     }
 
     /// Choose `label` in the panel menu (its items start with a check mark or spaces).
-    fn choose(ctx: &egui::Context, app: &mut VectorcraftApp, label: &str) {
+    fn choose(ctx: &egui::Context, app: &mut VansoncraftApp, label: &str) {
         let items = menu_texts(ctx, app, vec![]);
         let item = items.iter().find(|(t, _)| t.trim_start_matches(['✓', ' ']) == label);
         let at = item.unwrap_or_else(|| panic!("{label} missing in {items:?}")).1 + vec2(16.0, 4.0);
@@ -975,7 +975,7 @@ mod tests {
         menu_texts(ctx, app, vec![button(false)]);
     }
 
-    fn texts(ctx: &egui::Context, app: &mut VectorcraftApp) -> Vec<String> {
+    fn texts(ctx: &egui::Context, app: &mut VansoncraftApp) -> Vec<String> {
         text_anchors(&shapes(ctx, app, vec![])).into_iter().map(|(t, _)| t).collect()
     }
 
@@ -985,7 +985,7 @@ mod tests {
     /// note, and Show stays on the alternates.
     #[test]
     fn alternates_for_current_selection_lists_and_replaces_the_selected_character() {
-        use vectorcraft_text::test_fonts::{alternates_family, alternates_font, unencoded_glyphs};
+        use vansoncraft_text::test_fonts::{alternates_family, alternates_font, unencoded_glyphs};
         FontDb::global().add_font(alternates_font(true).expect("the test font builds"));
         let [u1, ..] = unencoded_glyphs().expect("unencoded glyphs");
         let (mut app, id) = editing("xay");
@@ -1021,7 +1021,7 @@ mod tests {
         let undo = app.session.active().unwrap().history.undo.len();
         let button = |pressed| egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
         let mut time = 10.0;
-        let mut timed = |app: &mut VectorcraftApp, events: Vec<egui::Event>| {
+        let mut timed = |app: &mut VansoncraftApp, events: Vec<egui::Event>| {
             time += 0.05;
             let screen = Some(Rect::from_min_size(Pos2::ZERO, vec2(280.0, 420.0)));
             let mut out = ctx.run_ui(egui::RawInput { screen_rect: screen, time: Some(time), events, ..Default::default() }, |ui| show(app, ui));
@@ -1033,11 +1033,11 @@ mod tests {
             timed(&mut app, vec![button(false)]);
         }
         assert_eq!(app.session.active().unwrap().history.undo.len(), undo + 1, "status: {}", app.ui.status);
-        let NodeKind::Text(text) = &app.session.active().unwrap().doc.node(vectorcraft_doc::NodeId(id.as_u64().unwrap())).unwrap().kind else {
+        let NodeKind::Text(text) = &app.session.active().unwrap().doc.node(vansoncraft_doc::NodeId(id.as_u64().unwrap())).unwrap().kind else {
             panic!("text")
         };
         assert_eq!(text.plain_text(), "xay");
-        let gids: Vec<u32> = vectorcraft_text::layout(FontDb::global(), text).glyphs.iter().map(|g| g.gid).collect();
+        let gids: Vec<u32> = vansoncraft_text::layout(FontDb::global(), text).glyphs.iter().map(|g| g.gid).collect();
         assert_eq!(gids[1], u1, "the a is drawn with the chosen glyph");
         shapes(&ctx, &mut app, vec![egui::Event::PointerMoved(Pos2::ZERO)]);
         let found = shapes(&ctx, &mut app, vec![]);
@@ -1066,7 +1066,7 @@ mod tests {
     /// not count as an edit leaves the grid as it was, and the next revision finds them again.
     #[test]
     fn alternates_are_found_once_per_revision() {
-        use vectorcraft_text::test_fonts::{alternates_family, alternates_font, unencoded_glyphs};
+        use vansoncraft_text::test_fonts::{alternates_family, alternates_font, unencoded_glyphs};
         FontDb::global().add_font(alternates_font(true).expect("the test font builds"));
         let [u1, ..] = unencoded_glyphs().expect("unencoded glyphs");
         let (mut app, id) = editing("xay");
@@ -1079,10 +1079,10 @@ mod tests {
         let cells = squares(&found);
         assert_eq!(highlighted(&found, &t), [cells[0].center()], "the default glyph is drawn");
         let face = FontDb::global().face(alternates_family(true), "Regular").expect("the test face");
-        let node = vectorcraft_doc::NodeId(id.as_u64().unwrap());
+        let node = vansoncraft_doc::NodeId(id.as_u64().unwrap());
         let state = app.session.active_mut().unwrap();
         let Some(NodeKind::Text(text)) = std::sync::Arc::make_mut(&mut state.doc).node_mut(node).map(|n| &mut n.kind) else { panic!("text") };
-        vectorcraft_text::edit::style_range(&mut text.runs, 1, 2, |st| st.glyph_alternate = Some(face.choice('a', u1)));
+        vansoncraft_text::edit::style_range(&mut text.runs, 1, 2, |st| st.glyph_alternate = Some(face.choice('a', u1)));
         let found = shapes(&ctx, &mut app, vec![]);
         assert_eq!(highlighted(&found, &t), [cells[0].center()], "the same revision keeps what was found");
         app.session.active_mut().unwrap().revision += 1;
@@ -1094,7 +1094,7 @@ mod tests {
     /// first in the grid, so a chosen alternate can be put back.
     #[test]
     fn the_default_glyph_is_listed_when_the_font_leaves_it_out() {
-        use vectorcraft_text::test_fonts::{alternates_family, alternates_font, unencoded_glyphs};
+        use vansoncraft_text::test_fonts::{alternates_family, alternates_font, unencoded_glyphs};
         FontDb::global().add_font(alternates_font(false).expect("the test font builds"));
         let [u1, ..] = unencoded_glyphs().expect("unencoded glyphs");
         let (mut app, id) = editing("xay");
@@ -1114,16 +1114,16 @@ mod tests {
     }
 
     /// Double-click the glyph cell at `at`.
-    fn double_click(ctx: &egui::Context, app: &mut VectorcraftApp, at: Pos2) {
+    fn double_click(ctx: &egui::Context, app: &mut VansoncraftApp, at: Pos2) {
         double_click_in(ctx, app, at, vec2(280.0, 420.0));
     }
 
     /// Double-click the glyph cell at `at` in a panel `size` large.
-    fn double_click_in(ctx: &egui::Context, app: &mut VectorcraftApp, at: Pos2, size: egui::Vec2) {
+    fn double_click_in(ctx: &egui::Context, app: &mut VansoncraftApp, at: Pos2, size: egui::Vec2) {
         let button = |pressed| egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
         // Time only moves forward in one egui context.
         let mut time = ctx.input(|i| i.time) + 10.0;
-        let mut timed = |app: &mut VectorcraftApp, events: Vec<egui::Event>| {
+        let mut timed = |app: &mut VansoncraftApp, events: Vec<egui::Event>| {
             time += 0.05;
             let screen = Some(Rect::from_min_size(Pos2::ZERO, size));
             let mut out = ctx.run_ui(egui::RawInput { screen_rect: screen, time: Some(time), events, ..Default::default() }, |ui| show(app, ui));
@@ -1137,9 +1137,9 @@ mod tests {
     }
 
     /// The glyph ids of the text `id`, in the order of its characters.
-    fn glyph_ids(app: &VectorcraftApp, id: &serde_json::Value) -> Vec<u32> {
+    fn glyph_ids(app: &VansoncraftApp, id: &serde_json::Value) -> Vec<u32> {
         let NodeKind::Text(text) = &app.session.active().unwrap().doc.node(NodeId(id.as_u64().unwrap())).unwrap().kind else { panic!("text") };
-        let mut glyphs = vectorcraft_text::layout(FontDb::global(), text).glyphs;
+        let mut glyphs = vansoncraft_text::layout(FontDb::global(), text).glyphs;
         glyphs.sort_by_key(|g| g.byte);
         glyphs.iter().map(|g| g.gid).collect()
     }
@@ -1149,7 +1149,7 @@ mod tests {
     /// the word keeps its joining forms and the text its characters; undo takes it back.
     #[test]
     fn a_double_click_applies_a_feature_value_to_one_letter_of_a_joined_word() {
-        use vectorcraft_text::test_fonts::{JOINING_ALTERNATES_FAMILY, joining_alternates_font, source_sans_gid};
+        use vansoncraft_text::test_fonts::{JOINING_ALTERNATES_FAMILY, joining_alternates_font, source_sans_gid};
         FontDb::global().add_font(joining_alternates_font().expect("the test font builds"));
         let g = |c| u32::from(source_sans_gid(c).expect("a glyph"));
         let (mut app, id) = editing("\u{628}\u{62A}\u{646}");
@@ -1194,7 +1194,7 @@ mod tests {
     /// A variant no feature draws is still enabled: it replaces the glyph (`text.setGlyphAlternate`).
     #[test]
     fn a_variant_no_feature_draws_replaces_the_glyph() {
-        use vectorcraft_text::test_fonts::{alternates_family, alternates_font};
+        use vansoncraft_text::test_fonts::{alternates_family, alternates_font};
         FontDb::global().add_font(alternates_font(true).expect("the test font builds"));
         let (mut app, id) = editing("xay");
         app.run("text.setRangeStyle", json!({"id": id, "font": alternates_family(true)})).unwrap();
@@ -1221,7 +1221,7 @@ mod tests {
     /// choice validation, even though the isolated character has different alternates.
     #[test]
     fn a_positional_variant_no_feature_draws_replaces_the_glyph() {
-        use vectorcraft_text::test_fonts::{JOINING_ALTERNATES_FAMILY, joining_alternates_font, source_sans_gid};
+        use vansoncraft_text::test_fonts::{JOINING_ALTERNATES_FAMILY, joining_alternates_font, source_sans_gid};
         FontDb::global().add_font(joining_alternates_font().expect("the test font builds"));
         let face = FontDb::global().face(JOINING_ALTERNATES_FAMILY, "Regular").expect("the test face");
         let gid = u32::from(source_sans_gid('d').expect("a glyph"));
@@ -1256,7 +1256,7 @@ mod tests {
     /// Show › Entire Font also lists the glyphs no character maps.
     #[test]
     fn entire_font_lists_the_unencoded_glyphs() {
-        use vectorcraft_text::test_fonts::{JOINING_ALTERNATES_FAMILY, joining_alternates_font};
+        use vansoncraft_text::test_fonts::{JOINING_ALTERNATES_FAMILY, joining_alternates_font};
         FontDb::global().add_font(joining_alternates_font().expect("the test font builds"));
         let (mut app, id) = editing("\u{628}");
         app.run("text.setRangeStyle", json!({"id": id, "font": JOINING_ALTERNATES_FAMILY})).unwrap();
@@ -1281,7 +1281,7 @@ mod tests {
 
     #[test]
     fn zoom_buttons_resize_the_glyph_grid() {
-        let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(vansoncraft_engine::Session::new(), Default::default());
         let ctx = egui::Context::default();
         let (texts, sides) = frame(&ctx, &mut app, vec![]);
         if texts.iter().any(|(t, _)| t.contains("No fonts are available")) {
@@ -1326,7 +1326,7 @@ mod tests {
         assert_eq!(back.glyphs_preview, (CELL_DEFAULT + 2) as u8);
         let old: crate::state::UiState = serde_json::from_value(serde_json::json!({})).unwrap();
         assert_eq!(old.glyphs_preview, 0);
-        let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(vansoncraft_engine::Session::new(), Default::default());
         app.ui.glyphs_preview = back.glyphs_preview;
         assert_eq!(cell_index(&app), CELL_DEFAULT + 1);
         app.ui.glyphs_preview = 99;
@@ -1335,7 +1335,7 @@ mod tests {
     /// The panel tall enough to draw every row of the grid, so each glyph has a cell.
     const TALL: egui::Vec2 = vec2(280.0, 8000.0);
 
-    fn tall_shapes(ctx: &egui::Context, app: &mut VectorcraftApp) -> Vec<Shape> {
+    fn tall_shapes(ctx: &egui::Context, app: &mut VansoncraftApp) -> Vec<Shape> {
         let raw = egui::RawInput { screen_rect: Some(Rect::from_min_size(Pos2::ZERO, TALL)), ..Default::default() };
         let mut out = ctx.run_ui(raw, |ui| show(app, ui));
         out.textures_delta.clear();
@@ -1362,7 +1362,7 @@ mod tests {
     }
 
     /// What a double-click on glyph `gid` of `face` would do to the selection ([`Fit::pick`], [`Fit::why`]).
-    fn verdict(ctx: &egui::Context, app: &VectorcraftApp, face: &vectorcraft_text::FontFace, gid: u32) -> Result<Pick, String> {
+    fn verdict(ctx: &egui::Context, app: &VansoncraftApp, face: &vansoncraft_text::FontFace, gid: u32) -> Result<Pick, String> {
         let mut out = Err(String::new());
         let raw = egui::RawInput { screen_rect: Some(Rect::from_min_size(Pos2::ZERO, TALL)), ..Default::default() };
         let mut frame = ctx.run_ui(raw, |ui| {
@@ -1375,7 +1375,7 @@ mod tests {
 
     /// The cell of glyph `gid` in Show › Entire Font of `face`: the grid lists the characters, then
     /// the glyphs no character maps. Its centre, and the colour its glyph is drawn in.
-    fn entire_font_cell(ctx: &egui::Context, app: &mut VectorcraftApp, face: &vectorcraft_text::FontFace, gid: u32) -> (Pos2, Color32) {
+    fn entire_font_cell(ctx: &egui::Context, app: &mut VansoncraftApp, face: &vansoncraft_text::FontFace, gid: u32) -> (Pos2, Color32) {
         let chars = face.chars().into_iter().filter(|(c, _)| !c.is_control() && !c.is_whitespace()).count();
         let unencoded = face.unencoded_glyphs();
         let cells = inks(&tall_shapes(ctx, app));
@@ -1386,7 +1386,7 @@ mod tests {
 
     /// The owner's Kufi Murabba PIIIX Heavy (`~/Library/Fonts`), in the app's font database; `None`
     /// when it is not installed. A file that is there but gives no face is a failure.
-    fn kufi_heavy() -> Option<std::sync::Arc<vectorcraft_text::FontFace>> {
+    fn kufi_heavy() -> Option<std::sync::Arc<vansoncraft_text::FontFace>> {
         let path = std::path::Path::new(&std::env::var_os("HOME")?).join("Library/Fonts/KufiMurabbaPIIIX-Heavy.ttf");
         if !path.exists() {
             eprintln!("skipped: {} is not installed", path.display());
@@ -1400,12 +1400,12 @@ mod tests {
         Some(face)
     }
 
-    fn gid_named(face: &vectorcraft_text::FontFace, name: &str) -> u32 {
+    fn gid_named(face: &vansoncraft_text::FontFace, name: &str) -> u32 {
         (0..face.glyph_count()).find(|g| face.glyph_name(*g).as_deref() == Some(name)).unwrap_or_else(|| panic!("{name} missing"))
     }
 
     /// The word al-Khwarizmi ending in `letter`, in Kufi Murabba PIIIX Heavy.
-    fn khwarizmi_in_heavy(letter: char) -> (VectorcraftApp, serde_json::Value, usize) {
+    fn khwarizmi_in_heavy(letter: char) -> (VansoncraftApp, serde_json::Value, usize) {
         let word = format!("\u{627}\u{644}\u{62E}\u{648}\u{627}\u{631}\u{632}\u{645}{letter}");
         let (mut app, id) = editing(&word);
         app.run("text.setRangeStyle", json!({"id": id, "font": "Kufi Murabba PIIIX", "style": "Heavy"})).unwrap();
@@ -1506,7 +1506,7 @@ mod tests {
     /// character selected.
     #[test]
     fn entire_font_applies_a_glyph_no_feature_reaches_to_its_letter() {
-        use vectorcraft_text::test_fonts::{alternates_family, alternates_font};
+        use vansoncraft_text::test_fonts::{alternates_family, alternates_font};
         FontDb::global().add_font(alternates_font(true).expect("the test font builds"));
         let face = FontDb::global().face(alternates_family(true), "Regular").expect("the test face");
         let glyph = gid_named(&face, "a.a");
@@ -1518,7 +1518,7 @@ mod tests {
         let plain = glyph_ids(&app, &id);
         // The cell of the glyph and its colour: this font's grid is longer than the panel is tall,
         // but the glyph is in the first rows.
-        let cell_of = |ctx: &egui::Context, app: &mut VectorcraftApp| {
+        let cell_of = |ctx: &egui::Context, app: &mut VansoncraftApp| {
             let chars = face.chars().into_iter().filter(|(c, _)| !c.is_control() && !c.is_whitespace()).count();
             let at = chars + face.unencoded_glyphs().iter().position(|g| *g == glyph).expect("an unencoded glyph");
             let cells = inks(&tall_shapes(ctx, app));
@@ -1585,7 +1585,7 @@ mod tests {
 
     #[test]
     fn an_unlisted_choice_without_gsub_can_be_reset_from_the_default_cell() {
-        use vectorcraft_text::test_fonts::{UNLISTED_VARIABLE_FAMILY, unlisted_variable_font};
+        use vansoncraft_text::test_fonts::{UNLISTED_VARIABLE_FAMILY, unlisted_variable_font};
         let db = FontDb::global();
         db.add_font(unlisted_variable_font().expect("the test font builds"));
         let face = db.face(UNLISTED_VARIABLE_FAMILY, "Regular").expect("the test face");
@@ -1610,7 +1610,7 @@ mod tests {
 
     #[test]
     fn entire_font_applies_an_unlisted_glyph_at_the_selections_variable_axes() {
-        use vectorcraft_text::test_fonts::{UNLISTED_VARIABLE_FAMILY, unlisted_variable_font};
+        use vansoncraft_text::test_fonts::{UNLISTED_VARIABLE_FAMILY, unlisted_variable_font};
         let db = FontDb::global();
         db.add_font(unlisted_variable_font().expect("the test font builds"));
         let base = db.face(UNLISTED_VARIABLE_FAMILY, "Regular").expect("the test face");
@@ -1635,7 +1635,7 @@ mod tests {
 
     #[test]
     fn encoded_characters_normalize_only_arabic_presentation_forms() {
-        use vectorcraft_text::test_fonts::{ALIASED_JOINING_FAMILY, aliased_joining_font};
+        use vansoncraft_text::test_fonts::{ALIASED_JOINING_FAMILY, aliased_joining_font};
         let db = FontDb::global();
         db.add_font(aliased_joining_font().expect("the test font builds"));
         let face = db.face(ALIASED_JOINING_FAMILY, "Regular").expect("the test face");
@@ -1664,12 +1664,12 @@ mod tests {
 
     #[test]
     fn a_normalized_glyph_without_a_text_target_preserves_the_insertion_error() {
-        use vectorcraft_text::test_fonts::{ALIASED_JOINING_FAMILY, aliased_joining_font};
+        use vansoncraft_text::test_fonts::{ALIASED_JOINING_FAMILY, aliased_joining_font};
         let db = FontDb::global();
         db.add_font(aliased_joining_font().expect("the test font builds"));
         let face = db.face(ALIASED_JOINING_FAMILY, "Regular").expect("the test face");
         let chars = face.chars().into_iter().filter(|(c, _)| !c.is_control() && !c.is_whitespace()).collect::<Vec<_>>();
-        let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(vansoncraft_engine::Session::new(), Default::default());
         app.run("file.new", json!({"width": 400, "height": 200})).unwrap();
         let undo = app.session.active().unwrap().history.undo.len();
         let ctx = egui::Context::default();

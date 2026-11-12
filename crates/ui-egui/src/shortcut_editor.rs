@@ -19,9 +19,9 @@ use crate::keymap::{command_of, effective_with, entry_key, entry_of_stored, keym
 
 use crate::state::{Dialog, UiState};
 use crate::theme::{self, Tokens};
-use crate::{VectorcraftApp, menus, widgets};
+use crate::{VansoncraftApp, menus, widgets};
 
-pub const PRESETS: &[&str] = &["VectorCraft Defaults", "Classic Defaults"];
+pub const PRESETS: &[&str] = &["VansonCraft Defaults", "Classic Defaults"];
 pub const CUSTOM: &str = "Custom";
 /// Set names earlier versions saved: (old name, current name).
 pub const LEGACY_PRESETS: &[(&str, &str)] = &[("Illustrator Defaults", "Classic Defaults")]; // brand-ok: legacy preference value
@@ -154,7 +154,7 @@ pub fn sync(ui: &UiState) {
 
 /// Registry default shortcut of a command (engine or UI command).
 pub fn default_command_shortcut(id: &str) -> Option<&'static str> {
-    if let Some(c) = vectorcraft_engine::find_command(id) {
+    if let Some(c) = vansoncraft_engine::find_command(id) {
         return c.shortcut;
     }
     menus::UI_COMMANDS.iter().find(|c| c.0 == id).map(|c| c.2).filter(|s| !s.is_empty())
@@ -187,7 +187,7 @@ pub const PANEL_SHORTCUTS: &[(&str, &str)] = &[
 /// Default shortcut of an entry key (`tool:<id>`, `panel:<id>` or a command id).
 pub fn default_of(key: &str) -> Option<&'static str> {
     if let Some(t) = key.strip_prefix("tool:") {
-        return vectorcraft_tools::tool_info(t).and_then(|t| t.shortcut);
+        return vansoncraft_tools::tool_info(t).and_then(|t| t.shortcut);
     }
     if let Some(p) = key.strip_prefix("panel:") {
         return PANEL_SHORTCUTS.iter().find(|(id, _)| *id == p).map(|(_, sc)| *sc);
@@ -227,15 +227,15 @@ pub fn panel_shortcut(panel: &str) -> Option<&'static str> {
 /// Tool whose (effective) shortcut is `key` ("V", "Shift+M").
 pub fn tool_for_key(key: &str) -> Option<&'static str> {
     let c = crate::keymap::lookup(&current().keymap, &vc_chord(key)?)?;
-    c.id.strip_prefix("tool:").and_then(vectorcraft_tools::tool_info).map(|t| t.id)
+    c.id.strip_prefix("tool:").and_then(vansoncraft_tools::tool_info).map(|t| t.id)
 }
 
 /// Command (not a tool or a panel) whose effective shortcut is exactly `key`.
 pub fn command_for_key(key: &str) -> Option<&'static str> {
     let c = crate::keymap::lookup(&current().keymap, &vc_chord(key)?)?;
-    vectorcraft_engine::command_specs()
+    vansoncraft_engine::command_specs()
         .iter()
-        .chain(vectorcraft_engine::cmd::plugin::command_specs())
+        .chain(vansoncraft_engine::cmd::plugin::command_specs())
         .map(|c| c.id)
         .chain(menus::UI_COMMANDS.iter().map(|c| c.0))
         .find(|id| *id == c.id && c.params.is_null())
@@ -424,7 +424,7 @@ fn build_snapshot(revision: u64) -> Arc<Snapshot> {
         .cloned()
         .chain(effects.iter().map(|e| Entry { key: format!("effect:{}", e.effect), label: e.label.clone(), group: e.group.clone(), is_tool: false }))
         .chain(filters.iter().map(|f| Entry { key: format!("plugin:{}", f.id), label: f.label.clone(), group: f.group.clone(), is_tool: false }))
-        .chain(vectorcraft_engine::cmd::plugin::command_specs().into_iter().map(|c| Entry {
+        .chain(vansoncraft_engine::cmd::plugin::command_specs().into_iter().map(|c| Entry {
             key: c.id.into(),
             label: c.label.into(),
             group: c.menu.join(" › "),
@@ -445,14 +445,14 @@ pub fn entries() -> Arc<[Entry]> {
 fn fixed_entries() -> &'static (Vec<Entry>, Vec<Entry>) {
     static E: OnceLock<(Vec<Entry>, Vec<Entry>)> = OnceLock::new();
     E.get_or_init(|| {
-        let mut v: Vec<Entry> = vectorcraft_tools::catalog::all_tools()
+        let mut v: Vec<Entry> = vansoncraft_tools::catalog::all_tools()
             .map(|t| Entry { key: format!("tool:{}", t.id), label: t.label.to_string(), group: "Tools".into(), is_tool: true })
             .collect();
         let mut seen = HashSet::new();
         // The commands listed only because an item of the menu bar runs them as a key press would
         // (Set Corners…).
         let mut by_the_menu_bar = HashSet::new();
-        for c in vectorcraft_engine::command_specs() {
+        for c in vansoncraft_engine::command_specs() {
             let own = listed_on_its_own(c);
             if !(own || a_menu_bar_item_runs(c.id, c.params)) || !seen.insert(c.id) {
                 continue;
@@ -492,7 +492,7 @@ fn fixed_entries() -> &'static (Vec<Entry>, Vec<Entry>) {
         for e in v.iter_mut().chain(tail.iter_mut()) {
             if new_names.contains(&name(e))
                 && !by_the_menu_bar.contains(e.key.as_str())
-                && vectorcraft_engine::find_command(&e.key).is_some()
+                && vansoncraft_engine::find_command(&e.key).is_some()
                 && !menu_bar_items().contains_key(e.key.as_str())
             {
                 e.group = id_group(&e.key);
@@ -612,7 +612,7 @@ pub fn filter_shortcut(id: &str) -> Option<&'static str> {
 
 /// Entry `e`'s label in the UI language. A plug-in's own name is not translated.
 pub(crate) fn shown_label(e: &Entry) -> &str {
-    let plugin = e.key.starts_with("plugin:") || e.key.strip_prefix("effect:").and_then(vectorcraft_plugins::effect::plugin_id).is_some();
+    let plugin = e.key.starts_with("plugin:") || e.key.strip_prefix("effect:").and_then(vansoncraft_plugins::effect::plugin_id).is_some();
     if plugin { &e.label } else { tl!(&e.label) }
 }
 
@@ -721,7 +721,7 @@ pub(crate) fn menu_target(id: &str) -> Option<(String, Value)> {
 /// what a click on its menu bar item runs ([`menu_target`]), or `None` when no such item gives it
 /// params. While that item is dimmed ([`menus::enabled`]), no dialog opens for it: `Err` holds the
 /// status line ([`dimmed`]), as for Remove Background… with no image selected.
-pub(crate) fn menu_target_now(app: &VectorcraftApp, id: &str) -> Option<Result<(String, Value), String>> {
+pub(crate) fn menu_target_now(app: &VansoncraftApp, id: &str) -> Option<Result<(String, Value), String>> {
     let target = menu_target(id)?;
     Some(if menus::enabled(app, id) { Ok(target) } else { dimmed(app, id) })
 }
@@ -729,11 +729,11 @@ pub(crate) fn menu_target_now(app: &VectorcraftApp, id: &str) -> Option<Result<(
 /// What [`menu_target_now`] gives for command `id` while its menu bar item is dimmed: the status
 /// line, with the engine's reason when it gives one. The app's own rules ([`menus::enabled`]) dim
 /// UI commands, and some commands the engine would run, without giving a reason.
-fn dimmed(app: &VectorcraftApp, id: &str) -> Result<(String, Value), String> {
-    let Some(why) = vectorcraft_engine::find_command(id).and_then(|c| (c.enabled)(&app.session).err()) else {
+fn dimmed(app: &VansoncraftApp, id: &str) -> Result<(String, Value), String> {
+    let Some(why) = vansoncraft_engine::find_command(id).and_then(|c| (c.enabled)(&app.session).err()) else {
         return Err(format!("command `{id}` is not available right now"));
     };
-    Err(vectorcraft_engine::EngineError::Disabled(id.to_string(), why).to_string())
+    Err(vansoncraft_engine::EngineError::Disabled(id.to_string(), why).to_string())
 }
 
 /// Is `key` a command with no default shortcut that a key press can't run: no item of the menu
@@ -744,7 +744,7 @@ fn dimmed(app: &VectorcraftApp, id: &str) -> Result<(String, Value), String> {
 fn needs_a_value(key: &str) -> bool {
     static KEYS: OnceLock<HashSet<&'static str>> = OnceLock::new();
     KEYS.get_or_init(|| {
-        vectorcraft_engine::command_specs()
+        vansoncraft_engine::command_specs()
             .iter()
             .filter(|c| {
                 c.shortcut.is_none()
@@ -771,8 +771,8 @@ fn a_menu_bar_item_runs(id: &str, params: &str) -> bool {
 /// runs it? A command with a menu path of its own is. One without (a panel menu item) is when a key
 /// alone can run it: it has a default key, or it is an undoable command, not an alias, whose params
 /// doc ends each field with `?`.
-fn listed_on_its_own(c: &vectorcraft_engine::CommandSpec) -> bool {
-    !c.menu.is_empty() || c.shortcut.is_some() || (c.journal && !vectorcraft_engine::cmd::is_alias(c.id) && runs_without_params(c.params))
+fn listed_on_its_own(c: &vansoncraft_engine::CommandSpec) -> bool {
+    !c.menu.is_empty() || c.shortcut.is_some() || (c.journal && !vansoncraft_engine::cmd::is_alias(c.id) && runs_without_params(c.params))
 }
 
 /// Is UI command `id` (default key `sc`, params doc `params`) listed in Edit › Keyboard Shortcuts
@@ -786,7 +786,7 @@ fn ui_listed_on_its_own(id: &str, sc: &str, params: &str) -> bool {
 /// Does a menu bar item run the command with no params, so that it does what its label says and opens
 /// no dialog? A command no menu bar item runs (the Crop Image item runs `ui.cropImage`), a menu item
 /// that gives it params, a [`NEEDS_A_PARAM`] command and a field a call must give each rule it out.
-pub(crate) fn runs_with_no_values(c: &vectorcraft_engine::CommandSpec) -> bool {
+pub(crate) fn runs_with_no_values(c: &vansoncraft_engine::CommandSpec) -> bool {
     menu_bar_items().contains_key(c.id)
         && menu_target(c.id).is_none()
         && !NEEDS_A_PARAM.contains(&c.id)
@@ -964,13 +964,13 @@ pub fn preset(name: &str) -> Option<Overrides> {
     PRESETS.contains(&set_name(name)).then(Overrides::new)
 }
 
-/// Export format: `{"format": "vectorcraft-shortcuts", "set": name, "overrides": {...}}`.
+/// Export format: `{"format": "vansoncraft-shortcuts", "set": name, "overrides": {...}}`.
 pub fn export_json(set: &str, overrides: &Overrides) -> Value {
-    json!({"format": "vectorcraft-shortcuts", "version": 1, "set": set, "overrides": stored::to_value(overrides)})
+    json!({"format": "vansoncraft-shortcuts", "version": 1, "set": set, "overrides": stored::to_value(overrides)})
 }
 
 pub fn import_json(v: &Value) -> Result<(String, Overrides), String> {
-    let o = v.get("overrides").and_then(Value::as_object).ok_or("not a VectorCraft shortcut set (missing `overrides`)")?;
+    let o = v.get("overrides").and_then(Value::as_object).ok_or("not a VansonCraft shortcut set (missing `overrides`)")?;
     let mut out = Overrides::new();
     for (k, v) in o {
         let s = v.as_str().ok_or_else(|| format!("shortcut for `{k}` must be a string"))?;
@@ -1004,7 +1004,7 @@ pub fn export_text(set: &str, overrides: &Overrides) -> String {
 
 // ---------- UI commands ----------
 
-pub fn open(app: &mut VectorcraftApp) {
+pub fn open(app: &mut VansoncraftApp) {
     let ov = stored::to_value(&app.ui.shortcut_overrides);
     app.ui.dialog = Some(Dialog::new(
         "shortcuts",
@@ -1017,7 +1017,7 @@ fn dialog_overrides(d: &Dialog) -> Overrides {
 }
 
 /// OK: commit the working set.
-pub fn confirm(app: &mut VectorcraftApp) -> Result<Value, String> {
+pub fn confirm(app: &mut VansoncraftApp) -> Result<Value, String> {
     let Some(d) = app.ui.dialog.clone() else { return Err("no dialog open".into()) };
     app.ui.shortcut_overrides = dialog_overrides(&d);
     app.ui.shortcut_set = d.str("set");
@@ -1037,7 +1037,7 @@ fn text_param(p: &Value, key: &str) -> Result<Option<String>, String> {
 }
 
 /// `shortcuts.*` UI commands. `None` = not ours.
-pub fn run_command(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
+pub fn run_command(app: &mut VansoncraftApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
     let s = |k: &str| text_param(p, k);
     let r = match id {
         "edit.keyboardShortcuts" => {
@@ -1109,7 +1109,7 @@ pub fn run_command(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Resu
             let bytes = serde_json::to_vec_pretty(&v).unwrap_or_default();
             let pick = crate::FilePick {
                 filters: vec![crate::FilePick::filter("Shortcut sets", &["json"])],
-                ..crate::FilePick::named("VectorCraft Shortcuts.json")
+                ..crate::FilePick::named("VansonCraft Shortcuts.json")
             };
             let path = path.or_else(|| crate::picks::save(app, &pick));
             match path {
@@ -1120,7 +1120,7 @@ pub fn run_command(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Resu
                 // Its save dialog is open: the file is written when it answers.
                 None if app.file_dialog_open() => Err("cancelled".into()),
                 None => match app.services.download.as_mut() {
-                    Some(dl) => dl("VectorCraft Shortcuts.json", &bytes).map(|()| Value::Null),
+                    Some(dl) => dl("VansonCraft Shortcuts.json", &bytes).map(|()| Value::Null),
                     None => Ok(v),
                 },
             }
@@ -1136,7 +1136,7 @@ pub fn run_command(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Resu
             };
             let text = export_text(&app.ui.shortcut_set, &app.ui.shortcut_overrides);
             let pick =
-                crate::FilePick { filters: vec![crate::FilePick::filter("Text", &["txt"])], ..crate::FilePick::named("VectorCraft Shortcuts.txt") };
+                crate::FilePick { filters: vec![crate::FilePick::filter("Text", &["txt"])], ..crate::FilePick::named("VansonCraft Shortcuts.txt") };
             match path.or_else(|| crate::picks::save(app, &pick)) {
                 Some(path) => match app.services.write.as_mut() {
                     Some(w) => w(&path, text.as_bytes()).map(|_| json!({"path": path})),
@@ -1145,7 +1145,7 @@ pub fn run_command(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Resu
                 // Its save dialog is open: the file is written when it answers.
                 None if app.file_dialog_open() => Err("cancelled".into()),
                 None => match app.services.download.as_mut() {
-                    Some(dl) => dl("VectorCraft Shortcuts.txt", text.as_bytes()).map(|()| Value::Null),
+                    Some(dl) => dl("VansonCraft Shortcuts.txt", text.as_bytes()).map(|()| Value::Null),
                     None => Ok(json!({"text": text})),
                 },
             }
@@ -1198,7 +1198,7 @@ pub fn run_command(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Resu
 
 /// While recording (here or in Import Shortcut Set), Escape cancels the recording instead of closing
 /// the dialog.
-pub fn is_recording(app: &VectorcraftApp) -> bool {
+pub fn is_recording(app: &VansoncraftApp) -> bool {
     app.ui
         .dialog
         .as_ref()
@@ -1260,7 +1260,7 @@ impl DialogView {
     }
 }
 
-pub fn show(app: &mut VectorcraftApp, ctx: &egui::Context) {
+pub fn show(app: &mut VansoncraftApp, ctx: &egui::Context) {
     let Some(mut d) = app.ui.dialog.clone() else { return };
     let t = Tokens::get(ctx);
     ctx.input(|i| note_backtick_text(&i.events));
@@ -1481,13 +1481,13 @@ pub fn show(app: &mut VectorcraftApp, ctx: &egui::Context) {
 }
 
 /// The Keyboard Shortcuts dialog, while it is open.
-fn shortcuts_dialog(app: &VectorcraftApp) -> bool {
+fn shortcuts_dialog(app: &VansoncraftApp) -> bool {
     app.ui.dialog.as_ref().is_some_and(|d| d.kind == "shortcuts")
 }
 
 /// The dialog's Import…: the imported set replaces its working set (committed on OK like other
 /// edits).
-fn import_into_dialog(app: &mut VectorcraftApp) {
+fn import_into_dialog(app: &mut VansoncraftApp) {
     if !shortcuts_dialog(app) {
         app.status(crate::picks::dialog_gone());
         return;
@@ -1510,17 +1510,17 @@ fn import_into_dialog(app: &mut VectorcraftApp) {
 }
 
 /// The dialog's Export…: its working set, as edited so far.
-fn export_from_dialog(app: &mut VectorcraftApp) {
+fn export_from_dialog(app: &mut VansoncraftApp) {
     export_dialog_set(app, "shortcuts.export");
 }
 
 /// The dialog's Export Text…: its working set, as edited so far, as a text file.
-fn export_text_from_dialog(app: &mut VectorcraftApp) {
+fn export_text_from_dialog(app: &mut VansoncraftApp) {
     export_dialog_set(app, "shortcuts.exportText");
 }
 
 /// Runs `command` on the dialog's working set and set name.
-fn export_dialog_set(app: &mut VectorcraftApp, command: &str) {
+fn export_dialog_set(app: &mut VansoncraftApp, command: &str) {
     if !shortcuts_dialog(app) {
         app.status(crate::picks::dialog_gone());
         return;
@@ -1605,10 +1605,10 @@ mod tests {
     /// read before the walk: the keymap built for that revision would then lack the plug-in's row.
     #[test]
     fn a_plugin_installed_while_the_menus_are_walked_gets_a_new_snapshot() {
-        use vectorcraft_plugins::wat as tpl;
+        use vansoncraft_plugins::wat as tpl;
         let install = |id: &str| {
             let manifest = format!(r#"{{"id":"{id}","name":"{id}","version":"1","kind":"filter","params":{{}}}}"#);
-            vectorcraft_plugins::registry::install_bytes(&wat::parse_str(tpl::returning(&manifest, r#"{"objects":[]}"#)).unwrap()).unwrap();
+            vansoncraft_plugins::registry::install_bytes(&wat::parse_str(tpl::returning(&manifest, r#"{"objects":[]}"#)).unwrap()).unwrap();
         };
         let (before, during) = ("test.ui.walk-before", "test.ui.walk-during");
         install(before);
@@ -1622,8 +1622,8 @@ mod tests {
         let s = snapshot();
         let keys: Vec<&str> = s.entries.iter().map(|e| e.key.as_str()).collect();
         let catalog = crate::keymap::template_for(&s).catalog().len();
-        vectorcraft_plugins::registry::remove(before);
-        vectorcraft_plugins::registry::remove(during);
+        vansoncraft_plugins::registry::remove(before);
+        vansoncraft_plugins::registry::remove(during);
         assert!(keys.contains(&"plugin:test.ui.walk-during"), "the walk lists the plug-in");
         assert_eq!(catalog, s.entries.len(), "the keymap of the snapshot's revision has every entry");
     }
@@ -1661,7 +1661,7 @@ mod tests {
 
     #[test]
     fn clearing_a_row_that_leaves_the_list_stops_its_recording() {
-        let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(vansoncraft_engine::Session::new(), Default::default());
         crate::keymap::set_override(&mut app.ui.shortcut_overrides, "document.setUnits", "Cmd+Alt+Shift+F12");
         crate::keymap::set_override(&mut app.ui.shortcut_overrides, "edit.duplicate", "Cmd+Alt+Shift+F11");
         open(&mut app);
@@ -1707,7 +1707,7 @@ mod tests {
 
     #[test]
     fn a_modifier_pressed_while_recording_waits_for_the_key() {
-        let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(vansoncraft_engine::Session::new(), Default::default());
         open(&mut app);
         app.ui.dialog.as_mut().unwrap().fields.insert("__recording".into(), json!("tool:groupSelection"));
         let ctx = egui::Context::default();
@@ -1730,7 +1730,7 @@ mod tests {
     /// layout the row still shows `~`.
     #[test]
     fn the_backtick_key_shows_what_it_types() {
-        let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(vansoncraft_engine::Session::new(), Default::default());
         open(&mut app);
         let ctx = egui::Context::default();
         theme::install_fonts(&ctx);
@@ -1775,7 +1775,7 @@ mod tests {
         crate::keymap::set_override(&mut ui.shortcut_overrides, "edit.clear", "Alt+~");
         crate::keymap::set_override(&mut ui.shortcut_overrides, "tool:measure", "~");
         sync(&ui);
-        let measure = vectorcraft_tools::tool_info("measure").unwrap();
+        let measure = vansoncraft_tools::tool_info("measure").unwrap();
         let press = |key| egui::Event::Key { key, physical_key: Some(key), pressed: true, repeat: false, modifiers: Modifiers::NONE };
         let clear = || menus::shown_shortcut(menus::shortcut_of("edit.clear").unwrap());
         note_backtick_text(&[press(Key::Backtick), egui::Event::Text("`".into())]);
@@ -1898,7 +1898,7 @@ mod tests {
         let mut ov = Overrides::new();
         crate::keymap::set_override(&mut ov, "edit.preferences", "Ctrl+Alt+Shift+9");
         let (text, km, tool_rows, menu_rows) = with_steady_plugins(|| {
-            let text = export_text("VectorCraft Defaults", &ov);
+            let text = export_text("VansonCraft Defaults", &ov);
             let km = keymap_with(&ov);
             let names = |tools: bool| -> Vec<String> {
                 entries()
@@ -1911,7 +1911,7 @@ mod tests {
             (text, km, rows.0, rows.1)
         });
         let lines: Vec<&str> = text.lines().collect();
-        assert_eq!(lines[..4], ["Keyboard Shortcuts", "Set: VectorCraft Defaults", "", "Tools"]);
+        assert_eq!(lines[..4], ["Keyboard Shortcuts", "Set: VansonCraft Defaults", "", "Tools"]);
         let menu_at = lines.iter().position(|l| *l == "Menu Commands").expect("a Menu Commands section");
         assert_eq!(lines[menu_at - 1], "", "a blank line before Menu Commands");
         let names_of = |rows: &[&str]| -> Vec<String> { rows.iter().map(|l| format!("{}\t", l.split('\t').next().unwrap_or_default())).collect() };
@@ -1945,7 +1945,7 @@ mod tests {
     #[test]
     fn export_text_command_writes_the_sets_name_and_rejects_a_bad_path() {
         type Files = std::rc::Rc<std::cell::RefCell<Vec<(String, String)>>>;
-        let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(vansoncraft_engine::Session::new(), Default::default());
         let written: Files = Default::default();
         let w = written.clone();
         app.services.write = Some(Box::new(move |path: &str, b: &[u8]| {
@@ -1978,7 +1978,7 @@ mod tests {
     #[test]
     fn importing_into_the_dialog_preserves_action_keys_on_ok() {
         use crate::panels::actions::{Action, ActionSet, FunctionKey};
-        let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(vansoncraft_engine::Session::new(), Default::default());
         let f15 = FunctionKey { key: 15, cmd: false, shift: false };
         let mut nudge = Action::new("Nudge", vec![]);
         nudge.key = Some(f15);
@@ -1988,7 +1988,7 @@ mod tests {
         let bytes = serde_json::to_vec(&export_json("Imported", &ov)).unwrap();
         app.services.pick_open = Some(Box::new(|_: &crate::FilePick| Some("/sets/Imported.json".to_string())));
         app.services.read = Some(Box::new(move |_: &str| Ok(bytes.clone())));
-        let key = |app: &VectorcraftApp| app.ui.action_sets.last().and_then(|s| s.actions.first()).and_then(|a| a.key);
+        let key = |app: &VansoncraftApp| app.ui.action_sets.last().and_then(|s| s.actions.first()).and_then(|a| a.key);
         open(&mut app);
         import_into_dialog(&mut app);
         assert_eq!(key(&app), Some(f15), "the import alone keeps the action's key");
@@ -2180,7 +2180,7 @@ mod tests {
     }
 
     /// The Menu Commands rows the dialog draws for `query`.
-    fn menu_rows(app: &mut VectorcraftApp, query: &str) -> Vec<String> {
+    fn menu_rows(app: &mut VansoncraftApp, query: &str) -> Vec<String> {
         open(app);
         let d = app.ui.dialog.as_mut().unwrap();
         d.fields.insert("tab".into(), json!("menu"));
@@ -2207,10 +2207,10 @@ mod tests {
     /// in the working set.
     #[test]
     fn an_open_dialog_follows_live_effect_plugins() {
-        use vectorcraft_plugins::wat as tpl;
+        use vansoncraft_plugins::wat as tpl;
         let (plugin, key) = ("test.ui.openfx", "effect:plugin.test.ui.openfx");
         let wasm = wat::parse_str(tpl::module(&tpl::manifest(plugin, "effect", r#"{"wiggle":{"type":"bool"}}"#), tpl::ECHO, "", 1)).unwrap();
-        let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(vansoncraft_engine::Session::new(), Default::default());
         open(&mut app);
         let d = app.ui.dialog.as_mut().unwrap();
         d.fields.insert("tab".into(), json!("menu"));
@@ -2220,7 +2220,7 @@ mod tests {
         d.fields.insert("overrides".into(), stored::to_value(&working));
         let ctx = egui::Context::default();
         theme::install_fonts(&ctx);
-        let texts = |app: &mut VectorcraftApp| {
+        let texts = |app: &mut VansoncraftApp| {
             let mut out = ctx.run_ui(egui::RawInput::default(), |ui| show(app, ui.ctx()));
             out.textures_delta.clear();
             out.shapes
@@ -2236,24 +2236,24 @@ mod tests {
         // The modal draws nothing in its first frame, which only sizes it.
         texts(&mut app);
         assert!(!texts(&mut app).iter().any(|t| t == row));
-        vectorcraft_plugins::registry::install_bytes(&wasm).unwrap();
+        vansoncraft_plugins::registry::install_bytes(&wasm).unwrap();
         let shown = texts(&mut app);
         assert!(shown.iter().any(|t| t == row) && shown.contains(&shortcut), "{shown:?}");
-        vectorcraft_plugins::registry::remove(plugin);
+        vansoncraft_plugins::registry::remove(plugin);
         assert!(!texts(&mut app).iter().any(|t| t == row));
         let d = app.ui.dialog.as_ref().unwrap();
         assert_eq!(crate::keymap::override_text(&dialog_overrides(d), key).as_deref(), Some("Cmd+Alt+Shift+F5"));
-        vectorcraft_plugins::registry::install_bytes(&wasm).unwrap();
+        vansoncraft_plugins::registry::install_bytes(&wasm).unwrap();
         let shown = texts(&mut app);
         assert!(shown.iter().any(|t| t == row) && shown.contains(&shortcut), "{shown:?}");
-        vectorcraft_plugins::registry::remove(plugin);
+        vansoncraft_plugins::registry::remove(plugin);
     }
 
     /// A menu command whose params need a value (Units needs `{units}`) is not listed while it has
     /// no shortcut. A shortcut the user gave it keeps it listed, where it can be changed or cleared.
     #[test]
     fn commands_that_need_a_value_are_listed_only_with_the_users_shortcut() {
-        let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(vansoncraft_engine::Session::new(), Default::default());
         let list = run_command(&mut app, "shortcuts.list", &json!({"query": "document.setUnits"})).unwrap().unwrap();
         assert_eq!(list, json!([]));
         assert!(!menu_rows(&mut app, "units").iter().any(|r| r.ends_with(" › Units")));
@@ -2313,7 +2313,7 @@ mod tests {
         let mut ov = Overrides::new();
         crate::keymap::set_override(&mut ov, "transparency.set", "Cmd+Alt+Shift+F10");
         assert!(entry("transparency.set").is_some_and(|e| listed(&ov, &e)));
-        let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(vansoncraft_engine::Session::new(), Default::default());
         for id in ["transparency.set", "transparency.setOpacityMask"] {
             let list = run_command(&mut app, "shortcuts.list", &json!({ "query": id })).unwrap().unwrap();
             assert_eq!(list, json!([]), "{id}");
@@ -2368,14 +2368,14 @@ mod tests {
     /// Appearance command with nothing targeted, a UI command).
     #[test]
     fn a_dimmed_item_gives_a_status_line_with_or_without_a_reason() {
-        use vectorcraft_testkit::fixtures::Fixture;
-        let none = VectorcraftApp::new(vectorcraft_engine::Session::new(), crate::Services::default());
+        use vansoncraft_testkit::fixtures::Fixture;
+        let none = VansoncraftApp::new(vansoncraft_engine::Session::new(), crate::Services::default());
         assert!(!menus::enabled(&none, "edit.findReplace"));
         assert_eq!(dimmed(&none, "edit.findReplace"), Err("command `edit.findReplace` is not available right now: no document open".into()));
-        let empty = VectorcraftApp::new(Fixture::Empty.session(), crate::Services::default());
+        let empty = VansoncraftApp::new(Fixture::Empty.session(), crate::Services::default());
         for id in ["appearance.addFill", "ui.cropImage"] {
             assert!(!menus::enabled(&empty, id), "{id}");
-            assert!(vectorcraft_engine::find_command(id).is_none_or(|c| (c.enabled)(&empty.session).is_ok()), "{id}: the engine gives no reason");
+            assert!(vansoncraft_engine::find_command(id).is_none_or(|c| (c.enabled)(&empty.session).is_ok()), "{id}: the engine gives no reason");
             assert_eq!(dimmed(&empty, id), Err(format!("command `{id}` is not available right now")));
         }
     }
@@ -2384,7 +2384,7 @@ mod tests {
     /// several objects selected, reports no missing param.
     #[test]
     fn listed_commands_run_from_a_key_without_a_missing_param() {
-        use vectorcraft_testkit::fixtures::Fixture;
+        use vansoncraft_testkit::fixtures::Fixture;
         // These need a state the fixtures lack: text being edited, a pattern being edited, an
         // object linked to a graphic style, a plug-ins folder.
         let context = ["text.insertInline", "pattern.options", "graphicStyle.redefine", "plugin.reload"];
@@ -2395,7 +2395,7 @@ mod tests {
                 continue;
             }
             for fx in [Fixture::Single, Fixture::Multi] {
-                let mut app = VectorcraftApp::new(fx.session(), Default::default());
+                let mut app = VansoncraftApp::new(fx.session(), Default::default());
                 app.ui.status.clear();
                 let (id, p) = menu_target(&e.key).unwrap_or_else(|| (e.key.clone(), json!({})));
                 menus::invoke(&mut app, &id, p);
@@ -2439,7 +2439,7 @@ mod tests {
             .filter(|(id, items)| items.iter().any(|(_, p)| is_bare(p)) || menu_target(id).is_some())
             .map(|(id, _)| *id)
             .filter(|id| *id != "edit.findNext" && *id != "window.learn")
-            .filter(|id| vectorcraft_engine::find_command(id).is_some() || menus::UI_COMMANDS.iter().any(|c| c.0 == *id))
+            .filter(|id| vansoncraft_engine::find_command(id).is_some() || menus::UI_COMMANDS.iter().any(|c| c.0 == *id))
             .filter(|id| !entry(id).is_some_and(|e| listed(&none, &e)))
             .collect();
         missing.sort_unstable();
@@ -2451,7 +2451,7 @@ mod tests {
         // No command listed only because an item of the menu bar runs it shares its group and label
         // with another entry.
         let own = |k: &str| {
-            vectorcraft_engine::command_specs()
+            vansoncraft_engine::command_specs()
                 .iter()
                 .find(|c| c.id == k)
                 .map(listed_on_its_own)
@@ -2488,7 +2488,7 @@ mod tests {
     /// type with an error naming it, and change nothing; an omitted or null param keeps its default.
     #[test]
     fn shortcut_commands_reject_a_param_of_the_wrong_type() {
-        let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(vansoncraft_engine::Session::new(), Default::default());
         let set = app.ui.shortcut_set.clone();
         for (id, p, err) in [
             ("shortcuts.set", json!({"id": 5, "shortcut": "Cmd+Alt+Shift+F11"}), "`id` must be a string"),

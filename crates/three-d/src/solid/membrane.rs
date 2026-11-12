@@ -462,8 +462,8 @@ pub(super) const MAX_MATERIAL_SEGMENTS: usize = 4_000_000;
 
 /// The part of `outline` (its rings, each with its bounds) inside `cell`, as rings (holes running
 /// the other way). Only the rings whose bounds meet the cell's go into the boolean.
-pub(super) fn material(outline: &[(Rect, vectorcraft_geom::SubPath)], cell: Rect) -> Option<Vec<Vec<Point>>> {
-    let r = PathData::single(vectorcraft_geom::SubPath::polyline(
+pub(super) fn material(outline: &[(Rect, vansoncraft_geom::SubPath)], cell: Rect) -> Option<Vec<Vec<Point>>> {
+    let r = PathData::single(vansoncraft_geom::SubPath::polyline(
         &[Point::new(cell.x0, cell.y0), Point::new(cell.x1, cell.y0), Point::new(cell.x1, cell.y1), Point::new(cell.x0, cell.y1)],
         true,
     ));
@@ -472,7 +472,7 @@ pub(super) fn material(outline: &[(Rect, vectorcraft_geom::SubPath)], cell: Rect
     );
     let rule = FillRule::NonZero;
     let part =
-        vectorcraft_pathops::try_boolean(&r, rule, &near, rule, vectorcraft_pathops::BoolOp::Intersect, vectorcraft_pathops::DEFAULT_PRECISION)
+        vansoncraft_pathops::try_boolean(&r, rule, &near, rule, vansoncraft_pathops::BoolOp::Intersect, vansoncraft_pathops::DEFAULT_PRECISION)
             .ok()?;
     rings(&part, rule, cell.width(), MAX_PLANE_POINTS).ok()
 }

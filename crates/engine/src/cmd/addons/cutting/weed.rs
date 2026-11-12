@@ -11,10 +11,10 @@ mod tests;
 use std::sync::Arc;
 
 use serde_json::{Value, json};
-use vectorcraft_color::Paint;
-use vectorcraft_color::swatch::REGISTRATION;
-use vectorcraft_doc::{Appearance, Document, Node, NodeId, NodeKind};
-use vectorcraft_geom::{Rect, shapes};
+use vansoncraft_color::Paint;
+use vansoncraft_color::swatch::REGISTRATION;
+use vansoncraft_doc::{Appearance, Document, Node, NodeId, NodeKind};
+use vansoncraft_geom::{Rect, shapes};
 
 use super::super::super::edit::selected_roots;
 use super::super::super::object::choice;

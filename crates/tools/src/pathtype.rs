@@ -11,9 +11,9 @@
 //! any bracket.
 
 use serde_json::{Map, Value, json};
-use vectorcraft_doc::{NodeId, NodeKind, TextKind};
-use vectorcraft_geom::kurbo::{Line, ParamCurveNearest};
-use vectorcraft_geom::{Affine, ArcPath, Point, Vec2};
+use vansoncraft_doc::{NodeId, NodeKind, TextKind};
+use vansoncraft_geom::kurbo::{Line, ParamCurveNearest};
+use vansoncraft_geom::{Affine, ArcPath, Point, Vec2};
 
 use crate::{Action, Overlay, PointerEvent, ToolContext};
 
@@ -187,7 +187,7 @@ pub fn overlays(cx: &ToolContext, hover: Option<Point>, drag: Option<&BracketDra
         for which in Bracket::ALL {
             let lines = b.lines(which, cx.zoom);
             if hot == Some((b.id, which)) {
-                let mut path = vectorcraft_geom::kurbo::BezPath::new();
+                let mut path = vansoncraft_geom::kurbo::BezPath::new();
                 for (a, c) in lines {
                     path.move_to(a);
                     path.line_to(c);
@@ -299,7 +299,7 @@ mod tests {
     use super::*;
     use crate::testutil::*;
     use crate::{Cursor, Mods, PointerKind, Tool};
-    use vectorcraft_doc::{Document, Selection};
+    use vansoncraft_doc::{Document, Selection};
 
     fn selected(id: NodeId) -> Selection {
         let mut s = Selection::default();
@@ -357,7 +357,7 @@ mod tests {
         let add = |d: &mut Document, s: &mut Selection, n: usize| {
             for _ in 0..n {
                 let copy = d.alloc_id();
-                d.insert(Some(l), usize::MAX, vectorcraft_doc::Node::new(copy, kind.clone())).unwrap();
+                d.insert(Some(l), usize::MAX, vansoncraft_doc::Node::new(copy, kind.clone())).unwrap();
                 s.add(copy);
             }
         };

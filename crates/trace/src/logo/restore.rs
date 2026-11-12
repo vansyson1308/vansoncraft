@@ -3,7 +3,7 @@
 //! back at the intersection when it lies close to the bend.
 
 use super::geom::{line_fit, turning};
-use vectorcraft_geom::Point;
+use vansoncraft_geom::Point;
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct RestoreParams {

@@ -4,20 +4,20 @@
 
 use egui::{Event, Modifiers, PointerButton, Pos2, Rect, vec2};
 use serde_json::{Value, json};
-use vectorcraft_doc::style_libs::STYLE_LIBRARIES;
-use vectorcraft_engine::Session;
+use vansoncraft_doc::style_libs::STYLE_LIBRARIES;
+use vansoncraft_engine::Session;
 
 use super::graphic_styles::GraphicStyleLibraries;
 use super::library_panel::{self, LibraryKind, LibraryPanel, last_open};
-use crate::VectorcraftApp;
+use crate::VansoncraftApp;
 
-fn app_with(services: crate::Services) -> VectorcraftApp {
-    let mut app = VectorcraftApp::new(Session::new(), services);
+fn app_with(services: crate::Services) -> VansoncraftApp {
+    let mut app = VansoncraftApp::new(Session::new(), services);
     app.run("file.new", json!({"width": 200, "height": 200})).unwrap();
     app
 }
 
-fn app() -> VectorcraftApp {
+fn app() -> VansoncraftApp {
     app_with(Default::default())
 }
 
@@ -48,7 +48,7 @@ fn frame(ctx: &egui::Context, events: Vec<Event>, modifiers: Modifiers, time: f6
 
 /// Click the library panel's tile of style `name` with `modifiers` (a new window takes a sizing
 /// frame first).
-fn click(app: &mut VectorcraftApp, ctx: &egui::Context, name: &str, modifiers: Modifiers, time: f64) {
+fn click(app: &mut VansoncraftApp, ctx: &egui::Context, name: &str, modifiers: Modifiers, time: f64) {
     for t in [time, time + 0.25] {
         frame(ctx, vec![], Modifiers::NONE, t, |ui| library_panel::show_window(app, ui.ctx()));
     }
@@ -58,7 +58,7 @@ fn click(app: &mut VectorcraftApp, ctx: &egui::Context, name: &str, modifiers: M
     frame(ctx, vec![Event::PointerMoved(at), button(true), button(false)], modifiers, time + 0.5, |ui| library_panel::show_window(app, ui.ctx()));
 }
 
-fn undo_len(app: &VectorcraftApp) -> usize {
+fn undo_len(app: &VansoncraftApp) -> usize {
     app.session.doc().unwrap().history.undo.len()
 }
 
@@ -78,7 +78,7 @@ fn clicking_a_library_style_adds_and_applies_it_in_one_step() {
     let tile = ctx.read_response(library_panel::tile_id("library:graphicStyles:shadows-glows", "Halo")).unwrap().rect;
     assert_eq!(tile.width(), 30.0, "styles open in large thumbnails");
     // Alt-click adds the style's appearance on top, unlinked.
-    let fills = |app: &VectorcraftApp| app.session.doc().unwrap().doc.node(vectorcraft_doc::NodeId(rect)).unwrap().appearance.items.len();
+    let fills = |app: &VansoncraftApp| app.session.doc().unwrap().doc.node(vansoncraft_doc::NodeId(rect)).unwrap().appearance.items.len();
     let before = fills(&app);
     click(&mut app, &ctx, "Ember", Modifiers::ALT, 2.0);
     assert!(app.session.doc().unwrap().doc.graphic_style("Ember").is_some());
@@ -118,7 +118,7 @@ fn painted_and_sketched_opens_from_the_window_menu_and_a_click_applies_its_style
     let (g, linked) = app.session.selection_graphic_style().expect("applied to the selection");
     assert_eq!((g.name.as_str(), linked), ("Charcoal Shade", true));
     assert_eq!(undo_len(&app), undo + 1, "added and applied as one undo step");
-    let node = app.session.doc().unwrap().doc.node(vectorcraft_doc::NodeId(rect)).unwrap().appearance.effects.clone();
+    let node = app.session.doc().unwrap().doc.node(vansoncraft_doc::NodeId(rect)).unwrap().appearance.effects.clone();
     assert_eq!(node.iter().map(|e| e.id.as_str()).collect::<Vec<_>>(), ["sketch.charcoal"]);
     let lib = GraphicStyleLibraries::get(&app, "painted-sketched").unwrap().1;
     let rows = GraphicStyleLibraries::rows(&lib, "ink");
@@ -157,7 +157,7 @@ fn save_dialog_writes_user_libraries_that_the_window_menu_lists() {
     let _ = std::fs::remove_dir_all(&dir);
     let mut app = app();
     app.session.style_libraries.set_user_dir(Some(dir.to_string_lossy().to_string()));
-    let user_items = |app: &VectorcraftApp| -> Vec<(String, String)> {
+    let user_items = |app: &VansoncraftApp| -> Vec<(String, String)> {
         crate::menus::menu_entries(app)
             .into_iter()
             .filter(|e| e.path == ["Window", "Graphic Style Libraries", "User Defined"])

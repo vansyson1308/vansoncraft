@@ -18,9 +18,9 @@
 use std::f64::consts::PI;
 use std::sync::Arc;
 
-use vectorcraft_color::{Color, Gradient, GradientPaint, GradientStop, Paint};
-use vectorcraft_geom::kurbo::{ParamCurve, ParamCurveArclen, ParamCurveDeriv};
-use vectorcraft_geom::{Affine, Anchor, BezPath, FillRule, PathData, Point, Rect, SubPath, Vec2};
+use vansoncraft_color::{Color, Gradient, GradientPaint, GradientStop, Paint};
+use vansoncraft_geom::kurbo::{ParamCurve, ParamCurveArclen, ParamCurveDeriv};
+use vansoncraft_geom::{Affine, Anchor, BezPath, FillRule, PathData, Point, Rect, SubPath, Vec2};
 
 use crate::appearance::{Appearance, AppearanceItem, Dash, StrokeLayer, WidthProfile};
 use crate::live::{BlendOrientation, BlendSpacing, BlendSpec};
@@ -935,8 +935,8 @@ impl Spine {
             } else {
                 bp.curve_to(c.p1, c.p2, c.p3);
             }
-            vectorcraft_geom::kurbo::flatten(bp.iter(), 0.1, |el| {
-                if let vectorcraft_geom::PathEl::MoveTo(p) | vectorcraft_geom::PathEl::LineTo(p) = el
+            vansoncraft_geom::kurbo::flatten(bp.iter(), 0.1, |el| {
+                if let vansoncraft_geom::PathEl::MoveTo(p) | vansoncraft_geom::PathEl::LineTo(p) = el
                     && p.x.is_finite()
                     && p.y.is_finite()
                     && pts.last().is_none_or(|q| q.distance(p) > 1e-9)
@@ -1300,13 +1300,13 @@ fn paints_opaquely(n: &Node) -> bool {
         _ => true,
     };
     n.opacity >= 1.0
-        && n.blend == vectorcraft_color::BlendMode::Normal
+        && n.blend == vansoncraft_color::BlendMode::Normal
         && n.extras().mask.is_none()
         && n.appearance.effects.is_empty()
         && n.appearance
             .items
             .iter()
-            .all(|i| i.opacity() >= 1.0 && i.blend() == vectorcraft_color::BlendMode::Normal && i.effects().is_empty() && paint(i.paint()))
+            .all(|i| i.opacity() >= 1.0 && i.blend() == vansoncraft_color::BlendMode::Normal && i.effects().is_empty() && paint(i.paint()))
         && n.children().is_none_or(|c| c.iter().all(|c| paints_opaquely(c)))
 }
 
@@ -1500,7 +1500,7 @@ pub fn blend_expand(keys: &[Arc<Node>], spec: &BlendSpec) -> Vec<Node> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use vectorcraft_geom::{Rect, shapes};
+    use vansoncraft_geom::{Rect, shapes};
 
     #[test]
     fn clicked_start_points_pair_up() {
@@ -1520,7 +1520,7 @@ mod tests {
     }
 
     fn key(x: f64) -> Arc<Node> {
-        Arc::new(Node::path(NodeId(1), vectorcraft_geom::shapes::rectangle(Rect::new(x, 0.0, x + 10.0, 10.0)), Appearance::default()))
+        Arc::new(Node::path(NodeId(1), vansoncraft_geom::shapes::rectangle(Rect::new(x, 0.0, x + 10.0, 10.0)), Appearance::default()))
     }
 
     #[test]
@@ -1665,7 +1665,7 @@ mod tests {
     /// pads and one that repeats switches halfway, as the method does.
     #[test]
     fn blend_between_repeating_gradients_steps_the_count() {
-        use vectorcraft_color::GradientSpread;
+        use vansoncraft_color::GradientSpread;
         let spread = |spread, repeats| Paint::Gradient(Box::new(GradientPaint::new(Gradient { spread, repeats, ..Gradient::default() })));
         let at = |a: &Paint, b: &Paint, t: f32| match lerp_paint(a, b, t) {
             Paint::Gradient(g) => (g.gradient.spread, g.gradient.repeat_count()),

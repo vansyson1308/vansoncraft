@@ -2,14 +2,14 @@
 //! circle drawn in code) set inline in a line of type.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{Document, NodeId, NodeKind, TextObject};
-use vectorcraft_geom::Rect;
-use vectorcraft_testkit::fixtures::{self, exec, id_of};
-use vectorcraft_testkit::raster;
+use vansoncraft_doc::{Document, NodeId, NodeKind, TextObject};
+use vansoncraft_geom::Rect;
+use vansoncraft_testkit::fixtures::{self, exec, id_of};
+use vansoncraft_testkit::raster;
 
 /// A session with a red circle symbol "Dot" (its instance deleted) and the point type
 /// "Tap  now" (20 pt, baseline at y = 100) with the symbol inline after "Tap ".
-fn setup(inline: bool) -> (vectorcraft_engine::Session, NodeId) {
+fn setup(inline: bool) -> (vansoncraft_engine::Session, NodeId) {
     let mut s = fixtures::session_with(400.0, 300.0);
     fixtures::ellipse(&mut s, 300.0, 250.0, 20.0, 20.0);
     exec(&mut s, "paint.setFill", json!({"color": "#ff0000"}));
@@ -26,7 +26,7 @@ fn setup(inline: bool) -> (vectorcraft_engine::Session, NodeId) {
     (s, id)
 }
 
-fn doc(s: &vectorcraft_engine::Session) -> Document {
+fn doc(s: &vansoncraft_engine::Session) -> Document {
     (*s.doc().unwrap().doc).clone()
 }
 
@@ -40,7 +40,7 @@ fn text(d: &Document, id: NodeId) -> TextObject {
 /// Where the inline art lands, in document space.
 fn art_rect(d: &Document, id: NodeId) -> Rect {
     let t = text(d, id);
-    let l = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &t);
+    let l = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &t);
     assert_eq!(l.inlines.len(), 1);
     t.xf.transform_rect_bbox(l.inlines[0].bounds)
 }
@@ -85,12 +85,12 @@ fn canvas_applies_the_text_objects_opacity_to_its_inline_art() {
     assert!(p[0] > 240 && (100..180).contains(&p[1]) && (100..180).contains(&p[2]), "{p:?}");
 }
 
-fn svg_of(s: &mut vectorcraft_engine::Session, params: Value) -> String {
+fn svg_of(s: &mut vansoncraft_engine::Session, params: Value) -> String {
     let v = exec(s, "document.serialize", params);
     v["text"]
         .as_str()
         .map(str::to_string)
-        .unwrap_or_else(|| String::from_utf8(vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap()).unwrap())
+        .unwrap_or_else(|| String::from_utf8(vansoncraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap()).unwrap())
 }
 
 #[test]
@@ -105,7 +105,7 @@ fn svg_keeps_live_text_and_draws_the_symbol() {
     assert!(svg.contains("<symbol id=\"Dot\""), "{svg}");
     assert!(svg.matches("xlink:href=\"#Dot\"").count() == 1, "{svg}");
     // Re-imported, the art is a red circle where the canvas draws it.
-    let back = vectorcraft_svg::import(&svg).unwrap();
+    let back = vansoncraft_svg::import(&svg).unwrap();
     let img = raster::render_region(&back, Rect::new(0.0, 0.0, 200.0, 150.0), 2.0);
     let r = art_rect(&doc(&s), id);
     let p = img.over_white((r.center().x * 2.0) as u32, (r.center().y * 2.0) as u32);
@@ -122,8 +122,8 @@ fn svg_keeps_live_text_and_draws_the_symbol() {
 fn pdf_draws_the_symbol_art() {
     let (mut s, id) = setup(true);
     let v = exec(&mut s, "document.serialize", json!({"format": "pdf"}));
-    let bytes = vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap();
-    let back = vectorcraft_pdf::import(&bytes).unwrap();
+    let bytes = vansoncraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap();
+    let back = vansoncraft_pdf::import(&bytes).unwrap();
     let r = art_rect(&doc(&s), id);
     let img = raster::render_region(&back, Rect::new(0.0, 0.0, 200.0, 150.0), 2.0);
     let p = img.over_white((r.center().x * 2.0) as u32, (r.center().y * 2.0) as u32);
@@ -131,7 +131,7 @@ fn pdf_draws_the_symbol_art() {
     // Without it, nothing red.
     let (mut plain, _) = setup(false);
     let v = exec(&mut plain, "document.serialize", json!({"format": "pdf"}));
-    let back = vectorcraft_pdf::import(&vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap()).unwrap();
+    let back = vansoncraft_pdf::import(&vansoncraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap()).unwrap();
     let img = raster::render_region(&back, Rect::new(0.0, 0.0, 200.0, 150.0), 2.0);
     assert_eq!(img.count(|p| p[0] > 200 && p[1] < 80 && p[2] < 80 && p[3] > 200), 0);
 }

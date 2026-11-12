@@ -1,17 +1,17 @@
 [package]
-name = "vectorcraft-brush"
+name = "vansoncraft-brush"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "VectorCraft brushes: calligraphic, scatter, art, pattern and bristle brush definitions and stroke geometry"
+description = "VansonCraft brushes: calligraphic, scatter, art, pattern and bristle brush definitions and stroke geometry"
 
 [lints]
 workspace = true
 
 [dependencies]
-vectorcraft-geom = { workspace = true }
-vectorcraft-color = { workspace = true }
-vectorcraft-doc = { workspace = true }
+vansoncraft-geom = { workspace = true }
+vansoncraft-color = { workspace = true }
+vansoncraft-doc = { workspace = true }
 kurbo = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

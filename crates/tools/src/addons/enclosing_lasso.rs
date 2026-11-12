@@ -5,11 +5,11 @@
 mod region;
 
 use serde_json::json;
-use vectorcraft_doc::hit::enclosure_candidates;
-use vectorcraft_doc::{AppearanceItem, Node, NodeKind, SymbolBoxes};
-use vectorcraft_geom::kurbo::{ParamCurve, PathEl};
-use vectorcraft_geom::{BezPath, FillRule, PathData, Point, Rect, Shape};
-use vectorcraft_pathops::{BoolOp, DEFAULT_PRECISION, try_boolean};
+use vansoncraft_doc::hit::enclosure_candidates;
+use vansoncraft_doc::{AppearanceItem, Node, NodeKind, SymbolBoxes};
+use vansoncraft_geom::kurbo::{ParamCurve, PathEl};
+use vansoncraft_geom::{BezPath, FillRule, PathData, Point, Rect, Shape};
+use vansoncraft_pathops::{BoolOp, DEFAULT_PRECISION, try_boolean};
 
 use self::region::Region;
 use crate::xform::{BLUE, polygon};

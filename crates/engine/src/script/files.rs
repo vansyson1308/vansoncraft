@@ -9,7 +9,7 @@
 //! folder, `%xx` escapes are read as UTF-8, and on Windows both `/` and `\` separate names and
 //! `/c/…` names drive C. Naming a path does not look anything up.
 //!
-//! VectorCraft's own rules:
+//! VansonCraft's own rules:
 //!
 //! - A script reads only inside its [`ScriptScope`]: a script run from a file reads in that file's
 //!   folder and the folders below it, and a script given as text reads nothing. A path whose names
@@ -42,7 +42,7 @@ use std::path::Path;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use vectorcraft_js::{Data, HostError, HostItem, Realm, RunError};
+use vansoncraft_js::{Data, HostError, HostItem, Realm, RunError};
 
 use super::{Host, bump};
 use crate::file_access::{ScriptRead, ScriptScope};

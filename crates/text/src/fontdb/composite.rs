@@ -3,7 +3,7 @@
 //! in the font of the character's class ([`FontDb::composite_split`]).
 
 use unicode_segmentation::UnicodeSegmentation;
-use vectorcraft_doc::{CharClass, CompositeFont, TextObject, TextRun};
+use vansoncraft_doc::{CharClass, CompositeFont, TextObject, TextRun};
 
 use super::face::FALLBACK_FAMILY;
 use super::{Arc, FontDb, FontFace, FontMatch};

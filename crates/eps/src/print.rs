@@ -5,8 +5,8 @@
 use std::fmt::Write;
 
 use kurbo::{Shape, Vec2};
-use vectorcraft_doc::{Document, Node};
-use vectorcraft_geom::{Affine, Rect};
+use vansoncraft_doc::{Document, Node};
+use vansoncraft_geom::{Affine, Rect};
 
 use crate::scene::{Page, Scene};
 use crate::{EpsOptions, EpsOutput, Level, comments, ps};

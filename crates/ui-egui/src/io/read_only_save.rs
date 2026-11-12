@@ -4,10 +4,10 @@
 use std::rc::Rc;
 
 use serde_json::{Value, json};
-use vectorcraft_engine::cmd::fileio::{self, SaveMode, SavePlan};
+use vansoncraft_engine::cmd::fileio::{self, SaveMode, SavePlan};
 
 use crate::picks::{self, Entry};
-use crate::{FilePick, VectorcraftApp};
+use crate::{FilePick, VansoncraftApp};
 
 pub(super) struct Retry {
     path: Option<String>,
@@ -27,7 +27,7 @@ impl Retry {
 
     /// None when this continuation is stale or another picker prevents it. The existing failed-save
     /// dialog then stays in charge; there is no queue of deferred Save As requests.
-    pub(super) fn instead(self, app: &mut VectorcraftApp, uid: u64) -> Option<Result<Value, String>> {
+    pub(super) fn instead(self, app: &mut VansoncraftApp, uid: u64) -> Option<Result<Value, String>> {
         if app.automation_asked() || app.services.pick_save.is_none() || app.picks.is_waiting() || super::save::is_web(app) {
             return None;
         }
@@ -38,7 +38,7 @@ impl Retry {
         let name = &self.pick.name;
         let status = format!("Cannot write to the location of “{name}”; choose where to save it");
         app.status(status.clone());
-        let save = Rc::new(move |app: &mut VectorcraftApp| {
+        let save = Rc::new(move |app: &mut VansoncraftApp| {
             // An agent can retarget this document while the sheet is open. Its answer must not
             // replace that later choice. The picker itself already checks the document's uid.
             if !app.session.active().is_some_and(|st| st.uid == uid && st.path == self.path) {

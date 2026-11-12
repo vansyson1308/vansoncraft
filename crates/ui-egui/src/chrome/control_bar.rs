@@ -1,4 +1,4 @@
-use super::{NodeKind, Sense, Stroke, Tokens, Ui, VectorcraftApp, json, stroke_panel, theme, vec2, widgets};
+use super::{NodeKind, Sense, Stroke, Tokens, Ui, VansoncraftApp, json, stroke_panel, theme, vec2, widgets};
 
 /// An anchor button: icon, tooltip, command and the convert command's `to`.
 type AnchorButton<'a> = (&'a str, &'a str, &'a str, Option<&'a str>);
@@ -16,7 +16,7 @@ pub enum AnchorControls {
 }
 
 /// Which anchor controls show for the selection and the active tool.
-pub fn anchor_controls(app: &VectorcraftApp) -> AnchorControls {
+pub fn anchor_controls(app: &VansoncraftApp) -> AnchorControls {
     let Some(st) = app.session.active() else {
         return AnchorControls::None;
     };
@@ -25,13 +25,13 @@ pub fn anchor_controls(app: &VectorcraftApp) -> AnchorControls {
     }
     let paths =
         st.selection.objects.iter().any(|id| st.doc.node(*id).is_some_and(|n| matches!(n.kind, NodeKind::Path { .. } | NodeKind::Blend { .. })));
-    if paths && vectorcraft_tools::catalog::edits_anchors(app.session.tool_id()) { AnchorControls::Convert } else { AnchorControls::None }
+    if paths && vansoncraft_tools::catalog::edits_anchors(app.session.tool_id()) { AnchorControls::Convert } else { AnchorControls::None }
 }
 
 /// What the Control bar and the Properties panel offer for selected anchors ([`anchor_controls`]):
 /// "Convert:" corner or smooth, then "Anchors:" remove, connect (Join) and cut. Each group is a
 /// row of its own: inline in the Control bar, one under the other in a panel.
-pub fn anchor_buttons(app: &mut VectorcraftApp, ui: &mut Ui, controls: AnchorControls) {
+pub fn anchor_buttons(app: &mut VansoncraftApp, ui: &mut Ui, controls: AnchorControls) {
     let t = Tokens::get(ui.ctx());
     let mut run = None;
     let groups: [(&str, &[AnchorButton]); 2] = [
@@ -79,7 +79,7 @@ pub(super) const ISOLATION_BUTTON: &str = "cb-isolation";
 const ARTBOARD_SNAPPING_WIDTH: f32 = 900.0;
 
 /// The Control bar's snapping quick access; every change uses its existing command.
-fn snapping_menu(app: &mut VectorcraftApp, ui: &mut Ui) {
+fn snapping_menu(app: &mut VansoncraftApp, ui: &mut Ui) {
     ui.menu_button(tl!("Snapping"), |ui| {
         for (label, cmd, on) in [
             (tl!("Smart Guides"), "view.smartGuides", app.ui.view.smart_guides),
@@ -108,10 +108,10 @@ fn snapping_menu(app: &mut VectorcraftApp, ui: &mut Ui) {
 /// The Control bar's isolation button. In isolation mode it is Exit Isolation Mode, except while a
 /// pattern is edited (the isolation bar's Done and Cancel end that), and Exit Symbol Editing Mode
 /// while a symbol's art is the isolated layer. Otherwise, with one object selected that
-/// [`vectorcraft_tools::select::isolates`], it is Isolate Selected Object, which also isolates a
+/// [`vansoncraft_tools::select::isolates`], it is Isolate Selected Object, which also isolates a
 /// path inside a group that Direct Selection selected. An envelope's contents get no button: the
 /// envelope's Edit Envelope and Edit Contents buttons show instead.
-fn isolation_button(app: &mut VectorcraftApp, ui: &mut Ui) {
+fn isolation_button(app: &mut VansoncraftApp, ui: &mut Ui) {
     let Some(st) = app.session.active() else { return };
     let (icon, tip, id) = if st.isolation.is_some() {
         if st.doc.pattern_edit.is_some() {
@@ -123,8 +123,8 @@ fn isolation_button(app: &mut VectorcraftApp, ui: &mut Ui) {
             ("chevron-left", tl!("Exit Isolation Mode"), "object.exitIsolation")
         }
     } else if let [one] = st.selection.objects[..]
-        && st.doc.node(one).is_some_and(|n| vectorcraft_tools::select::isolates(&n.kind))
-        && vectorcraft_doc::live::envelope_of(&st.doc, one).is_none()
+        && st.doc.node(one).is_some_and(|n| vansoncraft_tools::select::isolates(&n.kind))
+        && vansoncraft_doc::live::envelope_of(&st.doc, one).is_none()
     {
         ("square-dashed", tl!("Isolate Selected Object"), "object.isolate")
     } else {
@@ -147,7 +147,7 @@ const GLOBAL_EDIT_OPTIONS_WIDTH: f32 = 24.0;
 /// off and closed while Global Edit is on, as that panel's dropdown is. It sits after Recolor
 /// Artwork, ahead of the X/Y/W/H fields that the bar leaves out when it runs short of room, and is
 /// left out only when no room is left for it.
-fn global_edit_options(app: &mut VectorcraftApp, ui: &mut Ui) {
+fn global_edit_options(app: &mut VansoncraftApp, ui: &mut Ui) {
     if !crate::menus::enabled(app, "select.globalEdit") || ui.available_width() < GLOBAL_EDIT_OPTIONS_WIDTH {
         return;
     }
@@ -223,7 +223,7 @@ fn separator_width(ui: &Ui) -> f32 {
 /// groups ahead of them (the Paragraph section, area type's vertical alignment, the Align buttons,
 /// the Align To menu and the Distribute buttons) show only while it is left, so the bar trims them
 /// from its right end (#5372), after the inline X/Y/W/H fields.
-fn end_width(app: &VectorcraftApp, ui: &Ui, nothing_selected: bool) -> f32 {
+fn end_width(app: &VansoncraftApp, ui: &Ui, nothing_selected: bool) -> f32 {
     if nothing_selected {
         if group_on(app, "documentOptions") { DOCUMENT_SETUP_WIDTH + ui.spacing().item_spacing.x + PREFERENCES_WIDTH } else { 0.0 }
     } else if group_on(app, "transform") {
@@ -240,7 +240,7 @@ fn end_width(app: &VectorcraftApp, ui: &Ui, nothing_selected: bool) -> f32 {
 /// Align To menu and, for two or more objects, the Distribute buttons (a single object keeps the bar
 /// as it was); each shows only while the end of the bar keeps its room. Groups the panel menu has
 /// off are left out, and take no room.
-fn groups_before_transform(app: &mut VectorcraftApp, ui: &mut Ui, objects: usize) -> bool {
+fn groups_before_transform(app: &mut VansoncraftApp, ui: &mut Ui, objects: usize) -> bool {
     let nothing = objects == 0;
     let end = end_width(app, ui, nothing);
     if group_on(app, "paragraph") && crate::panels::paragraph::control_bar(app, ui, BUTTON, |ui| group_end_width(ui) + end) {
@@ -330,7 +330,7 @@ fn group_label(group: &str) -> &'static str {
 }
 
 /// Whether group `group` of [`CONTROL_BAR_GROUPS`] is on, so its controls may show in the bar.
-pub(crate) fn group_on(app: &VectorcraftApp, group: &str) -> bool {
+pub(crate) fn group_on(app: &VansoncraftApp, group: &str) -> bool {
     !app.ui.control_bar_hidden_groups.contains(group)
 }
 
@@ -350,14 +350,14 @@ const MENU_BUTTON: f32 = 16.0;
 const DOCK_BAND: f32 = 4.0;
 
 /// Docks the Control bar to `edge` of [`CONTROL_BAR_EDGES`], through its command.
-fn dock(app: &mut VectorcraftApp, edge: &str) {
+fn dock(app: &mut VansoncraftApp, edge: &str) {
     crate::menus::invoke(app, "window.control.dock", json!({ "edge": edge }));
 }
 
 /// The Control bar's panel menu: an item for each group of [`CONTROL_BAR_GROUPS`], checked while
 /// the group is on, which turns it on or off; then Dock to Top and Dock to Bottom, the edge the bar
 /// is docked to checked. In a window too short for every item, the list scrolls.
-fn panel_menu(app: &mut VectorcraftApp, ui: &mut Ui, rect: egui::Rect) {
+fn panel_menu(app: &mut VansoncraftApp, ui: &mut Ui, rect: egui::Rect) {
     let resp = crate::panels::menu_button(ui, "control", rect);
     egui::Popup::menu(&resp).show(|ui| {
         ui.set_min_width(160.0);
@@ -379,7 +379,7 @@ fn panel_menu(app: &mut VectorcraftApp, ui: &mut Ui, rect: egui::Rect) {
 
 /// The Control bar's Fill and Stroke group: the fill and stroke chips, the Stroke link, the weight
 /// and the width profile, and the separator after them.
-fn fill_and_stroke(app: &mut VectorcraftApp, ui: &mut Ui) {
+fn fill_and_stroke(app: &mut VansoncraftApp, ui: &mut Ui) {
     let shown_stroke = crate::panels::current_stroke(app);
     let mixed = crate::panels::stroke_mixed(app, ui.ctx());
     let weight = stroke_panel::shown_weight(app, shown_stroke.as_ref(), &mixed);
@@ -399,7 +399,7 @@ fn fill_and_stroke(app: &mut VectorcraftApp, ui: &mut Ui) {
 /// The Control bar's Opacity group (its link and field, showing `opacity`) and, with something
 /// `selected`, its Graphic Style group (Style, Recolor Artwork and Global Edit Options), each while
 /// the panel menu has it on, and the separator after them.
-fn opacity_and_style(app: &mut VectorcraftApp, ui: &mut Ui, t: &Tokens, opacity: f32, selected: bool) {
+fn opacity_and_style(app: &mut VansoncraftApp, ui: &mut Ui, t: &Tokens, opacity: f32, selected: bool) {
     let (opacity_on, style_on) = (group_on(app, "opacity"), group_on(app, "graphicStyle") && selected);
     if opacity_on {
         // A click opens the Transparency panel; a drag scrubs the field (#4088).
@@ -434,7 +434,7 @@ fn opacity_and_style(app: &mut VectorcraftApp, ui: &mut Ui, t: &Tokens, opacity:
 
 /// The Control bar's gripper. Dragging it shows a band along the top or the bottom edge of the
 /// window, whichever the pointer is nearer, and docks the bar there on release.
-fn gripper(app: &mut VectorcraftApp, ui: &mut Ui, t: &Tokens) {
+fn gripper(app: &mut VansoncraftApp, ui: &mut Ui, t: &Tokens) {
     let (g, resp) = ui.allocate_exact_size(vec2(6.0, 20.0), Sense::drag());
     for i in 0..5 {
         ui.painter().circle_filled(g.center_top() + vec2(0.0, 2.0 + i as f32 * 4.0), 0.9, t.text_disabled);
@@ -464,7 +464,7 @@ fn gripper(app: &mut VectorcraftApp, ui: &mut Ui, t: &Tokens) {
 
 /// The Control bar (Window → Control), context-sensitive like Illustrator's, docked to the top or
 /// the bottom of the window.
-pub fn control_bar(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn control_bar(app: &mut VansoncraftApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let bottom = app.ui.control_bar_bottom;
     let panel = if bottom { egui::Panel::bottom("control_bar") } else { egui::Panel::top("control_bar") };
@@ -498,7 +498,7 @@ pub fn control_bar(app: &mut VectorcraftApp, ui: &mut Ui) {
                     Some(_) if sel.len() == 1 && anchors != AnchorControls::None => {
                         tl!("Anchor Point")
                     }
-                    Some(vectorcraft_doc::Node { kind: NodeKind::Image(im), .. }) if sel.len() == 1 => {
+                    Some(vansoncraft_doc::Node { kind: NodeKind::Image(im), .. }) if sel.len() == 1 => {
                         if im.link.is_some() {
                             tl!("Linked File")
                         } else {

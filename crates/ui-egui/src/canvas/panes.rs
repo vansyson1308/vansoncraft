@@ -11,7 +11,7 @@ use super::grid::LineLook;
 use super::outline::{c32, node_outline, stroke_path, too_many_anchors};
 use super::view::fit_zoom;
 use super::{
-    Affine, CacheKey, Point, Rect, RulerScale, Sense, Stroke, StrokeKind, Tokens, Ui, VectorcraftApp, View, Xf, artboard_edges, cache_key,
+    Affine, CacheKey, Point, Rect, RulerScale, Sense, Stroke, StrokeKind, Tokens, Ui, VansoncraftApp, View, Xf, artboard_edges, cache_key,
     dim_on_canvas, frame_options, frame_view, grid, guides_of, json, paint_paper, pixel_region, plugin_key, pos2, rulers, shows_artboards,
     textured_quad, vec2, view_rects,
 };
@@ -19,7 +19,7 @@ use crate::doc_windows::Win;
 use crate::thumb_worker::ThumbWorker;
 
 /// A pane's render: what it shows, the document, its size in pixels and view, and its options.
-type PaneFrame = (CacheKey, Arc<vectorcraft_doc::Document>, ((u32, u32), Affine), vectorcraft_render::RenderOptions);
+type PaneFrame = (CacheKey, Arc<vansoncraft_doc::Document>, ((u32, u32), Affine), vansoncraft_render::RenderOptions);
 
 /// Whose render a pane draws: its document's uid and its view's number.
 type Slot = (u64, u32);
@@ -31,7 +31,7 @@ pub struct Panes {
     worker: Option<ThumbWorker<Slot, (Slot, CacheKey)>>,
     worker_started: bool,
     /// Renders on the UI thread when there is no worker.
-    renderer: Option<vectorcraft_render::Renderer>,
+    renderer: Option<vansoncraft_render::Renderer>,
     /// By slot: the render shown and what it shows.
     pub(crate) shown: HashMap<Slot, (CacheKey, egui::TextureHandle)>,
     /// By slot: the render the worker is making.
@@ -53,7 +53,7 @@ impl Panes {
     }
 
     /// Upload `img`, the render `key` describes, for `slot`.
-    fn upload(&mut self, ctx: &egui::Context, slot: Slot, key: CacheKey, img: &vectorcraft_render::Rendered) {
+    fn upload(&mut self, ctx: &egui::Context, slot: Slot, key: CacheKey, img: &vansoncraft_render::Rendered) {
         let color = super::color_image(img);
         // Pixel Preview's document pixels show hard-edged, as on the canvas.
         let options = if key.pixel.is_some() { egui::TextureOptions::NEAREST } else { egui::TextureOptions::LINEAR };
@@ -110,7 +110,7 @@ impl Panes {
                 }
             }
             if !queued {
-                let img = self.renderer.get_or_insert_with(vectorcraft_render::Renderer::new).render(&doc, w, h, view, &opts);
+                let img = self.renderer.get_or_insert_with(vansoncraft_render::Renderer::new).render(&doc, w, h, view, &opts);
                 self.upload(ctx, slot, key, &img);
             }
         }
@@ -149,7 +149,7 @@ pub(crate) fn cells(n: usize, area: egui::Rect) -> Vec<egui::Rect> {
 /// `window.arrange.tile`: every open document, and each further view of one, in a pane of its own,
 /// each fitted to its pane. With fewer than two windows open (when the menu item is grayed out) it
 /// leaves the view and `tiled` as they are. The windows floating come back under the tabs for it.
-pub(crate) fn tile(app: &mut VectorcraftApp) -> Result<serde_json::Value, String> {
+pub(crate) fn tile(app: &mut VansoncraftApp) -> Result<serde_json::Value, String> {
     app.sync_views();
     let n = crate::doc_windows::windows(app).len();
     if n < 2 {
@@ -164,7 +164,7 @@ pub(crate) fn tile(app: &mut VectorcraftApp) -> Result<serde_json::Value, String
 
 /// `window.arrange.consolidateAllWindows`: one document at a time again, under its tab, the
 /// documents in floating windows included.
-pub(crate) fn consolidate(app: &mut VectorcraftApp) -> Result<serde_json::Value, String> {
+pub(crate) fn consolidate(app: &mut VansoncraftApp) -> Result<serde_json::Value, String> {
     app.ui.tiled = false;
     crate::doc_windows::dock_all(app);
     app.canvas.panes.clear();
@@ -174,7 +174,7 @@ pub(crate) fn consolidate(app: &mut VectorcraftApp) -> Result<serde_json::Value,
 /// Draw the document area as panes while Tile is on and more than one window is under the tabs,
 /// outside the Home screen and Presentation Mode. False when it did not: the caller draws the
 /// canvas. The floating windows have no pane.
-pub(crate) fn tiled_area(app: &mut VectorcraftApp, ui: &mut Ui) -> bool {
+pub(crate) fn tiled_area(app: &mut VansoncraftApp, ui: &mut Ui) -> bool {
     if app.session.documents().is_empty() {
         app.ui.tiled = false;
     }
@@ -238,14 +238,14 @@ pub(crate) fn tiled_area(app: &mut VectorcraftApp, ui: &mut Ui) -> bool {
 }
 
 /// Window `w`'s [`Slot`].
-fn slot(app: &VectorcraftApp, (i, n): Win) -> Option<Slot> {
+fn slot(app: &VansoncraftApp, (i, n): Win) -> Option<Slot> {
     app.session.documents().get(i).map(|d| (d.uid, n))
 }
 
 /// Unfit each window whose view is still where a pane fit left it when its view's area (`areas`,
 /// by window) has changed size, as when the window or a panel is resized: it fits its pane again.
 /// A view zoomed or scrolled since keeps its place. → which of `areas`' views are unfitted now.
-fn refit_resized(app: &mut VectorcraftApp, areas: &[(Win, egui::Rect)]) -> Vec<bool> {
+fn refit_resized(app: &mut VansoncraftApp, areas: &[(Win, egui::Rect)]) -> Vec<bool> {
     areas
         .iter()
         .map(|(w, area)| {
@@ -265,7 +265,7 @@ fn refit_resized(app: &mut VectorcraftApp, areas: &[(Win, egui::Rect)]) -> Vec<b
 
 /// Fit `v` to show its artboard (the first if it has gone) in `rect`, with the interface zoomed by
 /// `ui_zoom`, as Fit Artboard in Window does.
-fn fit_pane(v: &mut View, doc: &vectorcraft_doc::Document, rect: egui::Rect, ui_zoom: f32) {
+fn fit_pane(v: &mut View, doc: &vansoncraft_doc::Document, rect: egui::Rect, ui_zoom: f32) {
     if let Some(target) = doc.artboards.get(v.artboard).or(doc.artboards.first()).map(|a| a.rect) {
         v.zoom = fit_zoom(rect, target, v.rotation, ui_zoom);
         v.center = target.center();
@@ -278,7 +278,7 @@ fn fit_pane(v: &mut View, doc: &vectorcraft_doc::Document, rect: egui::Rect, ui_
 /// scroll bars, so the document stays where it is when the pane becomes the canvas. True when a
 /// press in the pane asks for its window to become the current one. A floating window draws its
 /// view with this too ([`crate::doc_windows`]).
-pub(crate) fn pane(app: &mut VectorcraftApp, ui: &Ui, w: Win, cell: egui::Rect) -> bool {
+pub(crate) fn pane(app: &mut VansoncraftApp, ui: &Ui, w: Win, cell: egui::Rect) -> bool {
     let t = Tokens::get(ui.ctx());
     let ppp = ui.ctx().pixels_per_point();
     let (full, rect) = view_rects(app, cell, ppp);
@@ -345,15 +345,15 @@ pub(crate) fn pane(app: &mut VectorcraftApp, ui: &Ui, w: Win, cell: egui::Rect) 
 
 /// The outlines of the objects selected in `st`, in their layers' colors; their bounds when they
 /// have too many points to outline.
-fn selected_objects(st: &vectorcraft_engine::DocState, painter: &egui::Painter, xf: &Xf) {
+fn selected_objects(st: &vansoncraft_engine::DocState, painter: &egui::Painter, xf: &Xf) {
     let symbols = st.doc.symbol_boxes();
-    let nodes: Vec<(vectorcraft_doc::NodeId, &vectorcraft_doc::Node)> =
+    let nodes: Vec<(vansoncraft_doc::NodeId, &vansoncraft_doc::Node)> =
         st.selection.objects.iter().filter_map(|id| Some((*id, st.doc.node(*id)?))).collect();
-    let color = |id: vectorcraft_doc::NodeId| Stroke::new(1.0, c32(st.doc.layer_color(id)));
+    let color = |id: vansoncraft_doc::NodeId| Stroke::new(1.0, c32(st.doc.layer_color(id)));
     if too_many_anchors(nodes.iter().map(|(_, n)| *n)) {
         let bounds = nodes.iter().filter_map(|(_, n)| n.geometric_bounds_with(&symbols)).reduce(|a, b| a.union(b));
         if let (Some(b), Some((id, _))) = (bounds, nodes.first()) {
-            stroke_path(painter, &vectorcraft_geom::shapes::rectangle(b).to_bezpath(), xf, color(*id));
+            stroke_path(painter, &vansoncraft_geom::shapes::rectangle(b).to_bezpath(), xf, color(*id));
         }
         return;
     }

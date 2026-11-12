@@ -30,12 +30,12 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::Arc;
 
 use kurbo::{Affine, BezPath, Point, Rect, Vec2};
-use vectorcraft_doc::live::{
+use vansoncraft_doc::live::{
     EnvelopeKind, EnvelopeOptions, GradientMesh, H_DOWN, H_LEFT, H_RIGHT, H_UP, PreserveShape, default_fidelity, envelope_content_boxes,
     envelope_stroke_margin,
 };
-use vectorcraft_doc::{Appearance, Document, Effect, ImageBlob, LayerColor, Node, NodeId, NodeKind, PatternDef};
-use vectorcraft_geom::PathData;
+use vansoncraft_doc::{Appearance, Document, Effect, ImageBlob, LayerColor, Node, NodeId, NodeKind, PatternDef};
+use vansoncraft_geom::PathData;
 
 use super::obj::Obj;
 use crate::import::native::compare::{MAX_DIFFERENCE, MAX_SOLID_DIFFERENCE, compare_scale, differ, differ_in_colour, differ_on_black};
@@ -43,7 +43,7 @@ use crate::import::native::compare::{MAX_DIFFERENCE, MAX_SOLID_DIFFERENCE, compa
 /// The plugin that writes envelopes.
 pub(super) const PLUGIN: &str = "Adobe Deform Plugin"; // brand-ok: the plugin name the files use
 /// The note for an envelope that keeps its drawn art.
-pub(crate) const DRAWN: &str = "an envelope VectorCraft couldn't read as a live envelope comes in as its drawn art";
+pub(crate) const DRAWN: &str = "an envelope VansonCraft couldn't read as a live envelope comes in as its drawn art";
 /// The note for an envelope of type, which keeps its drawn art with its type hidden (unless the
 /// text document gives the type nothing, which a note of its own then says).
 pub(crate) const TYPE_DRAWN: &str = "type in an envelope comes in as the envelope's drawn art, not as editable type";
@@ -157,13 +157,13 @@ fn half_stroked_box(content: &[Arc<Node>]) -> Option<Rect> {
                 let Some((_, ink)) = envelope_content_boxes(one, Affine::IDENTITY) else { return acc };
                 // The characters' own strokes as the type's bounds with strokes measure them (they
                 // have no miter allowance there), and the strokes of its appearance along a side.
-                vectorcraft_geom::union_opt(acc, Some(grown(ink, t.char_stroke_outset().max(along(&n.appearance)))))
+                vansoncraft_geom::union_opt(acc, Some(grown(ink, t.char_stroke_outset().max(along(&n.appearance)))))
             }
             NodeKind::Group { children, clip: false } => {
                 let members = children.iter().fold(None, |acc, c| walk(c, acc));
-                vectorcraft_geom::union_opt(acc, members.map(|b| grown(b, along(&n.appearance))))
+                vansoncraft_geom::union_opt(acc, members.map(|b| grown(b, along(&n.appearance))))
             }
-            _ => vectorcraft_geom::union_opt(acc, envelope_content_boxes(one, Affine::IDENTITY).map(|(stroked, _)| stroked)),
+            _ => vansoncraft_geom::union_opt(acc, envelope_content_boxes(one, Affine::IDENTITY).map(|(stroked, _)| stroked)),
         }
     }
     content.iter().fold(None, |acc, c| walk(c, acc))
@@ -205,7 +205,7 @@ pub(super) fn moved_onto(envelope: &Node, drawn: &Node) -> Option<NodeKind> {
     }
     // What it draws, measured as its drawn art is: the pieces in a group with its own appearance.
     let mut drew = envelope.clone();
-    drew.kind = NodeKind::Group { children: vectorcraft_render::expand_live(envelope).into_iter().map(Arc::new).collect(), clip: false };
+    drew.kind = NodeKind::Group { children: vansoncraft_render::expand_live(envelope).into_iter().map(Arc::new).collect(), clip: false };
     let (from, to) = (drew.visual_bounds()?, drawn.visual_bounds()?);
     let by = to.center() - from.center();
     let resized = (from.width() - to.width()).abs() + (from.height() - to.height()).abs();
@@ -244,7 +244,7 @@ fn warp(o: &Obj) -> Option<EnvelopeKind> {
         h: percent("DeformHoriz")?,
         v: percent("DeformVert")?,
         horizontal: !vertical,
-        version: vectorcraft_doc::live::WARP_NET,
+        version: vansoncraft_doc::live::WARP_NET,
     })
 }
 
@@ -478,8 +478,8 @@ fn alone(node: &Node, layer: NodeId, shared: &Shared<'_>) -> Document {
 /// black), those whose neighbours all differ too (where one draws something the other doesn't, not
 /// an edge drawn a little apart), and the pixels either inks. `None` when they can't be drawn.
 fn differing(live: &Document, drawn: &Document, region: Rect, scale: f64) -> Option<(usize, usize, usize)> {
-    let x = vectorcraft_render::Renderer::new().render_region(live, region, scale, false);
-    let y = vectorcraft_render::Renderer::new().render_region(drawn, region, scale, false);
+    let x = vansoncraft_render::Renderer::new().render_region(live, region, scale, false);
+    let y = vansoncraft_render::Renderer::new().render_region(drawn, region, scale, false);
     if x.width == 0 || x.height == 0 || x.width != y.width || x.height != y.height {
         return None;
     }
@@ -639,7 +639,7 @@ impl WarpedType {
         if slots.is_empty() {
             return Err(TypeKept::Type);
         }
-        let db = vectorcraft_text::FontDb::global();
+        let db = vansoncraft_text::FontDb::global();
         let (mut texts, mut hidden) = (HashMap::new(), vec![]);
         for (slot, look) in slots {
             let (id, mut text) = type_of(doc, slot).filter(|_| !look).ok_or(TypeKept::Type)?;
@@ -654,7 +654,7 @@ impl WarpedType {
         for n in before.iter_mut().chain(inner.iter_mut()) {
             put_type(n, &texts);
         }
-        // A warp that VectorCraft's own warp doesn't draw as its drawn art may still draw as the
+        // A warp that VansonCraft's own warp doesn't draw as its drawn art may still draw as the
         // grid the file saves for it: then it opens as a mesh envelope on that grid.
         let on_grid = if is_warp(&obj) { live_on_saved_grid(&obj, before.clone(), inner.clone()) } else { None };
         // With Distort Appearance, a file's envelope may map its type from its glyphs grown by half
@@ -825,8 +825,8 @@ pub(super) fn drawn_alike(live: &Node, drawn: &Node, layer: NodeId, shared: &Sha
 /// [`drawn_alike`] for type under a Warp, compared over all that its effects draw, which can reach
 /// past its own box.
 pub(super) fn warped_alike(live: &Node, drawn: &Node, layer: NodeId, shared: &Shared<'_>, page: Option<Rect>, spent: &mut Spent) -> bool {
-    let reach = vectorcraft_render::effect_bounds(&alone(live, layer, shared).symbol_boxes(), live);
-    alike_within(live, drawn, vectorcraft_geom::union_opt(live.visual_bounds(), reach), layer, shared, page, spent)
+    let reach = vansoncraft_render::effect_bounds(&alone(live, layer, shared).symbol_boxes(), live);
+    alike_within(live, drawn, vansoncraft_geom::union_opt(live.visual_bounds(), reach), layer, shared, page, spent)
 }
 
 /// [`drawn_alike`], with `live` measured as `reach`.
@@ -866,8 +866,8 @@ fn alike_within(live: &Node, drawn: &Node, reach: Option<Rect>, layer: NodeId, s
 #[cfg(test)]
 mod tests {
     use super::*;
-    use vectorcraft_color::{Color, Paint};
-    use vectorcraft_doc::{AppearanceItem, CharStyle, LineJoin, StrokeLayer, TextObject};
+    use vansoncraft_color::{Color, Paint};
+    use vansoncraft_doc::{AppearanceItem, CharStyle, LineJoin, StrokeLayer, TextObject};
 
     /// An envelope of `content` with Distort Appearance, on a flat one-patch mesh.
     fn envelope_of(content: Vec<Arc<Node>>) -> NodeKind {

@@ -5,7 +5,7 @@ against curved, flat tones against gradated ones, warm against cold (SP-XV-2, -3
 extremes of the tone scale, not the amounts (SP-XV-5). Interest can balance mass: a small,
 interesting accent can hold a large plain area (SP-XV-7). Balance variety against unity (SP-XV-8).
 
-**With VectorCraft.**
+**With VansonCraft.**
 - `study.balance` gives the centre of the dark weight (each pixel weighs its darkness on white),
   its offset from the artboard's centre (−1…1), the share of weight in each quarter, and the share
   of near-empty space. On a toned ground use `weigh: "contrast"`, which weighs each pixel's

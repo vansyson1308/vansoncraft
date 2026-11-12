@@ -9,7 +9,7 @@ use std::sync::mpsc::{SyncSender, sync_channel};
 use std::time::{Duration, Instant};
 
 use serde_json::{Value, json};
-use vectorcraft_engine::cancel;
+use vansoncraft_engine::cancel;
 
 use crate::backend::Backend;
 use crate::intake::{Job, Message, Shared, read_loop};
@@ -78,19 +78,19 @@ fn progress_sink(out: SyncSender<String>, msg: &Value) -> Option<cancel::Progres
     }))
 }
 
-const INSTRUCTIONS: &str = "VectorCraft is a professional vector illustration app. Coordinates are \
+const INSTRUCTIONS: &str = "VansonCraft is a professional vector illustration app. Coordinates are \
 points in document space (y down, origin at the first artboard's top-left; a new document is 612×792). \
 Draw with draw_shape / draw_path, change colours with set_paint, look with render_preview and doc_inspect. \
 Every menu action is a command: find it with command_list and run it with command_run (or command_batch for several). New objects become \
 the selection, and most commands act on the selection (or on explicit `ids`). prompts/list has ready-made \
 workflows, completion/complete finishes a command id, a format, an effect or a swatch name, and \
-vectorcraft://object/{id}, vectorcraft://command/{id}, vectorcraft://effect/{id} and \
-vectorcraft://swatch/{name} read one thing at a time instead of the whole document.";
+vansoncraft://object/{id}, vansoncraft://command/{id}, vansoncraft://effect/{id} and \
+vansoncraft://swatch/{name} read one thing at a time instead of the whole document.";
 
 /// What a server that fell back to headless says about it.
 pub(crate) fn fallback_notice(addr: &str) -> String {
     format!(
-        "Note: no VectorCraft app answered on {addr} when this server started, so it runs headless: nothing drawn here appears in a desktop window, and work not saved with save_file is lost when the server stops. To draw in the app, start it with --control and restart this server (or register it with --connect {addr})."
+        "Note: no VansonCraft app answered on {addr} when this server started, so it runs headless: nothing drawn here appears in a desktop window, and work not saved with save_file is lost when the server stops. To draw in the app, start it with --control and restart this server (or register it with --connect {addr})."
     )
 }
 
@@ -154,7 +154,7 @@ pub(crate) fn stateless_reply(msg: &Value, modern: bool) -> Option<Value> {
     }
     let params = o.get("params").cloned().unwrap_or(Value::Null);
     // A panic here is a bug: leave the request to the engine thread, which reports it.
-    let r = vectorcraft_engine::guard::catch_panic(|| stateless_request(method, &params)).ok()??;
+    let r = vansoncraft_engine::guard::catch_panic(|| stateless_request(method, &params)).ok()??;
     Some(match r {
         Ok(r) => response(id, complete_result(method, &params, modern, r)),
         Err((code, m)) => error(id, code, m),
@@ -417,7 +417,7 @@ impl Server {
             return Some(error(Value::Null, INVALID_REQUEST, "`id` must be a string or number"));
         }
         // A bug that panics fails this request only; the server keeps serving.
-        let r = vectorcraft_engine::guard::catch_panic(|| self.request(method, &params))
+        let r = vansoncraft_engine::guard::catch_panic(|| self.request(method, &params))
             .unwrap_or_else(|msg| Err((INTERNAL_ERROR, format!("internal error in `{method}`: {msg} (please report this bug)"))));
         Some(match r {
             Ok(r) => response(id, complete_result(method, &params, self.modern.load(Ordering::Relaxed), r)),
@@ -451,7 +451,7 @@ impl Server {
                         "completions": {},
                         "logging": {},
                     },
-                    "serverInfo": {"name": "vectorcraft", "title": "VectorCraft", "version": env!("CARGO_PKG_VERSION")},
+                    "serverInfo": {"name": "vansoncraft", "title": "VansonCraft", "version": env!("CARGO_PKG_VERSION")},
                     "instructions": match &self.fallback_notice {
                         Some(n) => format!("{INSTRUCTIONS} Backend: {}. {n}", self.backend.describe()),
                         None => format!("{INSTRUCTIONS} Backend: {}.", self.backend.describe()),

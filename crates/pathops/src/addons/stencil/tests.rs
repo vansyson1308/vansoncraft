@@ -1,5 +1,5 @@
 use kurbo::{BezPath, Point, Shape};
-use vectorcraft_geom::{FillRule, PathData, SubPath};
+use vansoncraft_geom::{FillRule, PathData, SubPath};
 
 use super::*;
 

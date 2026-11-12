@@ -13,8 +13,8 @@
 //! ([`OriginDrag`]), snaps as a drawn point does.
 
 use serde_json::json;
-use vectorcraft_doc::{Guide, NodeId};
-use vectorcraft_geom::{Point, Rect};
+use vansoncraft_doc::{Guide, NodeId};
+use vansoncraft_geom::{Point, Rect};
 
 use crate::guides::{PointSnap, Targets};
 use crate::{Action, Cursor, Overlay, PointerEvent, PointerKind, ToolContext};
@@ -148,7 +148,7 @@ impl GuideSnap {
             return v.round();
         }
         if cx.snap_to_grid {
-            return vectorcraft_geom::snap::snap_to_grid(v, cx.grid_step(), 0.0);
+            return vansoncraft_geom::snap::snap_to_grid(v, cx.grid_step(), 0.0);
         }
         let Some((t, tol)) = &self.targets else { return v };
         let (at, snapped) = t.snap_guide(vertical, v, cx.tol(*tol));

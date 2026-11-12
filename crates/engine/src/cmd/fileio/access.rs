@@ -61,7 +61,7 @@ pub(crate) fn shown_link<'a>(stored: &'a str, resolved: Option<&str>) -> std::bo
     if shown(resolved.unwrap_or(stored)) {
         return std::borrow::Cow::Borrowed(stored);
     }
-    let name = stored.rsplit(vectorcraft_doc::links::path_separators(stored)).next().unwrap_or_default();
+    let name = stored.rsplit(vansoncraft_doc::links::path_separators(stored)).next().unwrap_or_default();
     std::borrow::Cow::Borrowed(if matches!(name, "." | "..") { "" } else { name })
 }
 
@@ -98,7 +98,7 @@ pub(crate) fn read_file_head(path: &str, max: usize) -> Result<Vec<u8>> {
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) fn write_file(path: &str, bytes: &[u8]) -> Result<()> {
     // Work that stops early for a cancel can leave a truncated result: none of it is written.
-    vectorcraft_doc::cancel::check()?;
+    vansoncraft_doc::cancel::check()?;
     may_write(path)?;
     // Never a half-written file: see [`write_atomic`].
     write_atomic(std::path::Path::new(path), bytes).map_err(|e| EngineError::Other(format!("{path}: {e}")))
@@ -107,9 +107,9 @@ pub(crate) fn write_file(path: &str, bytes: &[u8]) -> Result<()> {
 /// [`write_file`] with what `fill` writes into the file (a save streamed into it).
 #[cfg(not(target_arch = "wasm32"))]
 pub fn write_file_with(path: &str, fill: &mut dyn FnMut(&mut dyn std::io::Write) -> std::io::Result<()>) -> Result<()> {
-    vectorcraft_doc::cancel::check()?;
+    vansoncraft_doc::cancel::check()?;
     may_write(path)?;
-    vectorcraft_format::write_atomic_with(std::path::Path::new(path), |f| fill(f)).map_err(|e| EngineError::Other(format!("{path}: {e}")))
+    vansoncraft_format::write_atomic_with(std::path::Path::new(path), |f| fill(f)).map_err(|e| EngineError::Other(format!("{path}: {e}")))
 }
 
 /// The save commands' writer: preserves a filesystem location refusal as a typed error. Other
@@ -121,15 +121,15 @@ pub fn write_save_file(path: &str, bytes: &[u8]) -> Result<()> {
 /// [`write_save_file`] for a streamed save.
 #[cfg(not(target_arch = "wasm32"))]
 pub fn write_save_file_with(path: &str, fill: &mut dyn FnMut(&mut dyn std::io::Write) -> std::io::Result<()>) -> Result<()> {
-    vectorcraft_doc::cancel::check()?;
+    vansoncraft_doc::cancel::check()?;
     may_write(path)?;
-    vectorcraft_format::write_atomic_with(std::path::Path::new(path), |f| fill(f)).map_err(|e| save_write_error(path, e))
+    vansoncraft_format::write_atomic_with(std::path::Path::new(path), |f| fill(f)).map_err(|e| save_write_error(path, e))
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 pub(super) fn save_write_error(path: &str, error: std::io::Error) -> EngineError {
     let reason = format!("{path}: {error}");
-    if vectorcraft_format::read_only_location(&error) { EngineError::ReadOnlyLocation(reason) } else { EngineError::Other(reason) }
+    if vansoncraft_format::read_only_location(&error) { EngineError::ReadOnlyLocation(reason) } else { EngineError::Other(reason) }
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -151,7 +151,7 @@ pub(crate) fn write_new_file(path: &str, bytes: &[u8]) -> Result<()> {
     may_write(path)?;
     let err = |e: std::io::Error| EngineError::Other(format!("{path}: {e}"));
     let mut f = std::fs::OpenOptions::new().write(true).create_new(true).open(path).map_err(err)?;
-    let written = f.write_all(bytes).and_then(|()| vectorcraft_format::sync_file(&f));
+    let written = f.write_all(bytes).and_then(|()| vansoncraft_format::sync_file(&f));
     drop(f);
     written.map_err(|e| {
         // Best effort: the partly written file is all there is to clean up.
@@ -381,8 +381,8 @@ pub(crate) fn drive_share_of(path: &str, final_path: impl FnOnce(&str) -> Option
     })
 }
 
-/// The path of `document` (on a drive, `Z:\jobs\doc.vectorcraft`) on the network share the drive is
-/// mapped to (`\\server\share\jobs\doc.vectorcraft`), when its folder is on one and automation may
+/// The path of `document` (on a drive, `Z:\jobs\doc.vansoncraft`) on the network share the drive is
+/// mapped to (`\\server\share\jobs\doc.vansoncraft`), when its folder is on one and automation may
 /// read the folder. The folder's final path ([`std::fs::canonicalize`]) names the share as
 /// `\\?\UNC\server\share\…`.
 #[cfg(windows)]

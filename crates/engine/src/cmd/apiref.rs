@@ -11,7 +11,7 @@
 //! characters become spaces.
 
 use serde_json::{Value, json};
-use vectorcraft_apischema::{Bound, MAX_DEPTH, MAX_ID, Omitted, Param, ParamSchema, Type, Writes};
+use vansoncraft_apischema::{Bound, MAX_DEPTH, MAX_ID, Omitted, Param, ParamSchema, Type, Writes};
 
 use super::{CommandSpec, Result, Session, always, cmd, command_specs};
 use crate::EngineError;
@@ -46,7 +46,7 @@ fn api_reference(_: &mut Session, _: &Value) -> Result<Value> {
     Ok(json!({ "markdown": reference(command_specs())? }))
 }
 
-const HEADER: &str = "# VectorCraft command API reference\n\nThis reference lists only the commands that have a parameter schema, in registry order. `engine.commands` lists every command, with its params text and whether it can run now.\n";
+const HEADER: &str = "# VansonCraft command API reference\n\nThis reference lists only the commands that have a parameter schema, in registry order. `engine.commands` lists every command, with its params text and whether it can run now.\n";
 
 /// The reference for the commands of `specs` that have a schema, or an error when it would be
 /// larger than [`MAX_BYTES`]; a reference that is too large is never cut short.

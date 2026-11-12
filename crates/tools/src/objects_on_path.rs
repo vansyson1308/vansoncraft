@@ -43,12 +43,12 @@
 //! <https://helpx.adobe.com/illustrator/desktop/manage-objects/arrange-objects/rearrange-and-edit-objects-on-a-path.html>.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::blend::Spine;
-use vectorcraft_doc::objects_on_path::{
+use vansoncraft_doc::blend::Spine;
+use vansoncraft_doc::objects_on_path::{
     CENTER, Member, ObjectsOnPath, attachable_path, is_objects_on_path, layout, nth_length, path_length, stop, stops,
 };
-use vectorcraft_doc::{Document, Node, NodeId, Selection};
-use vectorcraft_geom::{BezPath, Point, Vec2};
+use vansoncraft_doc::{Document, Node, NodeId, Selection};
+use vansoncraft_geom::{BezPath, Point, Vec2};
 
 use crate::{Action, Cursor, Mods, Overlay, PointerEvent, PointerKind, Tool, ToolContext, ToolKey};
 
@@ -92,7 +92,7 @@ fn one_group<'a>(
     doc: &'a Document,
     selection: &Selection,
     zoom: f64,
-) -> Option<(NodeId, &'a ObjectsOnPath, &'a [std::sync::Arc<vectorcraft_doc::Node>], &'a vectorcraft_geom::PathData)> {
+) -> Option<(NodeId, &'a ObjectsOnPath, &'a [std::sync::Arc<vansoncraft_doc::Node>], &'a vansoncraft_geom::PathData)> {
     if !selection.anchors.is_empty() || !zoom.is_finite() || zoom <= 0.0 {
         return None;
     }
@@ -646,7 +646,7 @@ pub fn over_member(cx: &ToolContext, p: Point) -> bool {
 pub fn member_hover(cx: &ToolContext, p: Point) -> Option<Overlay> {
     let w = MemberWidget::at_point(cx, p)?;
     let r = cx.tol(f64::from(MEMBER_RADIUS_PX) + 2.0);
-    let ring = vectorcraft_geom::shapes::ellipse(vectorcraft_geom::Rect::new(w.at.x - r, w.at.y - r, w.at.x + r, w.at.y + r));
+    let ring = vansoncraft_geom::shapes::ellipse(vansoncraft_geom::Rect::new(w.at.x - r, w.at.y - r, w.at.x + r, w.at.y + r));
     Some(Overlay::Path { path: ring.to_bezpath(), color: HIGHLIGHT, width: 1.5, dashed: false })
 }
 
@@ -776,16 +776,16 @@ fn group_spine(doc: &Document, g: NodeId) -> Option<Spine> {
 
 /// The path a click at `p` attaches the selected objects to: the path object hit there, when it can
 /// take objects, is in no Objects on Path group, is not a clipping path or part of a compound path,
-/// blend, envelope, repeat or Intertwine group ([`vectorcraft_doc::objects_on_path::held`]), and
+/// blend, envelope, repeat or Intertwine group ([`vansoncraft_doc::objects_on_path::held`]), and
 /// something else is selected.
 pub fn target(cx: &ToolContext, p: Point) -> Option<(NodeId, BezPath)> {
-    let h = vectorcraft_doc::hit::hit_test(cx.doc, p, cx.hit_options())?;
+    let h = vansoncraft_doc::hit::hit_test(cx.doc, p, cx.hit_options())?;
     let n = cx.doc.node(h.leaf)?;
     let path = attachable_path(n)?;
     if h.ancestry.iter().filter(|a| **a != h.leaf).any(|a| cx.doc.node(*a).is_some_and(is_objects_on_path)) {
         return None;
     }
-    if vectorcraft_doc::objects_on_path::held(cx.doc, h.leaf).is_some() {
+    if vansoncraft_doc::objects_on_path::held(cx.doc, h.leaf).is_some() {
         return None;
     }
     cx.selection.objects.iter().any(|id| *id != h.leaf).then(|| (h.leaf, path.to_bezpath()))
@@ -991,8 +991,8 @@ pub fn create(id: &str) -> Option<Box<dyn crate::Tool>> {
 mod tests {
     use std::sync::Arc;
 
-    use vectorcraft_doc::{Appearance, Node, NodeKind};
-    use vectorcraft_geom::{Rect, shapes};
+    use vansoncraft_doc::{Appearance, Node, NodeKind};
+    use vansoncraft_geom::{Rect, shapes};
 
     use super::*;
     use crate::testutil::{cx, paint};
@@ -1094,14 +1094,14 @@ mod tests {
 
     /// [`group_doc`] with every object drawn in `frame` (mapping its square onto itself) before it
     /// is placed on the path.
-    fn group_doc_framed(rotate: f64, frame: Option<vectorcraft_geom::Affine>) -> (Document, NodeId, Selection) {
+    fn group_doc_framed(rotate: f64, frame: Option<vansoncraft_geom::Affine>) -> (Document, NodeId, Selection) {
         let mut d = Document::new(500.0, 500.0);
         let l = d.layers[0].id;
         let (line, a, b, g) = (d.alloc_id(), d.alloc_id(), d.alloc_id(), d.alloc_id());
         let line = Node::path(line, shapes::line(Point::new(0.0, 300.0), Point::new(400.0, 300.0)), Appearance::default_art());
         let a = Node::path(a, shapes::rectangle(Rect::new(50.0, 50.0, 70.0, 70.0)), Appearance::default_art());
         let b = Node::path(b, shapes::rectangle(Rect::new(100.0, 50.0, 120.0, 70.0)), Appearance::default_art());
-        let mut rec = vectorcraft_doc::objects_on_path::ObjectsOnPath::new(line.id, &[&a, &b], CENTER, rotate);
+        let mut rec = vansoncraft_doc::objects_on_path::ObjectsOnPath::new(line.id, &[&a, &b], CENTER, rotate);
         if let Some(f) = frame {
             for m in &mut rec.members {
                 m.frame = f;
@@ -1109,7 +1109,7 @@ mod tests {
         }
         let mut group = Node::new(g, NodeKind::Group { children: vec![Arc::new(line), Arc::new(a), Arc::new(b)], clip: false });
         group.extras_mut().objects_on_path = Some(Box::new(rec));
-        vectorcraft_doc::objects_on_path::place(&mut group, &Document::new(1.0, 1.0).symbol_boxes());
+        vansoncraft_doc::objects_on_path::place(&mut group, &Document::new(1.0, 1.0).symbol_boxes());
         d.insert(Some(l), 0, group).unwrap();
         let mut sel = Selection::default();
         sel.set([g]);
@@ -1149,7 +1149,7 @@ mod tests {
         assert!(near(w.at, Point::new(-26.0, 300.0)), "{w:?}");
         // Drawn upside down (reflected across the line through their centers), the objects have
         // their tops facing down the page, and the widget goes below the first one.
-        let flip = vectorcraft_geom::Affine::new([1.0, 0.0, 0.0, -1.0, 0.0, 120.0]);
+        let flip = vansoncraft_geom::Affine::new([1.0, 0.0, 0.0, -1.0, 0.0, 120.0]);
         let (df, _, sf) = group_doc_framed(0.0, Some(flip));
         let wf = RotateAllWidget::of(&df, &sf, 1.0).unwrap();
         assert!(near(wf.pivot, Point::new(0.0, 300.0)) && near(wf.at, Point::new(0.0, 326.0)), "{wf:?}");
@@ -1289,8 +1289,8 @@ mod tests {
         let symbols = empty.symbol_boxes();
         let n = d.node_mut(g).unwrap();
         let rec = n.extras().objects_on_path.as_deref().cloned().unwrap();
-        n.extras_mut().objects_on_path = Some(Box::new(vectorcraft_doc::objects_on_path::ObjectsOnPath { spacing, start, ..rec }));
-        vectorcraft_doc::objects_on_path::place(n, &symbols);
+        n.extras_mut().objects_on_path = Some(Box::new(vansoncraft_doc::objects_on_path::ObjectsOnPath { spacing, start, ..rec }));
+        vansoncraft_doc::objects_on_path::place(n, &symbols);
         (d, g, sel)
     }
 
@@ -1415,23 +1415,23 @@ mod tests {
     /// then 300 pt up, with Space `spacing`; and a selection of the group.
     fn corner_doc(spacing: Option<f64>) -> (Document, Selection) {
         let points = [Point::new(0.0, 300.0), Point::new(400.0, 300.0), Point::new(400.0, 0.0)];
-        path_doc(vectorcraft_geom::PathData::single(vectorcraft_geom::SubPath::polyline(&points, false)), spacing)
+        path_doc(vansoncraft_geom::PathData::single(vansoncraft_geom::SubPath::polyline(&points, false)), spacing)
     }
 
     /// An Objects on Path group of two 20 × 20 squares on `path`, with Space `spacing`; and a
     /// selection of the group.
-    fn path_doc(path: vectorcraft_geom::PathData, spacing: Option<f64>) -> (Document, Selection) {
+    fn path_doc(path: vansoncraft_geom::PathData, spacing: Option<f64>) -> (Document, Selection) {
         let mut d = Document::new(500.0, 500.0);
         let l = d.layers[0].id;
         let (line, a, b, g) = (d.alloc_id(), d.alloc_id(), d.alloc_id(), d.alloc_id());
         let line = Node::path(line, path, Appearance::default_art());
         let a = Node::path(a, shapes::rectangle(Rect::new(50.0, 50.0, 70.0, 70.0)), Appearance::default_art());
         let b = Node::path(b, shapes::rectangle(Rect::new(100.0, 50.0, 120.0, 70.0)), Appearance::default_art());
-        let rec = vectorcraft_doc::objects_on_path::ObjectsOnPath::new(line.id, &[&a, &b], CENTER, 0.0);
-        let rec = vectorcraft_doc::objects_on_path::ObjectsOnPath { spacing, ..rec };
+        let rec = vansoncraft_doc::objects_on_path::ObjectsOnPath::new(line.id, &[&a, &b], CENTER, 0.0);
+        let rec = vansoncraft_doc::objects_on_path::ObjectsOnPath { spacing, ..rec };
         let mut group = Node::new(g, NodeKind::Group { children: vec![Arc::new(line), Arc::new(a), Arc::new(b)], clip: false });
         group.extras_mut().objects_on_path = Some(Box::new(rec));
-        vectorcraft_doc::objects_on_path::place(&mut group, &Document::new(1.0, 1.0).symbol_boxes());
+        vansoncraft_doc::objects_on_path::place(&mut group, &Document::new(1.0, 1.0).symbol_boxes());
         d.insert(Some(l), 0, group).unwrap();
         let mut sel = Selection::default();
         sel.set([g]);
@@ -1506,10 +1506,10 @@ mod tests {
         let (line, a, g) = (d.alloc_id(), d.alloc_id(), d.alloc_id());
         let line = Node::path(line, shapes::line(Point::new(0.0, 300.0), Point::new(400.0, 300.0)), Appearance::default_art());
         let a = Node::path(a, shapes::rectangle(Rect::new(50.0, 50.0, 70.0, 70.0)), Appearance::default_art());
-        let rec = vectorcraft_doc::objects_on_path::ObjectsOnPath::new(line.id, &[&a], CENTER, 0.0);
+        let rec = vansoncraft_doc::objects_on_path::ObjectsOnPath::new(line.id, &[&a], CENTER, 0.0);
         let mut group = Node::new(g, NodeKind::Group { children: vec![Arc::new(line), Arc::new(a)], clip: false });
         group.extras_mut().objects_on_path = Some(Box::new(rec));
-        vectorcraft_doc::objects_on_path::place(&mut group, &Document::new(1.0, 1.0).symbol_boxes());
+        vansoncraft_doc::objects_on_path::place(&mut group, &Document::new(1.0, 1.0).symbol_boxes());
         d.insert(Some(l), 0, group).unwrap();
         let mut sel = Selection::default();
         sel.set([g]);
@@ -1699,7 +1699,7 @@ mod tests {
     /// A document holding an Objects on Path group of `n` 20 × 20 squares attached by their centers
     /// to `path`, with the group's Space `spacing`, a selection of the group, and the squares' ids
     /// in their order along the path.
-    fn members_doc(path: vectorcraft_geom::PathData, n: usize, spacing: Option<f64>) -> (Document, NodeId, Selection, Vec<NodeId>) {
+    fn members_doc(path: vansoncraft_geom::PathData, n: usize, spacing: Option<f64>) -> (Document, NodeId, Selection, Vec<NodeId>) {
         let mut d = Document::new(500.0, 500.0);
         let l = d.layers[0].id;
         let (line, g) = (d.alloc_id(), d.alloc_id());
@@ -1711,15 +1711,15 @@ mod tests {
             })
             .collect();
         let ids: Vec<NodeId> = squares.iter().map(|s| s.id).collect();
-        let rec = vectorcraft_doc::objects_on_path::ObjectsOnPath {
+        let rec = vansoncraft_doc::objects_on_path::ObjectsOnPath {
             spacing,
-            ..vectorcraft_doc::objects_on_path::ObjectsOnPath::new(line.id, &squares.iter().collect::<Vec<_>>(), CENTER, 0.0)
+            ..vansoncraft_doc::objects_on_path::ObjectsOnPath::new(line.id, &squares.iter().collect::<Vec<_>>(), CENTER, 0.0)
         };
         let mut children = vec![Arc::new(line)];
         children.extend(squares.into_iter().map(Arc::new));
         let mut group = Node::new(g, NodeKind::Group { children, clip: false });
         group.extras_mut().objects_on_path = Some(Box::new(rec));
-        vectorcraft_doc::objects_on_path::place(&mut group, &Document::new(1.0, 1.0).symbol_boxes());
+        vansoncraft_doc::objects_on_path::place(&mut group, &Document::new(1.0, 1.0).symbol_boxes());
         d.insert(Some(l), 0, group).unwrap();
         let mut sel = Selection::default();
         sel.set([g]);
@@ -1888,7 +1888,7 @@ mod tests {
         // The path runs 210 pt from (0, 0) right, down and back left to (0, 10): the four objects
         // sit at 0, 70, 140 and 210 pt along it, the last one 10 pt below the first.
         let corners = [Point::new(0.0, 0.0), Point::new(100.0, 0.0), Point::new(100.0, 10.0), Point::new(0.0, 10.0)];
-        let path = vectorcraft_geom::PathData::new(vec![vectorcraft_geom::SubPath::polyline(&corners, false)]);
+        let path = vansoncraft_geom::PathData::new(vec![vansoncraft_geom::SubPath::polyline(&corners, false)]);
         let (d, _, sel, ids) = members_doc(path, 4, None);
         let paint = paint();
         let c = cx(&d, &sel, &paint);
@@ -1906,7 +1906,7 @@ mod tests {
         // The path runs 540 pt from (0, 0) right to (300, 0) and back left to (60, 0): the four
         // objects sit at 0, 180, 360 and 540 pt along it, at x 0, 180, 240 and 60.
         let corners = [Point::new(0.0, 0.0), Point::new(300.0, 0.0), Point::new(60.0, 0.0)];
-        let path = vectorcraft_geom::PathData::new(vec![vectorcraft_geom::SubPath::polyline(&corners, false)]);
+        let path = vansoncraft_geom::PathData::new(vec![vansoncraft_geom::SubPath::polyline(&corners, false)]);
         let (d, _, sel, ids) = members_doc(path, 4, None);
         let paint = paint();
         let c = cx(&d, &sel, &paint);

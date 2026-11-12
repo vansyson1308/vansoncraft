@@ -4,13 +4,13 @@
 
 use egui::Event;
 use serde_json::json;
-use vectorcraft_engine::Session;
+use vansoncraft_engine::Session;
 
-use crate::VectorcraftApp;
+use crate::VansoncraftApp;
 
 /// Build a new 400 by 300 document with one selected rectangle for lifecycle fixtures.
-fn app() -> VectorcraftApp {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+fn app() -> VansoncraftApp {
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     app.session.execute("shape.rectangle", &json!({"x": 20, "y": 20, "width": 40, "height": 30})).unwrap();
     app.session.execute("select.all", &json!({})).unwrap();
@@ -18,12 +18,12 @@ fn app() -> VectorcraftApp {
 }
 
 /// Count child objects across every layer of the active document.
-fn objects(app: &VectorcraftApp) -> usize {
+fn objects(app: &VansoncraftApp) -> usize {
     app.session.active().map_or(0, |st| st.doc.layers.iter().map(|l| l.children().map_or(0, |c| c.len())).sum())
 }
 
 /// Return the number of undo entries in the active document's history.
-fn undo(app: &VectorcraftApp) -> usize {
+fn undo(app: &VansoncraftApp) -> usize {
     app.session.active().map_or(0, |st| st.history.undo.len())
 }
 
@@ -43,7 +43,7 @@ const PASTE_SVG: &str = r#"<svg xmlns="http://www.w3.org/2000/svg" width="10" he
 fn a_discarded_rerun_ticks_once_and_runs_a_duplicate_once() {
     let mut app = app();
     let ctx = egui::Context::default();
-    let frame = |app: &mut VectorcraftApp, events: Vec<Event>| {
+    let frame = |app: &mut VansoncraftApp, events: Vec<Event>| {
         let raw = egui::RawInput { events, screen_rect: Some(screen()), ..Default::default() };
         app.begin_host_iteration();
         let mut out = ctx.run_ui(raw, |ui| {
@@ -146,12 +146,12 @@ fn a_consumed_event_is_not_replayed_by_a_later_logic_iteration() {
 /// command applied between them (as a control request drained by `tick` does); returns the IME
 /// descriptor of the last pass.
 fn ime_frame(
-    app: &mut VectorcraftApp,
+    app: &mut VansoncraftApp,
     ctx: &egui::Context,
     events: Vec<Event>,
-    between: impl FnOnce(&mut VectorcraftApp),
+    between: impl FnOnce(&mut VansoncraftApp),
 ) -> Option<egui::output::IMEOutput> {
-    VectorcraftApp::install_ime_reset_hooks(ctx);
+    VansoncraftApp::install_ime_reset_hooks(ctx);
     let raw = egui::RawInput { events, screen_rect: Some(screen()), ..Default::default() };
     app.begin_host_iteration();
     let mut between = Some(between);
@@ -168,8 +168,8 @@ fn ime_frame(
 
 /// Create a blank 400 by 300 document with one text object and return the app and node id;
 /// placeholder text is disabled so the object is the only text.
-fn app_with_text(text: &str) -> (VectorcraftApp, u64) {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+fn app_with_text(text: &str) -> (VansoncraftApp, u64) {
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.prefs.placeholder_text = false;
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     let id = app.run("text.create", json!({"x": 100, "y": 100, "text": text, "size": 24})).unwrap()["id"].as_u64().unwrap();
@@ -177,16 +177,16 @@ fn app_with_text(text: &str) -> (VectorcraftApp, u64) {
 }
 
 /// Read the plain text of the given text node in these lifecycle fixtures.
-fn plain(app: &VectorcraftApp, id: u64) -> String {
-    match &app.session.active().unwrap().doc.node(vectorcraft_doc::NodeId(id)).unwrap().kind {
-        vectorcraft_doc::NodeKind::Text(t) => t.plain_text(),
+fn plain(app: &VansoncraftApp, id: u64) -> String {
+    match &app.session.active().unwrap().doc.node(vansoncraft_doc::NodeId(id)).unwrap().kind {
+        vansoncraft_doc::NodeKind::Text(t) => t.plain_text(),
         _ => panic!("not text"),
     }
 }
 
 /// Send a pointer move and a primary press/release pair through the production tick then UI
 /// lifecycle.
-fn click(app: &mut VectorcraftApp, ctx: &egui::Context, at: egui::Pos2) {
+fn click(app: &mut VansoncraftApp, ctx: &egui::Context, at: egui::Pos2) {
     let button =
         |pos: egui::Pos2, pressed| egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
     ime_frame(app, ctx, vec![egui::Event::PointerMoved(at), button(at, true)], |_| {});
@@ -194,10 +194,10 @@ fn click(app: &mut VectorcraftApp, ctx: &egui::Context, at: egui::Pos2) {
 }
 
 /// Start editing `id` with the Type tool and leave the caret where a click into its bounds lands.
-fn begin_typing(app: &mut VectorcraftApp, ctx: &egui::Context, id: u64) -> egui::Pos2 {
+fn begin_typing(app: &mut VansoncraftApp, ctx: &egui::Context, id: u64) -> egui::Pos2 {
     app.select_tool("type");
     ime_frame(app, ctx, vec![], |_| {});
-    let center = app.session.active().unwrap().doc.node(vectorcraft_doc::NodeId(id)).unwrap().geometric_bounds().unwrap().center();
+    let center = app.session.active().unwrap().doc.node(vansoncraft_doc::NodeId(id)).unwrap().geometric_bounds().unwrap().center();
     let xf = crate::canvas::Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
     let at = xf.to_screen(center);
     click(app, ctx, at);
@@ -211,7 +211,7 @@ fn preedit(t: &str, chars: usize) -> Event {
 }
 
 /// Aim a real pointer at the already-drawn caret1, then start the composition at caret4.
-fn interruption_editor() -> (VectorcraftApp, egui::Context, u64, egui::Pos2) {
+fn interruption_editor() -> (VansoncraftApp, egui::Context, u64, egui::Pos2) {
     let (mut app, id) = app_with_text("abcd");
     let ctx = egui::Context::default();
     ime_frame(&mut app, &ctx, vec![], |_| {});
@@ -235,13 +235,13 @@ fn surrounding_delete(bytes: bool) -> Event {
 }
 
 /// Build the reset-completed event for the app's current pending IME request.
-fn reset_marker(app: &VectorcraftApp, ctx: &egui::Context) -> Event {
+fn reset_marker(app: &VansoncraftApp, ctx: &egui::Context) -> Event {
     Event::ImeResetCompleted { request_id: crate::ime::pending_request(app, ctx).expect("a real interruption requested a fence") }
 }
 
 /// Click the given point, assert the resulting custom descriptor publishes the real reset request,
 /// and return that request.
-fn pointer_reset(app: &mut VectorcraftApp, ctx: &egui::Context, point: egui::Pos2) -> egui::ImeResetId {
+fn pointer_reset(app: &mut VansoncraftApp, ctx: &egui::Context, point: egui::Pos2) -> egui::ImeResetId {
     let press = Event::PointerButton { pos: point, button: egui::PointerButton::Primary, pressed: true, modifiers: Default::default() };
     let output = ime_frame(app, ctx, vec![Event::PointerMoved(point), press], |_| {}).expect("the destination still edits text");
     let request = output.reset_request.expect("the final destination publishes its real request");
@@ -651,7 +651,7 @@ fn multiple_pointer_presses_ending_on_an_invalid_destination_leave_no_stock_toke
     // session. A token allocated on the empty click's preflight notice would outlive the
     // now-ineligible route, so the finalizer must be the only allocator.
     let xf = crate::canvas::Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
-    let empty = xf.to_screen(vectorcraft_geom::Point::new(300.0, 250.0));
+    let empty = xf.to_screen(vansoncraft_geom::Point::new(300.0, 250.0));
     click(&mut app, &ctx, point);
     assert!(app.session.tool_wants_text(), "the first press edits the caret");
     let _ = ime_frame(&mut app, &ctx, vec![Event::PointerMoved(empty), primary_button(empty, true)], |_| {});
@@ -927,7 +927,7 @@ fn a_replaced_context_and_auxiliary_ui_cannot_reuse_the_root_fence() {
     let (mut app, ctx, id, point) = interruption_editor();
     ime_frame(&mut app, &ctx, vec![preedit("é", 1)], |_| {});
     let first = pointer_reset(&mut app, &ctx, point);
-    let aux = egui::ViewportId::from_hash_of("vectorcraft-ime-mode-aux");
+    let aux = egui::ViewportId::from_hash_of("vansoncraft-ime-mode-aux");
     let mut raw = egui::RawInput { viewport_id: aux, screen_rect: Some(screen()), ..Default::default() };
     raw.viewports.entry(aux).or_default();
     app.begin_host_iteration();
@@ -1032,7 +1032,7 @@ fn target_switch_rejects_late_composition_input_before_mutating_the_new_text() {
                 ime_frame(&mut app, &ctx, vec![preedit("", 0)], |_| {});
             }
             let old_text = plain(&app, first);
-            let bounds = app.session.active().unwrap().doc.node(vectorcraft_doc::NodeId(second)).unwrap().geometric_bounds().unwrap();
+            let bounds = app.session.active().unwrap().doc.node(vansoncraft_doc::NodeId(second)).unwrap().geometric_bounds().unwrap();
             let xf = crate::canvas::Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
             click(&mut app, &ctx, xf.to_screen(bounds.center()));
             assert_eq!(app.session.tool_options()["editing"], second, "the pointer edits the replacement target");
@@ -1169,7 +1169,7 @@ fn a_dialog_opened_after_the_canvas_takes_the_ime_away_from_the_type_tool() {
     ime_frame(&mut app, &ctx, vec![], |_| {});
     ime_frame(&mut app, &ctx, vec![], |_| {});
     begin_typing(&mut app, &ctx, id);
-    let owner = egui::Id::unique(("vectorcraft-type-ime", app.session.active().unwrap().uid, id));
+    let owner = egui::Id::unique(("vansoncraft-type-ime", app.session.active().unwrap().uid, id));
     let before = ime_frame(&mut app, &ctx, vec![], |_| {}).expect("the Type tool owns the IME");
     assert_eq!(before.owner, owner);
     // A queued dialog opens in `dialogs::show`, after the canvas drew: a producer that observed
@@ -1321,7 +1321,7 @@ fn a_reloaded_document_gets_a_new_ime_replacement_epoch() {
     let doc = app.session.active().unwrap().doc.clone();
     assert!(app.session.replace_document(0, (*doc).clone()));
     ime_frame(&mut app, &ctx, vec![], |_| {});
-    let center = app.session.active().unwrap().doc.node(vectorcraft_doc::NodeId(id)).unwrap().geometric_bounds().unwrap().center();
+    let center = app.session.active().unwrap().doc.node(vansoncraft_doc::NodeId(id)).unwrap().geometric_bounds().unwrap().center();
     let xf = crate::canvas::Xf::new(app.canvas_rect.unwrap(), app.view().unwrap());
     click(&mut app, &ctx, xf.to_screen(center));
     let second = app.session.tool_ime_target(view).expect("re-entering has a target");
@@ -1333,7 +1333,7 @@ fn a_reloaded_document_gets_a_new_ime_replacement_epoch() {
 /// 0 → root rerun frame 0 does not deliver the root frame twice.
 #[test]
 fn frame_keys_are_exact_once_across_interleaved_viewports() {
-    let aux = egui::ViewportId::from_hash_of("vectorcraft-lifecycle-aux");
+    let aux = egui::ViewportId::from_hash_of("vansoncraft-lifecycle-aux");
     let mut seen = vec![];
     assert!(crate::take_frame_once(&mut seen, (1, egui::ViewportId::ROOT, 0)));
     assert!(crate::take_frame_once(&mut seen, (1, aux, 0)));
@@ -1348,10 +1348,10 @@ fn frame_keys_are_exact_once_across_interleaved_viewports() {
 fn two_viewports_take_their_input_once_through_the_ui_path() {
     let mut app = app();
     let ctx = egui::Context::default();
-    let aux = egui::ViewportId::from_hash_of("vectorcraft-lifecycle-input-aux");
+    let aux = egui::ViewportId::from_hash_of("vansoncraft-lifecycle-input-aux");
     let screen = screen();
     let tab = Event::Key { key: egui::Key::Tab, physical_key: None, pressed: true, repeat: false, modifiers: egui::Modifiers::NONE };
-    let run = |app: &mut VectorcraftApp, viewport: egui::ViewportId, events: Vec<Event>, discard: bool| {
+    let run = |app: &mut VansoncraftApp, viewport: egui::ViewportId, events: Vec<Event>, discard: bool| {
         let mut raw = egui::RawInput { events, screen_rect: Some(screen), viewport_id: viewport, ..Default::default() };
         raw.viewports.entry(viewport).or_default();
         app.begin_host_iteration();

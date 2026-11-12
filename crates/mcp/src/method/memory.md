@@ -7,7 +7,7 @@ a flat impression: the proportions of its main lines, their shapes and their pla
 your mind in the terms of your medium; then draw it (SP-XVIII-4, SP-XVIII-6). Decide the scheme at
 first sight and don't switch for novelty (SP-XVIII-8).
 
-**With VectorCraft (a practice workflow the agent runs for a person, not a test).** Hiding a layer
+**With VansonCraft (a practice workflow the agent runs for a person, not a test).** Hiding a layer
 does not take the reference out of an agent's context: an agent drawing "from memory" for itself
 has already seen it and must say so.
 1. Place the reference on a template layer named "Reference"; look at it with

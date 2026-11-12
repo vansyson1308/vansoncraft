@@ -111,7 +111,7 @@ pub use svg::options_map as svg_options;
 /// Atomic file writes (a temporary file renamed over the target: a failed write never damages the
 /// file it replaces), for the apps' own writers too.
 #[cfg(not(target_arch = "wasm32"))]
-pub use vectorcraft_format::write_atomic;
+pub use vansoncraft_format::write_atomic;
 
 use super::{CommandSpec, Result, Session, always, bad, cmd, has_doc, has_selection};
 use crate::EngineError;

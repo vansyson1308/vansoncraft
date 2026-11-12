@@ -14,7 +14,7 @@ use serde_json::{Value, json};
 use super::DialogSpec;
 use crate::state::Dialog;
 use crate::theme::Tokens;
-use crate::{VectorcraftApp, menus, widgets};
+use crate::{VansoncraftApp, menus, widgets};
 
 /// The dialog kind of Insert Menu Item.
 pub const KIND: &str = "actionInsertMenuItem";
@@ -36,7 +36,7 @@ pub(super) const SPEC: DialogSpec = DialogSpec {
 
 /// Opens Insert Menu Item for action `target` as (set, action), after `step`, else for the recording
 /// in progress.
-pub fn open(app: &mut VectorcraftApp, target: Option<(usize, usize)>, step: Option<usize>) {
+pub fn open(app: &mut VansoncraftApp, target: Option<(usize, usize)>, step: Option<usize>) {
     let mut fields = json!({"find": "", "command": "", "params": {}, "note": ""});
     if let Some((set, action)) = target {
         fields["set"] = json!(set);
@@ -75,11 +75,11 @@ fn build(lang: crate::i18n::Lang, english_names: bool) -> Vec<Row> {
 
 /// The rows, built again only when the language, the installed plug-ins, the font name setting or
 /// the loaded fonts change, not on every frame.
-fn rows(app: &VectorcraftApp, ctx: &egui::Context) -> Arc<Vec<Row>> {
+fn rows(app: &VansoncraftApp, ctx: &egui::Context) -> Arc<Vec<Row>> {
     type Key = (&'static str, u64, bool, u64, bool);
     let lang = crate::i18n::current();
     let english_names = app.session.prefs.font_names_in_english;
-    let db = vectorcraft_text::FontDb::global();
+    let db = vansoncraft_text::FontDb::global();
     // Read before building, as the Font menu does: fonts that load meanwhile build the rows again.
     let (cataloged, generation) = (db.installed_fonts_ready(), db.generation());
     let key: Key = (lang.code(), menus::plugin_revision(), english_names, generation, cataloged);
@@ -126,7 +126,7 @@ fn picked(d: &Dialog, row: &Row) -> bool {
     d.fields.get("command").and_then(Value::as_str) == Some(row.command) && d.fields.get("params") == Some(&row.params)
 }
 
-fn body(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
+fn body(app: &mut VansoncraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
     let rows = rows(app, ui.ctx());
     let dim = Tokens::get(ui.ctx()).text_dim;
     let mut find_now = false;
@@ -176,7 +176,7 @@ fn body(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
     false
 }
 
-fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
+fn confirm(app: &mut VansoncraftApp, d: &Dialog) -> Result<Value, String> {
     let mut params = json!({"command": d.str("command"), "params": d.fields.get("params").cloned().unwrap_or_else(|| json!({}))});
     for key in ["set", "action", "step"] {
         if let Some(value) = d.fields.get(key) {
@@ -216,9 +216,9 @@ mod tests {
         let items = menus::insertable_items(true);
         assert!(items.len() > 100, "only {} items", items.len());
         for item in &items {
-            assert!(vectorcraft_engine::find_command(item.command).is_some(), "{item:?}");
+            assert!(vansoncraft_engine::find_command(item.command).is_some(), "{item:?}");
             assert!(!item.label.ends_with('…'), "{item:?}");
-            assert!(!["VectorCraft", "File", "Window", "Help"].contains(&item.path[0]), "{item:?}");
+            assert!(!["VansonCraft", "File", "Window", "Help"].contains(&item.path[0]), "{item:?}");
             assert!(item.params.is_object(), "{item:?}");
         }
         let has = |command: &str| items.iter().any(|i| i.command == command);
