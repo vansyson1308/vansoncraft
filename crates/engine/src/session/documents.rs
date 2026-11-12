@@ -40,6 +40,7 @@ impl Session {
             active: None,
             prefs: Prefs::default(),
             caps_lock: false,
+            unique_ids: false,
             paint: PaintDefaults::default(),
             fill_active: true,
             clipboard: Clipboard::default(),

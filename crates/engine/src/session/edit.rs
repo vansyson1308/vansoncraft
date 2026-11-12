@@ -16,10 +16,14 @@ impl Session {
             cmd::settle_interaction(self)?;
         }
         let menu = self.menu.clone();
+        let unique_ids = self.unique_ids;
         let st = self.doc_mut()?;
         let before = st.doc.clone();
         let before_sel = st.selection.clone();
+        let floor = if unique_ids { st.id_floor } else { 0 };
         let doc = Arc::make_mut(&mut st.doc);
+        // With `unique_ids`, new objects never take the id of one an undo took away.
+        doc.raise_next_id(floor);
         // The Global Edit members the edit reached besides the selection.
         let mut spread = vec![];
         let mut dim_changed = false;

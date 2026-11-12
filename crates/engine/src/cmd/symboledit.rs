@@ -218,6 +218,7 @@ pub(crate) fn leave(s: &mut Session, _: &Value) -> Result<Value> {
         && before.as_ref().is_some_and(|b| Arc::ptr_eq(b, &entry.doc))
         && let Some(entry) = st.history.undo.pop()
     {
+        st.id_floor = st.id_floor.max(st.doc.peek_next_id());
         let now = std::mem::replace(&mut st.doc, entry.doc);
         // What changed outside the undo history while editing (the current symbol and brush, the
         // perspective grid's view, export settings, the grid preferences) stays as it is now.

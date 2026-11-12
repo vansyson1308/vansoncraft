@@ -51,6 +51,11 @@ pub struct Session {
     pub prefs: Prefs,
     /// Whether Caps Lock is on, as the desktop host reports it; never saved with the preferences.
     pub caps_lock: bool,
+    /// New objects never take the id of one an undo took away ([`DocState::id_floor`]): a script
+    /// or agent still holding that id then gets "no such object" instead of changing the new
+    /// object (F2 in docs/speed/audit.md). Off by default, where ids follow the document's counter
+    /// as journals recorded before it replay them; the MCP server's headless session turns it on.
+    pub unique_ids: bool,
     /// Fill/stroke for new art (the toolbar proxy).
     pub paint: PaintDefaults,
     /// Which proxy is in front (true = Fill, false = Stroke) — the X key toggles.

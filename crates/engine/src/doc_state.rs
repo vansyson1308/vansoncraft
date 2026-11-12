@@ -13,6 +13,12 @@ pub struct DocState {
     /// Increments on every change (also selection and view-only changes); UIs re-render when it
     /// moves. Not a dirty flag: see [`DocState::is_dirty`].
     pub revision: u64,
+    /// The lowest id the next new object may take: the highest `next_id` the document has had
+    /// since it opened. Undo and redo bring back an earlier document with its earlier counter;
+    /// without this, the next new object would take the id of one that was undone, and an agent
+    /// or script still holding that id would change the new object instead of failing (F2 in
+    /// docs/speed/audit.md). Not saved: a saved file keeps the counter it reached.
+    pub(crate) id_floor: u64,
     /// The document as last saved (or opened). Structural sharing makes "unchanged" a pointer
     /// comparison, and undoing back to the saved state counts as clean.
     pub(crate) saved_doc: Arc<Document>,
@@ -300,6 +306,7 @@ impl DocState {
             history: History { limit: 500, ..Default::default() },
             path,
             revision: 1,
+            id_floor: 0,
             active_layer,
             layer_rows: vec![],
             variables_highlight: None,

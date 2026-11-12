@@ -77,6 +77,7 @@ mod guide_clipboard;
 mod halftone;
 mod history_document;
 mod history_mem;
+mod id_reuse;
 mod ids_without_selection;
 mod inline;
 mod interactivity;

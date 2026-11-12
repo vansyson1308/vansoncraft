@@ -696,6 +696,7 @@ fn undo(s: &mut Session, _: &Value) -> Result<Value> {
     let costs = e.costs();
     let editing = st.doc.mask_edit.map(|m| m.layer);
     let editing_symbol = st.doc.symbol_edit.clone();
+    st.id_floor = st.id_floor.max(st.doc.peek_next_id());
     let doc = std::mem::replace(&mut st.doc, e.doc);
     let selection = std::mem::replace(&mut st.selection, Arc::unwrap_or_clone(e.selection));
     let selection = shared_selection(selection, st.history.redo.last());
@@ -731,6 +732,7 @@ fn redo(s: &mut Session, _: &Value) -> Result<Value> {
     let costs = e.costs();
     let editing = st.doc.mask_edit.map(|m| m.layer);
     let editing_symbol = st.doc.symbol_edit.clone();
+    st.id_floor = st.id_floor.max(st.doc.peek_next_id());
     let doc = std::mem::replace(&mut st.doc, e.doc);
     let selection = std::mem::replace(&mut st.selection, Arc::unwrap_or_clone(e.selection));
     let selection = shared_selection(selection, st.history.undo.last());
