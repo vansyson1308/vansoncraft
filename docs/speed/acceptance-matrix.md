@@ -26,7 +26,7 @@ Coverage is reported three ways, never merged:
 | 8 | Bad input | G, fuzz | unknown arguments, unknown/deleted ids, wrong types, huge numbers, corrupt/truncated files, unwritable paths, `command_sweep` | clear refusal, no crash, document unchanged | **PASS** — all refused with reasons; server alive; document unchanged; `command_sweep` 24/24 including the new commands | logs | Tester |
 | 9 | MCP live mode | H | desktop app (Xvfb, software GPU) + `--connect` | right app, right document, change visible in the UI | **PASS** — `backend.kind: remote`; the drawing appeared in the window (`ui_screenshot`); a person's click between calls seen; closing the app fails clearly; wrong port exits | `mcp-clients.md` | Lead |
 | 10 | Client compatibility | Claude Code CLI, a real model | `claude -p` with this server as its only MCP server | completes a drawing brief through the tools | **PASS for Claude Code 2.1.322 (Linux)**; Claude Desktop, Codex, Windows NOT VERIFIED | `mcp-clients.md` | Lead |
-| 11 | Build and repo checks | final tree | `cargo fmt --check`; `cargo clippy -p vectorcraft-engine -p vectorcraft-mcp -p vectorcraft-cli --all-targets -D warnings`; tests below; `xtask layers`; `xtask assets` | all pass | **PASS** for these; the full `cargo xtask ci` (workspace clippy and tests, wasm) was not run here (disk); CI is relied on | logs | Lead |
+| 11 | Build and repo checks | final tree | `cargo fmt --check`; `cargo clippy -p vectorcraft-engine -p vectorcraft-mcp -p vectorcraft-cli --all-targets -D warnings`; tests below; `xtask layers`; `xtask assets` | all pass | **PASS** for these, and `cargo check -p vectorcraft-engine --target wasm32-unknown-unknown` is clean (the study module builds for the web); the full `cargo xtask ci` (workspace clippy and tests, the whole wasm set) was not run here (disk); CI is relied on | logs | Lead |
 | 12 | Visual QC | the exported files of A–D | thumbnail, 100 %, zoom crops, Chromium renders; rubric 1–5 | every applicable criterion ≥ 4 | **PASS in round 3** (round 1 failed the curve rhythm and three compositions; two revision rounds) | `qc-report.md` | Visual QC |
 | 13 | Handoff | docs | set-up, connection, rollback, limits, examples | complete | **PASS** | `handoff.md`, `mcp-clients.md`, `README.md` | Lead |
 
@@ -55,6 +55,7 @@ Coverage is reported three ways, never merged:
 | `cargo test -p vectorcraft-engine --test command_sweep` | 24 passed |
 | `cargo clippy -p vectorcraft-engine -p vectorcraft-mcp -p vectorcraft-cli --all-targets -- -D warnings` | clean |
 | `cargo fmt --all -- --check`, `cargo xtask layers`, `cargo xtask assets` | clean; 361 assets attributed |
+| `cargo check -p vectorcraft-engine --target wasm32-unknown-unknown` | clean |
 
 ## Performance
 
