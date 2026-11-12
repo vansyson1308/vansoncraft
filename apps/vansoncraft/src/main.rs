@@ -262,11 +262,12 @@ fn main() -> std::process::ExitCode {
             }
         },
     };
+    // Before desktop services, so every start-up warning is recorded (`logging`; it writes
+    // nothing to disk until the log file is attached below).
+    let logger = logging::install();
     // Before anything reads or writes the settings folder (the single-instance endpoint below
     // creates it): the folder of the project's previous name, copied the first time.
     prefs_dir::adopt_earlier_profile();
-    // Before desktop services, so every start-up warning is recorded (`logging`).
-    let logger = logging::install();
     // Files opened from the file manager while VansonCraft runs open in its window (#4892). Before
     // the log file is attached: a launch that hands its files over leaves the running app's log be.
     #[cfg(not(target_os = "macos"))]

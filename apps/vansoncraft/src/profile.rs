@@ -198,8 +198,6 @@ fn ensure_writable(dir: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
-/// Copy the contents of `from` into `to` (which exists), going on past entries that can't be
-/// copied; the error says how many were skipped and why the first one was.
 /// What a settings folder holds for the app that runs on it, never copied into another one:
 /// `instance.json` (the single-instance endpoint: a copy would hand this app's files to the other),
 /// the plug-in launch markers (`Launch`) and the logs, at the top; and at any depth the `.lock`
@@ -207,6 +205,9 @@ fn ensure_writable(dir: &Path) -> std::io::Result<()> {
 const RUNNING_APP_TOP: [&str; 3] = ["instance.json", "Launch", "logs"];
 const RUNNING_APP_ANY: [&str; 1] = [".lock"];
 
+/// Copy the contents of `from` into `to` (which exists), going on past entries that can't be
+/// copied (and leaving out [`RUNNING_APP_TOP`] and [`RUNNING_APP_ANY`]); the error says how many
+/// were skipped and why the first one was.
 fn copy_dir(from: &Path, to: &Path) -> Result<(), String> {
     let mut skipped = 0usize;
     let mut first: Option<String> = None;
