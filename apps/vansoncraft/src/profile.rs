@@ -44,7 +44,7 @@ impl Profile {
         match self {
             Profile::Current => ("VansonCraft", "vansoncraft"),
             Profile::Former => ("VectorCraft", "vectorcraft"), // brand-ok: settings from before the rename
-            Profile::Legacy => ("DrawCraft", "drawcraft"), // brand-ok: settings from the first name
+            Profile::Legacy => ("DrawCraft", "drawcraft"),     // brand-ok: settings from the first name
         }
     }
 }
