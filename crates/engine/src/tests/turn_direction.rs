@@ -14,6 +14,8 @@ const NOT_A_TURN: &[(&str, &str, &str)] = &[
     ("addon.shapes.configure", "angleY", "a tilt out of the page: the description says which side turns away"),
     ("object.path.simplify", "cornerAngle", "the angle a corner's sides meet at"),
     ("perspective.grid.define", "angle", "the viewing angle, 0 to 90°"),
+    ("study.lines", "bendAngle", "the size of a turn at a joint, either way"),
+    ("study.lines", "cornerAngle", "the size of a turn at an anchor, either way"),
 ];
 
 /// A param name that is an angle or a turn.

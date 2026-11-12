@@ -86,6 +86,9 @@ pub mod shortcutset;
 pub(crate) mod slices;
 pub mod spelling;
 mod stroke;
+// Drawing studies after Harold Speed (docs/speed/): value, balance, line and proportion studies,
+// block-in and hatching.
+pub(crate) mod study;
 mod style;
 pub mod stylelib;
 mod svgfilter;
@@ -386,6 +389,7 @@ pub fn command_specs() -> &'static [CommandSpec] {
         v.extend(actionset::specs());
         v.extend(importmatches::specs());
         v.extend(addons::specs());
+        v.extend(study::specs());
         // Last, so the reference it writes ends with its own section.
         v.extend(apiref::specs());
         v
