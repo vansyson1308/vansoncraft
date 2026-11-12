@@ -34,9 +34,10 @@ Everything saved before the rename still opens, and each path has a test:
 | `"generator": "VectorCraft 0.21+"` | Twist effects keep their direction (version numbers carry on from 0.24.1) | `format` twist tests, `doc` `twist::tests::releases_from_0_21_turned_twist_clockwise` |
 | SVG editing data in `urn:vectorcraft:editing`, mask options in `data-vectorcraft-mask` | restored | `svg` `editing_data_written_before_the_rename_is_read`, `mask_options_written_before_the_rename_are_read` |
 | EPS data in `%VectorCraft_BeginData` sections | restored | `eps` `data_sections_written_before_the_rename_come_back` |
+| legacy `.ai` (version 7) files whose prolog is `VectorCraft_Legacy 1 0` | read from their layers as files written today are, type and gradients included | `eps` `legacy_ai::tests::a_file_written_before_the_rename_reads_back_as_today` |
 | PDF editing data `vectorcraft-editing.vectorcraft` | restored | `pdf` `the_name_from_before_the_rename_is_read` |
 | preferences exported as `vectorcraft-preferences` | imported | `engine` `prefs_file::exported_preferences_import_unchanged` |
-| the VectorCraft settings folder | copied whole into VansonCraft's the first time VansonCraft starts without one (settings, libraries, fonts, presets, plug-ins and their grants, Data Recovery); the old folder is left as it is. A DrawCraft `ui.json` is still read once | `profile::tests::the_earlier_settings_folder_is_copied_once_and_kept` |
+| the VectorCraft settings folder | copied into VansonCraft's the first time VansonCraft (or its CLI) starts without one, before anything is written there: settings, libraries, fonts, presets, plug-ins and their grants, Data Recovery copies. Left out, because they belong to a running VectorCraft: its single-instance endpoint (`instance.json`), launch markers (`Launch`), logs and the locks of its Data Recovery areas. The old folder is left as it is. A DrawCraft `ui.json` is still read once | `profile::tests::the_earlier_settings_folder_is_copied_once_and_kept`, `it::first_start::the_first_start_copies_the_earlier_settings_folder_before_writing_its_own` (Linux) |
 | Data Recovery copies named `.vectorcraft` | offered, restored and discarded; their area is never tidied away with them | `engine` `recovery::copies_left_before_the_rename_are_offered_and_restored` |
 | brush and symbol libraries named `.vectorcraft` | listed | (the library scans take both extensions) |
 | the disabled plug-ins list and the launch marker (`vectorcraft-…` formats) | read, so a plug-in disabled after a crash stays disabled | `plugins` `a_disabled_list_from_before_the_rename_still_reads`, `only_a_marker_of_this_version_names_an_item` |
@@ -50,8 +51,17 @@ Templates keep the `.vctemplate` extension VectorCraft also declares, so with bo
 the desktop picks one for them.
 
 Not carried over on purpose: the environment variables (`VECTORCRAFT_*` became `VANSONCRAFT_*`),
-the control channel's and MCP's names (`vansoncraft://` resources, the `vansoncraft` server), and the
-command format id (`vansoncraft`; `vectorcraft` still resolves to it as an extension).
+the control channel's and MCP's names (`vansoncraft://` resources, the `vansoncraft` server), the
+command format id (`vansoncraft`; save and export still take `.vectorcraft` as an extension, Trace
+Folder's `format` does not), scripts' `$.engineName` (now `VansonCraft`), the removed
+`help.discord`, `help.website` and `help.appPage` commands (a shortcut saved for one is dropped),
+the web build's Data Recovery copies in browser storage (they were kept per site, and VansonCraft's
+web build is served from its own), and a Flatpak install's data (the new app id is a new sandbox).
+
+The other way round: files VansonCraft writes carry their editing data under VansonCraft's names
+(SVG `urn:vansoncraft:editing`, EPS `%VansonCraft_BeginData`, PDF `vansoncraft-editing`, the
+legacy `.ai` prolog), which VectorCraft reads as plain SVG, EPS, PDF or PostScript. Native files
+keep the shared `"format": "vectorcraft"` header.
 
 ## What it still uses from elsewhere, and why
 
@@ -86,4 +96,5 @@ entry. A fix belongs in `craft-update` (an app-defined bundle id).
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-12 | minor | The settings folder is copied before anything writes in VansonCraft's own, without a running VectorCraft's endpoint, markers, logs and locks; legacy `.ai` files with the old prolog name; what is not carried over. |
 | 2026-11-12 | major | First version. |

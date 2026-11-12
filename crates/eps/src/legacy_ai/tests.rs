@@ -1685,6 +1685,22 @@ fn type_reads_back_as_text() {
     assert!((b.x0 - 150.0).abs() < 1e-3 && (b.y1 - 190.0).abs() < 1e-3, "{b:?}");
 }
 
+/// A legacy `.ai` saved before the project took the name VansonCraft names its prolog
+/// `VectorCraft_Legacy 1 0`: it is still read as this writer's own file, from its layers, with its
+/// type and gradients, exactly as a file written today is. Read as anyone's PostScript, its art
+/// came in as the page drew it (flat gradients, no type) or not from its layers at all.
+#[test]
+fn a_file_written_before_the_rename_reads_back_as_today() {
+    for doc in [typed(), sample(), radials()] {
+        let today = String::from_utf8(write(&doc).bytes).unwrap();
+        let earlier = today.replace(&format!("procset {PROCSET}"), "procset VectorCraft_Legacy 1 0"); // brand-ok: the name such files carry
+        assert_eq!(earlier.matches("procset VectorCraft_Legacy 1 0").count(), 2, "the header and the prolog name it"); // brand-ok: as above
+        let (want, got) = (crate::import(today.as_bytes()).unwrap(), crate::import(earlier.as_bytes()).unwrap());
+        assert_eq!(got.warnings, want.warnings);
+        assert_eq!(format!("{:?}", got.document), format!("{:?}", want.document));
+    }
+}
+
 /// Area type that Shrink Text to Fit scales down is written at the sizes, leading and baseline
 /// shifts it draws at, so it reads back fitting its frame.
 #[test]

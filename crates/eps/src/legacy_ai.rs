@@ -83,7 +83,7 @@ mod writer;
 use encoding::{gradient_def, latin_string};
 #[cfg(test)]
 use encoding::{rotated, writable};
-pub(crate) use prolog::PROCSET;
+pub(crate) use prolog::{FORMER_PROCSET, PROCSET};
 use prolog::{PROLOG, PS_HEADER, fonts};
 use writer::Writer;
 

@@ -3,6 +3,8 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 mod automation_args;
+#[cfg(target_os = "linux")]
+mod first_start;
 mod help;
 
 /// Nextest relocates archived binaries; Cargo's compile-time path still names the build runner.

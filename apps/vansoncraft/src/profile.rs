@@ -200,10 +200,17 @@ fn ensure_writable(dir: &Path) -> std::io::Result<()> {
 
 /// Copy the contents of `from` into `to` (which exists), going on past entries that can't be
 /// copied; the error says how many were skipped and why the first one was.
+/// What a settings folder holds for the app that runs on it, never copied into another one:
+/// `instance.json` (the single-instance endpoint: a copy would hand this app's files to the other),
+/// the plug-in launch markers (`Launch`) and the logs, at the top; and at any depth the `.lock`
+/// file a Data Recovery area's app keeps locked.
+const RUNNING_APP_TOP: [&str; 3] = ["instance.json", "Launch", "logs"];
+const RUNNING_APP_ANY: [&str; 1] = [".lock"];
+
 fn copy_dir(from: &Path, to: &Path) -> Result<(), String> {
     let mut skipped = 0usize;
     let mut first: Option<String> = None;
-    copy_dir_into(from, to, &mut |why| {
+    copy_dir_into(from, to, true, &mut |why| {
         skipped += 1;
         first.get_or_insert(why);
     });
@@ -222,7 +229,7 @@ fn private_dir(dir: &Path) -> std::io::Result<()> {
     builder.create(dir)
 }
 
-fn copy_dir_into(from: &Path, to: &Path, skip: &mut impl FnMut(String)) {
+fn copy_dir_into(from: &Path, to: &Path, top: bool, skip: &mut impl FnMut(String)) {
     let entries = match std::fs::read_dir(from) {
         Ok(entries) => entries,
         Err(e) => return skip(format!("{}: {e}", from.display())),
@@ -235,13 +242,17 @@ fn copy_dir_into(from: &Path, to: &Path, skip: &mut impl FnMut(String)) {
                 continue;
             }
         };
-        let (src, dst) = (entry.path(), to.join(entry.file_name()));
+        let name = entry.file_name();
+        if (top && RUNNING_APP_TOP.iter().any(|n| name == *n)) || RUNNING_APP_ANY.iter().any(|n| name == *n) {
+            continue;
+        }
+        let (src, dst) = (entry.path(), to.join(&name));
         // A symbolic link is copied as what it points to, or skipped when that is a folder.
         let copied = match entry.file_type() {
             // The copy keeps the folder's permissions (a private recovery folder stays private):
             // owner-only while it fills, then the source's.
             Ok(kind) if kind.is_dir() => private_dir(&dst).and_then(|()| {
-                copy_dir_into(&src, &dst, skip);
+                copy_dir_into(&src, &dst, false, skip);
                 std::fs::set_permissions(&dst, std::fs::metadata(&src)?.permissions())
             }),
             Ok(_) => std::fs::copy(&src, &dst).map(|_| ()),
@@ -528,11 +539,24 @@ mod tests {
         std::fs::create_dir_all(former.join("Swatches")).unwrap();
         std::fs::write(former.join("ui.json"), b"{}").unwrap();
         std::fs::write(former.join("Swatches/Mine.ase"), b"ase").unwrap();
+        // What a running VectorCraft keeps there for itself.
+        std::fs::write(former.join("instance.json"), b"{}").unwrap();
+        for dir in ["Launch", "logs", "Data Recovery/area"] {
+            std::fs::create_dir_all(former.join(dir)).unwrap();
+        }
+        std::fs::write(former.join("Launch/marker"), b"").unwrap();
+        std::fs::write(former.join("logs/old.log"), b"").unwrap();
+        std::fs::write(former.join("Data Recovery/area/.lock"), b"").unwrap();
+        std::fs::write(former.join("Data Recovery/area/copy.vectorcraft"), b"copy").unwrap(); // brand-ok: a copy saved before the rename
         // No earlier folder, or a folder of its own already: nothing happens.
         adopt_from(&root.join("missing"), &current).unwrap();
         assert!(!current.exists());
         adopt_from(&former, &current).unwrap();
         assert_eq!(std::fs::read(current.join("Swatches/Mine.ase")).unwrap(), b"ase");
+        assert_eq!(std::fs::read(current.join("Data Recovery/area/copy.vectorcraft")).unwrap(), b"copy"); // brand-ok: as above
+        for left in ["instance.json", "Launch", "logs", "Data Recovery/area/.lock"] {
+            assert!(!current.join(left).exists(), "{left} belongs to the app that runs on the earlier folder");
+        }
         assert!(former.join("ui.json").is_file(), "the earlier folder stays as it was");
         std::fs::write(current.join("ui.json"), b"{\"mine\": true}").unwrap();
         adopt_from(&former, &current).unwrap();

@@ -124,7 +124,8 @@ struct Dsc {
     /// creator (see the module docs for the specification).
     illustrator: bool,
     /// Its prolog is the one VansonCraft's legacy `.ai` writer includes
-    /// ([`crate::legacy_ai::PROCSET`] in `%%DocumentSuppliedResources`).
+    /// ([`crate::legacy_ai::PROCSET`], or [`crate::legacy_ai::FORMER_PROCSET`] in files saved
+    /// before the rename, in `%%DocumentSuppliedResources`).
     own_legacy: bool,
 }
 
@@ -160,7 +161,8 @@ impl Dsc {
             if header && (line.starts_with("%AI") || line.starts_with("%%AI") || creator) {
                 d.illustrator = true;
             }
-            if header && value("%%DocumentSuppliedResources:").is_some_and(|v| v.strip_prefix("procset ") == Some(crate::legacy_ai::PROCSET)) {
+            let own = |v: &str| v.strip_prefix("procset ").is_some_and(|p| p == crate::legacy_ai::PROCSET || p == crate::legacy_ai::FORMER_PROCSET);
+            if header && value("%%DocumentSuppliedResources:").is_some_and(own) {
                 d.own_legacy = true;
             }
             if let Some(v) = value("%%HiResBoundingBox:") {

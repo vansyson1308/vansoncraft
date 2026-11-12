@@ -27,6 +27,9 @@ pub(super) fn fonts(s: &mut String, fonts: &[(String, bool)]) {
 /// The prolog's procedure set, as `%%DocumentSuppliedResources` names it: a file that has it is
 /// read from its program when its layers are asked for ([`crate::import_with`]).
 pub(crate) const PROCSET: &str = "VansonCraft_Legacy 1 0";
+/// The same procedure set as files saved before the project took the name VansonCraft name it: such
+/// a file is read as this writer's own too.
+pub(crate) const FORMER_PROCSET: &str = "VectorCraft_Legacy 1 0"; // brand-ok: the name files saved before the rename carry
 
 /// The prolog: a procedure set of this writer's own (`VansonCraft_Legacy 1 0`), in a dictionary
 /// (`VCLegacy`) the setup begins and the trailer ends (§1.2: the prolog holds definitions only,
