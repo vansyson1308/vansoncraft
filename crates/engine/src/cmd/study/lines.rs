@@ -273,6 +273,9 @@ pub(super) fn lines(s: &mut Session, p: &Value) -> Result<Value> {
     }))
 }
 
+/// An alignment to look for: the axis, the edge's name and where that edge is on a box.
+type Edge = (&'static str, &'static str, fn(&vectorcraft_geom::Rect) -> f64);
+
 /// One object's measured box.
 struct Measured {
     id: NodeId,
@@ -319,7 +322,7 @@ pub(super) fn proportions(s: &mut Session, p: &Value) -> Result<Value> {
         })
         .collect();
     let mut alignments = Vec::new();
-    let edges: [(&str, &str, fn(&vectorcraft_geom::Rect) -> f64); 6] = [
+    let edges: [Edge; 6] = [
         ("vertical", "left", |b| b.x0),
         ("vertical", "center", |b| b.center().x),
         ("vertical", "right", |b| b.x1),
