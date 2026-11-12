@@ -23,10 +23,11 @@ doing, not done in this release.
 | MCP `render_preview` region / gray / values / scale-up | IMPLEMENTED, TESTED |
 | MCP `doc_inspect.backend`, headless-fallback notice | IMPLEMENTED, TESTED |
 | MCP `expect_document` guard | IMPLEMENTED, TESTED (headless); remote race documented |
+| Example artworks (`examples/speed/`) | VISUALLY VERIFIED (three QC rounds, `qc-report.md`); every SVG rendered by Chromium matches the app's PNG |
 | Atomic `command_batch` rollback | IMPLEMENTED, TESTED |
-| Engine: no id reuse after undo | IMPLEMENTED, TESTED |
-| Method resources and four prompts | IMPLEMENTED, TESTED (protocol), CLIENT VERIFIED: see the acceptance matrix |
-| Desktop live mode (H) | see the acceptance matrix |
+| Engine: no id reuse after undo (`unique_ids`, on in MCP headless) | IMPLEMENTED, TESTED; desktop app DEFERRED |
+| Method resources and four prompts | IMPLEMENTED, TESTED (protocol), CLIENT VERIFIED (Claude Code 2.1.322 read and used them, `mcp-clients.md`) |
+| Desktop live mode (H) | TESTED on Linux under Xvfb with a software GPU (`mcp-clients.md`) |
 | Claude Desktop, Codex, Windows | BLOCKED here (no such client, credentials or machine); configuration written from the official docs |
 | Lost-and-found (soft) edges as a vector primitive | DEFERRED: no honest vector primitive; guidance offers an intermediate value shape, a gradient across the edge, or a declared feather effect |
 | F4 (undo group left open on disconnect), F5, F8–F10, F12, F14, F16–F18 | DEFERRED (see `audit.md`) |
@@ -42,14 +43,17 @@ doing, not done in this release.
   envelope can cut inside concave parts.
 - `study.hatch` makes straight lines only; it refuses more than `maxLines` instead of thinning them.
 - `expect_document` is checked atomically only in headless mode.
+- In the desktop app, an id an undo took away can still be given to a new object (`unique_ids` is
+  off there until journals record it); pass `expect_document` and re-read ids after an undo.
 - Headless sessions have no autosave: save with `save_file`.
 - An SVG export of a document with several artboards uses the first artboard's viewBox; export each
   artboard (`export {artboard}`) for separate files.
 
 ## Backlog (ranked)
 
-1. Atomic document guard inside `engine.execute` in the desktop control server (F2b), and closing
-   a client's undo group when its connection drops (F4).
+1. `unique_ids` in the desktop app with the flag recorded in the journal (F2), an atomic document
+   guard inside `engine.execute` in the desktop control server (F2b), and closing a client's undo
+   group when its connection drops (F4).
 2. Stop a cancelled `command_batch` between steps (F5).
 3. Default bounds for `doc_inspect` and `screenshot` (F8, F9); compact JSON replies.
 4. App identity on reconnect (F10).
@@ -57,6 +61,10 @@ doing, not done in this release.
 6. A width-profile helper that tapers a stroke where a contour is "lost" (SP-IV-1, SP-VIII-11).
 7. A "pet forms" check: pairwise `study.compare` over invented shapes to flag near-duplicates
    (SP-XIII-2).
+8. An SVG export of a whole multi-artboard document with a viewBox spanning every artboard (today:
+   the first artboard's; export each with `export {artboard}`).
+9. The example art's cosmetic defects from QC round 3 (`qc-report.md`): a stem loop in C, an arch
+   along a leaf, petal tips, the accent outline's heavy side, stem ends at 7–8×.
 
 ## Checkpoint
 

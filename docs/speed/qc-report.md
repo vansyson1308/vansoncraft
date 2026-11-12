@@ -80,4 +80,41 @@ default layer removed.
 
 ### Round 2
 
-ROUND2
+| Criterion | A | B | C | A revised | Line study | Mass study |
+|---|---|---|---|---|---|---|
+| Answers the brief | 4 | 4 | 4 | 3 | 4 | 4 |
+| Composition | 4 | 4 | 4 | 4 | 4 | 4 |
+| Line quality, rhythm of curves | 3 | 4 | 3 | 3 | 3 | 3 |
+| Three value groups | 4 | 4 | 4 | 3 | n/a | 5 |
+| Focal point | 4 | 4 | 4 | 4 | 4 | 4 |
+| Editability | 4 | 4 | 4 | 4 | 4 | 4 |
+
+Every composition now passed; the SVGs per artboard render in Chromium as the app's PNGs. Still
+below: the stems moved only 1–4 pt (the S handles cancelled each other); the revision's new leaf
+sat under the front lip, so it did not join the darks; the line study's lip ends drew as hooks.
+Changes for round 3: C-curves with both handles on one side (and a real S for C), stems ending below
+the mouth arching over the rim, the revision's leaf stacked above the lip, the line study's lip
+paper-white with its front edge as one open line.
+
+### Round 3 (the final set in `examples/speed/`)
+
+| Criterion | A | B | C | A revised | Line study | Mass study |
+|---|---|---|---|---|---|---|
+| Answers the brief | 4 | 4 | 4 | 4 | 4 | 4 |
+| Composition | 4 | 4 | 4 | 4 | 4 | 4 |
+| Line quality, rhythm of curves | 4 | 4 | 4 | 4 | 4 | 4 |
+| Three value groups | 4 | 4 | 4 | 4 | n/a | 5 |
+| Focal point | 4 | 4 | 4 | 4 | 4 | 4 |
+| Editability | 4 | 4 | 4 | 4 | 4 | 4 |
+
+**Every applicable criterion is at or above 4.** Stems now bow 6–12 pt; C5 arches over the rim; the
+leaf hangs over the shoulder above the lip; no hooks remain. The reviewer corrected the Lead on one
+point: the darks read as linked by eye (squint and posterise checks), but the count stays 3 → 3,
+because the largest dark mass is the vase alone and a 1–2 px seam at the rim still separates the
+leaf cluster — not, as the Lead first wrote, because the leaves already joined the vase.
+
+Minor defects left (cosmetic, listed in `handoff.md`'s backlog): a stem loop where two stems cross
+twice in C; C5's arch running along a leaf's edge; the new leaf filed in the lip group; the line
+study's stems ending at the paper-white lip without a drawn inner edge; the accent outline's heavy
+side not tied to the light; stem ends 1–4 pt short of the lip at 7–8×; blunt petal tips; the
+combined multi-artboard SVGs (not shipped as examples) still use the first artboard's viewBox.

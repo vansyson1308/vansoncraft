@@ -1,6 +1,6 @@
 # Critic review: the study commands and the preview modes
 
-*Status: draft, 2026-11-12. Reviewer: the product and art critic. The code was read, not run: no cargo and no app session. Line numbers are as read on 2026-11-12, while other agents were still editing the files, so check them before acting.*
+*Status: 2026-11-12, a review of the code and guidance as they stood during the work; line numbers are as read then. Most findings have since been fixed: see [qc-report.md](qc-report.md) for each decision. Reviewer: the product and art critic; the code was read, not run.*
 
 ## What was reviewed
 

@@ -37,7 +37,9 @@ you; the app supplies precise tools, clear state and visual feedback.
   announced; failed atomic batches roll back; the method notes are resources
   (`vectorcraft://method`, `vectorcraft://method/{topic}`) and four workflows are prompts
   (`speed-drawing`, `composition-variants`, `revise-locally`, `memory-exercise`).
-- **Engine fix:** an id an undo took away is never given to a new object.
+- **Engine fix:** with the session option `unique_ids` (on in the MCP headless session), an id an
+  undo took away is never given to a new object; `expect_document` refuses a call meant for
+  another document.
 - **Examples:** [`examples/speed/`](../../examples/speed/) — three compositions of a vase of flowers,
   a local revision, a line study and a mass study, each as a `.vectorcraft` project, SVG and PNG.
 

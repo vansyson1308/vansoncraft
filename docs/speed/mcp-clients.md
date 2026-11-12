@@ -112,8 +112,8 @@ from WSL2 only with WSL networking set up for it.
 |---|---|---|---|---|---|
 | MCP protocol tests (`cargo test -p vectorcraft-mcp`) | — | Linux | headless + fake remote | in-process / TCP | **PASS** (protocol level only) |
 | Scripted MCP client (scenarios A–G, I) | — | Linux | headless | stdio | **PASS** (see `acceptance-matrix.md`) |
-| Claude Code CLI (`claude -p`, real model) | 2.1.322 | Linux (container) | headless | stdio | see `acceptance-matrix.md` row "Client: Claude Code" |
-| Desktop app + `--connect` | — | Linux + Xvfb | remote | TCP 127.0.0.1 | see row "Desktop live (H)" |
+| Claude Code CLI (`claude -p`, a real model) | 2.1.322 | Linux (container) | headless, `--automation-*-root` | stdio | **CLIENT VERIFIED**, two runs. Run 1 (a binary built before the method notes existed): 13 MCP calls, drawing saved and exported; it reported honestly that `vectorcraft://method/mass` was missing. Run 2 (final binary, the same Vietnamese vase brief): read `vectorcraft://method/procedure` and `…/mass`, 47 tool calls in 48 turns, measured with `study.values`, revised twice (light masses 6 → 3, darks linked), fixed an overlap it found, saved `.vectorcraft` and SVG. The two errors were its own shell commands, refused by the client's permissions |
+| Desktop app + `vectorcraft-cli mcp --connect` | debug build | Linux, Xvfb, Mesa llvmpipe (Vulkan) | remote | TCP 127.0.0.1:7979 | **PASS** (scenario H): `backend.kind` `remote`, `desktopWindow: true`; a 75-step composition drawn in the window and seen in `ui_screenshot`; a pointer click between agent calls moved the revision and the selection; closing the app → "not reachable … nothing was sent" (no fallback); a wrong port → exit 1 with the reason; no flag and no app → headless with the notice |
 | Claude Desktop | — | Windows/macOS | — | — | **NOT VERIFIED** (no desktop client in this environment) |
 | Codex CLI / IDE | — | any | — | — | **NOT VERIFIED** (not installed here; no OpenAI credentials) |
 | Any client on Windows | — | Windows | — | — | **NOT VERIFIED** (no Windows machine here; the shared CI gate may build Windows when Actions run on the fork — check the PR's checks) |

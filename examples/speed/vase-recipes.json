@@ -33,24 +33,24 @@
    "values": [
     {
      "name": "dark",
-     "share": 0.1,
+     "share": 0.101,
      "meanL": 23.992,
      "masses": 3,
-     "largestShare": 0.805
+     "largestShare": 0.8
     },
     {
      "name": "middle",
-     "share": 0.852,
-     "meanL": 54.516,
+     "share": 0.851,
+     "meanL": 54.511,
      "masses": 1,
-     "largestShare": 0.997
+     "largestShare": 0.995
     },
     {
      "name": "light",
      "share": 0.048,
      "meanL": 89.235,
      "masses": 5,
-     "largestShare": 0.502
+     "largestShare": 0.503
     }
    ],
    "contrast": 65.243,
@@ -60,8 +60,8 @@
      "y": 0.07
     },
     "quadrants": {
-     "bottomLeft": 0.309,
-     "bottomRight": 0.255,
+     "bottomLeft": 0.31,
+     "bottomRight": 0.254,
      "topLeft": 0.22,
      "topRight": 0.216
     }
@@ -84,26 +84,26 @@
     {
      "name": "dark",
      "share": 0.095,
-     "meanL": 23.795,
+     "meanL": 23.806,
      "masses": 2,
-     "largestShare": 0.975
+     "largestShare": 0.976
     },
     {
      "name": "middle",
-     "share": 0.855,
-     "meanL": 55.013,
+     "share": 0.856,
+     "meanL": 55.015,
      "masses": 2,
-     "largestShare": 0.985
+     "largestShare": 0.984
     },
     {
      "name": "light",
      "share": 0.05,
-     "meanL": 88.873,
+     "meanL": 88.872,
      "masses": 4,
      "largestShare": 0.64
     }
    ],
-   "contrast": 65.077,
+   "contrast": 65.066,
    "balance": {
     "offset": {
      "x": 0.006,
@@ -134,26 +134,26 @@
     {
      "name": "dark",
      "share": 0.085,
-     "meanL": 23.92,
+     "meanL": 23.916,
      "masses": 2,
-     "largestShare": 0.817
+     "largestShare": 0.808
     },
     {
      "name": "middle",
      "share": 0.877,
-     "meanL": 55.622,
+     "meanL": 55.625,
      "masses": 2,
-     "largestShare": 0.992
+     "largestShare": 0.993
     },
     {
      "name": "light",
      "share": 0.038,
      "meanL": 89.532,
      "masses": 5,
-     "largestShare": 0.387
+     "largestShare": 0.388
     }
    ],
-   "contrast": 65.612,
+   "contrast": 65.617,
    "balance": {
     "offset": {
      "x": -0.002,
@@ -162,7 +162,7 @@
     "quadrants": {
      "bottomLeft": 0.277,
      "bottomRight": 0.274,
-     "topLeft": 0.228,
+     "topLeft": 0.227,
      "topRight": 0.222
     }
    }
@@ -170,6 +170,6 @@
  },
  "mcp": {
   "tool_calls": 33,
-  "bytes_from_server": 416595
+  "bytes_from_server": 417100
  }
 }
