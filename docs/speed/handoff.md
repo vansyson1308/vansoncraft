@@ -91,7 +91,7 @@ Everything is additive except four behaviour changes; each is one place to rever
 |---|---|---|
 | Failed atomic batches roll back | `crates/mcp/src/tools/dispatch.rs` (`command_batch`) | pass `keep_on_error: true` per call, or revert the `roll_back` lines |
 | Small artboards preview larger | `crates/mcp/src/tools/dispatch.rs` (`render_preview`, `PREVIEW_FLOOR`) | set the clamp back to 1.0 |
-| New ids stay above undone ones | `crates/engine/src/doc_state.rs` (`id_floor`), `session/edit.rs`, `cmd/edit.rs`, `session/undo.rs`, `cmd/symboledit.rs` | remove the `id_floor` lines |
+| New ids stay above undone ones (MCP headless only) | `crates/mcp/src/headless.rs` sets `session.unique_ids`; the floor lives in `crates/engine/src/doc_state.rs` (`id_floor`), `session/edit.rs`, `cmd/edit.rs`, `cmd/symboledit.rs` | drop the `unique_ids = true` line (the engine then behaves as on `main`), or remove the `id_floor` lines |
 | Fallback notice | `crates/mcp/src/server.rs`, `apps/vectorcraft-cli/src/main.rs` | drop `fell_back_from` |
 
 Or revert the whole branch: the pull request is a set of commits on top of `main`.
