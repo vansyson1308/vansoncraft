@@ -304,6 +304,8 @@ fn mcp(args: &[String], safe_mode: bool) -> Result<(), String> {
         return Err("--automation-read-root and --automation-write-root confine the headless server; a running app enforces its own roots: start it with `vectorcraft --control <port> --automation-read-root <dir> --automation-write-root <dir>`"
             .into());
     }
+    // No flag and no app on the default port: headless, said to the client (F1).
+    let mut fell_back = false;
     let backend: Box<dyn Backend> = if let Some(roots) = roots {
         // Every thread of this process, not only the server's: nothing reaches past the roots.
         file_access::confine_process(roots.clone());
@@ -317,7 +319,10 @@ fn mcp(args: &[String], safe_mode: bool) -> Result<(), String> {
     } else {
         match Remote::connect(DEFAULT_ADDR) {
             Ok(r) => Box::new(r),
-            Err(_) => Box::new(with_stores(Headless::with_document())),
+            Err(_) => {
+                fell_back = true;
+                Box::new(with_stores(Headless::with_document()))
+            }
         }
     };
     eprintln!("vectorcraft-cli: MCP server on stdio ({})", backend.describe());
@@ -326,7 +331,8 @@ fn mcp(args: &[String], safe_mode: bool) -> Result<(), String> {
     vectorcraft_mcp::logging::install();
     let stdin = std::io::stdin();
     // The server reads and writes from threads of its own, so it takes the handles, not locks held here.
-    Server::new(backend).serve(std::io::BufReader::new(stdin), std::io::stdout()).map_err(|e| e.to_string())
+    let mut server = if fell_back { Server::new(backend).fell_back_from(DEFAULT_ADDR) } else { Server::new(backend) };
+    server.serve(std::io::BufReader::new(stdin), std::io::stdout()).map_err(|e| e.to_string())
 }
 
 fn commands() -> Result<(), String> {

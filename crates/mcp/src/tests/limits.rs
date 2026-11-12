@@ -166,7 +166,12 @@ fn atomic_batch_still_closes_its_undo_group_when_results_grow_too_big() {
     // close its group into one undo step, not leave it open.
     let mut steps = vec![json!({"id": "shape.rectangle", "params": {"x": 1, "y": 1, "width": 5, "height": 5}})];
     steps.extend((0..20).map(|_| json!({"id": "document.inspect", "params": {}})));
-    let r = call(&mut s, "command_batch", json!({"steps": steps, "atomic": true, "label": "Capped batch"}));
+    let r = call(&mut s, "command_batch", json!({"steps": steps.clone(), "atomic": true, "label": "Capped batch"}));
+    assert_eq!(r["isError"], true, "{r}");
+    // A stopped atomic batch is taken back, and closes its group: the next edit is its own step.
+    assert_eq!(payload(&r)["rolledBack"], true, "{r}");
+    assert_eq!(objects(&mut s), before, "the edit was taken back: {r}");
+    let r = call(&mut s, "command_batch", json!({"steps": steps, "atomic": true, "keep_on_error": true, "label": "Capped batch"}));
     assert_eq!(r["isError"], true, "{r}");
     assert_eq!(objects(&mut s), before + 1, "the edit ran: {r}");
     assert_eq!(payload(&call(&mut s, "run_command", json!({"command": "edit.undo"})))["undone"], "Capped batch");

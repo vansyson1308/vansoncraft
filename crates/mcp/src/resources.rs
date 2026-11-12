@@ -21,6 +21,40 @@ pub const COMMANDS_URI: &str = "vectorcraft://commands";
 /// The command API reference in Markdown (`engine.apiReference`).
 pub const REFERENCE_URI: &str = "vectorcraft://commands/reference";
 
+/// The drawing-method notes from Harold Speed's book (docs/speed/): their index.
+pub const METHOD_URI: &str = "vectorcraft://method";
+/// One drawing-method topic.
+const METHOD_PREFIX: &str = "vectorcraft://method/";
+
+/// The drawing-method topics, compiled in: short notes an agent reads one at a time instead of
+/// the whole book (`docs/speed/traceability.md` traces each line to the reading ledger).
+pub static METHOD_TOPICS: &[(&str, &str)] = &[
+    ("procedure", include_str!("method/procedure.md")),
+    ("line", include_str!("method/line.md")),
+    ("mass", include_str!("method/mass.md")),
+    ("rhythm", include_str!("method/rhythm.md")),
+    ("balance", include_str!("method/balance.md")),
+    ("proportion", include_str!("method/proportion.md")),
+    ("portrait", include_str!("method/portrait.md")),
+    ("memory", include_str!("method/memory.md")),
+    ("materials", include_str!("method/materials.md")),
+    ("limits", include_str!("method/limits.md")),
+];
+const METHOD_INDEX: &str = include_str!("method/index.md");
+
+/// The text of a method resource: `Some` for a method URI (an error for an unknown topic).
+fn method_text(uri: &str) -> Option<Result<&'static str, ReadError>> {
+    if uri == METHOD_URI {
+        return Some(Ok(METHOD_INDEX));
+    }
+    let topic = uri.strip_prefix(METHOD_PREFIX)?;
+    let topic = decode(topic);
+    Some(METHOD_TOPICS.iter().find(|(t, _)| *t == topic).map(|(_, text)| *text).ok_or_else(|| {
+        let all: Vec<&str> = METHOD_TOPICS.iter().map(|(t, _)| *t).collect();
+        ReadError::Invalid(format!("no drawing-method topic `{topic}` (topics: {})", all.join(", ")))
+    }))
+}
+
 /// The media type of the JSON resources.
 pub const JSON: &str = "application/json";
 /// The media type of the command API reference.
@@ -82,6 +116,14 @@ pub static TEMPLATES: &[Template] = &[
         live: Live::Effects,
     },
     Template {
+        uri: "vectorcraft://method/{topic}",
+        name: "method",
+        title: "Drawing method topic",
+        description: "Notes on one part of Harold Speed's drawing method (procedure, line, mass, rhythm, balance, proportion, portrait, memory, materials, limits): what the book says, how to do it with VectorCraft's tools and study commands, and where it stops applying (Markdown)",
+        mime: MARKDOWN,
+        live: Live::MethodTopics,
+    },
+    Template {
         uri: "vectorcraft://swatch/{name}",
         name: "swatch",
         title: "One swatch",
@@ -98,12 +140,16 @@ pub fn list() -> Value {
         {"uri": DOC_JSON_URI, "name": "document-json", "title": "Active document (full model)", "description": "The complete document model as JSON (document.json)", "mimeType": "application/json"},
         {"uri": COMMANDS_URI, "name": "commands", "title": "Command catalog", "description": "Command ids, labels, parameter descriptions and current enabled state", "mimeType": "application/json"},
         {"uri": REFERENCE_URI, "name": "command-reference", "title": "Command API reference", "description": "Markdown reference of the commands that have a parameter schema: types, ranges, units, defaults, API levels, what each writes and returns (engine.apiReference)", "mimeType": MARKDOWN},
+        {"uri": METHOD_URI, "name": "method", "title": "Drawing method (Harold Speed)", "description": "Index of short drawing-method notes from a full reading of Speed's The Practice and Science of Drawing, and the study commands that measure tone, balance, line and proportion; read one topic with vectorcraft://method/{topic}", "mimeType": MARKDOWN},
     ]})
 }
 
 /// `resources/read`: the text behind a resource URI, the command API reference as Markdown and
 /// every other resource as indented JSON ([`read`]).
 pub fn read_contents(b: &mut dyn Backend, uri: &str) -> Result<Contents, ReadError> {
+    if let Some(text) = method_text(uri) {
+        return text.map(|t| Contents { mime: MARKDOWN, text: t.to_string() });
+    }
     if uri == REFERENCE_URI {
         let mut reply = exec(b, "engine.apiReference").map_err(ReadError::Backend)?;
         return match reply.get_mut("markdown").map(Value::take) {
@@ -275,7 +321,7 @@ mod tests {
     #[test]
     fn lists_are_well_formed() {
         let l = list();
-        assert_eq!(l["resources"].as_array().map(Vec::len), Some(4));
+        assert_eq!(l["resources"].as_array().map(Vec::len), Some(5));
         let t = templates();
         let items = t["resourceTemplates"].as_array().expect("templates");
         assert_eq!(items.len(), TEMPLATES.len());

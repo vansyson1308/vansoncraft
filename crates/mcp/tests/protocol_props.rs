@@ -567,6 +567,8 @@ proptest! {
         // Match the headless default document, dated as it is (File Info dates come from the clock).
         let d_remote = doc_json(&document(&mut srv));
         let mut local = vectorcraft_engine::Session::new();
+        // The headless server gives new objects ids no undo took away (F2 in docs/speed/audit.md).
+        local.unique_ids = true;
         let created = &d_remote["metadata"]["created"];
         vectorcraft_testkit::fixtures::exec(&mut local, "file.new", json!({"width": 612, "height": 792, "created": created}));
         let d_local = doc_json(&local.doc().unwrap().doc);

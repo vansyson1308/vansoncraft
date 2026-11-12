@@ -20,6 +20,7 @@ mod pen;
 mod persp;
 mod place;
 mod protocol;
+mod speed;
 mod svg;
 
 fn server() -> Server {
@@ -372,7 +373,7 @@ fn headless_end_to_end() {
 
     // Resources.
     let v = rpc(&mut s, 10, "resources/list", json!({}));
-    assert_eq!(v["result"]["resources"].as_array().unwrap().len(), 4);
+    assert_eq!(v["result"]["resources"].as_array().unwrap().len(), 5, "document, document/json, commands, commands/reference, method");
     let v = rpc(&mut s, 11, "resources/read", json!({"uri": "vectorcraft://document"}));
     let text = v["result"]["contents"][0]["text"].as_str().unwrap();
     assert!(serde_json::from_str::<Value>(text).unwrap()["layers"].is_array());

@@ -119,7 +119,11 @@ fn shortcut_matches(shortcut: &str, key: &str, mods: Mods) -> bool {
 impl Headless {
     /// A session with no document (the first `file.new` / `app.open` creates one).
     pub fn new() -> Self {
-        Self { session: Session::new(), renderer: Renderer::new(), view: ViewInfo::default(), roots: None }
+        let mut session = Session::new();
+        // An agent holding an id of an object an undo took away gets "no such object" rather than
+        // changing a new object that took its id (F2 in docs/speed/audit.md).
+        session.unique_ids = true;
+        Self { session, renderer: Renderer::new(), view: ViewInfo::default(), roots: None }
     }
 
     /// Confine the files every method reads and writes to `roots` ([`file_access`]).

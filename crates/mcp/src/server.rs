@@ -87,6 +87,13 @@ workflows, completion/complete finishes a command id, a format, an effect or a s
 vectorcraft://object/{id}, vectorcraft://command/{id}, vectorcraft://effect/{id} and \
 vectorcraft://swatch/{name} read one thing at a time instead of the whole document.";
 
+/// What a server that fell back to headless says about it.
+pub(crate) fn fallback_notice(addr: &str) -> String {
+    format!(
+        "Note: no VectorCraft app answered on {addr} when this server started, so it runs headless: nothing drawn here appears in a desktop window, and work not saved with save_file is lost when the server stops. To draw in the app, start it with --control and restart this server (or register it with --connect {addr})."
+    )
+}
+
 /// An MCP server bound to one backend.
 pub struct Server {
     backend: Box<dyn Backend>,
@@ -98,6 +105,10 @@ pub struct Server {
     /// process-wide, so a server whose client didn't ask leaves it to the one that did.
     logging: bool,
     busy_after: Duration,
+    /// Said once, after the first tool result, when the server fell back to headless because no
+    /// app answered: an agent must not believe it draws in a desktop window it isn't reaching
+    /// (F1 in docs/speed/audit.md).
+    fallback_notice: Option<String>,
 }
 
 pub(crate) fn response(id: Value, result: Value) -> Value {
@@ -225,7 +236,21 @@ fn write_reply(output: &mut impl Write, line: &str) -> std::io::Result<()> {
 
 impl Server {
     pub fn new(backend: Box<dyn Backend>) -> Self {
-        Self { backend, initialized: false, modern: Arc::new(AtomicBool::new(false)), logging: false, busy_after: DEFAULT_BUSY_AFTER }
+        Self {
+            backend,
+            initialized: false,
+            modern: Arc::new(AtomicBool::new(false)),
+            logging: false,
+            busy_after: DEFAULT_BUSY_AFTER,
+            fallback_notice: None,
+        }
+    }
+
+    /// A server that runs headless because no app answered at `addr` when it started: its
+    /// `initialize` instructions say so, and so does a note after its first tool result.
+    pub fn fell_back_from(mut self, addr: &str) -> Self {
+        self.fallback_notice = Some(fallback_notice(addr));
+        self
     }
 
     /// How long a call runs before [`Server::serve`] turns away a request that would have to wait
@@ -427,7 +452,10 @@ impl Server {
                         "logging": {},
                     },
                     "serverInfo": {"name": "vectorcraft", "title": "VectorCraft", "version": env!("CARGO_PKG_VERSION")},
-                    "instructions": format!("{INSTRUCTIONS} Backend: {}.", self.backend.describe()),
+                    "instructions": match &self.fallback_notice {
+                        Some(n) => format!("{INSTRUCTIONS} Backend: {}. {n}", self.backend.describe()),
+                        None => format!("{INSTRUCTIONS} Backend: {}.", self.backend.describe()),
+                    },
                 }))
             }
             "tools/call" => {
@@ -436,10 +464,16 @@ impl Server {
                 if let Some(arguments) = args.as_object() {
                     crate::tools::check_tool_arguments(name, arguments).map_err(|e| (INVALID_PARAMS, e))?;
                 }
-                let result = call_tool(self.backend.as_mut(), name, &args);
+                let mut result = call_tool(self.backend.as_mut(), name, &args);
                 match result.script_busy() {
                     Some(message) => Err((SERVER_BUSY, message)),
-                    None => Ok(result.to_value()),
+                    None => {
+                        // After the result, so a client reading the first block as JSON still can.
+                        if let Some(n) = self.fallback_notice.take() {
+                            result.content.push(json!({"type": "text", "text": n}));
+                        }
+                        Ok(result.to_value())
+                    }
                 }
             }
             "resources/read" => {
