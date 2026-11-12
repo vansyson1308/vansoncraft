@@ -348,6 +348,30 @@ Generated-in-code art is original and has no file to list. This covers the defau
 | `docs/images/dusk-poster.png` | VectorCraft contributors | Rendered by VectorCraft from `examples/dusk-poster.vectorcraft` | MIT OR Apache-2.0 |  |
 | `examples/dusk-poster.vectorcraft` | VectorCraft contributors | Original artwork built through the VectorCraft command API | MIT OR Apache-2.0 |  |
 | `examples/dusk-poster.svg` | VectorCraft contributors | SVG export of the above | MIT OR Apache-2.0 |  |
+| `examples/speed/vase-compositions.vectorcraft` | VectorCraft contributors | Original artwork (three compositions of a vase of flowers) built through the VectorCraft MCP server | MIT OR Apache-2.0 |  |
+| `examples/speed/vase-A.svg` | VectorCraft contributors | SVG export of composition A of `examples/speed/vase-compositions.vectorcraft` | MIT OR Apache-2.0 |  |
+| `examples/speed/vase-B.svg` | VectorCraft contributors | SVG export of composition B of the above | MIT OR Apache-2.0 |  |
+| `examples/speed/vase-C.svg` | VectorCraft contributors | SVG export of composition C of the above | MIT OR Apache-2.0 |  |
+| `examples/speed/vase-A.png` | VectorCraft contributors | PNG export of composition A of the above | MIT OR Apache-2.0 |  |
+| `examples/speed/vase-B.png` | VectorCraft contributors | PNG export of composition B of the above | MIT OR Apache-2.0 |  |
+| `examples/speed/vase-C.png` | VectorCraft contributors | PNG export of composition C of the above | MIT OR Apache-2.0 |  |
+| `examples/speed/vase-A-values.png` | VectorCraft contributors | Value-group map of composition A rendered by VectorCraft (`study.render`) | MIT OR Apache-2.0 |  |
+| `examples/speed/vase-B-values.png` | VectorCraft contributors | Value-group map of composition B rendered by VectorCraft | MIT OR Apache-2.0 |  |
+| `examples/speed/vase-C-values.png` | VectorCraft contributors | Value-group map of composition C rendered by VectorCraft | MIT OR Apache-2.0 |  |
+| `examples/speed/vase-recipes.json` | VectorCraft contributors | Recipes and measurements of the three compositions, written by the MCP run | MIT OR Apache-2.0 |  |
+| `examples/speed/vase-compositions-revised.vectorcraft` | VectorCraft contributors | Composition A revised locally through the MCP server | MIT OR Apache-2.0 |  |
+| `examples/speed/vase-A-revised.svg` | VectorCraft contributors | SVG export of the revised composition A | MIT OR Apache-2.0 |  |
+| `examples/speed/vase-A-revised.png` | VectorCraft contributors | PNG export of the revised composition A | MIT OR Apache-2.0 |  |
+| `examples/speed/vase-A-revised-values.png` | VectorCraft contributors | Value-group map of the revised composition A rendered by VectorCraft | MIT OR Apache-2.0 |  |
+| `examples/speed/vase-A-revised-focus.png` | VectorCraft contributors | Zoomed render (`render_preview {region}`) of the revised focal flower | MIT OR Apache-2.0 |  |
+| `examples/speed/vase-revision-report.json` | VectorCraft contributors | Before/after comparison of the local revision, written by the MCP run | MIT OR Apache-2.0 |  |
+| `examples/speed/line-and-mass-studies.vectorcraft` | VectorCraft contributors | Original line study and mass study of one subject built through the VectorCraft MCP server | MIT OR Apache-2.0 |  |
+| `examples/speed/line-study.svg` | VectorCraft contributors | SVG export of the line study | MIT OR Apache-2.0 |  |
+| `examples/speed/mass-study.svg` | VectorCraft contributors | SVG export of the mass study | MIT OR Apache-2.0 |  |
+| `examples/speed/line-study.png` | VectorCraft contributors | Render of the line study on white (`render_preview`) | MIT OR Apache-2.0 |  |
+| `examples/speed/mass-study.png` | VectorCraft contributors | PNG export of the mass study | MIT OR Apache-2.0 |  |
+| `examples/speed/line-study-construction.png` | VectorCraft contributors | Render of the line study with its construction layer shown (`render_preview {showTemplates}`) | MIT OR Apache-2.0 |  |
+| `examples/speed/README.md` | VectorCraft contributors | Description of the Speed examples | MIT OR Apache-2.0 |  |
 | `docs/images/shot-1-neon.png` | VectorCraft contributors | Screenshot of VectorCraft itself (VectorCraft/Lucide UI icons only), editing `examples/neon-drive.vectorcraft` | MIT OR Apache-2.0 |  |
 | `docs/images/shot-2-ribbons.png` | VectorCraft contributors | Screenshot of VectorCraft itself, editing `examples/ribbons.vectorcraft` | MIT OR Apache-2.0 |  |
 | `docs/images/shot-3-sheet.png` | VectorCraft contributors | Screenshot of VectorCraft itself, editing `examples/feature-sheet.vectorcraft` | MIT OR Apache-2.0 |  |

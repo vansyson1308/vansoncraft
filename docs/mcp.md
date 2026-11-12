@@ -1,6 +1,6 @@
 # VectorCraft MCP server
 
-> **Last updated:** 2026-11-11 · **Change:** Save location-refusal error (#6146); existing response shapes retained.
+> **Last updated:** 2026-11-12 · **Change:** drawing-method resources and prompts (docs/speed/), `render_preview` regions and value views, `doc_inspect` backend, headless-fallback notice, atomic `command_batch` rollback; previously: Save location-refusal error (#6146); existing response shapes retained.
 
 `vectorcraft-cli mcp` runs a [Model Context Protocol](https://modelcontextprotocol.io) server on stdio
 (newline-delimited JSON-RPC 2.0; see [Protocol](#protocol) for version negotiation). Agents use it to
@@ -266,14 +266,14 @@ dropped; the call reports uncertainty like any reply that never arrived whole.
 | Capability | What it covers |
 |---|---|
 | `tools` | The tools below |
-| `resources` | Three fixed resources and four templates |
-| `prompts` | Five ready-made workflows |
+| `resources` | Five fixed resources and five templates (including the drawing-method notes) |
+| `prompts` | Twelve ready-made workflows |
 | `completions` | `completion/complete` for prompt arguments and template variables |
 | `logging` | `logging/setLevel` and `notifications/message` |
 
 ### Prompts
 
-`prompts/list` offers eight workflows; `prompts/get` returns one templated user message with its
+`prompts/list` offers twelve workflows; `prompts/get` returns one templated user message with its
 arguments filled in. A missing required argument is `-32602`.
 
 | Prompt | Arguments (required first) |
@@ -286,6 +286,12 @@ arguments filled in. A missing required argument is `-32602`.
 | `check-spelling` | `scope`, `action` |
 | `variables-bind` | `kind`, `source` |
 | `path-tools` | `task` |
+| `speed-drawing` | `brief`, `study` |
+| `composition-variants` | `subject`, `count`, `vary` |
+| `revise-locally` | `request`, `target` |
+| `memory-exercise` | `reference` |
+
+The last four follow Harold Speed's method; `vectorcraft://method` (index) and `vectorcraft://method/{topic}` (`procedure`, `line`, `mass`, `rhythm`, `balance`, `proportion`, `portrait`, `memory`, `materials`, `limits`) are their Markdown notes, compiled into the server. See [docs/speed/](speed/README.md).
 
 ```sh
 echo '{"jsonrpc":"2.0","id":1,"method":"prompts/get","params":{"name":"poster","arguments":{"brief":"a jazz festival"}}}' \
@@ -457,9 +463,9 @@ The older names below remain listed because existing workflows use them.
 |---|---|
 | `command_list` | Optional `filter` (or `query`), `menu` (a menu path substring, levels joined with ` > `), `enabled_only`, `brief` (no `params` text, `schema` or `inputSchema`); returns the command array for the backend in use (see [Command catalogue](#command-catalogue-headless-vs-remote)). A command with a parameter schema lists `schema` and `inputSchema` (see [Parameter schemas](#parameter-schemas)). `list_commands` lists the same commands; it takes `enabledOnly` and returns `{count, commands}` |
 | `command_run` | `id`, optional `params`; runs the command through the existing backend. An unknown key in `params` is an error that names it and the nearest key the command takes (`invalid parameters for `file.new`: unknown parameter `widht`; did you mean `width`?`), so a misspelt key no longer runs the command with its default (see [Parameter keys](#parameter-keys)). `run_command` runs a command the same way and takes its id as `command` |
-| `command_batch` | `steps: [{id, params?}]` (at most 256), optional `stop_on_error` (default true), `atomic` and `label`; returns `completed`, `failed`, `results: [{ok, result\|error}]` and `created` (the ids the `draw_path` / `draw_shape` steps made, in order). A step's `id` is a command id, or `draw_path` / `draw_shape` with that tool's arguments as `params` (checked as `tools/call` checks them; the step's result is the tool's, so `"$N.id"` is the new object). Each edit has its own undo step, or with `atomic: true` the batch's edits are one undo step named `label` (else after its first edit; `edit.undoGroup.begin`/`end` underneath), and the edits made in a document that a step opens or creates (`document.open`, `file.new`) are one undo step there, named the same, also when no document was open before the batch. In a document that was open before the batch and that a step switches to (`document.activate`), each edit stays its own undo step; failures set `isError`. A param string `"$N.path"` or `"$last.path"` takes a value from an earlier step's result (see `run` below). Kept step results total at most 8 MiB; past that the batch stops with the reason. This is the MCP tool, not the engine command `command.batch` (that one takes `commands: [{command, params}]` and is what the Actions panel plays); use `command_run` with `command.batch` when replaying a recorded action |
-| `doc_inspect` | Optional `depth`, `childLimit`, `ids`, `kind`, `limit`, `offset`; same summary as `inspect_document` |
-| `render_preview` | Optional `max_side` (1–4096, default 1024), `artboard` (0-based, default 0) and `traceViews`; inline PNG of that artboard without editing it, drawn as `export` draws a PNG with `background: "white"` at the scale that fits `max_side` (at most 1). With `traceViews: true`, Image Trace objects draw in the view set with `imageTrace.setView` (outlines, the source image…), as in the app's window; by default they draw their tracing result. Artboards too large to render within the allocation bound return a tool error |
+| `command_batch` | `steps: [{id, params?}]` (at most 256), optional `stop_on_error` (default true), `atomic` and `label`; returns `completed`, `failed`, `results: [{ok, result\|error}]` and `created` (the ids the `draw_path` / `draw_shape` steps made, in order). A step's `id` is a command id, or `draw_path` / `draw_shape` with that tool's arguments as `params` (checked as `tools/call` checks them; the step's result is the tool's, so `"$N.id"` is the new object). Each edit has its own undo step, or with `atomic: true` the batch's edits are one undo step named `label` (else after its first edit; `edit.undoGroup.begin`/`end` underneath); when a step of an atomic batch fails, the group is cancelled, so the edits of the steps before it are undone, and the reply adds `rolledBack: true` and an empty `created` (`keep_on_error: true` keeps them as one undo step instead; files written and documents opened by earlier steps are not taken back), and the edits made in a document that a step opens or creates (`document.open`, `file.new`) are one undo step there, named the same, also when no document was open before the batch. In a document that was open before the batch and that a step switches to (`document.activate`), each edit stays its own undo step; failures set `isError`. A param string `"$N.path"` or `"$last.path"` takes a value from an earlier step's result (see `run` below). Kept step results total at most 8 MiB; past that the batch stops with the reason. This is the MCP tool, not the engine command `command.batch` (that one takes `commands: [{command, params}]` and is what the Actions panel plays); use `command_run` with `command.batch` when replaying a recorded action |
+| `doc_inspect` | Optional `depth`, `childLimit`, `ids`, `kind`, `limit`, `offset`; same summary as `inspect_document`, plus `backend` (`{kind: "remote"\|"headless", describe, desktopWindow}`): where the tools act. With no flag and no app on 127.0.0.1:7979 the server runs headless and says so in `initialize` and after its first tool result |
+| `render_preview` | Optional `max_side` (1–4096, default 1024), `artboard` (0-based, default 0) and `traceViews`; inline PNG of that artboard without editing it, drawn as `export` draws a PNG with `background: "white"` at the scale that fits `max_side`, at most 1 for a page; a small artboard is drawn larger, up to 512 pixels (or `max_side` when smaller) and 16 pixels a point. With `region: [x, y, width, height]`, `mode` (`gray`, `values` with `levels` and `thresholds`) or `showTemplates`, the engine command `study.render` draws it instead: any rectangle zoomed to `max_side`, CIE L* lightness as grey, or value groups as flat greys, optionally with template layers. With `traceViews: true`, Image Trace objects draw in the view set with `imageTrace.setView` (outlines, the source image…), as in the app's window; by default they draw their tracing result. Artboards too large to render within the allocation bound return a tool error |
 | `ui_inspect`, `ui_screenshot` | Connected desktop state/window capture; tool errors in headless mode. `ui_inspect` is the same call as `inspect_ui`, and `ui_screenshot` is `screenshot` with `window: true`. `ui_screenshot` takes an optional `max_side` (1–4096), as `screenshot {window: true}` does: a capture whose longer side is larger is scaled down to `max_side` pixels on that side, and the reply's text gives the returned size as `width`/`height` and the capture's as `capturedWidth`/`capturedHeight`. Without `max_side` the full capture comes back |
 
 Every tool declares read-only, destructive, idempotent and open-world hints. File-writing
@@ -10200,4 +10206,5 @@ the error text. The interactive fallback applies only to ordinary File > Save, n
 
 | Date | Change |
 |---|---|
+| 2026-11-12 | Drawing-method resources (`vectorcraft://method`, `vectorcraft://method/{topic}`) and prompts (`speed-drawing`, `composition-variants`, `revise-locally`, `memory-exercise`); `render_preview` regions, grey and value views, small artboards drawn larger; `doc_inspect` reports `backend`; the headless fallback is announced; a failed atomic `command_batch` rolls back (`rolledBack`, `keep_on_error`); stale resource and prompt counts corrected. |
 | 2026-11-11 | Document READ_ONLY_LOCATION for saves (#6146); no response-shape change. |
