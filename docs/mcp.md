@@ -78,28 +78,31 @@ For a live session, start the app first: `cargo run --release -p vansoncraft -- 
 
 The release packages ship `vansoncraft-cli` alongside the desktop app, so no build is needed:
 
-| Install | CLI |
+| Package | CLI |
 |---|---|
-| Windows (MSI) | `%LOCALAPPDATA%\Programs\VansonCraft\vansoncraft-cli.exe` by default (`C:\Program Files\VansonCraft\vansoncraft-cli.exe` for an all-users install, under `Program Files (x86)` instead for the 32-bit build, or wherever you installed it otherwise), not on `PATH` |
-| Linux (deb, rpm) | `/usr/bin/vansoncraft-cli` |
-| macOS | the separate `vansoncraft-cli-<version>-macos-<arch>.zip` release asset (the `.app` holds only the desktop app) |
+| Windows MSI (installs for the current user) | `%LOCALAPPDATA%\Programs\VansonCraft\vansoncraft-cli.exe` (not on `PATH`) |
+| Windows portable ZIP | `vansoncraft-cli.exe` in the folder you unpack it into |
+| Linux tar.gz | `bin/vansoncraft-cli` in the folder you unpack it into |
 
-```sh
-# Windows (PowerShell), default install folder
-claude mcp add vansoncraft -- "$env:LOCALAPPDATA\Programs\VansonCraft\vansoncraft-cli.exe" mcp
-# Linux, or macOS with the CLI unzipped onto PATH
-claude mcp add vansoncraft -- vansoncraft-cli mcp
+Let the installed CLI write or print the client entry for itself, then check it:
+
+```powershell
+& "$env:LOCALAPPDATA\Programs\VansonCraft\vansoncraft-cli.exe" setup claude-code   # prints `claude mcp add …`
+& "$env:LOCALAPPDATA\Programs\VansonCraft\vansoncraft-cli.exe" doctor
 ```
+
+[docs/speed/mcp-clients.md](speed/mcp-clients.md) covers Claude Desktop (`setup claude-desktop --apply`),
+Codex and headless mode.
 
 For a live session, start the installed app with the control port before the MCP client starts the server:
 
 ```sh
 # macOS: quit VansonCraft first, since `open -a` passes no arguments to an app that is already running
 open -a VansonCraft --args --control 7979
-# Windows (PowerShell), default install folder
+# Windows (PowerShell), the MSI's folder
 & "$env:LOCALAPPDATA\Programs\VansonCraft\vansoncraft.exe" --control 7979
-# Linux (deb, rpm)
-vansoncraft --control 7979
+# Linux, from the unpacked tar.gz
+./bin/vansoncraft --control 7979
 ```
 
 The Dock, Start menu and desktop launchers start the app without `--control`, so the app opens no control

@@ -1,8 +1,8 @@
 //! Programmatic control of the running app (agents, tests, MCP).
 //!
 //! Methods (JSON-lines over the host's transport):
-//! - `app.identity`: `{name: "VansonCraft", appId, version, pid}`, so a client can tell this app from
-//!   another that listens on the same port
+//! - `app.identity`: `{name: "VansonCraft", appId, version, pid, instance}`, so a client can tell this
+//!   app from another that listens on the same port, and a restart of it (`instance` is new each run)
 //! - `engine.execute {command, params, expectDocument?}` / `ui.menu.invoke {command|id, params,
 //!   expectDocument?}`: run any command; with `expectDocument` (a uid from `document.inspect`) only
 //!   while that document is active, checked in the frame that runs it
@@ -507,6 +507,19 @@ pub fn identity() -> Value {
         "appId": vansoncraft_engine::cmd::help::APP_ID,
         "version": env!("CARGO_PKG_VERSION"),
         "pid": std::process::id(),
+        "instance": instance(),
+    })
+}
+
+/// A token of this launch of the app, random and the same for its whole run: a client that
+/// reconnects and finds another one knows the app was restarted, so the document uids and object
+/// ids it holds name nothing any more (each run counts them from 1 again).
+fn instance() -> &'static str {
+    static INSTANCE: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    INSTANCE.get_or_init(|| {
+        use std::hash::BuildHasher as _;
+        let keyed = std::collections::hash_map::RandomState::new();
+        format!("{:016x}{:016x}", keyed.hash_one(std::process::id()), keyed.hash_one(std::time::SystemTime::now()))
     })
 }
 

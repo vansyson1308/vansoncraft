@@ -860,7 +860,8 @@ fn doctor_reports_the_engine_and_the_port() {
     assert!(out.status.success(), "{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr));
     let report: Value = serde_json::from_slice(&out.stdout).unwrap();
     assert_eq!(report["ok"], true, "{report}");
-    let lines: Vec<String> = report["checks"].as_array().unwrap().iter().map(|c| format!("{} {}", c["level"].as_str().unwrap(), c["check"].as_str().unwrap())).collect();
+    let lines: Vec<String> =
+        report["checks"].as_array().unwrap().iter().map(|c| format!("{} {}", c["level"].as_str().unwrap(), c["check"].as_str().unwrap())).collect();
     let has = |s: &str| lines.iter().any(|l| l.contains(s));
     assert!(has(&format!("vansoncraft-cli {}", env!("CARGO_PKG_VERSION"))), "{lines:?}");
     assert!(lines.iter().any(|l| l.starts_with("ok the headless engine drew and previewed a page")), "{lines:?}");

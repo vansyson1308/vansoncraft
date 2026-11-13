@@ -65,7 +65,7 @@ up in the code and in the runs.
 | F7 | P2 | No image view of a region, and no grey or value view | — | — | **Fixed:** `render_preview {region, mode: gray\|values, levels, thresholds, showTemplates}` through the new `study.render` command. Test `render_preview_zooms_into_a_region_and_shows_value_groups`. |
 | F8 | P2 | `screenshot {scale}` has no size cap at the MCP layer | `screenshot {scale:16}` on a page → ~124 Mpx | bounded / unbounded | **Deferred** (use `render_preview`). |
 | F9 | P2 | `doc_inspect {}` returns the whole tree, pretty-printed | large documents | bounded by default / unbounded | **Deferred;** agents are told to pass `depth`, `ids` or `kind`. |
-| F10 | P2 | The remote backend reconnects to whatever listens on the port, with no app identity check | restart the app between calls | warned / silent | **Deferred** (needs an `app.info` control method). |
+| F10 | P2 | The remote backend reconnects to whatever listens on the port, with no app identity check | restart the app between calls | warned / silent | **Fixed (2026-11-13):** `--connect` asks `app.identity` on every connection and refuses a program that isn't VansonCraft; a new launch of the app (its `instance` changed) refuses the next call once with "was restarted … call doc_inspect", since uids and ids start again from 1. Tests `verified::*`. |
 | F11 | P2 | Bézier `in`/`out` handles are absolute points, but the schema didn't say | — | — | **Fixed** in the `draw_path` description and schema. |
 | F12 | P3 | One invalid UTF-8 line ends the MCP session | `printf '\xff\n…'` | −32700 and continue / exit | Deferred. |
 | F13 | P3 | `draw_shape.rotation` is clockwise, `transform.rotate` counter-clockwise | — | — | Documented in `docs/speed/mcp-clients.md`. |
@@ -83,4 +83,5 @@ up in the code and in the runs.
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-13 | minor | F2 for the desktop app (`unique_ids` with `--control`), F2b (`expect_document` checked by the app per command) and F10 (app identity, restart) fixed. |
 | 2026-11-12 | major | First audit of the fork: baseline, capability table, 18 audit findings and 4 QA findings with runtime reproductions; F1, F2 (headless), F3, F6, F7, F11, F15, N1, N2 fixed with tests; independent code review findings resolved (see qc-report.md). |

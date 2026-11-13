@@ -22,6 +22,9 @@ fn the_identity_names_vansoncraft_and_its_version() {
     assert_eq!(r["result"]["appId"], vansoncraft_engine::cmd::help::APP_ID);
     assert_eq!(r["result"]["version"], env!("CARGO_PKG_VERSION"));
     assert_eq!(r["result"]["pid"], std::process::id());
+    let instance = r["result"]["instance"].as_str().unwrap().to_string();
+    assert_eq!(instance.len(), 32);
+    assert_eq!(input_request(&mut app, "app.identity", json!({}))["result"]["instance"], instance.as_str(), "the same for the whole run");
 }
 
 /// `expectDocument` is checked in the request that runs the command: after the person switched

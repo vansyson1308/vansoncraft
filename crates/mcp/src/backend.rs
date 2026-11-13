@@ -65,6 +65,8 @@ pub struct Remote {
     /// What the app said it is (`app.identity`), when connected with [`Remote::connect_verified`]:
     /// every new connection asks again before it carries a call.
     identity: Option<Value>,
+    /// The last identity check found a new launch of the app; the next call is refused once.
+    restarted: bool,
 }
 
 /// How long the app has to answer `app.identity` (it answers in its next frame).
@@ -79,7 +81,7 @@ const MAX_REPLY_BYTES: usize = 256 * 1024 * 1024;
 impl Remote {
     /// Connect to `addr` (e.g. `127.0.0.1:7979`), failing fast when nothing is listening.
     pub fn connect(addr: &str) -> std::io::Result<Self> {
-        let mut r = Self { addr: addr.to_string(), conn: None, next_id: 1, identity: None };
+        let mut r = Self { addr: addr.to_string(), conn: None, next_id: 1, identity: None, restarted: false };
         r.reconnect()?;
         Ok(r)
     }
@@ -98,14 +100,17 @@ impl Remote {
         Ok(r)
     }
 
-    /// What the app said it is (`{name, appId, version, pid}`), when connected with
+    /// What the app said it is (`{name, appId, version, pid, instance}`), when connected with
     /// [`Remote::connect_verified`].
     pub fn identity(&self) -> Option<&Value> {
         self.identity.as_ref().filter(|v| !v.is_null())
     }
 
     /// Ask the program on the current connection what it is, and refuse anything but VansonCraft.
+    /// A VansonCraft of another launch than the one reached before (the app was restarted) sets
+    /// `restarted`, which `prepare_connection` reports.
     fn verify(&mut self) -> Result<(), String> {
+        let before = self.identity().cloned();
         let id = self.next_id;
         self.next_id += 1;
         let line = json!({"id": id, "method": "app.identity", "params": {}}).to_string();
@@ -119,19 +124,34 @@ impl Remote {
         }
         let not_ours = |why: String| {
             format!(
-                "the program listening on {} is not VansonCraft ({why}); another app may hold this port: start VansonCraft with --control <port> and connect to that port",
+                "the program listening on {} is not VansonCraft ({why}); another app may hold this port, or a VansonCraft older than 0.25.0, which can't check documents: start VansonCraft 0.25.0 or later with --control <port> and connect to that port",
                 self.addr
             )
         };
-        let reply = reply.map_err(|e| not_ours(format!("no answer to app.identity: {e}")))?;
+        let reply = reply.map_err(|e| {
+            format!(
+                "the program listening on {} did not say what it is within {} s (`app.identity`: {e}); if it is VansonCraft and busy, try again",
+                self.addr,
+                IDENTITY_TIMEOUT.as_secs()
+            )
+        })?;
         let v: Value = serde_json::from_str(reply.trim()).map_err(|_| not_ours("its answer is not JSON".into()))?;
+        if v.get("id") != Some(&json!(id)) && v.get("id").is_some() {
+            return Err(not_ours("its answer is not to app.identity".into()));
+        }
         if v.get("ok").and_then(Value::as_bool) != Some(true) {
             let why = v.get("error").and_then(Value::as_str).unwrap_or("it refused app.identity");
+            if v.get("id").is_none() {
+                // The control server's own refusals (too many connections) carry no id.
+                return Err(format!("VansonCraft at {} refused the connection: {why}", self.addr));
+            }
             return Err(not_ours(format!("it answered app.identity with: {why}")));
         }
         let me = v.get("result").cloned().unwrap_or(Value::Null);
         match me.get("name").and_then(Value::as_str) {
             Some("VansonCraft") => {
+                let launch = |i: &Value| (i.get("instance").cloned(), i.get("pid").cloned());
+                self.restarted = before.as_ref().is_some_and(|b| launch(b) != launch(&me));
                 self.identity = Some(me);
                 Ok(())
             }
@@ -168,7 +188,28 @@ impl Remote {
         Err(last)
     }
 
+    /// A connection to carry the next call: the current one, or a new one whose program is asked
+    /// what it is ([`Remote::connect_verified`]). Fails with nothing sent, and with no connection
+    /// kept, when the app can't be reached or isn't VansonCraft. A new launch of the app (it was
+    /// restarted) fails once too, keeping the connection: each launch counts document uids and
+    /// object ids from 1 again, so what the client holds would name other documents and objects,
+    /// and the client must inspect again before the next call goes through.
     fn prepare_connection(&mut self) -> Result<(), String> {
+        let ready = self.reach();
+        if ready.is_err() {
+            self.conn = None;
+        }
+        ready?;
+        if std::mem::take(&mut self.restarted) {
+            return Err(
+                "was restarted since the last call: the documents, their uids and the object ids from before are gone (a new launch counts them from 1 again); call doc_inspect and work from what it shows"
+                    .into(),
+            );
+        }
+        Ok(())
+    }
+
+    fn reach(&mut self) -> Result<(), String> {
         if let Some((_, stream)) = self.conn.as_ref() {
             stream.set_nonblocking(true).map_err(|e| e.to_string())?;
             let probe = stream.peek(&mut [0]);
@@ -182,7 +223,7 @@ impl Remote {
             }
         }
         if self.conn.is_none() {
-            self.reconnect().map_err(|e| e.to_string())?;
+            self.reconnect().map_err(|e| format!("is not reachable: {e}"))?;
             // A new connection may reach another program than the first one did (the app was
             // closed and something else took the port): it is asked again.
             if self.identity.is_some() {
@@ -251,10 +292,7 @@ impl Remote {
 
 impl Backend for Remote {
     fn call(&mut self, method: &str, params: Value) -> Result<Value, String> {
-        self.prepare_connection().map_err(|e| {
-            self.conn = None;
-            format!("VansonCraft app at {} is not reachable: {e}; `{method}`: nothing was sent", self.addr)
-        })?;
+        self.prepare_connection().map_err(|e| format!("VansonCraft app at {}: {e}; `{method}`: nothing was sent", self.addr))?;
         let id = self.next_id;
         self.next_id += 1;
         let line = json!({"id": id, "method": method, "params": params}).to_string();

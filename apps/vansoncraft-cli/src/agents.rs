@@ -76,6 +76,12 @@ pub fn setup(args: &[String]) -> Result<(), String> {
     if !headless && !folders.is_empty() {
         return Err("--folder is for --headless; in the desktop app, start it with --automation-read-root / --automation-write-root".into());
     }
+    if headless && port != 7979 {
+        return Err("--port is for --desktop".into());
+    }
+    if client != "claude-desktop" && (apply || remove || config.is_some()) {
+        return Err(format!("--apply, --remove and --config are for claude-desktop; for {client}, run the command setup prints"));
+    }
     let entry = if remove { None } else { Some(entry(headless, port, &folders)?) };
     match client.as_str() {
         "claude-desktop" => claude_desktop(entry.as_ref(), config, apply || remove),
@@ -126,7 +132,9 @@ fn entry(headless: bool, port: u16, folders: &[String]) -> Result<Entry, String>
 
 /// `p` as an absolute path (relative to the current folder), without resolving links.
 fn absolute(p: &Path) -> Result<PathBuf, String> {
-    std::path::absolute(p).map_err(|e| format!("{}: {e}", p.display()))
+    // Rebuilt from its components: no trailing separator, which would end a quoted Windows
+    // argument in `\"` and run it into the next one.
+    std::path::absolute(p).map(|a| a.components().collect()).map_err(|e| format!("{}: {e}", p.display()))
 }
 
 /// This program's own path, refused when a client entry naming it would soon break: a cargo build
@@ -145,15 +153,24 @@ fn installed_cli() -> Result<PathBuf, String> {
 /// Why `exe` is in a place that doesn't last, if it is.
 fn unstable_place(exe: &Path) -> Option<&'static str> {
     let parts: Vec<String> = exe.components().map(|c| c.as_os_str().to_string_lossy().to_lowercase()).collect();
-    let in_build = parts.windows(2).any(|w| matches!(w, [t, kind] if t == "target" && (kind == "debug" || kind == "release")));
-    if in_build {
+    let named_build = parts.windows(2).any(|w| matches!(w, [t, kind] if t == "target" && (kind == "debug" || kind == "release")));
+    // Any cargo output folder, whatever CARGO_TARGET_DIR names it: a profile folder holds
+    // `.fingerprint`, and cargo marks the target folder itself with CACHEDIR.TAG.
+    let fingerprinted = exe.parent().is_some_and(|d| d.join(".fingerprint").is_dir());
+    let tagged = exe.ancestors().skip(1).take(3).any(|a| a.join("CACHEDIR.TAG").is_file());
+    if named_build || fingerprinted || tagged {
         return Some("a cargo build folder");
     }
-    if std::env::var_os("APPIMAGE").is_some() || parts.iter().any(|p| p.starts_with(".mount_")) {
+    let in_appimage = parts.iter().any(|p| p.starts_with(".mount_"))
+        || std::env::var_os("APPDIR").filter(|d| !d.is_empty()).is_some_and(|d| exe.starts_with(Path::new(&d)));
+    if in_appimage {
         return Some("inside an AppImage, which is mounted in a temporary folder while it runs; use the tar.gz package for agents");
     }
+    // Compared as given and resolved: Windows' 8.3 short names, `\\?\` paths, links.
     let temp = std::env::temp_dir();
-    if exe.starts_with(&temp) || std::fs::canonicalize(&temp).is_ok_and(|t| exe.starts_with(t)) {
+    let (exe_real, temp_real) = (std::fs::canonicalize(exe).ok(), std::fs::canonicalize(&temp).ok());
+    let in_temp = exe.starts_with(&temp) || exe_real.as_ref().zip(temp_real.as_ref()).is_some_and(|(e, t)| e.starts_with(t));
+    if in_temp {
         return Some("the temporary folder");
     }
     None
@@ -162,7 +179,9 @@ fn unstable_place(exe: &Path) -> Option<&'static str> {
 /// Quote `arg` for the shell the user types into (PowerShell or cmd on Windows, a POSIX shell
 /// elsewhere).
 fn quote(arg: &str) -> String {
-    let plain = !arg.is_empty() && arg.chars().all(|c| c.is_ascii_alphanumeric() || "-_./:=@\\".contains(c));
+    // A backslash separates folders on Windows; a POSIX shell would take it as an escape.
+    let safe = if cfg!(windows) { "-_./:=@\\" } else { "-_./:=@" };
+    let plain = !arg.is_empty() && arg.chars().all(|c| c.is_ascii_alphanumeric() || safe.contains(c));
     if plain {
         arg.to_string()
     } else if cfg!(windows) {
@@ -188,9 +207,25 @@ fn print_commands(entry: Option<&Entry>, client: &str, add: &[&str], remove: &[&
 
 /// The Codex `config.toml` table for `e` (literal strings: no escaping of Windows paths).
 fn toml_entry(e: &Entry) -> String {
-    let lit = |s: &str| if s.contains('\'') { format!("{:?}", s) } else { format!("'{s}'") };
+    let lit = |s: &str| if s.contains('\'') || s.chars().any(char::is_control) { toml_basic(s) } else { format!("'{s}'") };
     let args: Vec<String> = e.args.iter().map(|a| lit(a)).collect();
     format!("[mcp_servers.{NAME}]\ncommand = {}\nargs = [{}]\n", lit(&e.command), args.join(", "))
+}
+
+/// `s` as a TOML basic string: double quotes, with `"`, `\` and control characters escaped as TOML
+/// defines them.
+fn toml_basic(s: &str) -> String {
+    let mut out = String::from("\"");
+    for c in s.chars() {
+        match c {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            c if c.is_control() => out.push_str(&format!("\\u{:04X}", u32::from(c))),
+            c => out.push(c),
+        }
+    }
+    out.push('"');
+    out
 }
 
 // ---- Claude Desktop ----------------------------------------------------------------------------
@@ -222,10 +257,12 @@ fn read_json(path: &Path) -> Result<Option<Value>, String> {
         Ok(_) => {}
     }
     let text = std::fs::read_to_string(path).map_err(|e| format!("can't read {}: {e}", path.display()))?;
+    // Some editors start the file with a byte-order mark, which JSON parsers refuse.
+    let text = text.strip_prefix('\u{feff}').unwrap_or(&text);
     if text.trim().is_empty() {
         return Ok(Some(json!({})));
     }
-    let v: Value = serde_json::from_str(&text)
+    let v: Value = serde_json::from_str(text)
         .map_err(|e| format!("{} is not valid JSON ({e}); fix or move it, then run setup again: nothing was changed", path.display()))?;
     if !v.is_object() {
         return Err(format!("{} does not hold a JSON object: nothing was changed", path.display()));
@@ -280,8 +317,7 @@ fn claude_desktop(entry: Option<&Entry>, config: Option<PathBuf>, write: bool) -
         return Ok(());
     };
     if existed {
-        let stamp = chrono::DateTime::<chrono::Utc>::from(std::time::SystemTime::now()).format("%Y%m%d-%H%M%SZ");
-        let backup = path.with_file_name(format!("claude_desktop_config.json.vansoncraft-backup-{stamp}"));
+        let backup = backup_name(&path);
         std::fs::copy(&path, &backup).map_err(|e| format!("can't back {} up: {e}; nothing was changed", path.display()))?;
         outln!("Backed up {} to {}", path.display(), backup.display());
     } else if let Some(dir) = path.parent() {
@@ -294,11 +330,30 @@ fn claude_desktop(entry: Option<&Entry>, config: Option<PathBuf>, write: bool) -
         Some(e) => outln!("Claude Desktop runs VansonCraft as `{NAME}`: {} {}", e.command, e.args.join(" ")),
         None => outln!("Removed `{NAME}` from {}.", path.display()),
     }
+    outln!("Every other server and setting is as it was (the file now lists its keys in alphabetical order).");
     if !others.is_empty() {
         outln!("Note: {} also run(s) vansoncraft-cli; remove them if they are older copies of this entry.", others.join(", "));
     }
     outln!("Quit Claude Desktop completely and start it again to load it.");
     Ok(())
+}
+
+/// A backup name beside `path` that no file has yet: `<name>.vansoncraft-backup-<UTC time>[-n]`.
+fn backup_name(path: &Path) -> PathBuf {
+    let since = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default();
+    let stamp = i64::try_from(since.as_secs())
+        .ok()
+        .and_then(|secs| chrono::DateTime::<chrono::Utc>::from_timestamp(secs, since.subsec_nanos()))
+        .map(|t| t.format("%Y%m%d-%H%M%S%.3fZ").to_string())
+        .unwrap_or_else(|| "unknown-time".into());
+    let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+    let mut candidate = path.with_file_name(format!("{name}.vansoncraft-backup-{stamp}"));
+    let mut n = 1;
+    while candidate.exists() && n < 1000 {
+        n += 1;
+        candidate = path.with_file_name(format!("{name}.vansoncraft-backup-{stamp}-{n}"));
+    }
+    candidate
 }
 
 /// Whether a client's server entry runs a `vansoncraft-cli`.
@@ -359,7 +414,9 @@ fn client_entries() -> Vec<(String, PathBuf, String, Result<Entry, String>)> {
         }
     }
     if let Some(path) = codex_config() {
-        match std::fs::read_to_string(&path) {
+        let too_large = std::fs::metadata(&path).is_ok_and(|m| m.len() > MAX_CONFIG_BYTES);
+        let read = if too_large { Err(std::io::Error::other("larger than 64 MB")) } else { std::fs::read_to_string(&path) };
+        match read {
             Ok(text) => match text.parse::<toml::Table>() {
                 Ok(t) => {
                     if let Some(e) = t.get("mcp_servers").and_then(|s| s.get(NAME)) {
@@ -374,6 +431,19 @@ fn client_entries() -> Vec<(String, PathBuf, String, Result<Entry, String>)> {
         }
     }
     found
+}
+
+/// The program a client entry's `command` starts: the path itself, or for a bare name the first
+/// match on `PATH` (with `.exe` on Windows), as the client looks it up.
+fn resolve(command: &str) -> Option<PathBuf> {
+    let p = Path::new(command);
+    if p.components().count() > 1 || p.is_absolute() {
+        return p.is_file().then(|| p.to_path_buf());
+    }
+    let names: Vec<String> =
+        if cfg!(windows) && p.extension().is_none() { vec![format!("{command}.exe"), command.to_string()] } else { vec![command.to_string()] };
+    let path = std::env::var_os("PATH")?;
+    std::env::split_paths(&path).flat_map(|dir| names.iter().map(move |n| dir.join(n))).find(|c| c.is_file())
 }
 
 /// One line of the report.
@@ -453,11 +523,13 @@ pub fn doctor(args: &[String]) -> Result<(), String> {
     for (client, file, place, e) in entries {
         match e {
             Err(why) => add("warn", format!("{client}: {} {place}: {why}", file.display())),
-            Ok(e) if !Path::new(&e.command).is_file() => {
+            Ok(e) if resolve(&e.command).is_none() => {
                 add("fail", format!("{client}: {} {place} runs {}, which does not exist: run setup again", file.display(), e.command))
             }
             Ok(e) => {
-                let same = exe.as_ref().is_some_and(|me| Path::new(&e.command) == me.as_path());
+                let program = resolve(&e.command).unwrap_or_else(|| PathBuf::from(&e.command));
+                let real = |p: &Path| std::fs::canonicalize(p).ok();
+                let same = exe.as_ref().is_some_and(|me| program == *me || real(&program).is_some_and(|p| Some(p) == real(me)));
                 let mode = if e.args.iter().any(|a| a == "--connect") { "desktop" } else { "headless" };
                 add(
                     if same { "ok" } else { "info" },
@@ -571,5 +643,38 @@ mod tests {
             assert_eq!(quote("it's"), "'it'\\''s'");
         }
         assert_eq!(quote("127.0.0.1:7979"), "127.0.0.1:7979");
+        if !cfg!(windows) {
+            assert_eq!(quote("a\\b"), "'a\\b'", "a POSIX shell would eat the backslash");
+        }
+        // A path with an apostrophe, a quote and a control character still makes valid TOML.
+        let odd = Entry { command: "/home/Thư's \"bin\"/x\u{1}/vansoncraft-cli".into(), args: vec!["mcp".into()] };
+        let parsed: toml::Table = toml_entry(&odd).parse().unwrap();
+        assert_eq!(parsed["mcp_servers"][NAME]["command"].as_str(), Some(odd.command.as_str()));
+    }
+
+    #[test]
+    fn a_cargo_output_folder_is_found_whatever_it_is_called() {
+        let dir = tempfile::tempdir().unwrap();
+        let profile = dir.path().join("agent-builds").join("release");
+        std::fs::create_dir_all(profile.join(".fingerprint")).unwrap();
+        assert_eq!(unstable_place(&profile.join("vansoncraft-cli")), Some("a cargo build folder"));
+        let tagged = dir.path().join("out");
+        std::fs::create_dir_all(tagged.join("x86_64-pc-windows-msvc").join("release")).unwrap();
+        std::fs::write(tagged.join("CACHEDIR.TAG"), "Signature: 8a477f597d28d172789f06886806bc55").unwrap();
+        assert_eq!(unstable_place(&tagged.join("x86_64-pc-windows-msvc").join("release").join("vansoncraft-cli.exe")), Some("a cargo build folder"));
+    }
+
+    #[test]
+    fn backups_never_overwrite_one_another_and_bare_names_are_looked_up_on_path() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("claude_desktop_config.json");
+        let first = backup_name(&file);
+        std::fs::write(&first, "1").unwrap();
+        let second = backup_name(&file);
+        assert_ne!(first, second);
+        assert!(first.file_name().unwrap().to_string_lossy().starts_with("claude_desktop_config.json.vansoncraft-backup-"));
+        assert!(resolve("no-such-program-anywhere-vansoncraft").is_none());
+        assert!(resolve(&file.display().to_string()).is_none(), "a path that isn't a file");
+        assert_eq!(resolve(&first.display().to_string()), Some(first.clone()));
     }
 }

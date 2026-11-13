@@ -1,7 +1,7 @@
 # Connecting Claude and Codex (Windows first)
 
-> **Status:** 2026-11-13. Written against the clients' official documentation (Sources, at the end)
-> and the release packages. The compatibility matrix says exactly which combinations were run.
+> **Status:** 2026-11-13. Written against the clients' official documentation (Sources, at the end).
+> The compatibility matrix says exactly which combinations were run, and when.
 
 ## What runs where
 
@@ -114,9 +114,12 @@ Before downloading anything, look for an installed copy and reuse it:
 - `draw_shape.rotation` turns clockwise; `transform.rotate` and `object.rotate` counter-clockwise.
 - Check `doc_inspect` → `backend` (`kind`, and `app` with the desktop app's name and version) and
   `uid` before editing, and pass `expect_document: uid` to `command_run`, `run_command`,
-  `invoke_menu` and `command_batch`: every command the call runs is checked against it as it runs, in
-  the app's own frame, so a tab the person switches to (or a document an earlier step opened) is
-  never changed; the step is refused with nothing run.
+  `invoke_menu` and `command_batch`: each command the call sends (each step of a batch) is checked
+  against it as it runs, in the app's own frame, so a tab the person switches to (or a document an
+  earlier step opened) is never changed; the step is refused with nothing run. A command that runs
+  others itself (`command.batch`, an action, a script) is checked once, when it starts.
+- If the app was restarted, the next call says so and sends nothing: document uids and object ids
+  from before name nothing in the new launch, so inspect again.
 - New objects never take the id of one an undo took away (headless, and the desktop app with
   `--control`): a stale id fails with "no such object" instead of changing a new object.
 - `command_batch {atomic: true}` rolls back when a step fails (`rolledBack: true`): the document
@@ -128,16 +131,22 @@ Before downloading anything, look for an installed copy and reuse it:
 
 ## Compatibility matrix
 
-See [the release notes and docs/mcp.md](../mcp.md) for the version each row was checked with.
+What was run, with which version. Scripted checks are **PROTOCOL VERIFIED**; a real client with a
+model is **CLIENT VERIFIED**.
 
 | Client | Version | OS | Backend | Transport | Result |
 |---|---|---|---|---|---|
-| MCP protocol tests (`cargo test -p vansoncraft-mcp`) | — | Linux | headless + fake desktop app | in-process / TCP | **PROTOCOL VERIFIED** |
-| Scripted MCP client on the release packages (`packaging/smoke/mcp_smoke.py`) | — | Windows Server 2025, Ubuntu 24.04 (GitHub runners) | headless and desktop | stdio, TCP 127.0.0.1 | **PROTOCOL VERIFIED** by the release workflow (see the release notes) |
-| Claude Code CLI (`claude -p`, a real model) | see docs/mcp.md | Linux | headless and desktop | stdio | **CLIENT VERIFIED** (see docs/mcp.md › Verified clients) |
+| MCP protocol tests (`cargo test -p vansoncraft-mcp`) | — | Linux | headless + fake desktop app | in-process / TCP | **PROTOCOL VERIFIED**, including the identity check, pinned documents and a restarted app |
+| Scripted MCP client (scenarios A–G, I of `acceptance-matrix.md`) | — | Linux | headless | stdio | **PROTOCOL VERIFIED** |
+| Desktop app + `vansoncraft-cli mcp --connect` (scenario H) | debug build | Linux, Xvfb, Mesa llvmpipe | desktop | TCP 127.0.0.1:7979 | **PROTOCOL VERIFIED**: `backend.kind` `remote`, a 75-step composition drawn in the window and seen in `ui_screenshot`; closing the app → "not reachable … nothing was sent"; a wrong port → exit 1 with the reason |
+| Desktop app, the person switching tabs between the agent's calls (2026-11-13) | debug build | Linux, Xvfb | desktop | TCP | **PROTOCOL VERIFIED**: `command_run` and an atomic `command_batch` with `expect_document` refused ("nothing was run"); nothing drawn in the other document; a program answering like VectorCraft on the port refused |
+| Claude Code CLI (`claude -p`, a real model) | 2.1.322 | Linux (container) | headless, `--automation-*-root` | stdio | **CLIENT VERIFIED**, two runs. Run 1 (a binary built before the method notes existed): 13 MCP calls, drawing saved and exported; it reported honestly that `vansoncraft://method/mass` was missing. Run 2 (the same Vietnamese vase brief): read `vansoncraft://method/procedure` and `…/mass`, 47 tool calls in 48 turns, measured with `study.values`, revised twice, saved `.vansoncraft` and SVG |
+| Claude Code CLI (`claude -p`, a real model), 2026-11-13 | 2.1.322 | Linux (container), Xvfb | desktop (`--connect 127.0.0.1:7979`) | stdio + TCP | **CLIENT VERIFIED**: 26 tool calls in 66 s; drew sky, sun, mountains and "Chào buổi sáng Việt Nam" in the window, previewed, changed only the sun with `expect_document`, saved `.vansoncraft` and exported SVG and PNG into `Bản vẽ thử/buổi sáng.*`, reopened the file (6 objects). `claude mcp add` as `setup claude-code` prints it: added, `claude mcp list` Connected, a second add refused as a duplicate |
 | Claude Desktop | — | Windows/macOS | — | — | **NOT VERIFIED** (no desktop client here); `setup claude-desktop --apply` is tested against the documented file format |
 | Codex CLI / IDE / desktop app | — | any | — | — | **NOT VERIFIED** (no OpenAI account here); `setup codex` prints the documented command and TOML |
-| Any client on Windows | — | Windows | — | — | **NOT VERIFIED** with a real client (the packages are checked on Windows by the scripted client) |
+| Any client on Windows | — | Windows | — | — | **NOT VERIFIED** |
+
+The release workflow's own checks of the packages, once it runs, are listed in each release's notes.
 
 ## Prompts to try (Vietnamese)
 
@@ -175,3 +184,10 @@ Read on 2026-11-12 and 2026-11-13:
   https://learn.chatgpt.com/docs/windows/windows-app (`%USERPROFILE%\.codex`). Codex passes MCP
   image results to the model unless the result also has `structuredContent` (openai/codex source);
   VansonCraft's results have none.
+
+## Revision history
+
+| Date | Change | Summary |
+|---|---|---|
+| 2026-11-13 | major | For installed packages: install once, `setup`, `doctor`, what an agent checks before downloading; desktop-mode guards; the matrix with the desktop Claude Code run. |
+| 2026-11-12 | major | First version. |
