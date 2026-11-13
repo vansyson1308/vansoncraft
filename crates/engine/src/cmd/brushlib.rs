@@ -1,9 +1,9 @@
 //! Brush libraries (Window → Brush Libraries, the Brushes panel's library button): read-only sets
 //! of brushes the library panel shows. A library is a document holding the brushes with the
 //! resources their art uses (patterns, symbols, swatches, graphic styles, images); saved, it is a
-//! native `.vectorcraft` file, which File › Open also opens. The built-in libraries are generated
-//! here ([`BUILTIN`]); User Defined ones are the `.vectorcraft` files in the user library folder
-//! ([`Libraries`]), and Other Library… loads the brushes of any document VectorCraft opens.
+//! native `.vansoncraft` file, which File › Open also opens. The built-in libraries are generated
+//! here ([`BUILTIN`]); User Defined ones are the `.vansoncraft` files in the user library folder
+//! ([`Libraries`]), and Other Library… loads the brushes of any document VansonCraft opens.
 //! `brush.addFromLibrary` copies brushes into the document; `brush.saveLibrary` writes the
 //! document's.
 
@@ -11,12 +11,12 @@ use std::collections::HashSet;
 use std::sync::{Arc, LazyLock};
 
 use serde_json::{Value, json};
-use vectorcraft_brush::{
+use vansoncraft_brush::{
     self as brush, ArtBrush, Bristle, BristleShape, Brush, BrushKind, Calligraphic, Colorization, PatternBrush, PatternFit, Scatter, Variation,
 };
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::{Appearance, AppearanceItem, Document, FillLayer, Node, NodeId, NodeKind, PatternDef, Symbol};
-use vectorcraft_geom::{Affine, FillRule, PathData, Point, Rect, SubPath, shapes};
+use vansoncraft_color::{Color, Paint};
+use vansoncraft_doc::{Appearance, AppearanceItem, Document, FillLayer, Node, NodeId, NodeKind, PatternDef, Symbol};
+use vansoncraft_geom::{Affine, FillRule, PathData, Point, Rect, SubPath, shapes};
 
 use super::brushsym::{apply_brush, brush_targets, roots, stroke_paint};
 use super::clipboard::Clipboard;
@@ -27,7 +27,7 @@ use super::swatchlib::{FileData, LibraryFile, LibraryInfo, concealed_library_id,
 use super::{CommandSpec, Result, Session, always, bad, bool_or, cmd, has_doc, str_param};
 
 /// The extension of saved brush libraries: native documents.
-pub const BRUSHES_EXT: &str = vectorcraft_format::EXTENSION;
+pub const BRUSHES_EXT: &str = vansoncraft_format::EXTENSION;
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
@@ -36,7 +36,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Brush Libraries",
             [],
             None,
-            "{} → {libraries: [{id, name, category: \"builtIn\"|\"user\" (User Defined: the .vectorcraft files in the user library folder, rescanned now)|\"loaded\" (brush.loadLibrary), count, path?}], userFolder} every brush library the library panel opens, in menu order",
+            "{} → {libraries: [{id, name, category: \"builtIn\"|\"user\" (User Defined: the .vansoncraft files in the user library folder, rescanned now)|\"loaded\" (brush.loadLibrary), count, path?}], userFolder} every brush library the library panel opens, in menu order",
             always,
             list
         ),
@@ -63,7 +63,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Save Brush Library…",
             ["Window", "Brushes"],
             None,
-            "{path?, names?: [brush names] (default: all), name?: library name (default: the document's), user?: false (save into the user library folder, listed under User Defined)} save the document's brushes, with the resources their art uses, as a brush library: a .vectorcraft document holding only them → {path, count, library?: id when saved to the user folder}; without path or user → {dataBase64: the file's bytes, count}",
+            "{path?, names?: [brush names] (default: all), name?: library name (default: the document's), user?: false (save into the user library folder, listed under User Defined)} save the document's brushes, with the resources their art uses, as a brush library: a .vansoncraft document holding only them → {path, count, library?: id when saved to the user folder}; without path or user → {dataBase64: the file's bytes, count}",
             has_doc,
             save
         ),
@@ -72,7 +72,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Other Library…",
             ["Window", "Brush Libraries"],
             None,
-            "{path? | data?: file text | dataBase64?, name?: file name (default: the path's)} load the brushes of any document VectorCraft opens (see document.formats; one without brushes of its own has the default ones), a saved brush library included, for the library panel (Window → Brush Libraries lists it until the app quits; a file of the user library folder, or a file with the same bytes as one there, opens as that User Defined library) → {library: id, name, count}",
+            "{path? | data?: file text | dataBase64?, name?: file name (default: the path's)} load the brushes of any document VansonCraft opens (see document.formats; one without brushes of its own has the default ones), a saved brush library included, for the library panel (Window → Brush Libraries lists it until the app quits; a file of the user library folder, or a file with the same bytes as one there, opens as that User Defined library) → {library: id, name, count}",
             always,
             load
         ),
@@ -135,9 +135,10 @@ impl BrushLibrary {
 }
 
 impl LibraryFile for BrushLibrary {
-    const EXTS: &'static [&'static str] = &[BRUSHES_EXT];
+    // Libraries saved before the project took the name VansonCraft are listed too.
+    const EXTS: &'static [&'static str] = &[BRUSHES_EXT, vansoncraft_format::FORMER_EXTENSION];
     fn read(bytes: &[u8], stem: &str) -> std::result::Result<Self, String> {
-        let doc = vectorcraft_format::load(bytes).map_err(|e| e.to_string())?;
+        let doc = vansoncraft_format::load(bytes).map_err(|e| e.to_string())?;
         BrushLibrary::from_document(&doc, &[], stem.to_string())
     }
     fn name(&self) -> &str {
@@ -755,7 +756,7 @@ fn save(s: &mut Session, p: &Value) -> Result<Value> {
         return Err(bad(C, "the document has no brushes to save"));
     }
     let mut out = json!({ "count": lib.len() });
-    let bytes = vectorcraft_format::save_file(&lib.doc);
+    let bytes = vansoncraft_format::save_file(&lib.doc);
     s.brush_libraries.write(p, &lib.name, BRUSHES_EXT, FileData::Binary(bytes), &mut out, C)?;
     Ok(out)
 }

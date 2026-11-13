@@ -1,6 +1,6 @@
 use serde_json::{Value, json};
-use vectorcraft_doc::Effect;
-use vectorcraft_doc::color::Color;
+use vansoncraft_doc::Effect;
+use vansoncraft_doc::color::Color;
 
 use super::*;
 use crate::{ColorMap, color_map};

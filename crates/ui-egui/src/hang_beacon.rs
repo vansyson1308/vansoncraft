@@ -17,7 +17,7 @@ use std::collections::VecDeque;
 use std::sync::atomic::{AtomicBool, AtomicU8, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Mutex, PoisonError};
 
-use vectorcraft_engine::cmd::clipboard::Flavour;
+use vansoncraft_engine::cmd::clipboard::Flavour;
 
 use crate::sysclip::{ClipboardRead, SystemClipboard};
 
@@ -316,7 +316,7 @@ pub fn had_input(raw: &egui::RawInput) -> bool {
 /// ([`hands_off`]), before egui passes them on; the main window's are read at the frame's end.
 pub fn watch_input(beacon: &'static Beacon, ctx: &egui::Context) {
     ctx.on_begin_pass(
-        "VectorCraft hang report input",
+        "VansonCraft hang report input",
         std::sync::Arc::new(move |ui| {
             if ui.ctx().input(|i| had_input(&i.raw)) {
                 beacon.input();
@@ -324,7 +324,7 @@ pub fn watch_input(beacon: &'static Beacon, ctx: &egui::Context) {
         }),
     );
     ctx.on_end_pass(
-        "VectorCraft hang report hand-off",
+        "VansonCraft hang report hand-off",
         std::sync::Arc::new(move |ui| {
             if ui.ctx().viewport_id() != egui::ViewportId::ROOT && ui.ctx().viewport(|vp| hands_off(&vp.commands)) {
                 beacon.hand_off(ui.ctx().viewport_id());
@@ -654,7 +654,7 @@ mod tests {
     fn ids_that_are_not_command_ids_are_kept_as_other() {
         let b = Beacon::new();
         b.command("file.open");
-        b.command("/home/someone/private plan.vectorcraft");
+        b.command("/home/someone/private plan.vansoncraft");
         b.command(&"y".repeat(MAX_COMMAND_ID));
         b.command(&"x".repeat(MAX_COMMAND_ID + 1));
         let commands = b.recent_commands().unwrap_or_default();

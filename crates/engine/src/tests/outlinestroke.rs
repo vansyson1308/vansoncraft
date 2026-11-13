@@ -5,9 +5,9 @@
 //! object's geometry effects and each stroke's own to the path before outlining that stroke.
 
 use serde_json::{Value, json};
-use vectorcraft_color::BlendMode;
-use vectorcraft_doc::{AppearanceItem, Node, NodeKind};
-use vectorcraft_geom::{FillRule, PathData, Rect};
+use vansoncraft_color::BlendMode;
+use vansoncraft_doc::{AppearanceItem, Node, NodeKind};
+use vansoncraft_geom::{FillRule, PathData, Rect};
 
 use crate::*;
 
@@ -40,7 +40,7 @@ pub(super) fn path_of(n: &Node) -> PathData {
 }
 
 fn area(n: &Node) -> f64 {
-    vectorcraft_pathops::area(&path_of(n), FillRule::NonZero)
+    vansoncraft_pathops::area(&path_of(n), FillRule::NonZero)
 }
 
 fn near(a: f64, b: f64, tol: f64) -> bool {
@@ -168,7 +168,7 @@ fn the_live_effect_outlines_the_stroke_it_sits_on() {
     let doc = &s.doc().unwrap().doc;
     let n = doc.node(id).unwrap();
     assert!(matches!(&n.appearance.items[1], AppearanceItem::Stroke(st) if st.width == 20.0 && st.effects.len() == 1), "{:?}", n.appearance.items);
-    let baked = vectorcraft_render::effects::bake_document(doc).unwrap();
+    let baked = vansoncraft_render::effects::bake_document(doc).unwrap();
     let parts = baked.node(id).unwrap().children().unwrap().to_vec();
     assert!(near(parts[1].geometric_bounds().unwrap().height(), 20.0, 0.01), "{:?}", parts[1].geometric_bounds());
     assert!(near(parts[2].geometric_bounds().unwrap().height(), 0.0, 1e-9), "the top stroke keeps the line");
@@ -176,19 +176,19 @@ fn the_live_effect_outlines_the_stroke_it_sits_on() {
     s.execute("effect.apply", &json!({"effect": "path.outlineStroke", "item": null})).unwrap();
     let doc = &s.doc().unwrap().doc;
     let n = doc.node(id).unwrap();
-    let ctx = vectorcraft_render::effects::GeomContext::of(n);
-    let g = vectorcraft_render::effects::apply_geometry_with(&n.appearance.effects, n.path_data().unwrap(), Rect::new(0.0, 50.0, 100.0, 50.0), &ctx);
+    let ctx = vansoncraft_render::effects::GeomContext::of(n);
+    let g = vansoncraft_render::effects::apply_geometry_with(&n.appearance.effects, n.path_data().unwrap(), Rect::new(0.0, 50.0, 100.0, 50.0), &ctx);
     assert!(close(g.bounds().unwrap(), Rect::new(0.0, 49.0, 100.0, 51.0), 0.01), "{:?}", g.bounds());
 }
 
-fn render(s: &Session) -> vectorcraft_render::Rendered {
+fn render(s: &Session) -> vansoncraft_render::Rendered {
     let doc = s.doc().unwrap().doc.clone();
-    let opts = vectorcraft_render::RenderOptions { background: Some([255, 255, 255, 255]), ..Default::default() };
-    vectorcraft_render::Renderer::new().render(&doc, 400, 300, vectorcraft_geom::Affine::IDENTITY, &opts)
+    let opts = vansoncraft_render::RenderOptions { background: Some([255, 255, 255, 255]), ..Default::default() };
+    vansoncraft_render::Renderer::new().render(&doc, 400, 300, vansoncraft_geom::Affine::IDENTITY, &opts)
 }
 
 /// Pixels whose color differs by more than `tol` in any channel.
-fn differing(a: &vectorcraft_render::Rendered, b: &vectorcraft_render::Rendered, tol: u8) -> usize {
+fn differing(a: &vansoncraft_render::Rendered, b: &vansoncraft_render::Rendered, tol: u8) -> usize {
     a.pixels
         .as_chunks::<4>()
         .0
@@ -200,7 +200,7 @@ fn differing(a: &vectorcraft_render::Rendered, b: &vectorcraft_render::Rendered,
 
 /// Does `n` or anything in it have a geometry effect, its own or a fill's or stroke's?
 fn has_geometry_effects(n: &Node) -> bool {
-    let geometry = |e: &vectorcraft_doc::Effect| vectorcraft_render::effects::is_geometry(&e.id);
+    let geometry = |e: &vansoncraft_doc::Effect| vansoncraft_render::effects::is_geometry(&e.id);
     let mut found = false;
     n.walk(&mut |m| found |= m.appearance.effects.iter().any(geometry) || m.appearance.items.iter().any(|i| i.effects().iter().any(geometry)));
     found
@@ -319,7 +319,7 @@ fn a_brush_draws_along_the_path_the_stroke_effects_make() {
     assert!(st.brush.is_some() && st.effects.len() == 1, "{st:?}");
     let before = render(&s);
     let n = outline(&mut s);
-    assert!(!vectorcraft_brush::has_brush(&n) && !has_geometry_effects(&n), "brush art: {n:?}");
+    assert!(!vansoncraft_brush::has_brush(&n) && !has_geometry_effects(&n), "brush art: {n:?}");
     assert_eq!(differing(&before, &render(&s), 64), 0, "the brush art draws as the brushed stroke did");
 }
 
@@ -516,7 +516,7 @@ fn brushed_strokes_outline_to_their_brush_art() {
     n.walk(&mut |m| fills += m.appearance.items.iter().filter(|i| i.is_fill()).count());
     assert!(fills > 0 && n.appearance.stroke().is_none(), "brush art: {n:?}");
     assert!(near(n.opacity as f64, 0.5, 1e-6), "the stroke opacity stays on the art");
-    assert!(!doc.layers[0].children().unwrap().iter().any(|c| vectorcraft_brush::has_brush(c)));
+    assert!(!doc.layers[0].children().unwrap().iter().any(|c| vansoncraft_brush::has_brush(c)));
 }
 
 #[test]

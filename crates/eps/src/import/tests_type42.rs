@@ -7,7 +7,7 @@
 //! fonts are written from scratch around the bundled Source Sans 3.
 
 use skrifa::{FontRef, MetadataProvider};
-use vectorcraft_doc::{NodeKind, TextObject};
+use vansoncraft_doc::{NodeKind, TextObject};
 
 use super::tests::{all, read};
 use super::tests_composite::{FONT, glyph, sfnts};
@@ -43,7 +43,7 @@ fn texts(r: &crate::Imported) -> Vec<TextObject> {
 
 /// Where each glyph of `t` starts along its baseline (text space).
 fn origins(t: &TextObject) -> Vec<f64> {
-    vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t).glyphs.iter().map(|g| g.origin.x).collect()
+    vansoncraft_text::layout(vansoncraft_text::FontDb::global(), t).glyphs.iter().map(|g| g.origin.x).collect()
 }
 
 #[test]

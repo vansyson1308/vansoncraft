@@ -11,9 +11,9 @@
 //! document ([`check_references`]). One fault refuses the whole result, naming the field.
 
 use serde_json::Value;
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::{Appearance, AppearanceItem, Document, LineCap, LineJoin};
-use vectorcraft_geom::{FillRule, PathData};
+use vansoncraft_color::{Color, Paint};
+use vansoncraft_doc::{Appearance, AppearanceItem, Document, LineCap, LineJoin};
+use vansoncraft_geom::{FillRule, PathData};
 
 use crate::objects::{MAX_COORD, MAX_ITEMS, MAX_OBJECTS, MAX_STROKE_WIDTH, MITER_LIMIT, OutStroke, check_point, out_err};
 use crate::{Error, Result};
@@ -422,7 +422,7 @@ pub fn items(item: &AppearanceItem, p: &Piece) -> Vec<AppearanceItem> {
     match item {
         AppearanceItem::Fill(f) => match &p.fills {
             None => vec![item.clone()],
-            Some(fills) => fills.iter().map(|paint| AppearanceItem::Fill(vectorcraft_doc::FillLayer { paint: paint.clone(), ..f.clone() })).collect(),
+            Some(fills) => fills.iter().map(|paint| AppearanceItem::Fill(vansoncraft_doc::FillLayer { paint: paint.clone(), ..f.clone() })).collect(),
         },
         AppearanceItem::Stroke(s) => match &p.strokes {
             None => vec![item.clone()],

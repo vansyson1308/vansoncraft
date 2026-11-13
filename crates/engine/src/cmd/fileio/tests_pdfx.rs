@@ -20,7 +20,7 @@ fn session() -> Session {
     image::RgbaImage::from_fn(8, 8, |x, _| image::Rgba([0, 120, 255, if x < 4 { 0 } else { 255 }]))
         .write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)
         .unwrap();
-    s.execute("file.place", &json!({"name": "dots.png", "dataBase64": vectorcraft_format::base64_encode(&png), "at": [150, 50]})).unwrap();
+    s.execute("file.place", &json!({"name": "dots.png", "dataBase64": vansoncraft_format::base64_encode(&png), "at": [150, 50]})).unwrap();
     s
 }
 
@@ -28,7 +28,7 @@ fn session() -> Session {
 fn pdf(s: &mut Session, mut p: Value) -> (String, Vec<String>) {
     p["compression"] = json!({"compressText": false});
     let v = s.execute("document.exportPdf", &p).unwrap();
-    let bytes = vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap();
+    let bytes = vansoncraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap();
     let warnings = v["warnings"].as_array().unwrap().iter().map(|w| w.as_str().unwrap().to_string()).collect();
     (String::from_utf8_lossy(&bytes).into_owned(), warnings)
 }
@@ -78,7 +78,7 @@ fn choosing_a_pdfx_standard_sets_its_version_and_turns_off_what_it_forbids() {
         json!({"standard": "pdfX3", "preserveEditing": true}),
         json!({"standard": "pdfX4", "security": {"openPassword": "x"}}),
         json!({"standard": "pdfX1a", "security": {"permissionsPassword": "x"}}),
-        json!({"standard": "pdfX1a", "output": {"outputIntent": vectorcraft_color::cms::SRGB}}),
+        json!({"standard": "pdfX1a", "output": {"outputIntent": vansoncraft_color::cms::SRGB}}),
         json!({"standard": "pdfX4", "output": {"outputIntent": "No Such Press"}}),
     ] {
         let e = s.execute("document.exportPdf", &p).unwrap_err();
@@ -140,9 +140,9 @@ fn a_pdfx_file_that_leaves_out_the_document_bleed_warns() {
 }
 
 /// The ink amounts (0..1) `doc` shows at `p` in its images (the topmost image there).
-fn image_inks_at(doc: &vectorcraft_doc::Document, p: vectorcraft_geom::Point) -> Option<[f32; 4]> {
-    fn visit(n: &vectorcraft_doc::Node, out: &mut Vec<vectorcraft_doc::ImageObject>) {
-        if let vectorcraft_doc::NodeKind::Image(im) = &n.kind {
+fn image_inks_at(doc: &vansoncraft_doc::Document, p: vansoncraft_geom::Point) -> Option<[f32; 4]> {
+    fn visit(n: &vansoncraft_doc::Node, out: &mut Vec<vansoncraft_doc::ImageObject>) {
+        if let vansoncraft_doc::NodeKind::Image(im) = &n.kind {
             out.push((**im).clone());
         }
         for c in n.children().into_iter().flatten() {
@@ -178,12 +178,12 @@ fn pdfx_1a_flattening_keeps_the_inks_behind_an_image_in_a_cmyk_document() {
     image::RgbaImage::from_fn(40, 40, |x, _| image::Rgba([0, 120, 255, if x < 20 { 0 } else { 255 }]))
         .write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)
         .unwrap();
-    s.execute("file.place", &json!({"name": "logos.png", "dataBase64": vectorcraft_format::base64_encode(&png), "at": [100, 50]})).unwrap();
+    s.execute("file.place", &json!({"name": "logos.png", "dataBase64": vansoncraft_format::base64_encode(&png), "at": [100, 50]})).unwrap();
     let v = s.execute("document.exportPdf", &json!({"standard": "pdfX1a"})).unwrap();
-    let bytes = vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap();
-    let back = vectorcraft_pdf::import(&bytes).unwrap();
+    let bytes = vansoncraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap();
+    let back = vansoncraft_pdf::import(&bytes).unwrap();
     // Behind the image's see-through half: the panel's own inks, K included.
-    let ink = image_inks_at(&back, vectorcraft_geom::Point::new(88.0, 50.0)).expect("a CMYK image behind the see-through pixels");
+    let ink = image_inks_at(&back, vansoncraft_geom::Point::new(88.0, 50.0)).expect("a CMYK image behind the see-through pixels");
     assert!(ink.iter().zip(teal).all(|(a, b)| (a - b).abs() <= 1.5 / 255.0), "{ink:?} is not {teal:?}");
 }
 
@@ -234,7 +234,7 @@ fn cropped_by(mode: &str, width: f64, art: Art, layer: bool) -> (Session, u64) {
             .write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)
             .unwrap();
             let placed =
-                run(&mut s, "file.place", json!({"name": "photo.png", "dataBase64": vectorcraft_format::base64_encode(&png), "rect": FRAME}));
+                run(&mut s, "file.place", json!({"name": "photo.png", "dataBase64": vansoncraft_format::base64_encode(&png), "rect": FRAME}));
             placed["ids"][0].clone()
         }
         Art::Gradient | Art::Shadow => {
@@ -263,26 +263,26 @@ fn cropped_by(mode: &str, width: f64, art: Art, layer: bool) -> (Session, u64) {
 }
 
 /// `document.exportPdf` with `p`, read back.
-fn read_back(s: &mut Session, p: &Value) -> vectorcraft_doc::Document {
+fn read_back(s: &mut Session, p: &Value) -> vansoncraft_doc::Document {
     let v = run(s, "document.exportPdf", p.clone());
-    vectorcraft_pdf::import(&vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap()).unwrap()
+    vansoncraft_pdf::import(&vansoncraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap()).unwrap()
 }
 
 /// `doc`'s artboards drawn on white at 72 ppi.
-pub(super) fn drawn(doc: &vectorcraft_doc::Document) -> vectorcraft_render::Rendered {
+pub(super) fn drawn(doc: &vansoncraft_doc::Document) -> vansoncraft_render::Rendered {
     let pages = doc.artboards.iter().map(|a| a.rect).reduce(|a, b| a.union(b)).unwrap();
-    vectorcraft_render::Renderer::new().render_region(doc, pages, 1.0, true)
+    vansoncraft_render::Renderer::new().render_region(doc, pages, 1.0, true)
 }
 
 /// How many pixels show art in `reference` and are blank in `variant`.
-pub(super) fn lost(reference: &vectorcraft_render::Rendered, variant: &vectorcraft_render::Rendered) -> usize {
+pub(super) fn lost(reference: &vansoncraft_render::Rendered, variant: &vansoncraft_render::Rendered) -> usize {
     assert_eq!((reference.width, reference.height), (variant.width, variant.height));
     let (reference, variant) = (reference.pixels.as_chunks::<4>().0, variant.pixels.as_chunks::<4>().0);
     reference.iter().zip(variant).filter(|(r, v)| r[..3].iter().any(|c| *c < 200) && v[..3].iter().all(|c| *c >= 250)).count()
 }
 
 /// How many pixels of `a` and `b` differ by more than 24 in a channel.
-fn differ(a: &vectorcraft_render::Rendered, b: &vectorcraft_render::Rendered) -> usize {
+fn differ(a: &vansoncraft_render::Rendered, b: &vansoncraft_render::Rendered) -> usize {
     assert_eq!((a.width, a.height), (b.width, b.height));
     let (a, b) = (a.pixels.as_chunks::<4>().0, b.pixels.as_chunks::<4>().0);
     a.iter().zip(b).filter(|(p, q)| p[..3].iter().zip(&q[..3]).any(|(x, y)| x.abs_diff(*y) > 24)).count()
@@ -290,11 +290,11 @@ fn differ(a: &vectorcraft_render::Rendered, b: &vectorcraft_render::Rendered) ->
 
 /// The width and height of what each of `doc`'s images shows: its frame inside the clipping
 /// paths around it.
-pub(super) fn shown_image_sizes(doc: &vectorcraft_doc::Document) -> Vec<(f64, f64)> {
-    use vectorcraft_geom::Rect;
-    fn visit(n: &vectorcraft_doc::Node, clip: Option<Rect>, out: &mut Vec<(f64, f64)>) {
+pub(super) fn shown_image_sizes(doc: &vansoncraft_doc::Document) -> Vec<(f64, f64)> {
+    use vansoncraft_geom::Rect;
+    fn visit(n: &vansoncraft_doc::Node, clip: Option<Rect>, out: &mut Vec<(f64, f64)>) {
         let within = |r: Rect| clip.map_or(r, |c| c.intersect(r));
-        if let vectorcraft_doc::NodeKind::Image(im) = &n.kind {
+        if let vansoncraft_doc::NodeKind::Image(im) = &n.kind {
             let frame = im.xf.transform_rect_bbox(Rect::new(0.0, 0.0, im.width as f64, im.height as f64));
             let shown = within(frame);
             out.push((shown.width(), shown.height()));
@@ -371,11 +371,11 @@ fn flattening_cropped_art_for_pdfx_keeps_the_art_under_its_hidden_part() {
             run(s, "transparency.set", json!({"opacity": 80}));
             let doc = s.doc_mut().unwrap();
             let mut d = (*doc.doc).clone();
-            let clip = d.node(vectorcraft_doc::NodeId(group)).unwrap().children().unwrap()[0].id;
-            let mut ring = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(50.0, 50.0, 130.0, 110.0));
-            ring.subpaths.extend(vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(70.0, 65.0, 110.0, 95.0)).subpaths);
-            if let vectorcraft_doc::NodeKind::Path { path, rule, .. } = &mut d.node_mut(clip).unwrap().kind {
-                (*path, *rule) = (ring, vectorcraft_geom::FillRule::EvenOdd);
+            let clip = d.node(vansoncraft_doc::NodeId(group)).unwrap().children().unwrap()[0].id;
+            let mut ring = vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(50.0, 50.0, 130.0, 110.0));
+            ring.subpaths.extend(vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(70.0, 65.0, 110.0, 95.0)).subpaths);
+            if let vansoncraft_doc::NodeKind::Path { path, rule, .. } = &mut d.node_mut(clip).unwrap().kind {
+                (*path, *rule) = (ring, vansoncraft_geom::FillRule::EvenOdd);
             }
             doc.doc = d.into();
         }),
@@ -406,7 +406,7 @@ fn flattening_cropped_art_for_pdfx_keeps_the_art_under_its_hidden_part_with_each
     }
     // A cropped rectangle with a solid fill, rasterized whole.
     let (mut s, group) = cropped("cmyk", 400.0, Art::Gradient);
-    let art = s.doc().unwrap().doc.node(vectorcraft_doc::NodeId(group)).unwrap().children().unwrap()[1].id.0;
+    let art = s.doc().unwrap().doc.node(vansoncraft_doc::NodeId(group)).unwrap().children().unwrap()[1].id.0;
     run(&mut s, "paint.setFill", json!({"ids": [art], "color": "#c04020"}));
     run(&mut s, "transparency.set", json!({"ids": [group], "opacity": 80}));
     check_flat_files(&mut s, &json!({"flattener": {"balance": 0}}), "solid fill, balance 0", &mut wrong);
@@ -490,7 +490,7 @@ fn flat_pdf_files_of_art_that_no_clip_group_hides_are_unchanged() {
         .write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)
         .unwrap();
     let photo =
-        run(&mut fitted, "file.place", json!({"name": "photo.png", "dataBase64": vectorcraft_format::base64_encode(&png), "rect": FRAME}))["ids"][0]
+        run(&mut fitted, "file.place", json!({"name": "photo.png", "dataBase64": vansoncraft_format::base64_encode(&png), "rect": FRAME}))["ids"][0]
             .clone();
     let [x, y, w, h] = FRAME;
     let clip = run(&mut fitted, "shape.rectangle", json!({"x": x, "y": y, "width": w, "height": h}))["id"].clone();
@@ -558,7 +558,7 @@ fn flattening_for_pdfx_keeps_the_art_of_a_clipping_layer_over_its_clipping_path_
     let mut wrong = vec![];
     for mode in ["cmyk", "rgb"] {
         let (mut s, layer) = clipping_layer_over_a_rectangle(mode);
-        let clip = s.doc().unwrap().doc.node(vectorcraft_doc::NodeId(layer)).unwrap().children().unwrap()[0].id.0;
+        let clip = s.doc().unwrap().doc.node(vansoncraft_doc::NodeId(layer)).unwrap().children().unwrap()[0].id.0;
         run(&mut s, "paint.setFill", json!({"ids": [clip], "color": "#ffdd00"}));
         let reference = drawn(&read_back(&mut s, &json!({})));
         for flat in FLAT_FILES {
@@ -593,7 +593,7 @@ fn flattening_for_pdfx_removes_transparent_art_that_a_clipping_layer_hides_entir
     for flat in FLAT_FILES {
         let p: Value = serde_json::from_str(flat).unwrap();
         let back = match s.execute("document.exportPdf", &p) {
-            Ok(v) => vectorcraft_pdf::import(&vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap()).unwrap(),
+            Ok(v) => vansoncraft_pdf::import(&vansoncraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap()).unwrap(),
             Err(e) => panic!("{flat}: {e}"),
         };
         assert_eq!(lost(&drawn(&back), &reference), 0, "{flat}: the hidden art prints");
@@ -669,7 +669,7 @@ fn flattening_keeps_the_group_in_the_clipping_layer_when_the_layer_below_differs
         }
         art.push(blue.clone());
         // The page as it prints.
-        let printed = |d: &vectorcraft_doc::Document| {
+        let printed = |d: &vansoncraft_doc::Document| {
             let mut d = d.clone();
             if case.starts_with("the layer below") {
                 let mut layer = (*d.layers[0]).clone();
@@ -682,12 +682,12 @@ fn flattening_keeps_the_group_in_the_clipping_layer_when_the_layer_below_differs
         run(&mut s, "select.set", json!({"ids": art}));
         run(&mut s, "object.flattenTransparency", json!({"preserveAlpha": keeping_alpha}));
         let d = &s.doc().unwrap().doc;
-        let layer_of = |id: &Value| id.as_u64().and_then(|id| d.ancestry(vectorcraft_doc::NodeId(id))).map(|a| a[0].0);
+        let layer_of = |id: &Value| id.as_u64().and_then(|id| d.ancestry(vansoncraft_doc::NodeId(id))).map(|a| a[0].0);
         if layer_of(&orange) != Some(below) {
             wrong.push(format!("{case}: the art below is in layer {:?}", layer_of(&orange)));
         }
-        let upper_art = d.node(vectorcraft_doc::NodeId(upper)).and_then(|l| l.children()).map_or(0, Vec::len);
-        if d.node(vectorcraft_doc::NodeId(blue.as_u64().unwrap())).is_some() || upper_art != 2 {
+        let upper_art = d.node(vansoncraft_doc::NodeId(upper)).and_then(|l| l.children()).map_or(0, Vec::len);
+        if d.node(vansoncraft_doc::NodeId(blue.as_u64().unwrap())).is_some() || upper_art != 2 {
             wrong.push(format!("{case}: the clipping layer holds {upper_art} objects"));
         }
         let after = printed(d);

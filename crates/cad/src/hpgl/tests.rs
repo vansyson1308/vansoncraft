@@ -3,9 +3,9 @@
 //! skipped with a warning, which files are taken to be HP-GL, and hostile files.
 
 use kurbo::{BezPath, PathEl, Point, Shape as _};
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::{AppearanceItem, Document, LineCap, LineJoin, Node, NodeKind, StrokeLayer};
-use vectorcraft_geom::FillRule;
+use vansoncraft_color::{Color, Paint};
+use vansoncraft_doc::{AppearanceItem, Document, LineCap, LineJoin, Node, NodeKind, StrokeLayer};
+use vansoncraft_geom::FillRule;
 
 use super::plot::{FAR_AWAY, HATCHES, LABELS, PAGES, RASTER, SYMBOLS, TOO_MANY_POINTS, WINDOW};
 use super::*;
@@ -375,7 +375,7 @@ fn labels_comments_and_unknown_instructions_are_skipped() {
     let i = plot("IN;SP1;LBPD9999,9999\x03DT*,1;LBPU0,0;PD5000,5000*CO\"PD8000,8000\";PD1016,0;PU;ZZ1,2;QQ;");
     let shapes = leaves(&i.document);
     assert_eq!(shapes.len(), 1);
-    assert_eq!(i.warnings, [LABELS.to_string(), "2 instructions of kinds VectorCraft doesn't read were skipped".to_string()]);
+    assert_eq!(i.warnings, [LABELS.to_string(), "2 instructions of kinds VansonCraft doesn't read were skipped".to_string()]);
     // Symbol mode's symbols aren't drawn, with a warning; its lines are.
     let i = plot("IN;SP1;SM*;PD100,0;SM;");
     assert_eq!((i.warnings.clone(), leaves(&i.document).len()), (vec![SYMBOLS.to_string()], 1));

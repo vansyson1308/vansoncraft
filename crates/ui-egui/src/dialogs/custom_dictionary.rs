@@ -10,11 +10,11 @@
 //! Entry field) and `selected` (the word picked, or null).
 
 use serde_json::{Value, json};
-use vectorcraft_engine::cmd::spelling::custom_word;
+use vansoncraft_engine::cmd::spelling::custom_word;
 
 use super::{DialogSpec, form};
 use crate::state::Dialog;
-use crate::{VectorcraftApp, widgets};
+use crate::{VansoncraftApp, widgets};
 
 /// The dialog kind of Edit Custom Dictionary.
 pub const KIND: &str = "editCustomDictionary";
@@ -29,7 +29,7 @@ pub(super) const SPEC: DialogSpec =
     DialogSpec { heading: |_| tl!("Edit Custom Dictionary").into(), body, confirm, ok: Some("Done"), min_width: 420.0, ..DialogSpec::FORM };
 
 /// Open Edit Custom Dictionary on the custom dictionary's words.
-pub fn open(app: &mut VectorcraftApp) -> Result<Value, String> {
+pub fn open(app: &mut VansoncraftApp) -> Result<Value, String> {
     let words = app.run(COMMAND, json!({})).map_err(|e| e.to_string())?.get("words").cloned().unwrap_or_else(|| json!([]));
     app.ui.dialog = Some(Dialog::new(KIND, json!({ "orig": words, "words": words, "entry": "", "selected": null })));
     Ok(Value::Null)
@@ -88,7 +88,7 @@ fn change(d: &mut Dialog) {
     set_words(d, words, Some(&to));
 }
 
-fn body(_: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
+fn body(_: &mut VansoncraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
     let words = list(d, "words");
     let current = selected(d, &words);
     let (entry, picked) = actions(d);
@@ -142,7 +142,7 @@ fn body(_: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
 /// Done: deletes the words no longer in the list and adds the new ones in one
 /// `text.spelling.editDictionary`, saved once. When it can't be saved, none of it is kept: the
 /// dialog stays open with the error, its list as edited, and Cancel leaves the dictionary as it was.
-fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
+fn confirm(app: &mut VansoncraftApp, d: &Dialog) -> Result<Value, String> {
     let (orig, words) = (list(d, "orig"), list(d, "words"));
     let remove: Vec<&String> = orig.iter().filter(|w| !words.contains(w)).collect();
     let add: Vec<&String> = words.iter().filter(|w| !orig.contains(w)).collect();
@@ -156,7 +156,7 @@ mod tests {
     use egui::{Event, PointerButton, Pos2, Rect, vec2};
     use serde_json::{Value, json};
 
-    use crate::VectorcraftApp;
+    use crate::VansoncraftApp;
 
     // The custom dictionary is the whole process's: each test here uses words no other test does.
     const A: &str = "zqvdicta";
@@ -165,31 +165,31 @@ mod tests {
     const X: &str = "zqvdictx";
     const Y: &str = "zqvdicty";
 
-    fn app() -> VectorcraftApp {
-        VectorcraftApp::new(vectorcraft_engine::Session::new(), crate::Services::default())
+    fn app() -> VansoncraftApp {
+        VansoncraftApp::new(vansoncraft_engine::Session::new(), crate::Services::default())
     }
 
-    fn has(app: &mut VectorcraftApp, w: &str) -> bool {
+    fn has(app: &mut VansoncraftApp, w: &str) -> bool {
         app.run("text.spelling.dictionary", json!({})).unwrap()["words"].as_array().unwrap().contains(&json!(w))
     }
 
-    fn forget(app: &mut VectorcraftApp, words: &[&str]) {
+    fn forget(app: &mut VansoncraftApp, words: &[&str]) {
         for w in words {
             let _ = app.run("text.spelling.removeWord", json!({ "word": w }));
         }
     }
 
-    fn set(app: &mut VectorcraftApp, k: &str, v: Value) {
+    fn set(app: &mut VansoncraftApp, k: &str, v: Value) {
         app.ui.dialog.as_mut().unwrap().fields.insert(k.into(), v);
     }
 
     /// The dialog's list, of `mine` (other tests may have their words in the dictionary meanwhile).
-    fn words(app: &VectorcraftApp, mine: &[&str]) -> Vec<String> {
+    fn words(app: &VansoncraftApp, mine: &[&str]) -> Vec<String> {
         super::list(app.ui.dialog.as_ref().unwrap(), "words").into_iter().filter(|w| mine.contains(&w.as_str())).collect()
     }
 
     /// One frame of the dialog on an 800 × 600 window → the text painted, with its rect.
-    fn frame(app: &mut VectorcraftApp, ctx: &egui::Context, events: Vec<Event>) -> Vec<(String, Rect)> {
+    fn frame(app: &mut VansoncraftApp, ctx: &egui::Context, events: Vec<Event>) -> Vec<(String, Rect)> {
         // A window takes a sizing frame and fades in: each frame is a quarter second on.
         let time = ctx.input(|i| i.time) + 0.25;
         let screen_rect = Some(Rect::from_min_size(Pos2::ZERO, vec2(800.0, 600.0)));
@@ -214,7 +214,7 @@ mod tests {
         ctx
     }
 
-    fn click(app: &mut VectorcraftApp, ctx: &egui::Context, label: &str) -> Vec<(String, Rect)> {
+    fn click(app: &mut VansoncraftApp, ctx: &egui::Context, label: &str) -> Vec<(String, Rect)> {
         frame(app, ctx, vec![]);
         let texts = frame(app, ctx, vec![]);
         let at = texts.iter().find(|(t, _)| t == label).map(|(_, r)| r.center()).unwrap_or_else(|| panic!("no `{label}` in {texts:?}"));
@@ -289,7 +289,7 @@ mod tests {
         let mut app = app();
         forget(&mut app, &[P, Q]);
         app.run("text.spelling.addWord", json!({ "word": P })).unwrap();
-        let folder = vectorcraft_testkit::temp_dir("custom-dictionary-done").join("Custom Dictionary.txt");
+        let folder = vansoncraft_testkit::temp_dir("custom-dictionary-done").join("Custom Dictionary.txt");
         std::fs::create_dir_all(&folder).unwrap();
         let mut failing = self::app();
         failing.session.attach_custom_dictionary(folder);

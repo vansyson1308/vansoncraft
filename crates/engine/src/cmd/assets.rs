@@ -1,12 +1,12 @@
 //! Window → Asset Export and Object → Collect for Export: art collected as assets
-//! ([`vectorcraft_doc::ExportAsset`]), exported each on its own, cropped to its art, at the export
+//! ([`vansoncraft_doc::ExportAsset`]), exported each on its own, cropped to its art, at the export
 //! settings Export for Screens shares (`document.exportSettings`). File → Export Selection collects
 //! the selection this way and opens Export for Screens on its Assets tab (a UI command).
 
 use std::collections::HashSet;
 
 use serde_json::{Map, Value, json};
-use vectorcraft_doc::{ExportAsset, NodeId};
+use vansoncraft_doc::{ExportAsset, NodeId};
 
 use super::edit::{roots_of, selected_roots};
 use super::fileio::{
@@ -112,7 +112,7 @@ fn clean_name(name: &str) -> Option<String> {
 
 /// Ids of art under `id`: the id itself when it is not a layer, else every non-layer under it
 /// (sublayers unfolded). Layers alone have nothing to collect.
-pub(crate) fn art_under(doc: &vectorcraft_doc::Document, id: NodeId, out: &mut Vec<NodeId>) {
+pub(crate) fn art_under(doc: &vansoncraft_doc::Document, id: NodeId, out: &mut Vec<NodeId>) {
     let Some(n) = doc.node(id) else { return };
     if n.is_layer() {
         if let Some(kids) = n.children() {
@@ -151,7 +151,7 @@ fn add(s: &mut Session, p: &Value) -> Result<Value> {
     }
     // A 3D asset of the same art is another asset.
     let existing =
-        |d: &vectorcraft_doc::Document, nodes: &[NodeId]| d.assets.iter().find(|a| a.nodes == nodes && a.format_3d.is_none()).map(|a| a.id);
+        |d: &vansoncraft_doc::Document, nodes: &[NodeId]| d.assets.iter().find(|a| a.nodes == nodes && a.format_3d.is_none()).map(|a| a.id);
     let d = &s.doc()?.doc;
     // Nothing new: no undo step.
     if sets.iter().all(|set| existing(d, set).is_some()) {
@@ -191,7 +191,7 @@ fn format_3d_param(p: &Value, cmd: &str, default: Option<&str>) -> Result<String
 }
 
 /// The asset ids of param `key` of command `cmd`, each a 3D asset of `d`.
-fn three_d_asset_ids(d: &vectorcraft_doc::Document, p: &Value, key: &str, cmd: &str) -> Result<Vec<u64>> {
+fn three_d_asset_ids(d: &vansoncraft_doc::Document, p: &Value, key: &str, cmd: &str) -> Result<Vec<u64>> {
     let ids = asset_ids(p, key, cmd)?;
     for id in &ids {
         match d.asset(*id) {
@@ -215,12 +215,12 @@ fn add_3d(s: &mut Session, p: &Value) -> Result<Value> {
     ids.dedup();
     for id in &ids {
         let n = d.node(*id).ok_or_else(|| bad(C, format!("no such object {0}", id.0)))?;
-        if let Err(e) = vectorcraft_render::effects::three_d_meshes_in(Some(d), n) {
+        if let Err(e) = vansoncraft_render::effects::three_d_meshes_in(Some(d), n) {
             let what = n.name.clone().unwrap_or_else(|| format!("#{}", id.0));
             return Err(bad(C, format!("{what} can't be exported in 3D: {e}")));
         }
     }
-    let existing = |d: &vectorcraft_doc::Document, id: NodeId| d.assets.iter().find(|a| a.nodes == [id] && a.format_3d.is_some()).map(|a| a.id);
+    let existing = |d: &vansoncraft_doc::Document, id: NodeId| d.assets.iter().find(|a| a.nodes == [id] && a.format_3d.is_some()).map(|a| a.id);
     // Nothing new: no undo step.
     if ids.iter().all(|id| existing(d, *id).is_some()) {
         return Ok(json!({ "assets": ids.iter().filter_map(|id| existing(d, *id)).collect::<Vec<_>>(), "added": 0 }));
@@ -284,7 +284,7 @@ fn export_3d(s: &mut Session, p: &Value) -> Result<Value> {
         // The asset's objects share one budget of triangles.
         let what = &a.name;
         let parts =
-            vectorcraft_render::effects::three_d_meshes_of_in(Some(d), nodes).map_err(|e| bad(C, format!("{what} can't be exported in 3D: {e}")))?;
+            vansoncraft_render::effects::three_d_meshes_of_in(Some(d), nodes).map_err(|e| bad(C, format!("{what} can't be exported in 3D: {e}")))?;
         let base = Some(safe_file_name(&a.name)).filter(|b| !b.is_empty()).unwrap_or_else(|| "Asset".into());
         let mut stem = base.clone();
         let mut k = 1;
@@ -312,7 +312,7 @@ fn export_3d(s: &mut Session, p: &Value) -> Result<Value> {
                 write_file(&path, &archive)?;
                 Ok(json!({ "path": path, "bytes": archive.len(), "files": names }))
             }
-            None => Ok(json!({ "name": name, "dataBase64": vectorcraft_format::base64_encode(&archive), "bytes": archive.len(), "files": names })),
+            None => Ok(json!({ "name": name, "dataBase64": vansoncraft_format::base64_encode(&archive), "bytes": archive.len(), "files": names })),
         };
     }
     match folder {
@@ -328,7 +328,7 @@ fn export_3d(s: &mut Session, p: &Value) -> Result<Value> {
         }
         None => {
             let files: Vec<Value> =
-                files.iter().map(|(name, bytes)| json!({ "name": name, "dataBase64": vectorcraft_format::base64_encode(bytes) })).collect();
+                files.iter().map(|(name, bytes)| json!({ "name": name, "dataBase64": vansoncraft_format::base64_encode(bytes) })).collect();
             Ok(json!({ "files": files }))
         }
     }

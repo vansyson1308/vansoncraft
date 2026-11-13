@@ -2,9 +2,9 @@
 //! writer refusing transparency (the app flattens it first) and 40-bit RC4 encryption.
 
 use serde_json::json;
-use vectorcraft_color::{BlendMode, Color, Paint};
-use vectorcraft_doc::{Appearance, Document, Node};
-use vectorcraft_geom::{Rect, shapes};
+use vansoncraft_color::{BlendMode, Color, Paint};
+use vansoncraft_doc::{Appearance, Document, Node};
+use vansoncraft_geom::{Rect, shapes};
 
 use crate::*;
 

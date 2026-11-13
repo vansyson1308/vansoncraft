@@ -1,13 +1,13 @@
-//! The native `.vectorcraft` format.
+//! The native `.vansoncraft` format.
 //!
-//! A `.vectorcraft` file is UTF-8 JSON, gzip-compressed when saved with Use Compression (told apart
+//! A `.vansoncraft` file is UTF-8 JSON, gzip-compressed when saved with Use Compression (told apart
 //! by its magic bytes on open, whatever the version):
 //! ```json
-//! { "format": "vectorcraft", "version": 3, "generator": "VectorCraft 0.1.0",
+//! { "format": "vectorcraft", "version": 3, "generator": "VansonCraft 0.1.0",
 //!   "preview": { "mime": "image/png", "data": "<base64>" },
 //!   "profiles": { "<profile name>": { "mime": "application/vnd.iccprofile", "data": "<base64>" } },
 //!   "pdf": { "mime": "application/pdf", "data": "<base64>" },
-//!   "document": { …vectorcraft_doc::Document… },
+//!   "document": { …vansoncraft_doc::Document… },
 //!   "images": { "<key>": { "mime": "image/png", "data": "<base64>" } } }
 //! ```
 //! It is lossless for everything in the document model; foreign data lives in `document.unknown`
@@ -30,12 +30,13 @@
 //! format name `drawcraft`, which every version reads). Readers reject files whose `version` is
 //! newer than they support.
 //!
-//! The document has a version of its own (`document.version`, [`vectorcraft_doc::FORMAT_VERSION`]),
+//! The document has a version of its own (`document.version`, [`vansoncraft_doc::FORMAT_VERSION`]),
 //! which readers do not check. A version 2 document's Twist effects turn clockwise for a positive
 //! angle. A version 1 document's Twist angles are negated when it opens, unless the file is of
-//! [`VERSION`] and its `generator` is VectorCraft 0.21.0 or later, which turned them clockwise
+//! [`VERSION`] and its `generator` is VectorCraft 0.21.0 or later (the project's name then;
+//! VansonCraft continues its numbering), which turned them clockwise
 //! already; [`save_with`] writes a version 1 document with them negated back for an older file
-//! version ([`vectorcraft_doc::twist`]).
+//! version ([`vansoncraft_doc::twist`]).
 #![forbid(unsafe_code)]
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -52,20 +53,32 @@ use std::sync::Arc;
 use craft_vectorcraft_format::{Contents, Head, Image, ReadError, Tail};
 use serde::de::{DeserializeSeed, IgnoredAny, MapAccess, SeqAccess, Visitor};
 use serde::{Deserializer, Serialize};
-use vectorcraft_doc::{Document, ImageBlob};
+use vansoncraft_doc::{Document, ImageBlob};
 
 #[cfg(not(target_arch = "wasm32"))]
 pub use atomic::{read_only_location, sync_file, write_atomic, write_atomic_with, write_new_with};
+/// The `format` member of every file's header: the name of the shared document format that the
+/// `craft-vectorcraft-format` envelope defines and reads (with [`LEGACY_EXTENSION`] for the oldest
+/// files). It stays as it is, so files open in every app that reads the format and in older
+/// versions; only the file extension is VansonCraft's own ([`EXTENSION`]).
+pub use craft_vectorcraft_format::EXTENSION as FORMAT_NAME;
 pub use craft_vectorcraft_format::base64::{decode as base64_decode, decoded_len as base64_decoded_len, encode as base64_encode};
 pub use craft_vectorcraft_format::{
-    BLOB_MAGIC, COMPRESSED_SINCE, EXTENSION, ICC_MIME, INLINE_MAX, LEGACY_EXTENSION, MIN_VERSION, PREVIEW_MAX, VERSION, is_compressed, json_part,
-    sniff,
+    BLOB_MAGIC, COMPRESSED_SINCE, ICC_MIME, INLINE_MAX, LEGACY_EXTENSION, MIN_VERSION, PREVIEW_MAX, VERSION, is_compressed, json_part, sniff,
 };
+
+/// The extension of the native files VansonCraft saves.
+pub const EXTENSION: &str = "vansoncraft";
+/// The extension native files had before the project took the name VansonCraft. Such files still
+/// open, and saving one again asks for a [`EXTENSION`] name, as for a [`LEGACY_EXTENSION`] file.
+pub const FORMER_EXTENSION: &str = "vectorcraft"; // brand-ok: files saved before the rename
+/// Every native extension that opens: [`EXTENSION`], [`FORMER_EXTENSION`], [`LEGACY_EXTENSION`].
+pub const NATIVE_EXTENSIONS: [&str; 3] = [EXTENSION, FORMER_EXTENSION, LEGACY_EXTENSION];
 use stream::{Gz, Indent, KeyScan, Out};
 
 /// Most bytes the JSON of a compressed file may unpack to (a guard against decompression bombs,
 /// as are [`MAX_BLOB`] and [`MAX_BLOBS`]). A compressed save refuses a document past any of them,
-/// so every file VectorCraft writes reads back. On wasm32 the cap is a quarter of the native
+/// so every file VansonCraft writes reads back. On wasm32 the cap is a quarter of the native
 /// one: the JSON is deserialized into a document several times its size, and the 4 GiB address
 /// space also holds the file, the JSON, the document and the app (#3587).
 pub const MAX_JSON: u64 = if cfg!(target_arch = "wasm32") { 256 << 20 } else { 1 << 30 };
@@ -76,13 +89,19 @@ pub const MAX_BLOB: u64 = craft_vectorcraft_format::MAX_ENTRY;
 /// build, whose 4 GiB address space also holds the JSON, the document and the app, so 4 GiB of
 /// entries failed to allocate rather than being refused.
 pub const MAX_BLOBS: u64 = if cfg!(target_arch = "wasm32") { 1 << 30 } else { 4 << 30 };
-/// Most bytes a compressed file whose JSON isn't followed by the marker where VectorCraft puts it
+/// Most bytes a compressed file whose JSON isn't followed by the marker where VansonCraft puts it
 /// (hand-made or damaged files) may unpack to: it is unpacked whole.
 const MAX_UNPACKED: u64 = 512 << 20;
 
 /// Is `ext` (without the dot, any case) a native document extension?
 pub fn is_native_ext(ext: &str) -> bool {
-    ext.eq_ignore_ascii_case(EXTENSION) || ext.eq_ignore_ascii_case(LEGACY_EXTENSION)
+    NATIVE_EXTENSIONS.iter().any(|e| ext.eq_ignore_ascii_case(e))
+}
+
+/// Is `ext` (without the dot, any case) the extension of a native file saved under a former name
+/// (`.vectorcraft`, `.drawcraft`)? Saving such a file again asks for a [`EXTENSION`] name.
+pub fn is_former_native_ext(ext: &str) -> bool {
+    ext.eq_ignore_ascii_case(FORMER_EXTENSION) || ext.eq_ignore_ascii_case(LEGACY_EXTENSION)
 }
 
 /// Does the file name or path end in a native document extension?
@@ -92,17 +111,17 @@ pub fn is_native_name(name: &str) -> bool {
 
 #[derive(Debug, thiserror::Error)]
 pub enum FormatError {
-    #[error("not a VectorCraft file: {0}")]
-    NotVectorcraft(String),
-    #[error("file version {0} is newer than this VectorCraft supports ({VERSION})")]
+    #[error("not a VansonCraft file: {0}")]
+    NotVansoncraft(String),
+    #[error("file version {0} is newer than this VansonCraft supports ({VERSION})")]
     TooNew(u32),
     #[error("invalid image data for `{0}`")]
     BadImage(String),
-    #[error("can't save version {0}: VectorCraft writes versions {MIN_VERSION} to {VERSION}")]
+    #[error("can't save version {0}: VansonCraft writes versions {MIN_VERSION} to {VERSION}")]
     BadVersion(u32),
     #[error("version {0} files can't be compressed: only version {COMPRESSED_SINCE} and later open compressed files")]
     CompressedTooOld(u32),
-    #[error("the compressed file unpacks to more than VectorCraft reads ({} MB of document, {} MB per image)", MAX_JSON >> 20, MAX_BLOB >> 20)]
+    #[error("the compressed file unpacks to more than VansonCraft reads ({} MB of document, {} MB per image)", MAX_JSON >> 20, MAX_BLOB >> 20)]
     TooBig,
     #[error("the document is too large to save compressed ({0}): save it with Use Compression off")]
     TooBigToCompress(String),
@@ -113,10 +132,10 @@ pub enum FormatError {
 impl From<craft_vectorcraft_format::Error> for FormatError {
     fn from(e: craft_vectorcraft_format::Error) -> Self {
         match e {
-            craft_vectorcraft_format::Error::Format(format) => FormatError::NotVectorcraft(format!("format is `{format}`")),
+            craft_vectorcraft_format::Error::Format(format) => FormatError::NotVansoncraft(format!("format is `{format}`")),
             craft_vectorcraft_format::Error::TooNew(version) => FormatError::TooNew(version),
             // The crate's other errors (`TooBig`: entries past the data after the JSON) keep their message.
-            e => FormatError::NotVectorcraft(e.to_string()),
+            e => FormatError::NotVansoncraft(e.to_string()),
         }
     }
 }
@@ -128,7 +147,7 @@ fn is_packed(mime: &str) -> bool {
 
 /// The MIME type of a preview's bytes (JPEG or PNG).
 fn preview_mime(bytes: &[u8]) -> &'static str {
-    if bytes.starts_with(&[0xff, 0xd8]) { "image/jpeg" } else { vectorcraft_doc::links::PROXY_MIME }
+    if bytes.starts_with(&[0xff, 0xd8]) { "image/jpeg" } else { vansoncraft_doc::links::PROXY_MIME }
 }
 
 /// How [`save_with`] writes a document.
@@ -333,9 +352,9 @@ pub fn save_to(doc: &Document, o: &SaveOptions, w: impl Write) -> Result<(), For
     let mut out = if o.compress { Out::Gz(Box::new(Gz::new(w).map_err(encode_err)?)) } else { Out::Plain(w) };
     let mut env = Envelope { pretty, first: true };
     // Older apps only know the name from before the rename.
-    env.field(&mut out, "format", &if o.version < 3 { LEGACY_EXTENSION } else { EXTENSION })?;
+    env.field(&mut out, "format", &if o.version < 3 { LEGACY_EXTENSION } else { FORMAT_NAME })?;
     env.field(&mut out, "version", &o.version)?;
-    env.field(&mut out, "generator", &format!("VectorCraft {}", env!("CARGO_PKG_VERSION")))?;
+    env.field(&mut out, "generator", &format!("VansonCraft {}", env!("CARGO_PKG_VERSION")))?;
     if let Some(compatible) = o.pdf_compatible {
         env.field(&mut out, "pdfCompatible", &compatible)?;
     }
@@ -501,12 +520,12 @@ pub fn load_info(bytes: &[u8]) -> Result<(Document, FileInfo), FormatError> {
 
 /// [`load`], with everything else the file carries.
 pub fn load_file(bytes: &[u8]) -> Result<NativeFile, FormatError> {
-    load_file_within(bytes, vectorcraft_doc::node::MAX_READ_NODES, vectorcraft_doc::node::MAX_BUFFERED_VALUES)
+    load_file_within(bytes, vansoncraft_doc::node::MAX_READ_NODES, vansoncraft_doc::node::MAX_BUFFERED_VALUES)
 }
 
 /// [`load_file`] reading at most `max_nodes` objects and buffering at most `max_values` values
 /// before objects' types, so a test can exercise the budgets without documents that large
-/// ([`vectorcraft_doc::node::MAX_READ_NODES`], [`vectorcraft_doc::node::MAX_BUFFERED_VALUES`]).
+/// ([`vansoncraft_doc::node::MAX_READ_NODES`], [`vansoncraft_doc::node::MAX_BUFFERED_VALUES`]).
 fn load_file_within(bytes: &[u8], max_nodes: usize, max_values: usize) -> Result<NativeFile, FormatError> {
     let file = unpack::Unpacked::new(bytes)?;
     // The JSON reader stops at 128 levels (a document's objects use three each), the paths read
@@ -516,17 +535,17 @@ fn load_file_within(bytes: &[u8], max_nodes: usize, max_values: usize) -> Result
     fn within_budgets<T>(max_nodes: usize, max_values: usize, read: impl FnOnce() -> T) -> T {
         #[cfg(test)]
         DOCUMENT_READS.with(|n| n.set(n.get() + 1));
-        vectorcraft_doc::geom::path::with_anchor_budget(vectorcraft_doc::geom::path::MAX_READ_ANCHORS, || {
-            vectorcraft_doc::node::with_node_budget(max_nodes, || vectorcraft_doc::node::with_buffered_value_budget(max_values, read))
+        vansoncraft_doc::geom::path::with_anchor_budget(vansoncraft_doc::geom::path::MAX_READ_ANCHORS, || {
+            vansoncraft_doc::node::with_node_budget(max_nodes, || vansoncraft_doc::node::with_buffered_value_budget(max_values, read))
         })
     }
     let read_error = |e| match e {
         ReadError::Json(e) => {
             let why = if e.to_string().contains("recursion limit") { format!("its objects are nested too deep ({e})") } else { e.to_string() };
-            FormatError::NotVectorcraft(why)
+            FormatError::NotVansoncraft(why)
         }
         ReadError::Envelope(e) => e.into(),
-        e => FormatError::NotVectorcraft(e.to_string()),
+        e => FormatError::NotVansoncraft(e.to_string()),
     };
     // The document and the saved PDF preference come from one pass over the JSON.
     let (mut f, pdf_compatible) = match within_budgets(max_nodes, max_values, || Contents::<Document>::read_with_pdf_preference(file.json())) {
@@ -537,7 +556,7 @@ fn load_file_within(bytes: &[u8], max_nodes: usize, max_values: usize) -> Result
         // other error, such as a document past a budget, is returned without a second read.
         Err(ReadError::Json(e)) if e.is_data() && refused_preference_at(file.json(), &e) => {
             let f = within_budgets(max_nodes, max_values, || Contents::<Document>::read(file.json())).map_err(read_error)?;
-            let pdf_compatible = pdf_member(file.json()).map_err(|e| FormatError::NotVectorcraft(e.to_string()))?;
+            let pdf_compatible = pdf_member(file.json()).map_err(|e| FormatError::NotVansoncraft(e.to_string()))?;
             (f, pdf_compatible)
         }
         Err(e) => return Err(read_error(e)),
@@ -548,7 +567,7 @@ fn load_file_within(bytes: &[u8], max_nodes: usize, max_values: usize) -> Result
     // before the data after it is taken; the walk's depth is bounded by the JSON reader's nesting
     // limit.
     let current_file = f.version >= VERSION;
-    f.document.migrate_twist_angles(|| current_file && vectorcraft_doc::twist::written_clockwise(generator(file.json()).as_deref()));
+    f.document.migrate_twist_angles(|| current_file && vansoncraft_doc::twist::written_clockwise(generator(file.json()).as_deref()));
     // The bytes after the JSON, read in one pass: the images' first, then the profiles'.
     let entries: Vec<[u64; 2]> = f.images.values().chain(f.profiles.values()).filter_map(|i| i.blob).collect();
     let tail = file.entries(&entries)?;
@@ -591,7 +610,7 @@ fn load_file_within(bytes: &[u8], max_nodes: usize, max_values: usize) -> Result
     // Untrusted: capped, named and with a zoom and centre the canvas can show.
     doc.tidy_views();
     doc.tidy_graph_designs();
-    doc.raster_effects.add_around = doc.raster_effects.add_around.clamp(0.0, vectorcraft_doc::rastersettings::MAX_ADD_AROUND);
+    doc.raster_effects.add_around = doc.raster_effects.add_around.clamp(0.0, vansoncraft_doc::rastersettings::MAX_ADD_AROUND);
     let mut depth_notes = vec![];
     doc.limit_depth_noting(&mut depth_notes);
     // Untrusted: ruler guide nodes only directly in layers, above their art (after the depth limit:
@@ -603,9 +622,9 @@ fn load_file_within(bytes: &[u8], max_nodes: usize, max_values: usize) -> Result
     let had_artboards = !doc.artboards.is_empty();
     let beyond = doc.drop_beyond_canvas();
     if had_artboards && doc.artboards.is_empty() {
-        return Err(FormatError::NotVectorcraft(format!(
+        return Err(FormatError::NotVansoncraft(format!(
             "its artboards all lie beyond the canvas (more than {} pt from the origin)",
-            vectorcraft_doc::MAX_COORD
+            vansoncraft_doc::MAX_COORD
         )));
     }
     depth_notes.extend(beyond.note());
@@ -624,7 +643,7 @@ fn load_file_within(bytes: &[u8], max_nodes: usize, max_values: usize) -> Result
     // limit: the walk recurses).
     doc.keep_scripts_in_range();
     // The conversions above bring an older document to today's version.
-    doc.version = doc.version.max(vectorcraft_doc::FORMAT_VERSION);
+    doc.version = doc.version.max(vansoncraft_doc::FORMAT_VERSION);
     let profiles = f
         .profiles
         .into_iter()
@@ -844,7 +863,7 @@ mod tests {
         assert!(legacy.contains("\"drawcraft\""));
         assert!(sniff(legacy.as_bytes()));
         assert_eq!(load(legacy.as_bytes()).unwrap().artboards[0].rect, d.artboards[0].rect);
-        assert!(is_native_name("old/Poster.DrawCraft") && is_native_name("new.vectorcraft") && !is_native_name("x.svg"));
+        assert!(is_native_name("old/Poster.DrawCraft") && is_native_name("new.vansoncraft") && !is_native_name("x.svg"));
         assert!(load(br#"{"format":"other","version":1,"document":{}}"#).is_err());
     }
 
@@ -861,7 +880,7 @@ mod tests {
             }
         }
         let mut value: serde_json::Value = serde_json::from_slice(&save(&d, false)).unwrap();
-        let array = serde_json::json!([EXTENSION, VERSION, value["document"], value["images"], {}]);
+        let array = serde_json::json!([FORMAT_NAME, VERSION, value["document"], value["images"], {}]);
         assert!(!load_info(&serde_json::to_vec(&array).unwrap()).unwrap().1.pdf_compatible);
         value["pdf"] = serde_json::json!({"mime":"application/pdf", "data":"not base64"});
         assert!(load_info(&serde_json::to_vec(&value).unwrap()).unwrap().1.pdf_compatible);
@@ -932,7 +951,7 @@ mod tests {
             value["pdfCompatible"] = preference.clone();
             let bytes = serde_json::to_vec(&value).unwrap();
             DOCUMENT_READS.with(|r| r.set(0));
-            let Err(FormatError::NotVectorcraft(why)) = load_file_within(&bytes, n - 1, vectorcraft_doc::node::MAX_BUFFERED_VALUES) else {
+            let Err(FormatError::NotVansoncraft(why)) = load_file_within(&bytes, n - 1, vansoncraft_doc::node::MAX_BUFFERED_VALUES) else {
                 panic!("one object past the budget must be refused")
             };
             assert!(why.contains(&format!("more than {} objects", n - 1)), "{why}");
@@ -965,8 +984,8 @@ mod tests {
         assert!(load_info(v1.as_bytes()).unwrap().1.is_old());
     }
 
-    /// A file is native when its top-level `format` member names VectorCraft, read as JSON reads
-    /// it; the word elsewhere in the head does not count.
+    /// A file is native when its top-level `format` member names the shared format
+    /// ([`FORMAT_NAME`]), read as JSON reads it; the word elsewhere in the head does not count.
     #[test]
     fn sniff_reads_the_format_member() {
         // `vectorcraft` with its second `c` written as a JSON escape.
@@ -974,9 +993,11 @@ mod tests {
         assert!(sniff(&escaped));
         assert!(!sniff(br#"{"format":"other","generator":"vectorcraft"}"#));
         assert!(!sniff(br#"{"names":["vectorcraft"],"format":"svg"}"#));
+        // VansonCraft's own name is not a format name: files say the shared one.
+        assert!(!sniff(br#"{"format":"vansoncraft","version":4,"document":{}}"#));
     }
 
-    /// Every layout VectorCraft has written puts `format` first: the version 1 and 2 files from
+    /// Every layout VansonCraft has written puts `format` first: the version 1 and 2 files from
     /// before the rename (a struct of `format`, `version`, `generator`, `document` and `images`,
     /// compact or pretty), and each version `save_with` writes, compact, pretty and compressed.
     #[test]
@@ -1005,10 +1026,10 @@ mod tests {
     #[test]
     fn envelope_errors_keep_their_message() {
         let e = FormatError::from(craft_vectorcraft_format::Error::TooBig);
-        assert!(matches!(e, FormatError::NotVectorcraft(_)), "{e}");
+        assert!(matches!(e, FormatError::NotVansoncraft(_)), "{e}");
         assert!(e.to_string().contains(&craft_vectorcraft_format::Error::TooBig.to_string()), "{e}");
         let e = FormatError::from(craft_vectorcraft_format::Error::Format("x".into()));
-        assert_eq!(e.to_string(), "not a VectorCraft file: format is `x`");
+        assert_eq!(e.to_string(), "not a VansonCraft file: format is `x`");
         assert!(matches!(FormatError::from(craft_vectorcraft_format::Error::TooNew(9)), FormatError::TooNew(9)));
     }
 
@@ -1063,9 +1084,9 @@ mod tests {
                     let o = SaveOptions { version, pretty, ..members.clone() };
                     let b = body(&d, &o).unwrap();
                     let mut file = craft_vectorcraft_format::File::new(Written(&b));
-                    file.format = if version < 3 { LEGACY_EXTENSION } else { EXTENSION }.into();
+                    file.format = if version < 3 { LEGACY_EXTENSION } else { FORMAT_NAME }.into();
                     file.version = version;
-                    file.generator = Some(format!("VectorCraft {}", env!("CARGO_PKG_VERSION")));
+                    file.generator = Some(format!("VansonCraft {}", env!("CARGO_PKG_VERSION")));
                     file.preview = o.preview.as_deref().map(|p| Image::inline("image/png", p));
                     // The images come first in the data after the JSON, then the profiles and the PDF.
                     let mut tail = file.tail();
@@ -1094,7 +1115,7 @@ mod tests {
         assert_eq!(checked, 20);
     }
 
-    /// Files are read through the crate's `Contents` with the messages VectorCraft gave before,
+    /// Files are read through the crate's `Contents` with the messages VansonCraft gave before,
     /// and a top-level array holds the format, version, document, images and profiles in that
     /// order.
     #[test]
@@ -1102,27 +1123,27 @@ mod tests {
         let message = |json: &str| load(json.as_bytes()).err().map(|e| e.to_string());
         assert_eq!(
             message(r#""x""#).as_deref(),
-            Some(r#"not a VectorCraft file: invalid type: string "x", expected struct File at line 1 column 3"#)
+            Some(r#"not a VansonCraft file: invalid type: string "x", expected struct File at line 1 column 3"#)
         );
         assert!(
-            message(r#"{"format":"vectorcraft","version":4}"#).is_some_and(|m| m.starts_with("not a VectorCraft file: missing field `document`"))
+            message(r#"{"format":"vectorcraft","version":4}"#).is_some_and(|m| m.starts_with("not a VansonCraft file: missing field `document`"))
         );
         let v: serde_json::Value = serde_json::from_slice(&save(&Document::new(10.0, 10.0), false)).unwrap();
         let doc = v["document"].to_string();
         let file = |format: &str, version: u32| format!(r#"{{"format":"{format}","version":{version},"document":{doc}}}"#);
-        assert_eq!(message(&file("svg", 4)).as_deref(), Some("not a VectorCraft file: format is `svg`"));
-        assert_eq!(message(&file("vectorcraft", 9)).as_deref(), Some("file version 9 is newer than this VectorCraft supports (4)"));
+        assert_eq!(message(&file("svg", 4)).as_deref(), Some("not a VansonCraft file: format is `svg`"));
+        assert_eq!(message(&file(FORMAT_NAME, 9)).as_deref(), Some("file version 9 is newer than this VansonCraft supports (4)"));
         // A document that does not read is reported first, as before.
         assert!(
-            message(r#"{"format":"vectorcraft","version":9,"document":7}"#).is_some_and(|m| m.starts_with("not a VectorCraft file: invalid type"))
+            message(r#"{"format":"vectorcraft","version":9,"document":7}"#).is_some_and(|m| m.starts_with("not a VansonCraft file: invalid type"))
         );
         for json in [format!(r#"["vectorcraft",3,{doc},{{}},{{}}]"#), format!(r#"["vectorcraft",3,{doc}]"#)] {
             assert_eq!(load(json.as_bytes()).map(|d| d.artboards.len()).ok(), Some(1), "{json}");
         }
         assert!(load(format!(r#"["vectorcraft",3,{{}},{doc},{{}}]"#).as_bytes()).is_err());
     }
-    use vectorcraft_doc::{Appearance, ImageObject, Node, NodeKind};
-    use vectorcraft_geom::{Affine, Rect, shapes};
+    use vansoncraft_doc::{Appearance, ImageObject, Node, NodeKind};
+    use vansoncraft_geom::{Affine, Rect, shapes};
 
     /// Color Halftone's Max Radius is in pixels of the raster effects resolution since document
     /// version 3 (#3260): a file from before (version 1, or version 2 from 0.21.0 on) opens with
@@ -1135,7 +1156,7 @@ mod tests {
             d.raster_effects_ppi = ppi;
             let (l, id) = (d.layers[0].id, d.alloc_id());
             let mut look = Appearance::default_art();
-            look.effects.push(vectorcraft_doc::Effect {
+            look.effects.push(vansoncraft_doc::Effect {
                 id: "pixelate.colorHalftone".into(),
                 params: serde_json::json!({"maxRadius": 8.0}),
                 visible: true,
@@ -1149,7 +1170,7 @@ mod tests {
             assert!((radius(&v2) - 8.0 * ppi / 72.0).abs() < 1e-9, "version 2, 8 pt at {ppi} ppi: {}", radius(&v2));
             d.version = 1;
             let old = load(&save(&d, false)).unwrap();
-            assert_eq!(old.version, vectorcraft_doc::FORMAT_VERSION);
+            assert_eq!(old.version, vansoncraft_doc::FORMAT_VERSION);
             assert!((radius(&old) - 8.0 * ppi / 72.0).abs() < 1e-9, "8 pt at {ppi} ppi: {}", radius(&old));
             // Saved for an older app, in every older version: the radius in points, which opens
             // here in pixels again.
@@ -1191,7 +1212,7 @@ mod tests {
     /// with a message naming it, before the rest of the document is read.
     #[test]
     fn a_documents_objects_are_capped() {
-        assert_eq!(vectorcraft_doc::node::MAX_READ_NODES, if cfg!(target_arch = "wasm32") { 512 << 10 } else { 4 << 20 });
+        assert_eq!(vansoncraft_doc::node::MAX_READ_NODES, if cfg!(target_arch = "wasm32") { 512 << 10 } else { 4 << 20 });
         let mut d = Document::new(100.0, 100.0);
         let l = d.add_layer(None);
         for i in 0..200 {
@@ -1202,11 +1223,11 @@ mod tests {
         let bytes = save_with(&d, &SaveOptions { compress: true, ..SaveOptions::default() }).unwrap();
         assert!(is_compressed(&bytes));
         assert_eq!(
-            load_file_within(&bytes, n, vectorcraft_doc::node::MAX_BUFFERED_VALUES).unwrap().doc.node_count(),
+            load_file_within(&bytes, n, vansoncraft_doc::node::MAX_BUFFERED_VALUES).unwrap().doc.node_count(),
             n,
             "a document of exactly the budget opens"
         );
-        let Err(FormatError::NotVectorcraft(why)) = load_file_within(&bytes, n - 1, vectorcraft_doc::node::MAX_BUFFERED_VALUES) else {
+        let Err(FormatError::NotVansoncraft(why)) = load_file_within(&bytes, n - 1, vansoncraft_doc::node::MAX_BUFFERED_VALUES) else {
             panic!("one object past the budget must be refused")
         };
         assert!(why.contains(&format!("more than {} objects", n - 1)), "{why}");
@@ -1221,13 +1242,13 @@ mod tests {
         let id = d.alloc_id();
         d.insert(Some(l), 0, Node::path(id, shapes::ellipse(Rect::new(0.0, 0.0, 10.0, 10.0)), Appearance::default_art())).unwrap();
         for i in 0..50 {
-            d.add_ruler_guide(&vectorcraft_doc::Guide::new(i % 2 == 0, f64::from(i)));
+            d.add_ruler_guide(&vansoncraft_doc::Guide::new(i % 2 == 0, f64::from(i)));
         }
         let n = d.node_count() + d.ruler_guides().len();
         let bytes = save_with(&d, &SaveOptions { compress: true, ..SaveOptions::default() }).unwrap();
-        let opened = load_file_within(&bytes, n, vectorcraft_doc::node::MAX_BUFFERED_VALUES).unwrap().doc;
+        let opened = load_file_within(&bytes, n, vansoncraft_doc::node::MAX_BUFFERED_VALUES).unwrap().doc;
         assert_eq!(opened.ruler_guides().len(), 50, "a document of exactly the budget opens with its guides");
-        let Err(FormatError::NotVectorcraft(why)) = load_file_within(&bytes, n - 1, vectorcraft_doc::node::MAX_BUFFERED_VALUES) else {
+        let Err(FormatError::NotVansoncraft(why)) = load_file_within(&bytes, n - 1, vansoncraft_doc::node::MAX_BUFFERED_VALUES) else {
             panic!("one guide past the budget must be refused")
         };
         assert!(why.contains(&format!("more than {} objects", n - 1)), "{why}");
@@ -1265,7 +1286,7 @@ mod tests {
         let mut d = Document::new(100.0, 100.0);
         let sym = d.alloc_id();
         let art = Node::group(sym, vec![Arc::new(path(d.alloc_id()))]);
-        d.symbols.push(vectorcraft_doc::Symbol { name: "S".into(), art: Arc::new(art), dynamic: false });
+        d.symbols.push(vansoncraft_doc::Symbol { name: "S".into(), art: Arc::new(art), dynamic: false });
         let mut v: serde_json::Value = serde_json::from_slice(&save(&d, false)).unwrap();
         v["document"]["symbols"][0]["art"]["kind"]["children"].as_array_mut().unwrap().push(guide(60));
         let opened = load(&serde_json::to_vec(&v).unwrap()).unwrap();
@@ -1289,7 +1310,7 @@ mod tests {
         let zeros = vec![0; 1000];
         v["document"]["layers"][0]["kind"]["children"] = serde_json::json!([{"id": 90, "kind": {"children": zeros, "type": "group"}}]);
         let bomb = serde_json::to_vec(&v).unwrap();
-        let Err(FormatError::NotVectorcraft(why)) = load_file_within(&bomb, vectorcraft_doc::node::MAX_READ_NODES, 100) else {
+        let Err(FormatError::NotVansoncraft(why)) = load_file_within(&bomb, vansoncraft_doc::node::MAX_READ_NODES, 100) else {
             panic!("past the budget must be refused")
         };
         assert!(why.contains("more than 100 values before its type"), "{why}");
@@ -1301,7 +1322,7 @@ mod tests {
     /// version negates them back.
     #[test]
     fn twist_angles_follow_the_document_version_and_generator() {
-        use vectorcraft_doc::Effect;
+        use vansoncraft_doc::Effect;
         let mut d = Document::new(100.0, 100.0);
         let l = d.layers[0].id;
         let id = d.alloc_id();
@@ -1309,7 +1330,7 @@ mod tests {
         a.effects.push(Effect { id: "distort.twist".into(), params: serde_json::json!({"angle": 30.0}), visible: true });
         d.insert(Some(l), 0, Node::path(id, shapes::ellipse(Rect::new(0.0, 0.0, 10.0, 10.0)), a)).unwrap();
         let angle = |d: &Document| d.node(id).and_then(|n| n.appearance.effects[0].params["angle"].as_f64());
-        let now = vectorcraft_doc::FORMAT_VERSION;
+        let now = vansoncraft_doc::FORMAT_VERSION;
         let current = save(&d, false);
         let back = load(&current).unwrap();
         assert_eq!((back.version, angle(&back)), (now, Some(30.0)), "a current document is read as saved");
@@ -1329,10 +1350,11 @@ mod tests {
             let d = load(&serde_json::to_vec(&v).unwrap()).unwrap();
             (d.version, angle(&d))
         };
-        for g in [Some("VectorCraft 0.20.0"), Some("VectorCraft 0.9.12"), Some("DrawCraft 0.1.0"), Some("VectorCraft"), None] {
+        // Releases up to 0.24.1 named the app VectorCraft; VansonCraft continues their numbering.
+        for g in [Some("VectorCraft 0.20.0"), Some("VectorCraft 0.9.12"), Some("DrawCraft 0.1.0"), Some("VectorCraft"), Some("VansonCraft"), None] {
             assert_eq!(opened(g), (now, Some(-30.0)), "{g:?}");
         }
-        for g in ["VectorCraft 0.21.0", "VectorCraft 0.21.3", "VectorCraft 1.0.0"] {
+        for g in ["VectorCraft 0.21.0", "VectorCraft 0.21.3", "VectorCraft 0.24.1", "VansonCraft 0.24.1", "VansonCraft 1.0.0"] {
             assert_eq!(opened(Some(g)), (now, Some(30.0)), "{g}");
         }
         // A file may repeat `generator`: the first one names the app.

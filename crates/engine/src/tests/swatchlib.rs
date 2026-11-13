@@ -2,7 +2,7 @@
 //! and Default Swatches.
 
 use serde_json::{Value, json};
-use vectorcraft_color::{Color, Paint};
+use vansoncraft_color::{Color, Paint};
 
 use crate::*;
 
@@ -16,7 +16,7 @@ fn run(s: &mut Session, id: &str, p: Value) -> Value {
     s.execute(id, &p).unwrap_or_else(|e| panic!("{id} {p}: {e}"))
 }
 
-fn doc(s: &Session) -> &vectorcraft_doc::Document {
+fn doc(s: &Session) -> &vansoncraft_doc::Document {
     &s.doc().unwrap().doc
 }
 
@@ -91,14 +91,14 @@ fn add_with_apply_paints_the_selection_in_the_same_undo_step() {
     let before = undo_len(&s);
     let r = run(&mut s, "swatch.library.add", json!({"library": "web-safe-216", "names": ["#FF6600"], "apply": "fill"}));
     assert_eq!((r["added"].clone(), r["applied"].clone()), (json!(["#FF6600"]), json!("#FF6600")));
-    let fill = doc(&s).node(vectorcraft_doc::NodeId(id.as_u64().unwrap())).unwrap().appearance.fill_paint();
+    let fill = doc(&s).node(vansoncraft_doc::NodeId(id.as_u64().unwrap())).unwrap().appearance.fill_paint();
     assert_eq!(fill.color().map(|c| c.to_hex()), Some("#ff6600".into()));
     assert_eq!(undo_len(&s), before + 1, "added and applied as one step");
     run(&mut s, "edit.undo", json!({}));
     assert!(doc(&s).swatch("#FF6600").is_none());
     // A gradient swatch applied to the stroke; an existing swatch is applied without an add.
     run(&mut s, "swatch.library.add", json!({"library": "metallic-gradients", "names": ["Gold"], "apply": "stroke"}));
-    let n = doc(&s).node(vectorcraft_doc::NodeId(id.as_u64().unwrap())).unwrap();
+    let n = doc(&s).node(vansoncraft_doc::NodeId(id.as_u64().unwrap())).unwrap();
     assert!(matches!(n.appearance.stroke_paint(), Paint::Gradient(_)));
     let r = run(&mut s, "swatch.library.add", json!({"library": "metallic-gradients", "names": ["Gold"], "apply": "fill"}));
     assert_eq!((r["added"].clone(), r["applied"].clone()), (json!([]), json!("Gold")));
@@ -125,7 +125,7 @@ fn reset_defaults_restores_missing_swatches_or_replaces_them() {
     run(&mut s, "swatch.resetDefaults", json!({"replace": true}));
     let d = doc(&s);
     assert_eq!(d.swatches_iter().map(|w| w.name.clone()).collect::<Vec<_>>(), defaults);
-    let fill = d.node(vectorcraft_doc::NodeId(id.as_u64().unwrap())).unwrap().appearance.fill_paint();
+    let fill = d.node(vansoncraft_doc::NodeId(id.as_u64().unwrap())).unwrap().appearance.fill_paint();
     assert_eq!(fill, Paint::solid(Color::from_hex("#abcdef").unwrap()));
     assert_eq!(s.paint.fill, Paint::solid(Color::from_hex("#abcdef").unwrap()), "the default fill is unlinked too");
 }
@@ -295,7 +295,7 @@ fn another_documents_swatches_load_as_a_library() {
     let mut s = session();
     run(&mut s, "swatch.new", json!({"name": "Signal", "color": "#ff3300"}));
     let b64 = run(&mut s, "document.serialize", json!({}))["dataBase64"].as_str().unwrap().to_string();
-    let r = run(&mut s, "swatch.library.load", json!({"dataBase64": b64, "name": "Poster.vectorcraft"}));
+    let r = run(&mut s, "swatch.library.load", json!({"dataBase64": b64, "name": "Poster.vansoncraft"}));
     assert_eq!(r["name"], "Poster");
     let (_, lib) = cmd::swatchlib::library(&s, r["library"].as_str().unwrap()).unwrap();
     assert!(lib.swatch("Signal").is_some() && lib.swatch("[None]").is_none());
@@ -304,9 +304,9 @@ fn another_documents_swatches_load_as_a_library() {
 
 #[test]
 fn swatch_exchange_files_load_add_and_list_as_user_libraries() {
-    let bytes = vectorcraft_testkit::ase::sample();
+    let bytes = vansoncraft_testkit::ase::sample();
     let mut s = session();
-    let r = run(&mut s, "swatch.library.load", json!({"dataBase64": vectorcraft_format::base64_encode(&bytes), "name": "Brand.ase"}));
+    let r = run(&mut s, "swatch.library.load", json!({"dataBase64": vansoncraft_format::base64_encode(&bytes), "name": "Brand.ase"}));
     assert_eq!((r["library"].as_str(), r["name"].as_str(), r["count"].as_u64()), (Some("loaded/Brand.ase"), Some("Brand"), Some(4)));
     let g = run(&mut s, "swatch.library.get", json!({"library": r["library"]}));
     let swatches = g["swatches"].as_array().unwrap();
@@ -320,7 +320,7 @@ fn swatch_exchange_files_load_add_and_list_as_user_libraries() {
     assert!(d.swatch("Ink").is_some_and(|w| w.spot && w.global));
     assert_eq!(d.swatch_groups.iter().find(|g| g.name == "Neutrals").map(|g| g.swatches.len()), Some(2));
     // A damaged file is an error from the swatch exchange reader, not from the document loader.
-    let cut = vectorcraft_format::base64_encode(&bytes[..bytes.len() - 1]);
+    let cut = vansoncraft_format::base64_encode(&bytes[..bytes.len() - 1]);
     let e = s.execute("swatch.library.load", &json!({"dataBase64": cut, "name": "Cut.ase"})).unwrap_err().to_string();
     assert!(e.contains("cut short"), "{e}");
     // `.ase` files in the user library folder are User Defined libraries.
@@ -350,7 +350,7 @@ fn swatch_exchange_files_save_with_models_kinds_and_groups() {
     assert_eq!(r["format"], "ase");
     assert!(r.get("data").is_none(), "a binary file comes back as dataBase64");
     let b64 = r["dataBase64"].as_str().unwrap().to_string();
-    assert!(vectorcraft_format::base64_decode(&b64).unwrap().starts_with(b"ASEF"));
+    assert!(vansoncraft_format::base64_decode(&b64).unwrap().starts_with(b"ASEF"));
     let r = run(&mut s, "swatch.library.load", json!({"dataBase64": b64, "name": "Brand Kit.ase"}));
     let (_, lib) = cmd::swatchlib::library(&s, r["library"].as_str().unwrap()).unwrap();
     assert_eq!(lib.name, "Brand Kit", "named after the file");
@@ -406,7 +406,7 @@ fn save_counts_the_swatches_the_file_holds() {
 
 #[test]
 fn loaded_libraries_copy_into_the_user_folder_without_replacing_files() {
-    use vectorcraft_testkit::ase::{Block, ase, sample};
+    use vansoncraft_testkit::ase::{Block, ase, sample};
     let dir = temp_dir("copy");
     let (user, elsewhere) = (dir.join("user"), dir.join("elsewhere"));
     std::fs::create_dir_all(&user).unwrap();
@@ -450,8 +450,8 @@ fn loaded_libraries_copy_into_the_user_folder_without_replacing_files() {
     // A document's swatches and a library loaded from data are written as .vcswatches.
     run(&mut s, "swatch.new", json!({"name": "Signal", "color": "#ff3300"}));
     let b64 = run(&mut s, "document.serialize", json!({}))["dataBase64"].as_str().unwrap().to_string();
-    let poster = elsewhere.join("Poster.vectorcraft");
-    std::fs::write(&poster, vectorcraft_format::base64_decode(&b64).unwrap()).unwrap();
+    let poster = elsewhere.join("Poster.vansoncraft");
+    std::fs::write(&poster, vansoncraft_format::base64_decode(&b64).unwrap()).unwrap();
     let loaded = run(&mut s, "swatch.library.load", json!({ "path": poster.to_string_lossy() }))["library"].clone();
     let r = run(&mut s, "swatch.library.copyToUser", json!({ "library": loaded }));
     assert_eq!((r["library"].as_str(), r["copied"].as_bool()), (Some("user/Poster.vcswatches"), Some(true)));
@@ -460,7 +460,7 @@ fn loaded_libraries_copy_into_the_user_folder_without_replacing_files() {
     let loaded = run(&mut s, "swatch.library.load", json!({ "path": poster.to_string_lossy() }))["library"].clone();
     let r = run(&mut s, "swatch.library.copyToUser", json!({ "library": loaded }));
     assert_eq!((r["library"].as_str(), r["copied"].as_bool()), (Some("user/Poster.vcswatches"), Some(false)));
-    let kit = vectorcraft_format::base64_encode(&sample());
+    let kit = vansoncraft_format::base64_encode(&sample());
     let loaded = run(&mut s, "swatch.library.load", json!({"dataBase64": kit, "name": "Kit.ase"}))["library"].clone();
     assert_eq!(run(&mut s, "swatch.library.copyToUser", json!({ "library": loaded }))["library"], "user/Kit.vcswatches");
     // A library without a name is copied as Library.
@@ -585,7 +585,7 @@ fn color_book_tab_titles_use_the_file_name() {
 
 #[test]
 fn a_library_group_stays_one_group_when_a_swatch_has_its_name() {
-    use vectorcraft_testkit::ase::{Block, ase};
+    use vansoncraft_testkit::ase::{Block, ase};
     let mut s = session();
     assert!(doc(&s).swatch("Blue").is_some(), "a new document has a swatch named Blue");
     let bytes = ase(&[
@@ -597,7 +597,7 @@ fn a_library_group_stays_one_group_when_a_swatch_has_its_name() {
         Block::Color("Frost", b"RGB ", &[0.9, 0.95, 1.0], 2),
         Block::GroupEnd,
     ]);
-    let r = run(&mut s, "swatch.library.load", json!({"dataBase64": vectorcraft_format::base64_encode(&bytes), "name": "Blues.ase"}));
+    let r = run(&mut s, "swatch.library.load", json!({"dataBase64": vansoncraft_format::base64_encode(&bytes), "name": "Blues.ase"}));
     run(&mut s, "swatch.library.add", json!({"library": r["library"]}));
     let groups: Vec<(&str, Vec<&str>)> =
         doc(&s).swatch_groups.iter().map(|g| (g.name.as_str(), g.swatches.iter().map(|w| w.name.as_str()).collect())).collect();
@@ -608,7 +608,7 @@ fn a_library_group_stays_one_group_when_a_swatch_has_its_name() {
 #[test]
 fn text_libraries_sent_as_bytes_load_when_they_are_not_valid_utf8() {
     let mut s = session();
-    let latin1 = vectorcraft_format::base64_encode(b"GIMP Palette\n237 28 36 Rouge fonc\xe9\n");
+    let latin1 = vansoncraft_format::base64_encode(b"GIMP Palette\n237 28 36 Rouge fonc\xe9\n");
     let r = run(&mut s, "swatch.library.load", json!({"dataBase64": latin1, "name": "Rouge.gpl"}));
     assert_eq!(r["count"], 1);
 }
@@ -630,7 +630,7 @@ fn gradient_libraries_are_listed_and_gradient_swatches_rename_and_take_new_gradi
         json!({"gradient": {"kind": "radial", "stops": [{"offset": 0, "color": "#ff0000"}, {"offset": 1, "color": "#0000ff"}], "swatch": "Early"}});
     run(&mut s, "swatch.edit", json!({"name": "Early", "paint": g}));
     let Paint::Gradient(gp) = &doc(&s).swatch("Early").unwrap().paint else { panic!("a gradient") };
-    assert_eq!((gp.gradient.kind, gp.gradient.stops.len(), gp.swatch.clone(), gp.geom), (vectorcraft_color::GradientKind::Radial, 2, None, None));
+    assert_eq!((gp.gradient.kind, gp.gradient.stops.len(), gp.swatch.clone(), gp.geom), (vansoncraft_color::GradientKind::Radial, 2, None, None));
     assert_eq!(undo_len(&s), undo + 1);
     // Kinds don't mix; a colour replaces a colour.
     assert!(s.execute("swatch.edit", &json!({"name": "Early", "paint": {"color": "#00ff00"}})).is_err());
@@ -640,7 +640,7 @@ fn gradient_libraries_are_listed_and_gradient_swatches_rename_and_take_new_gradi
 
 #[test]
 fn organic_fades_add_with_their_method_midpoints_and_opacities_in_rgb_and_cmyk() {
-    let lib = vectorcraft_color::libraries::builtin_library("organic-fades").unwrap();
+    let lib = vansoncraft_color::libraries::builtin_library("organic-fades").unwrap();
     for mode in ["rgb", "cmyk"] {
         let mut s = Session::new();
         run(&mut s, "file.new", json!({"width": 100, "height": 100, "colorMode": mode}));
@@ -658,22 +658,22 @@ fn organic_fades_add_with_their_method_midpoints_and_opacities_in_rgb_and_cmyk()
             let Paint::Gradient(added) = &doc(&s).swatch(name).unwrap().paint else { panic!("{name} is a gradient") };
             let Paint::Gradient(want) = &lib.swatch(name).unwrap().paint else { panic!("{name} is a gradient") };
             assert_eq!(added.gradient, want.gradient, "{mode} {name}");
-            assert_eq!(added.gradient.method, vectorcraft_color::GradientMethod::Perceptual);
+            assert_eq!(added.gradient.method, vansoncraft_color::GradientMethod::Perceptual);
             assert!(added.gradient.stops.iter().all(|st| matches!(st.color, Color::Rgb { .. })), "{mode} {name}: the stops stay RGB");
             assert!(added.gradient.stops.iter().any(|st| st.opacity < 1.0 && (st.midpoint - 0.5).abs() > 0.02), "{mode} {name}");
         }
         // The fill takes the fade's method, opacities and midpoints.
-        let fill = doc(&s).node(vectorcraft_doc::NodeId(id.as_u64().unwrap())).unwrap().appearance.fill_paint();
+        let fill = doc(&s).node(vansoncraft_doc::NodeId(id.as_u64().unwrap())).unwrap().appearance.fill_paint();
         let (Paint::Gradient(fill), Paint::Gradient(want)) = (fill, &lib.swatch("Petal").unwrap().paint) else { panic!("a gradient fill") };
         assert_eq!(fill.gradient.method, want.gradient.method, "{mode}");
-        let shape = |g: &vectorcraft_color::Gradient| g.stops.iter().map(|st| (st.offset, st.opacity, st.midpoint)).collect::<Vec<_>>();
+        let shape = |g: &vansoncraft_color::Gradient| g.stops.iter().map(|st| (st.offset, st.opacity, st.midpoint)).collect::<Vec<_>>();
         assert_eq!(shape(&fill.gradient), shape(&want.gradient), "{mode}");
     }
 }
 
 #[test]
 fn holographic_glows_add_whole_in_rgb_and_cmyk_as_one_undo_step() {
-    let lib = vectorcraft_color::libraries::builtin_library("holographic").unwrap();
+    let lib = vansoncraft_color::libraries::builtin_library("holographic").unwrap();
     let Paint::Gradient(want) = &lib.swatch("Mint Halo").unwrap().paint else { panic!("Mint Halo is a gradient") };
     for mode in ["rgb", "cmyk"] {
         let mut s = Session::new();
@@ -684,7 +684,7 @@ fn holographic_glows_add_whole_in_rgb_and_cmyk_as_one_undo_step() {
         let got = run(&mut s, "swatch.library.get", json!({"library": "holographic"}));
         assert!(got.to_string().contains("Mint Halo"), "{mode}: get lists Mint Halo");
         let id = run(&mut s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 50, "height": 50}))["id"].clone();
-        let node = vectorcraft_doc::NodeId(id.as_u64().unwrap());
+        let node = vansoncraft_doc::NodeId(id.as_u64().unwrap());
         let before = undo_len(&s);
         let r = run(&mut s, "swatch.library.add", json!({"library": "holographic", "names": ["Mint Halo"], "apply": "fill"}));
         assert_eq!((r["added"].clone(), r["applied"].clone()), (json!(["Mint Halo"]), json!("Mint Halo")), "{mode}");
@@ -724,7 +724,7 @@ fn pattern_libraries_bring_their_patterns_and_add_each_once() {
     assert_eq!(swatches.len() as u64, geo["count"].as_u64().unwrap());
     assert!(swatches.iter().all(|w| w["kind"] == "pattern" && w["pattern"] == w["name"]));
     // Clicking a pattern adds it with its definition and fills the selection with it, one undo step.
-    let id = vectorcraft_doc::NodeId(run(&mut s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 50, "height": 50}))["id"].as_u64().unwrap());
+    let id = vansoncraft_doc::NodeId(run(&mut s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 50, "height": 50}))["id"].as_u64().unwrap());
     let before = undo_len(&s);
     let r = run(&mut s, "swatch.library.add", json!({"library": "geometric-patterns", "names": ["Polka Dots"], "apply": "fill"}));
     assert_eq!((r["added"].clone(), r["applied"].clone()), (json!(["Polka Dots"]), json!("Polka Dots")));
@@ -735,7 +735,7 @@ fn pattern_libraries_bring_their_patterns_and_add_each_once() {
     assert!(matches!(d.swatch("Polka Dots").map(|w| &w.paint), Some(Paint::Pattern { pattern, .. }) if pattern == "Polka Dots"));
     assert!(matches!(d.node(id).unwrap().appearance.fill_paint(), Paint::Pattern { pattern, .. } if pattern == "Polka Dots"));
     // Again: nothing is added; the stroke takes the same pattern.
-    let counts = |d: &vectorcraft_doc::Document| (d.patterns.len(), d.swatches_iter().count());
+    let counts = |d: &vansoncraft_doc::Document| (d.patterns.len(), d.swatches_iter().count());
     let had = counts(doc(&s));
     let r = run(&mut s, "swatch.library.add", json!({"library": "geometric-patterns", "names": ["Polka Dots"], "apply": "stroke"}));
     assert_eq!((r["added"].clone(), r["existing"].clone(), r["applied"].clone()), (json!([]), json!(["Polka Dots"]), json!("Polka Dots")));
@@ -745,15 +745,15 @@ fn pattern_libraries_bring_their_patterns_and_add_each_once() {
     run(&mut s, "edit.undo", json!({}));
     run(&mut s, "edit.undo", json!({}));
     s.edit("Pattern", |d, _| {
-        let dot = vectorcraft_doc::Node::path(
+        let dot = vansoncraft_doc::Node::path(
             d.alloc_id(),
-            vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(0.0, 0.0, 4.0, 4.0)),
-            vectorcraft_doc::Appearance::basic(Paint::solid(Color::WHITE), Paint::None, 0.0),
+            vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(0.0, 0.0, 4.0, 4.0)),
+            vansoncraft_doc::Appearance::basic(Paint::solid(Color::WHITE), Paint::None, 0.0),
         );
-        d.patterns.push(vectorcraft_doc::PatternDef::new("Polka Dots", vec![std::sync::Arc::new(dot)]));
-        d.swatches.push(vectorcraft_color::Swatch {
+        d.patterns.push(vansoncraft_doc::PatternDef::new("Polka Dots", vec![std::sync::Arc::new(dot)]));
+        d.swatches.push(vansoncraft_color::Swatch {
             name: "Polka Dots".into(),
-            paint: vectorcraft_doc::pattern::pattern_paint("Polka Dots"),
+            paint: vansoncraft_doc::pattern::pattern_paint("Polka Dots"),
             global: false,
             spot: false,
         });
@@ -782,9 +782,9 @@ fn pattern_libraries_bring_their_patterns_and_add_each_once() {
     let d = doc(&s);
     assert_eq!(
         (d.patterns.len(), d.swatch(&applied).map(|w| w.paint.clone())),
-        (patterns, Some(vectorcraft_doc::pattern::pattern_paint("Polka Dots 2")))
+        (patterns, Some(vansoncraft_doc::pattern::pattern_paint("Polka Dots 2")))
     );
-    assert_eq!(d.node(id).unwrap().appearance.fill_paint(), vectorcraft_doc::pattern::pattern_paint("Polka Dots 2"));
+    assert_eq!(d.node(id).unwrap().appearance.fill_paint(), vansoncraft_doc::pattern::pattern_paint("Polka Dots 2"));
     // A pattern library has no colours to limit to, and is built in.
     assert!(s.execute("swatch.library.copyToUser", &json!({"library": "geometric-patterns"})).is_err());
 }
@@ -801,7 +801,7 @@ fn built_in_pattern_libraries_hold_tiling_patterns_with_unique_names() {
         for p in &d.patterns {
             assert!(names.insert(p.name.clone()), "{} is in two libraries", p.name);
             assert!(!p.art.is_empty() && p.width() > 0.0 && p.height() > 0.0, "{}", p.name);
-            assert!(vectorcraft_render::render_pattern_swatch(&d, &p.name, 16).is_some(), "{}", p.name);
+            assert!(vansoncraft_render::render_pattern_swatch(&d, &p.name, 16).is_some(), "{}", p.name);
         }
         let (_, lib) = library(b.id).unwrap();
         for w in &lib.swatches {
@@ -816,21 +816,21 @@ fn built_in_pattern_libraries_hold_tiling_patterns_with_unique_names() {
 #[test]
 fn a_pattern_library_adds_only_the_picked_pattern_and_it_undoes_and_saves() {
     let mut s = session();
-    let counts = |d: &vectorcraft_doc::Document| (d.patterns.len(), d.swatches_iter().count());
+    let counts = |d: &vansoncraft_doc::Document| (d.patterns.len(), d.swatches_iter().count());
     let empty = counts(doc(&s));
     run(&mut s, "swatch.library.list", json!({}));
     run(&mut s, "swatch.library.get", json!({"library": "geometric-patterns"}));
     assert_eq!(counts(doc(&s)), empty, "reading a library adds no pattern or swatch");
     run(&mut s, "swatch.library.add", json!({"library": "geometric-patterns", "names": ["Checkerboard"]}));
     assert_eq!(counts(doc(&s)), (empty.0 + 1, empty.1 + 1), "only the picked pattern and its swatch");
-    let has = |d: &vectorcraft_doc::Document| d.pattern("Checkerboard").is_some() && d.swatch("Checkerboard").is_some();
+    let has = |d: &vansoncraft_doc::Document| d.pattern("Checkerboard").is_some() && d.swatch("Checkerboard").is_some();
     assert!(has(doc(&s)));
     run(&mut s, "edit.undo", json!({}));
     assert_eq!(counts(doc(&s)), empty);
     assert!(doc(&s).pattern("Checkerboard").is_none() && doc(&s).swatch("Checkerboard").is_none());
     run(&mut s, "edit.redo", json!({}));
     assert!(has(doc(&s)));
-    let back = vectorcraft_format::load(&vectorcraft_format::save(doc(&s), false)).unwrap();
+    let back = vansoncraft_format::load(&vansoncraft_format::save(doc(&s), false)).unwrap();
     assert_eq!(back.patterns, doc(&s).patterns);
     assert!(has(&back));
     assert_eq!(back.swatch("Checkerboard").map(|w| &w.paint), doc(&s).swatch("Checkerboard").map(|w| &w.paint));
@@ -848,7 +848,7 @@ fn a_grit_texture_adds_once_undoes_and_saves() {
     let got = run(&mut s, "swatch.library.get", json!({"library": "Grit Textures"}));
     let names: Vec<&str> = got["swatches"].as_array().unwrap().iter().map(|w| w["name"].as_str().unwrap()).collect();
     assert_eq!(names, ["Fine Grain", "Coarse Grit", "Sand", "Speckle", "Stipple", "Scratches", "Sparse Flecks", "Dense Flecks"]);
-    let counts = |d: &vectorcraft_doc::Document| (d.patterns.len(), d.swatches_iter().count());
+    let counts = |d: &vansoncraft_doc::Document| (d.patterns.len(), d.swatches_iter().count());
     let empty = counts(doc(&s));
     let undo = undo_len(&s);
     let r = run(&mut s, "swatch.library.add", json!({"library": "grit-textures", "names": ["Stipple"]}));
@@ -864,7 +864,7 @@ fn a_grit_texture_adds_once_undoes_and_saves() {
     assert_eq!(counts(doc(&s)), empty);
     assert!(doc(&s).pattern("Stipple").is_none() && doc(&s).swatch("Stipple").is_none());
     run(&mut s, "edit.redo", json!({}));
-    let back = vectorcraft_format::load(&vectorcraft_format::save(doc(&s), false)).unwrap();
+    let back = vansoncraft_format::load(&vansoncraft_format::save(doc(&s), false)).unwrap();
     assert_eq!(back.pattern("Stipple"), Some(&def));
     assert_eq!(back.swatch("Stipple").map(|w| &w.paint), doc(&s).swatch("Stipple").map(|w| &w.paint));
 }
@@ -875,7 +875,7 @@ fn a_grit_texture_adds_once_undoes_and_saves() {
 #[test]
 fn an_optical_effect_adds_once_fills_undoes_and_saves() {
     let mut s = session();
-    let counts = |d: &vectorcraft_doc::Document| (d.patterns.len(), d.swatches_iter().count());
+    let counts = |d: &vansoncraft_doc::Document| (d.patterns.len(), d.swatches_iter().count());
     let empty = counts(doc(&s));
     let list = run(&mut s, "swatch.library.list", json!({}));
     let ids: Vec<&str> =
@@ -888,7 +888,7 @@ fn an_optical_effect_adds_once_fills_undoes_and_saves() {
         ["Sine Bands", "Ripple Lines", "Interference Rings", "Offset Rings", "Warped Checks", "Pinched Stripes", "Chevron Pulse", "Radiating Lenses"]
     );
     assert_eq!(counts(doc(&s)), empty, "reading a library adds no pattern or swatch");
-    let id = vectorcraft_doc::NodeId(run(&mut s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 50, "height": 50}))["id"].as_u64().unwrap());
+    let id = vansoncraft_doc::NodeId(run(&mut s, "shape.rectangle", json!({"x": 0, "y": 0, "width": 50, "height": 50}))["id"].as_u64().unwrap());
     let undo = undo_len(&s);
     let r = run(&mut s, "swatch.library.add", json!({"library": "optical-effects", "names": ["Warped Checks"], "apply": "fill"}));
     assert_eq!((r["added"].clone(), r["applied"].clone()), (json!(["Warped Checks"]), json!("Warped Checks")));
@@ -896,7 +896,7 @@ fn an_optical_effect_adds_once_fills_undoes_and_saves() {
     let def = doc(&s).pattern("Warped Checks").expect("the pattern comes with its swatch").clone();
     assert_eq!(def.art.len(), 32, "the black cells of an 8 × 8 checkerboard");
     assert!(matches!(doc(&s).swatch("Warped Checks").map(|w| &w.paint), Some(Paint::Pattern { pattern, .. }) if pattern == "Warped Checks"));
-    let filled = |d: &vectorcraft_doc::Document| matches!(d.node(id).unwrap().appearance.fill_paint(), Paint::Pattern { pattern, .. } if pattern == "Warped Checks");
+    let filled = |d: &vansoncraft_doc::Document| matches!(d.node(id).unwrap().appearance.fill_paint(), Paint::Pattern { pattern, .. } if pattern == "Warped Checks");
     assert!(filled(doc(&s)));
     let r = run(&mut s, "swatch.library.add", json!({"library": "optical-effects", "names": ["Warped Checks"]}));
     assert_eq!((r["added"].clone(), r["existing"].clone()), (json!([]), json!(["Warped Checks"])));
@@ -906,7 +906,7 @@ fn an_optical_effect_adds_once_fills_undoes_and_saves() {
     assert!(doc(&s).pattern("Warped Checks").is_none() && doc(&s).swatch("Warped Checks").is_none() && !filled(doc(&s)));
     run(&mut s, "edit.redo", json!({}));
     assert!(filled(doc(&s)));
-    let back = vectorcraft_format::load(&vectorcraft_format::save(doc(&s), false)).unwrap();
+    let back = vansoncraft_format::load(&vansoncraft_format::save(doc(&s), false)).unwrap();
     assert_eq!(back.pattern("Warped Checks"), Some(&def));
     assert_eq!(back.swatch("Warped Checks").map(|w| &w.paint), doc(&s).swatch("Warped Checks").map(|w| &w.paint));
     assert!(filled(&back));
@@ -988,7 +988,7 @@ fn device_named_libraries_without_a_title_keep_their_own_files() {
 fn a_replaced_device_library_file_is_kept() {
     for format in ["ase", "gpl"] {
         let other: Vec<u8> = if format == "ase" {
-            vectorcraft_testkit::ase::ase(&[vectorcraft_testkit::ase::Block::Color("Only", b"RGB ", &[1.0, 0.0, 0.0], 2)])
+            vansoncraft_testkit::ase::ase(&[vansoncraft_testkit::ase::Block::Color("Only", b"RGB ", &[1.0, 0.0, 0.0], 2)])
         } else {
             b"GIMP Palette\nName: Other\n0 0 0 Black\n".to_vec()
         };

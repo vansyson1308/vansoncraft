@@ -3,10 +3,10 @@
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use vectorcraft_color::{BlendMode, Color, Paint};
-use vectorcraft_geom::corners::cut_corners;
-use vectorcraft_geom::shapes::{self, CornerKind};
-use vectorcraft_geom::{Affine, BezPath, FillRule, PathData, Point, Rect, Shape};
+use vansoncraft_color::{BlendMode, Color, Paint};
+use vansoncraft_geom::corners::cut_corners;
+use vansoncraft_geom::shapes::{self, CornerKind};
+use vansoncraft_geom::{Affine, BezPath, FillRule, PathData, Point, Rect, Shape};
 
 use crate::appearance::Appearance;
 use crate::live::{BlendSpec, EnvelopeKind, GradientMesh, Outliner};

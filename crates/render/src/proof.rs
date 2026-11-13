@@ -12,7 +12,7 @@
 //!   image its own inks, an RGB one its pixels separated through the color settings. They carry
 //!   no spot ink; a colorized image takes its color's plates, as a fill of it does.
 //! * **Overprint Preview** (and Separations Preview, which implies it): fills and strokes that
-//!   overprint ([`vectorcraft_doc::FillLayer::overprint`], characters' too) are drawn with
+//!   overprint ([`vansoncraft_doc::FillLayer::overprint`], characters' too) are drawn with
 //!   Darken, which approximates their inks printing over the inks below: a zero ink lets the
 //!   inks below show through, where a knockout would replace them.
 //!
@@ -24,12 +24,12 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock, RwLock, Weak};
 
-use vectorcraft_color::cms::{self, Cms, CmykLut, PROCESS_PLATES, ProofLut, lab};
-pub use vectorcraft_color::cms::{Intent, ProofSetup, ProofTarget};
-use vectorcraft_color::{Color, Swatch, SwatchGroup};
-pub use vectorcraft_doc::inks::{Inks, Link, Plate, inks, map_document_colors, map_node_colors, plates, spot_color};
-use vectorcraft_doc::overprint::darken_overprints;
-use vectorcraft_doc::{Document, ImageBlob, Node, NodeId, Shared};
+use vansoncraft_color::cms::{self, Cms, CmykLut, PROCESS_PLATES, ProofLut, lab};
+pub use vansoncraft_color::cms::{Intent, ProofSetup, ProofTarget};
+use vansoncraft_color::{Color, Swatch, SwatchGroup};
+pub use vansoncraft_doc::inks::{Inks, Link, Plate, inks, map_document_colors, map_node_colors, plates, spot_color};
+use vansoncraft_doc::overprint::darken_overprints;
+use vansoncraft_doc::{Document, ImageBlob, Node, NodeId, Shared};
 use vello_cpu::Pixmap;
 use vello_cpu::color::PremulRgba8;
 

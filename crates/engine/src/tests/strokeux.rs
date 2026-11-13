@@ -2,7 +2,7 @@
 //! Align Stroke), Units > Stroke, and the stroke options `document.inspect` reports.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{NodeId, NodeKind, Unit};
+use vansoncraft_doc::{NodeId, NodeKind, Unit};
 
 use crate::*;
 
@@ -125,7 +125,7 @@ fn stroke_weight_up_and_down_step_each_selected_stroke() {
     select(&mut s, &[bare]);
     run(&mut s, "paint.setStroke", json!({"none": true}));
     let has_stroke = |s: &Session| {
-        s.doc().unwrap().doc.node(bare).unwrap().appearance.stroke().is_some_and(|st| !matches!(st.paint, vectorcraft_color::Paint::None))
+        s.doc().unwrap().doc.node(bare).unwrap().appearance.stroke().is_some_and(|st| !matches!(st.paint, vansoncraft_color::Paint::None))
     };
     let bare_before = has_stroke(&s);
     let w = |s: &Session, id| s.doc().unwrap().doc.node(id).unwrap().appearance.stroke_width();

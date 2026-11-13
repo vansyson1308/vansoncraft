@@ -5,14 +5,14 @@ use std::sync::Arc;
 use serde_json::json;
 
 use crate::theme::Tokens;
-use crate::{VectorcraftApp, menus};
+use crate::{VansoncraftApp, menus};
 
 /// Everything the palette searches: (label, command id or `tool:<id>`, shortcut).
 pub fn items() -> Vec<(String, String, String)> {
     let mut items = vec![];
     // Aliases kept for older scripts run a command that is listed already.
-    let plugin_commands = vectorcraft_engine::cmd::plugin::command_specs();
-    for c in vectorcraft_engine::command_specs().iter().filter(|c| !vectorcraft_engine::cmd::is_alias(c.id)).chain(plugin_commands) {
+    let plugin_commands = vansoncraft_engine::cmd::plugin::command_specs();
+    for c in vansoncraft_engine::command_specs().iter().filter(|c| !vansoncraft_engine::cmd::is_alias(c.id)).chain(plugin_commands) {
         let path = c.menu.join(" › ");
         let label = if path.is_empty() { c.label.to_string() } else { format!("{path} › {}", c.label) };
         items.push((label, c.id.to_string(), menus::shortcut_of(c.id).unwrap_or("").to_string()));
@@ -22,7 +22,7 @@ pub fn items() -> Vec<(String, String, String)> {
     for c in menus::UI_COMMANDS.iter().filter(|c| c.0 != "plugin.dialog" && c.0 != crate::scripts_menu::COMMAND) {
         items.push((c.1.to_string(), c.0.to_string(), menus::shortcut_of(c.0).unwrap_or("").to_string()));
     }
-    for tool in vectorcraft_tools::catalog::all_tools() {
+    for tool in vansoncraft_tools::catalog::all_tools() {
         items.push((tool.label.to_string(), format!("tool:{}", tool.id), crate::shortcut_editor::tool_shortcut(tool.id).unwrap_or("").to_string()));
     }
     items
@@ -95,7 +95,7 @@ fn build(lang: crate::i18n::Lang) -> Vec<Entry> {
 /// ([`crate::shortcut_editor::menu_target_now`]), so Clean Up… and Find and Replace… open their
 /// dialogs. While that item is dimmed, no dialog opens and the status line says why the command
 /// can't run.
-pub(crate) fn run_pick(app: &mut VectorcraftApp, id: &str) {
+pub(crate) fn run_pick(app: &mut VansoncraftApp, id: &str) {
     if let Some(tool) = id.strip_prefix("tool:") {
         app.select_tool(tool);
     } else if id.starts_with("plugin:") {
@@ -110,7 +110,7 @@ pub(crate) fn run_pick(app: &mut VectorcraftApp, id: &str) {
     }
 }
 
-pub fn show(app: &mut VectorcraftApp, ctx: &egui::Context) {
+pub fn show(app: &mut VansoncraftApp, ctx: &egui::Context) {
     if !app.ui.palette_open {
         return;
     }
@@ -221,7 +221,7 @@ mod tests {
         assert!(matches.iter().any(|e| e.id == "view.preciseCursors"), "preference toggle appears for its name");
         assert!(entries.iter().filter(|e| e.id == "view.capsLock").all(|e| e.shown != "Use Precise Cursors"));
 
-        let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), crate::Services::default());
+        let mut app = VansoncraftApp::new(vansoncraft_engine::Session::new(), crate::Services::default());
         let before = app.session.prefs.use_precise_cursors;
         let first = matches.first().expect("query has a result");
         run_pick(&mut app, &first.id);
@@ -235,7 +235,7 @@ mod tests {
         let items = items();
         let ids: Vec<&str> = items.iter().filter(|(label, ..)| label == "Cancel Key Object").map(|(_, id, _)| id.as_str()).collect();
         assert_eq!(ids, ["select.key"]);
-        let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), crate::Services::default());
+        let mut app = VansoncraftApp::new(vansoncraft_engine::Session::new(), crate::Services::default());
         let commands = crate::control::all_commands(&app);
         let key = commands.as_array().unwrap().iter().find(|c| c["id"] == "select.key").unwrap();
         assert_eq!(key["label"], "Cancel Key Object");
@@ -257,7 +257,7 @@ mod tests {
         let ids = ["assets.export", "assets.remove", "assets.rename", "assets.settings.set", "assets.export3D", "assets.set3DFormat"];
         for id in ids {
             assert!(items().iter().any(|(_, item, _)| item == id), "{id} is in the palette");
-            let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), crate::Services::default());
+            let mut app = VansoncraftApp::new(vansoncraft_engine::Session::new(), crate::Services::default());
             app.run("file.new", json!({"width": 200, "height": 200})).unwrap();
             app.ui.status.clear();
             assert!(!crate::panel_docking::showing(&app.ui, crate::panels::asset_export::ID), "{id}");
@@ -278,7 +278,7 @@ mod tests {
     type Outcome = (Option<(String, serde_json::Map<String, serde_json::Value>)>, Option<usize>, String);
 
     /// The [`Outcome`] `app` shows.
-    fn outcome(app: &VectorcraftApp) -> Outcome {
+    fn outcome(app: &VansoncraftApp) -> Outcome {
         (
             app.ui.dialog.as_ref().map(|d| (d.kind.clone(), d.fields.clone())),
             app.session.active().map(|st| st.history.undo.len()),
@@ -299,7 +299,7 @@ mod tests {
         ];
         for (id, kind) in expected {
             assert!(items().iter().any(|(_, item, _)| item == id), "{id} is in the palette");
-            let mut app = VectorcraftApp::new(vectorcraft_testkit::fixtures::Fixture::Single.session(), crate::Services::default());
+            let mut app = VansoncraftApp::new(vansoncraft_testkit::fixtures::Fixture::Single.session(), crate::Services::default());
             app.ui.status.clear();
             let before = app.session.active().unwrap().history.undo.len();
             run_pick(&mut app, id);
@@ -320,7 +320,7 @@ mod tests {
     /// opens no dialog, changes nothing and says why the command can't run.
     #[test]
     fn every_pick_runs_what_its_menu_item_runs() {
-        use vectorcraft_testkit::fixtures::Fixture;
+        use vansoncraft_testkit::fixtures::Fixture;
         fn walk<'a>(items: &'a [menus::Item], out: &mut Vec<&'a menus::Item>) {
             for it in items {
                 match it {
@@ -351,14 +351,14 @@ mod tests {
         }
         assert!(checked.iter().any(|(id, _)| id == "edit.findReplace"), "{:?}", checked.iter().map(|c| &c.0).collect::<Vec<_>>());
         let state = |n: usize| match n.checked_sub(1) {
-            None => vectorcraft_engine::Session::new(),
+            None => vansoncraft_engine::Session::new(),
             Some(k) => Fixture::ALL[k].session(),
         };
         let (mut compared, mut dimmed) = (0, 0);
         for (id, item) in &checked {
             for n in 0..=Fixture::ALL.len() {
-                let mut picked = VectorcraftApp::new(state(n), crate::Services::default());
-                let mut clicked = VectorcraftApp::new(state(n), crate::Services::default());
+                let mut picked = VansoncraftApp::new(state(n), crate::Services::default());
+                let mut clicked = VansoncraftApp::new(state(n), crate::Services::default());
                 picked.ui.status.clear();
                 clicked.ui.status.clear();
                 // A row the menu leaves out in this state has no click to compare with.
@@ -387,13 +387,13 @@ mod tests {
     #[test]
     fn a_pick_of_a_dimmed_command_says_why_it_cannot_run() {
         let cases = [
-            ("addon.image.removeBackground", vectorcraft_testkit::fixtures::Fixture::Multi.session()),
-            ("object.createObjectMosaic", vectorcraft_testkit::fixtures::Fixture::Multi.session()),
-            ("edit.findReplace", vectorcraft_engine::Session::new()),
+            ("addon.image.removeBackground", vansoncraft_testkit::fixtures::Fixture::Multi.session()),
+            ("object.createObjectMosaic", vansoncraft_testkit::fixtures::Fixture::Multi.session()),
+            ("edit.findReplace", vansoncraft_engine::Session::new()),
         ];
         for (id, session) in cases {
             assert!(crate::shortcut_editor::menu_target(id).is_some(), "{id} has a dialog");
-            let mut app = VectorcraftApp::new(session, crate::Services::default());
+            let mut app = VansoncraftApp::new(session, crate::Services::default());
             assert!(!menus::enabled(&app, id), "{id}");
             app.ui.status.clear();
             let before = app.session.active().map(|st| st.history.undo.len());
@@ -410,7 +410,7 @@ mod tests {
         for id in ["object.group", "paint.swap"] {
             assert!(items().iter().any(|(_, item, _)| item == id), "{id} is in the palette");
             assert_eq!(crate::shortcut_editor::menu_target(id), None, "{id}");
-            let mut app = VectorcraftApp::new(vectorcraft_testkit::fixtures::Fixture::Multi.session(), crate::Services::default());
+            let mut app = VansoncraftApp::new(vansoncraft_testkit::fixtures::Fixture::Multi.session(), crate::Services::default());
             let before = app.session.active().unwrap().history.undo.len();
             run_pick(&mut app, id);
             assert!(app.ui.dialog.is_none(), "{id}");
@@ -422,12 +422,12 @@ mod tests {
     /// from the first again.
     #[test]
     fn arrow_keys_move_the_highlighted_result() {
-        let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), crate::Services::default());
+        let mut app = VansoncraftApp::new(vansoncraft_engine::Session::new(), crate::Services::default());
         app.ui.palette_open = true;
         app.ui.palette_query = "zoom".into();
         let ctx = egui::Context::default();
         let key = |k| egui::Event::Key { key: k, physical_key: None, pressed: true, repeat: false, modifiers: egui::Modifiers::NONE };
-        let frame = |app: &mut VectorcraftApp, events: Vec<egui::Event>| {
+        let frame = |app: &mut VansoncraftApp, events: Vec<egui::Event>| {
             ctx.run_ui(egui::RawInput { events, ..Default::default() }, |ui| show(app, ui.ctx())).textures_delta.clear();
             ctx.data(|d| d.get_temp::<(usize, String)>(egui::Id::unique("palette-selected"))).unwrap().0
         };
@@ -445,12 +445,12 @@ mod tests {
     /// nothing with no document open).
     #[test]
     fn each_filter_plugin_is_a_result_of_its_own() {
-        use vectorcraft_plugins::wat as tpl;
+        use vansoncraft_plugins::wat as tpl;
         let (one, two) = ("test.UI.palette_filter-one", "test.UI.palette_filter-two");
         let (key_one, key_two) = (format!("plugin:{one}"), format!("plugin:{two}"));
         let install = |id: &str, params: &str| {
             let manifest = format!(r#"{{"id":"{id}","name":"Group","version":"1","kind":"filter","params":{params}}}"#);
-            vectorcraft_plugins::registry::install_bytes(&wat::parse_str(tpl::returning(&manifest, r#"{"objects":[]}"#)).unwrap()).unwrap();
+            vansoncraft_plugins::registry::install_bytes(&wat::parse_str(tpl::returning(&manifest, r#"{"objects":[]}"#)).unwrap()).unwrap();
         };
         install(one, "{}");
         install(two, r#"{"wiggle":{"type":"bool"}}"#);
@@ -464,14 +464,14 @@ mod tests {
         assert_eq!(of(&key_one)[0].shown, format!("{path} › Group"));
         assert!(of(&key_two)[0].haystack.contains("object › plug-ins › group…"));
 
-        let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), crate::Services::default());
+        let mut app = VansoncraftApp::new(vansoncraft_engine::Session::new(), crate::Services::default());
         run_pick(&mut app, &key_two);
         assert!(app.ui.dialog.is_none(), "no document: the dimmed item's pick does nothing");
         app.run("file.new", json!({"width": 200, "height": 200})).unwrap();
         run_pick(&mut app, &key_two);
         let d = app.ui.dialog.take().expect("the filter's dialog opens");
         assert_eq!((d.kind.as_str(), d.str("__plugin")), ("plugin", two.to_string()));
-        vectorcraft_plugins::registry::remove(one);
-        vectorcraft_plugins::registry::remove(two);
+        vansoncraft_plugins::registry::remove(one);
+        vansoncraft_plugins::registry::remove(two);
     }
 }

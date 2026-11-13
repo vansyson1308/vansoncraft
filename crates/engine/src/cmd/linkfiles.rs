@@ -1,7 +1,7 @@
 //! Looking for the files of linked images and placed documents in a folder the user picks, and its
 //! subfolders (`links.findFiles`, searched on separate threads: [`super::findfiles`]). A file with
 //! a linked file's name, in any letter case, is ranked by what the link saved
-//! ([`vectorcraft_doc::LinkInfo`]): the same file (its size and hash), the same size (when the link
+//! ([`vansoncraft_doc::LinkInfo`]): the same file (its size and hash), the same size (when the link
 //! saved no hash, or the file is larger than 1 GiB and isn't hashed), or the name only.
 
 use std::collections::HashMap;
@@ -10,7 +10,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use serde_json::{Value, json};
-use vectorcraft_doc::NodeKind;
+use vansoncraft_doc::NodeKind;
 
 use super::findfiles::{self, Limits, Visitor};
 use super::{CommandSpec, EngineError, NodeId, Result, Session, always, bad, bool_or, checked_ids_param, cmd};
@@ -103,7 +103,7 @@ impl Visitor for LinkFiles {
                         // Only the size looked at is read: a file growing meanwhile no longer
                         // matches, rather than being hashed to its new end.
                         let file = std::fs::File::open(path).ok()?;
-                        let (hash, read) = vectorcraft_doc::links::hash_reader_within(file, size).ok()?;
+                        let (hash, read) = vansoncraft_doc::links::hash_reader_within(file, size).ok()?;
                         (read == size).then_some(hash)
                     })
                     .as_ref()
@@ -179,12 +179,12 @@ fn find(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 /// How many folder names the file at `found` has in common with the saved path `saved` (whichever
-/// system's separators it uses, [`vectorcraft_doc::links::path_separators`]), counted from the
+/// system's separators it uses, [`vansoncraft_doc::links::path_separators`]), counted from the
 /// innermost out up to the first that differs, compared in lowercase. The saved path's parent
 /// components are resolved first: `..` in a `/` or `\` path, and each colon after the first in a
 /// run of colons in a classic Mac OS path (`Disk:Projects:Art::photo.png` is in `Projects`).
 fn shared_folders(saved: &str, found: &Path) -> usize {
-    let separators = vectorcraft_doc::links::path_separators(saved);
+    let separators = vansoncraft_doc::links::path_separators(saved);
     let classic = separators == [':'];
     let mut up = 0usize;
     let saved = saved.rsplit(separators).skip(1).filter(move |c| {

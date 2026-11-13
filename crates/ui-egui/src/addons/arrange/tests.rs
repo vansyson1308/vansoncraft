@@ -1,14 +1,14 @@
 use serde_json::json;
-use vectorcraft_doc::NodeId;
-use vectorcraft_engine::Session;
+use vansoncraft_doc::NodeId;
+use vansoncraft_engine::Session;
 
 use super::{GRID, OPACITY, REPLACE, SIZE, SORT, ZOOM};
 use crate::tests_labels::painted_text;
-use crate::{VectorcraftApp, menus};
+use crate::{VansoncraftApp, menus};
 
 /// An app with two rectangles without a stroke, both selected.
-fn app() -> (VectorcraftApp, NodeId, NodeId) {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+fn app() -> (VansoncraftApp, NodeId, NodeId) {
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     app.run("paint.setStroke", json!({"none": true})).unwrap();
     let mut rect = |x, y, w, h| NodeId(app.run("shape.rectangle", json!({"x": x, "y": y, "width": w, "height": h})).unwrap()["id"].as_u64().unwrap());
@@ -17,12 +17,12 @@ fn app() -> (VectorcraftApp, NodeId, NodeId) {
     (app, a, b)
 }
 
-fn bounds(app: &VectorcraftApp, id: NodeId) -> vectorcraft_geom::Rect {
+fn bounds(app: &VansoncraftApp, id: NodeId) -> vansoncraft_geom::Rect {
     app.session.doc().unwrap().doc.node(id).unwrap().geometric_bounds().unwrap()
 }
 
 /// Click the Arrange Tools item `label`.
-fn click(app: &mut VectorcraftApp, label: &str) {
+fn click(app: &mut VansoncraftApp, label: &str) {
     let entries = menus::menu_entries(app);
     let item = entries.iter().find(|e| e.path == ["Object", "Plug-ins", "Arrange Tools"] && e.label == label).expect(label);
     let (id, p) = menus::click_target(&item.label, item.command.as_deref().unwrap(), &item.params);
@@ -110,7 +110,7 @@ fn replace_opens_with_the_scale_strokes_preference_and_swap_runs_directly() {
     assert!(app.ui.dialog.is_none());
     assert_eq!(
         (bounds(&app, a).center(), bounds(&app, b).center()),
-        (vectorcraft_geom::Point::new(120.0, 120.0), vectorcraft_geom::Point::new(10.0, 5.0))
+        (vansoncraft_geom::Point::new(120.0, 120.0), vansoncraft_geom::Point::new(10.0, 5.0))
     );
 }
 
@@ -123,7 +123,7 @@ fn zoom_to_selection_fits_the_selection_in_the_view() {
     app.run(ZOOM, json!({})).unwrap();
     let v = app.view().unwrap();
     // 40 × 40 into 500 × 400 (the window less the margin).
-    assert_eq!((v.center, v.zoom), (vectorcraft_geom::Point::new(120.0, 120.0), 10.0));
+    assert_eq!((v.center, v.zoom), (vansoncraft_geom::Point::new(120.0, 120.0), 10.0));
     app.run("select.none", json!({})).unwrap();
     assert!(!menus::enabled(&app, ZOOM));
     assert!(app.run(ZOOM, json!({})).is_err());

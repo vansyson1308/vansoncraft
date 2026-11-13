@@ -80,7 +80,7 @@ impl CMapCodes {
         };
         let mut at = 0;
         while let Some(&first) = bytes.get(at) {
-            // VectorCraft reads a 0x0D byte as a paragraph break and a 0x09 byte as a tab in every
+            // VansonCraft reads a 0x0D byte as a paragraph break and a 0x09 byte as a tab in every
             // CMap, as in other fonts' strings, including the row-and-cell CMaps, whose code space
             // has no one-byte codes.
             if let Some(control) = control(first) {
@@ -211,7 +211,7 @@ fn unicode_codes(s: &[u8], form: Unicode, mut out: impl FnMut(&[u8], Option<char
     }
 }
 
-/// Predefined CMap `name` among those VectorCraft carries, leaving out the Identity CMaps, whose
+/// Predefined CMap `name` among those VansonCraft carries, leaving out the Identity CMaps, whose
 /// codes are CIDs of no known character collection.
 fn predefined(name: &str) -> Option<CMapName<'_>> {
     match CMapName::from_bytes(name.as_bytes()) {
@@ -220,7 +220,7 @@ fn predefined(name: &str) -> Option<CMapName<'_>> {
     }
 }
 
-/// Adobe's predefined CMaps that VectorCraft doesn't carry, by name without `-H` or `-V`
+/// Adobe's predefined CMaps that VansonCraft doesn't carry, by name without `-H` or `-V`
 /// (<https://github.com/adobe-type-tools/cmap-resources>): the nearest carried CMap with the same
 /// code space, and whether each byte of a row-and-cell code gets its high bit set first (the EUC
 /// form of the same code; `GB-H`, `CNS1-H` and `KSC-H` have no one-byte codes, their code space
@@ -241,8 +241,8 @@ fn stand_in(stem: &str) -> Option<Option<(&'static str, bool)>> {
 }
 
 /// Predefined CMap `cmap`'s codes to CIDs, and its character collection's CID → Unicode CMap. A
-/// vertical CMap's codes are read with its horizontal CMap when VectorCraft carries that: the two
-/// differ only in the CIDs of vertical glyph forms. A CMap VectorCraft doesn't carry is read with
+/// vertical CMap's codes are read with its horizontal CMap when VansonCraft carries that: the two
+/// differ only in the CIDs of vertical glyph forms. A CMap VansonCraft doesn't carry is read with
 /// its [`stand_in`].
 fn cid_codes(cmap: &str) -> Option<CMapCodes> {
     let read = |name: &str| CMap::parse(load_embedded(predefined(name)?)?, load_embedded);
@@ -317,7 +317,7 @@ fn code_len(space: CodeSpace, bytes: &[u8]) -> Option<u8> {
 }
 
 /// Whether `cmap` names a predefined CMap: a predefined Unicode CMap ([`unicode_cmap`]), one of the
-/// predefined CMaps VectorCraft carries ([`predefined`]) or one of the others ([`stand_in`]), in
+/// predefined CMaps VansonCraft carries ([`predefined`]) or one of the others ([`stand_in`]), in
 /// its horizontal (`-H`) or vertical (`-V`) form. The Identity CMaps are not among them.
 pub(super) fn known(cmap: &str) -> bool {
     let vertical_of_predefined = || cmap.strip_suffix('V').is_some_and(|stem| predefined(&format!("{stem}H")).is_some());

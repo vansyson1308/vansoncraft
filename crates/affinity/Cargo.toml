@@ -1,5 +1,5 @@
 [package]
-name = "vectorcraft-affinity"
+name = "vansoncraft-affinity"
 description = "craft-affinity under its old name, for the corpus tests and fuzz targets"
 version.workspace = true
 edition.workspace = true

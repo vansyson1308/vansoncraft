@@ -6314,7 +6314,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "vectorcraft"
+name = "vansoncraft"
 version = "0.24.1"
 dependencies = [
  "arboard",
@@ -6344,10 +6344,10 @@ dependencies = [
  "smithay-clipboard",
  "socket2",
  "tempfile",
- "vectorcraft-engine",
- "vectorcraft-render",
- "vectorcraft-text",
- "vectorcraft-ui-egui",
+ "vansoncraft-engine",
+ "vansoncraft-render",
+ "vansoncraft-text",
+ "vansoncraft-ui-egui",
  "wayland-backend",
  "wayland-client",
  "wayland-protocols",
@@ -6362,7 +6362,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "vectorcraft-affinity"
+name = "vansoncraft-affinity"
 version = "0.24.1"
 dependencies = [
  "craft-affinity",
@@ -6372,42 +6372,42 @@ dependencies = [
 ]
 
 [[package]]
-name = "vectorcraft-apischema"
+name = "vansoncraft-apischema"
 version = "0.24.1"
 dependencies = [
  "serde_json",
 ]
 
 [[package]]
-name = "vectorcraft-brush"
+name = "vansoncraft-brush"
 version = "0.24.1"
 dependencies = [
  "kurbo 0.13.1",
  "serde",
  "serde_json",
- "vectorcraft-color",
- "vectorcraft-doc",
- "vectorcraft-geom",
+ "vansoncraft-color",
+ "vansoncraft-doc",
+ "vansoncraft-geom",
 ]
 
 [[package]]
-name = "vectorcraft-cad"
+name = "vansoncraft-cad"
 version = "0.24.1"
 dependencies = [
  "image",
  "kurbo 0.13.1",
  "serde_json",
- "vectorcraft-brush",
- "vectorcraft-color",
- "vectorcraft-doc",
- "vectorcraft-effects",
- "vectorcraft-geom",
- "vectorcraft-pathops",
- "vectorcraft-text",
+ "vansoncraft-brush",
+ "vansoncraft-color",
+ "vansoncraft-doc",
+ "vansoncraft-effects",
+ "vansoncraft-geom",
+ "vansoncraft-pathops",
+ "vansoncraft-text",
 ]
 
 [[package]]
-name = "vectorcraft-cli"
+name = "vansoncraft-cli"
 version = "0.24.1"
 dependencies = [
  "log",
@@ -6415,22 +6415,22 @@ dependencies = [
  "objc2-core-text",
  "serde_json",
  "tempfile",
- "vectorcraft-color",
- "vectorcraft-doc",
- "vectorcraft-engine",
- "vectorcraft-format",
- "vectorcraft-geom",
- "vectorcraft-mcp",
- "vectorcraft-render",
- "vectorcraft-svg",
- "vectorcraft-testkit",
- "vectorcraft-text",
+ "vansoncraft-color",
+ "vansoncraft-doc",
+ "vansoncraft-engine",
+ "vansoncraft-format",
+ "vansoncraft-geom",
+ "vansoncraft-mcp",
+ "vansoncraft-render",
+ "vansoncraft-svg",
+ "vansoncraft-testkit",
+ "vansoncraft-text",
  "windows",
  "winsafe",
 ]
 
 [[package]]
-name = "vectorcraft-color"
+name = "vansoncraft-color"
 version = "0.24.1"
 dependencies = [
  "kurbo 0.13.1",
@@ -6442,7 +6442,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "vectorcraft-doc"
+name = "vansoncraft-doc"
 version = "0.24.1"
 dependencies = [
  "chrono",
@@ -6455,13 +6455,13 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.21",
  "tiff",
- "vectorcraft-color",
- "vectorcraft-geom",
+ "vansoncraft-color",
+ "vansoncraft-geom",
  "zune-jpeg 0.5.15",
 ]
 
 [[package]]
-name = "vectorcraft-effects"
+name = "vansoncraft-effects"
 version = "0.24.1"
 dependencies = [
  "image",
@@ -6469,17 +6469,17 @@ dependencies = [
  "resvg 0.48.1",
  "serde_json",
  "svgtypes 0.16.1",
- "vectorcraft-color",
- "vectorcraft-doc",
- "vectorcraft-geom",
- "vectorcraft-pathops",
- "vectorcraft-plugins",
- "vectorcraft-text",
- "vectorcraft-three-d",
+ "vansoncraft-color",
+ "vansoncraft-doc",
+ "vansoncraft-geom",
+ "vansoncraft-pathops",
+ "vansoncraft-plugins",
+ "vansoncraft-text",
+ "vansoncraft-three-d",
 ]
 
 [[package]]
-name = "vectorcraft-engine"
+name = "vansoncraft-engine"
 version = "0.24.1"
 dependencies = [
  "cfb",
@@ -6506,34 +6506,34 @@ dependencies = [
  "serde_json",
  "skrifa 0.47.0",
  "thiserror 2.0.21",
- "vectorcraft-affinity",
- "vectorcraft-apischema",
- "vectorcraft-brush",
- "vectorcraft-cad",
- "vectorcraft-color",
- "vectorcraft-doc",
- "vectorcraft-eps",
- "vectorcraft-format",
- "vectorcraft-geom",
- "vectorcraft-js",
- "vectorcraft-metafile",
- "vectorcraft-pathops",
- "vectorcraft-pdf",
- "vectorcraft-plugins",
- "vectorcraft-render",
- "vectorcraft-scriptcheck",
- "vectorcraft-svg",
- "vectorcraft-testkit",
- "vectorcraft-text",
- "vectorcraft-tools",
- "vectorcraft-trace",
+ "vansoncraft-affinity",
+ "vansoncraft-apischema",
+ "vansoncraft-brush",
+ "vansoncraft-cad",
+ "vansoncraft-color",
+ "vansoncraft-doc",
+ "vansoncraft-eps",
+ "vansoncraft-format",
+ "vansoncraft-geom",
+ "vansoncraft-js",
+ "vansoncraft-metafile",
+ "vansoncraft-pathops",
+ "vansoncraft-pdf",
+ "vansoncraft-plugins",
+ "vansoncraft-render",
+ "vansoncraft-scriptcheck",
+ "vansoncraft-svg",
+ "vansoncraft-testkit",
+ "vansoncraft-text",
+ "vansoncraft-tools",
+ "vansoncraft-trace",
  "wat",
  "zune-core 0.5.3",
  "zune-jpegxl",
 ]
 
 [[package]]
-name = "vectorcraft-eps"
+name = "vansoncraft-eps"
 version = "0.24.1"
 dependencies = [
  "craft-pdf",
@@ -6547,21 +6547,21 @@ dependencies = [
  "ruzstd",
  "serde_json",
  "skrifa 0.47.0",
- "vectorcraft-brush",
- "vectorcraft-color",
- "vectorcraft-doc",
- "vectorcraft-effects",
- "vectorcraft-geom",
- "vectorcraft-metafile",
- "vectorcraft-pathops",
- "vectorcraft-pdf",
- "vectorcraft-render",
- "vectorcraft-testkit",
- "vectorcraft-text",
+ "vansoncraft-brush",
+ "vansoncraft-color",
+ "vansoncraft-doc",
+ "vansoncraft-effects",
+ "vansoncraft-geom",
+ "vansoncraft-metafile",
+ "vansoncraft-pathops",
+ "vansoncraft-pdf",
+ "vansoncraft-render",
+ "vansoncraft-testkit",
+ "vansoncraft-text",
 ]
 
 [[package]]
-name = "vectorcraft-format"
+name = "vansoncraft-format"
 version = "0.24.1"
 dependencies = [
  "craft-vectorcraft-format",
@@ -6571,13 +6571,13 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.21",
- "vectorcraft-doc",
- "vectorcraft-geom",
- "vectorcraft-testkit",
+ "vansoncraft-doc",
+ "vansoncraft-geom",
+ "vansoncraft-testkit",
 ]
 
 [[package]]
-name = "vectorcraft-geom"
+name = "vansoncraft-geom"
 version = "0.24.1"
 dependencies = [
  "kurbo 0.13.1",
@@ -6585,11 +6585,11 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.21",
- "vectorcraft-testkit",
+ "vansoncraft-testkit",
 ]
 
 [[package]]
-name = "vectorcraft-js"
+name = "vansoncraft-js"
 version = "0.24.1"
 dependencies = [
  "chrono",
@@ -6599,7 +6599,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "vectorcraft-mcp"
+name = "vansoncraft-mcp"
 version = "0.24.1"
 dependencies = [
  "image",
@@ -6607,44 +6607,44 @@ dependencies = [
  "proptest",
  "serde_json",
  "socket2",
- "vectorcraft-doc",
- "vectorcraft-engine",
- "vectorcraft-format",
- "vectorcraft-geom",
- "vectorcraft-render",
- "vectorcraft-svg",
- "vectorcraft-testkit",
- "vectorcraft-tools",
+ "vansoncraft-doc",
+ "vansoncraft-engine",
+ "vansoncraft-format",
+ "vansoncraft-geom",
+ "vansoncraft-render",
+ "vansoncraft-svg",
+ "vansoncraft-testkit",
+ "vansoncraft-tools",
 ]
 
 [[package]]
-name = "vectorcraft-metafile"
+name = "vansoncraft-metafile"
 version = "0.24.1"
 dependencies = [
  "image",
  "kurbo 0.13.1",
- "vectorcraft-brush",
- "vectorcraft-color",
- "vectorcraft-doc",
- "vectorcraft-effects",
- "vectorcraft-geom",
- "vectorcraft-text",
+ "vansoncraft-brush",
+ "vansoncraft-color",
+ "vansoncraft-doc",
+ "vansoncraft-effects",
+ "vansoncraft-geom",
+ "vansoncraft-text",
 ]
 
 [[package]]
-name = "vectorcraft-pathops"
+name = "vansoncraft-pathops"
 version = "0.24.1"
 dependencies = [
  "kurbo 0.13.1",
  "linesweeper",
  "proptest",
  "thiserror 2.0.21",
- "vectorcraft-geom",
- "vectorcraft-testkit",
+ "vansoncraft-geom",
+ "vansoncraft-testkit",
 ]
 
 [[package]]
-name = "vectorcraft-pdf"
+name = "vansoncraft-pdf"
 version = "0.24.1"
 dependencies = [
  "aes",
@@ -6667,18 +6667,18 @@ dependencies = [
  "skrifa 0.47.0",
  "smallvec",
  "thiserror 2.0.21",
- "vectorcraft-brush",
- "vectorcraft-color",
- "vectorcraft-doc",
- "vectorcraft-effects",
- "vectorcraft-geom",
- "vectorcraft-testkit",
- "vectorcraft-text",
+ "vansoncraft-brush",
+ "vansoncraft-color",
+ "vansoncraft-doc",
+ "vansoncraft-effects",
+ "vansoncraft-geom",
+ "vansoncraft-testkit",
+ "vansoncraft-text",
  "weezl 0.2.1",
 ]
 
 [[package]]
-name = "vectorcraft-plugins"
+name = "vansoncraft-plugins"
 version = "0.24.1"
 dependencies = [
  "craft-vectorcraft-format",
@@ -6688,16 +6688,16 @@ dependencies = [
  "serde_json",
  "sha2",
  "thiserror 2.0.21",
- "vectorcraft-color",
- "vectorcraft-doc",
- "vectorcraft-geom",
+ "vansoncraft-color",
+ "vansoncraft-doc",
+ "vansoncraft-geom",
  "wasmi",
  "wat",
  "web-time",
 ]
 
 [[package]]
-name = "vectorcraft-render"
+name = "vansoncraft-render"
 version = "0.24.1"
 dependencies = [
  "flate2",
@@ -6711,14 +6711,14 @@ dependencies = [
  "serde_json",
  "tiff",
  "unicode-general-category",
- "vectorcraft-brush",
- "vectorcraft-color",
- "vectorcraft-doc",
- "vectorcraft-effects",
- "vectorcraft-geom",
- "vectorcraft-plugins",
- "vectorcraft-testkit",
- "vectorcraft-text",
+ "vansoncraft-brush",
+ "vansoncraft-color",
+ "vansoncraft-doc",
+ "vansoncraft-effects",
+ "vansoncraft-geom",
+ "vansoncraft-plugins",
+ "vansoncraft-testkit",
+ "vansoncraft-text",
  "vello_common",
  "vello_cpu",
  "wat",
@@ -6727,7 +6727,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "vectorcraft-scriptcheck"
+name = "vansoncraft-scriptcheck"
 version = "0.24.1"
 dependencies = [
  "proptest",
@@ -6735,7 +6735,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "vectorcraft-svg"
+name = "vansoncraft-svg"
 version = "0.24.1"
 dependencies = [
  "craft-docpath",
@@ -6751,18 +6751,18 @@ dependencies = [
  "svgtypes 0.16.1",
  "thiserror 2.0.21",
  "usvg 0.48.1",
- "vectorcraft-brush",
- "vectorcraft-color",
- "vectorcraft-doc",
- "vectorcraft-effects",
- "vectorcraft-geom",
- "vectorcraft-pathops",
- "vectorcraft-testkit",
- "vectorcraft-text",
+ "vansoncraft-brush",
+ "vansoncraft-color",
+ "vansoncraft-doc",
+ "vansoncraft-effects",
+ "vansoncraft-geom",
+ "vansoncraft-pathops",
+ "vansoncraft-testkit",
+ "vansoncraft-text",
 ]
 
 [[package]]
-name = "vectorcraft-testkit"
+name = "vansoncraft-testkit"
 version = "0.24.1"
 dependencies = [
  "fax",
@@ -6770,17 +6770,17 @@ dependencies = [
  "kurbo 0.13.1",
  "proptest",
  "serde_json",
- "vectorcraft-color",
- "vectorcraft-doc",
- "vectorcraft-engine",
- "vectorcraft-format",
- "vectorcraft-geom",
- "vectorcraft-render",
- "vectorcraft-svg",
+ "vansoncraft-color",
+ "vansoncraft-doc",
+ "vansoncraft-engine",
+ "vansoncraft-format",
+ "vansoncraft-geom",
+ "vansoncraft-render",
+ "vansoncraft-svg",
 ]
 
 [[package]]
-name = "vectorcraft-text"
+name = "vansoncraft-text"
 version = "0.24.1"
 dependencies = [
  "harfrust 0.13.3",
@@ -6793,40 +6793,40 @@ dependencies = [
  "unicode-general-category",
  "unicode-script",
  "unicode-segmentation",
- "vectorcraft-doc",
- "vectorcraft-geom",
+ "vansoncraft-doc",
+ "vansoncraft-geom",
  "vello_cpu",
  "windows-registry",
  "write-fonts",
 ]
 
 [[package]]
-name = "vectorcraft-three-d"
+name = "vansoncraft-three-d"
 version = "0.24.1"
 dependencies = [
- "vectorcraft-geom",
- "vectorcraft-pathops",
+ "vansoncraft-geom",
+ "vansoncraft-pathops",
 ]
 
 [[package]]
-name = "vectorcraft-tools"
+name = "vansoncraft-tools"
 version = "0.24.1"
 dependencies = [
  "image",
  "kurbo 0.13.1",
  "serde",
  "serde_json",
- "vectorcraft-brush",
- "vectorcraft-color",
- "vectorcraft-doc",
- "vectorcraft-effects",
- "vectorcraft-geom",
- "vectorcraft-pathops",
- "vectorcraft-text",
+ "vansoncraft-brush",
+ "vansoncraft-color",
+ "vansoncraft-doc",
+ "vansoncraft-effects",
+ "vansoncraft-geom",
+ "vansoncraft-pathops",
+ "vansoncraft-text",
 ]
 
 [[package]]
-name = "vectorcraft-trace"
+name = "vansoncraft-trace"
 version = "0.24.1"
 dependencies = [
  "image",
@@ -6834,11 +6834,11 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.21",
- "vectorcraft-geom",
+ "vansoncraft-geom",
 ]
 
 [[package]]
-name = "vectorcraft-ui-egui"
+name = "vansoncraft-ui-egui"
 version = "0.24.1"
 dependencies = [
  "bytemuck",
@@ -6854,29 +6854,29 @@ dependencies = [
  "serde",
  "serde_json",
  "toml",
- "vectorcraft-brush",
- "vectorcraft-cad",
- "vectorcraft-color",
- "vectorcraft-doc",
- "vectorcraft-effects",
- "vectorcraft-engine",
- "vectorcraft-eps",
- "vectorcraft-format",
- "vectorcraft-geom",
- "vectorcraft-pdf",
- "vectorcraft-plugins",
- "vectorcraft-render",
- "vectorcraft-svg",
- "vectorcraft-testkit",
- "vectorcraft-text",
- "vectorcraft-three-d",
- "vectorcraft-tools",
+ "vansoncraft-brush",
+ "vansoncraft-cad",
+ "vansoncraft-color",
+ "vansoncraft-doc",
+ "vansoncraft-effects",
+ "vansoncraft-engine",
+ "vansoncraft-eps",
+ "vansoncraft-format",
+ "vansoncraft-geom",
+ "vansoncraft-pdf",
+ "vansoncraft-plugins",
+ "vansoncraft-render",
+ "vansoncraft-svg",
+ "vansoncraft-testkit",
+ "vansoncraft-text",
+ "vansoncraft-three-d",
+ "vansoncraft-tools",
  "wat",
  "web-time",
 ]
 
 [[package]]
-name = "vectorcraft-web"
+name = "vansoncraft-web"
 version = "0.24.1"
 dependencies = [
  "craft-web-api",
@@ -6886,10 +6886,10 @@ dependencies = [
  "log",
  "rfd",
  "serde_json",
- "vectorcraft-engine",
- "vectorcraft-format",
- "vectorcraft-text",
- "vectorcraft-ui-egui",
+ "vansoncraft-engine",
+ "vansoncraft-format",
+ "vansoncraft-text",
+ "vansoncraft-ui-egui",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",

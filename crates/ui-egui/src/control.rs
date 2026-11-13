@@ -39,10 +39,10 @@ use std::sync::atomic::{AtomicU8, AtomicU64, Ordering};
 use std::sync::mpsc::Sender;
 
 use serde_json::{Value, json};
-use vectorcraft_render::encode::{RasterExportOptions, RasterFormat};
-use vectorcraft_tools::{Mods, PointerEvent, PointerKind};
+use vansoncraft_render::encode::{RasterExportOptions, RasterFormat};
+use vansoncraft_tools::{Mods, PointerEvent, PointerKind};
 
-use crate::VectorcraftApp;
+use crate::VansoncraftApp;
 use crate::canvas::Xf;
 
 /// Synthetic pointer input advances one event per frame: keep gestures and backlog modest.
@@ -104,7 +104,7 @@ fn dialog_action(p: &Value) -> Result<Option<DialogAnswer>, String> {
     }
 }
 
-fn reserve_synthetic(app: &mut VectorcraftApp, additional: usize) -> Result<(), String> {
+fn reserve_synthetic(app: &mut VansoncraftApp, additional: usize) -> Result<(), String> {
     if additional > MAX_SYNTHETIC_EVENTS.saturating_sub(app.synthetic.len()) {
         return Err(format!("synthetic input queue limit ({MAX_SYNTHETIC_EVENTS} events); retry after pending input drains"));
     }
@@ -192,7 +192,7 @@ pub enum Outcome {
         data: bool,
     },
     /// A `ui.pointer` reply ([`pointer_reply`]), sent once the events numbered `from..to`
-    /// ([`vectorcraft_engine::Session::input_applied`]) have been made and the edit they started
+    /// ([`vansoncraft_engine::Session::input_applied`]) have been made and the edit they started
     /// on another thread is applied, so it shows the selection after the edit.
     AfterToolEdit {
         from: u64,
@@ -202,11 +202,11 @@ pub enum Outcome {
 }
 
 /// The reply to `ui.pointer`: the selection, the key object and the active tool.
-pub(crate) fn pointer_reply(app: &mut VectorcraftApp) -> Value {
+pub(crate) fn pointer_reply(app: &mut VansoncraftApp) -> Value {
     pointer_reply_for(app, app.session.active().map(|d| d.uid))
 }
 
-pub(crate) fn pointer_reply_for(app: &VectorcraftApp, document: Option<u64>) -> Value {
+pub(crate) fn pointer_reply_for(app: &VansoncraftApp, document: Option<u64>) -> Value {
     let state = document.and_then(|uid| app.session.documents().iter().find(|d| d.uid == uid));
     match state {
         Some(state) => json!({
@@ -234,7 +234,7 @@ fn wrap(r: Result<Value, String>) -> Outcome {
     }
 }
 
-pub fn all_commands(app: &VectorcraftApp) -> Value {
+pub fn all_commands(app: &VansoncraftApp) -> Value {
     let mut v: Vec<Value> = app.session.commands().into_iter().map(|c| serde_json::to_value(c).unwrap_or_default()).collect();
     for (id, label, sc, params) in crate::menus::UI_COMMANDS {
         v.push(json!({"id": id, "label": label, "shortcut": sc, "params": params, "enabled": crate::menus::enabled(app, id), "ui": true}));
@@ -242,7 +242,7 @@ pub fn all_commands(app: &VectorcraftApp) -> Value {
     Value::Array(v)
 }
 
-pub fn inspect(app: &VectorcraftApp, ctx: &egui::Context) -> Value {
+pub fn inspect(app: &VansoncraftApp, ctx: &egui::Context) -> Value {
     let r = ctx.content_rect();
     let mut ui = serde_json::to_value(&app.ui).unwrap_or_default();
     // The old floating panels' record, kept only to read older preferences: `ui.docking` has
@@ -325,10 +325,10 @@ const PANEL_FIELDS: [&str; 7] =
 /// and the Color Guide's limit, and by a panel id (`library:<kind>:loaded/<path>`) in the fields of
 /// [`PANEL_FIELDS`] and the workspaces' layouts. Text the person types (a command palette query, a
 /// workspace's name) is not read. The ids are numbered with the session's loaded libraries as the
-/// library commands number them ([`vectorcraft_engine::cmd::swatchlib::concealed_library_ids`]), so
+/// library commands number them ([`vansoncraft_engine::cmd::swatchlib::concealed_library_ids`]), so
 /// that two libraries stay two and `ui.inspect`, `ui.docking` and the library commands show a library
 /// under the same id.
-fn unreadable_library_ids(app: &VectorcraftApp) -> Vec<(String, String)> {
+fn unreadable_library_ids(app: &VansoncraftApp) -> Vec<(String, String)> {
     let mut ids = std::collections::BTreeSet::new();
     let ui = serde_json::to_value(&app.ui).unwrap_or_default();
     for field in PANEL_FIELDS {
@@ -343,7 +343,7 @@ fn unreadable_library_ids(app: &VectorcraftApp) -> Vec<(String, String)> {
     for id in app.ui.library_panels.iter().map(|p| p.id.as_str()).chain([app.ui.color_guide_limit.as_str()]) {
         add_library_id(id, &mut ids);
     }
-    let mut hidden = vectorcraft_engine::cmd::swatchlib::concealed_library_ids(&app.session, ids.iter().cloned());
+    let mut hidden = vansoncraft_engine::cmd::swatchlib::concealed_library_ids(&app.session, ids.iter().cloned());
     // Only the ids the UI state refers to are replaced in the reply.
     hidden.retain(|(id, _)| ids.contains(id));
     // The longest first, so that an id that begins another one does not replace part of it.
@@ -416,7 +416,7 @@ const SCRATCH_CHOICES: [&str; 2] = ["Startup", "None"];
 /// request), `ui.inspect` leaves out a path outside the root, as `ui.menu.list` leaves out a recent
 /// file or a listed script outside it.
 fn readable(path: &str) -> bool {
-    vectorcraft_engine::file_access::check_read(path).is_ok()
+    vansoncraft_engine::file_access::check_read(path).is_ok()
 }
 
 /// Takes out of `ui.inspect`'s copy of the UI state the paths the request may not read: recent files,
@@ -494,7 +494,7 @@ fn packet_mods(value: Option<&Value>) -> Result<Option<Mods>, String> {
     }
 }
 
-pub fn handle(app: &mut VectorcraftApp, ctx: &egui::Context, req: &ControlRequest) -> Outcome {
+pub fn handle(app: &mut VansoncraftApp, ctx: &egui::Context, req: &ControlRequest) -> Outcome {
     let p = &req.params;
     let s = |k: &str| p.get(k).and_then(Value::as_str);
     match req.method.as_str() {
@@ -521,7 +521,7 @@ pub fn handle(app: &mut VectorcraftApp, ctx: &egui::Context, req: &ControlReques
         "ui.contextMenu.list" => ok(serde_json::to_value(crate::menus::context_entries(app)).unwrap_or_default()),
         "ui.tool.select" => wrap(app.run("tool.select", json!({"tool": s("tool").unwrap_or("")}))),
         "ui.tool.list" => {
-            let groups: Vec<_> = vectorcraft_tools::TOOL_GROUPS.iter().chain(vectorcraft_tools::addons::GROUPS).copied().collect();
+            let groups: Vec<_> = vansoncraft_tools::TOOL_GROUPS.iter().chain(vansoncraft_tools::addons::GROUPS).copied().collect();
             ok(serde_json::to_value(groups).unwrap_or_default())
         }
         "ui.pointer" => pointer_events(app, ctx, req),
@@ -654,7 +654,7 @@ pub fn handle(app: &mut VectorcraftApp, ctx: &egui::Context, req: &ControlReques
         }
         "ui.screenshot" => {
             // Refused now rather than once the frame comes (it is checked again then).
-            if let Some(Err(e)) = s("path").map(vectorcraft_engine::file_access::check_write) {
+            if let Some(Err(e)) = s("path").map(vansoncraft_engine::file_access::check_write) {
                 return err(e);
             }
             let flags = crate::menus::opt_bool(p, "focus").and_then(|focus| Ok((focus, crate::menus::opt_bool(p, "data")?)));
@@ -686,7 +686,7 @@ pub fn handle(app: &mut VectorcraftApp, ctx: &egui::Context, req: &ControlReques
             // The artboard asked for (0-based, as headless), else the first.
             let Some(r) = doc.artboards.get(index.unwrap_or(0)).map(|a| a.rect) else { return err("no such artboard") };
             let scale = scale.unwrap_or(1.0);
-            if let Err(e) = vectorcraft_render::raster_size(r, scale) {
+            if let Err(e) = vansoncraft_render::raster_size(r, scale) {
                 return err(e);
             }
             // Rendered with the options of a PNG export on white, so its pixels are the exported file's.
@@ -752,7 +752,7 @@ pub fn handle(app: &mut VectorcraftApp, ctx: &egui::Context, req: &ControlReques
 }
 
 /// `app.save` (`method`) or `app.export` with params `p`.
-fn save_or_export(app: &mut VectorcraftApp, method: &str, p: &Value) -> Result<Value, String> {
+fn save_or_export(app: &mut VansoncraftApp, method: &str, p: &Value) -> Result<Value, String> {
     if method == "app.save" {
         return app.run("file.save", p.clone());
     }
@@ -767,7 +767,7 @@ fn save_or_export(app: &mut VectorcraftApp, method: &str, p: &Value) -> Result<V
 /// `result` with the PNG as `pngBase64` when there is one.
 fn with_data(mut result: Value, png: Option<&[u8]>) -> Value {
     if let Some(png) = png {
-        result["pngBase64"] = json!(vectorcraft_format::base64_encode(png));
+        result["pngBase64"] = json!(vansoncraft_format::base64_encode(png));
     }
     result
 }
@@ -785,7 +785,7 @@ fn screenshot_rgba_bytes(w: usize, h: usize) -> Option<usize> {
 
 /// The reply to `ui.screenshot`: the window capture `image` written to `path`, and sent back as
 /// `pngBase64` with `data`.
-pub fn save_screenshot(app: &mut VectorcraftApp, image: &egui::ColorImage, path: Option<&str>, data: bool) -> Value {
+pub fn save_screenshot(app: &mut VansoncraftApp, image: &egui::ColorImage, path: Option<&str>, data: bool) -> Value {
     save_screenshot_with_limit(app, image, path, data, MAX_SCREENSHOT_PNG_REPLY_BYTES)
 }
 
@@ -793,7 +793,7 @@ pub fn save_screenshot(app: &mut VectorcraftApp, image: &egui::ColorImage, path:
 /// the over-limit path without allocating a multi-megapixel frame. The public function always uses
 /// [`MAX_SCREENSHOT_PNG_REPLY_BYTES`].
 pub(crate) fn save_screenshot_with_limit(
-    app: &mut VectorcraftApp,
+    app: &mut VansoncraftApp,
     image: &egui::ColorImage,
     path: Option<&str>,
     data: bool,
@@ -812,7 +812,7 @@ pub(crate) fn save_screenshot_with_limit(
         )});
     }
     let rgba: Vec<u8> = image.pixels.iter().flat_map(|c| c.to_array()).collect();
-    let img = vectorcraft_render::Rendered { width: w as u32, height: h as u32, pixels: rgba };
+    let img = vansoncraft_render::Rendered { width: w as u32, height: h as u32, pixels: rgba };
     let png = match img.to_png() {
         Ok(png) => png,
         Err(e) => return json!({"ok": false, "error": e}),
@@ -853,9 +853,9 @@ pub(crate) struct RotateViewPress {
 /// Rotate View belongs to the canvas, not the engine's placeholder tool. Keep its press mapping
 /// across requests so document-coordinate drags do not move again as the view turns underneath.
 fn rotate_view_pointer(
-    app: &mut VectorcraftApp,
+    app: &mut VansoncraftApp,
     kind: PointerKind,
-    position: vectorcraft_geom::Point,
+    position: vansoncraft_geom::Point,
     screen: bool,
     shift: bool,
 ) -> Result<(), String> {
@@ -927,7 +927,7 @@ fn validate_rotate_view_events(params: &Value, events: &[Value]) -> Result<(), S
 }
 
 /// `ui.pointer`: pointer events through the tools.
-fn pointer_events(app: &mut VectorcraftApp, ctx: &egui::Context, req: &ControlRequest) -> Outcome {
+fn pointer_events(app: &mut VansoncraftApp, ctx: &egui::Context, req: &ControlRequest) -> Outcome {
     let rotating = app.session.tool_id() == "rotateView";
     let before = if rotating { app.view().map(|view| view.rotation) } else { None };
     let outcome = pointer_events_inner(app, ctx, req);
@@ -943,7 +943,7 @@ fn pointer_events(app: &mut VectorcraftApp, ctx: &egui::Context, req: &ControlRe
 }
 
 /// Apply a pointer packet after Rotate View validation; other tools retain their existing routing.
-fn pointer_events_inner(app: &mut VectorcraftApp, ctx: &egui::Context, req: &ControlRequest) -> Outcome {
+fn pointer_events_inner(app: &mut VansoncraftApp, ctx: &egui::Context, req: &ControlRequest) -> Outcome {
     let p = &req.params;
     let Some(events) = p.get("events").and_then(Value::as_array) else { return err("missing `events`") };
     let rotating = app.session.tool_id() == "rotateView";
@@ -990,7 +990,7 @@ fn pointer_events_inner(app: &mut VectorcraftApp, ctx: &egui::Context, req: &Con
     for ((e, backquote), (kind, x, y, mods)) in events.iter().zip(held).zip(read) {
         let screen = screen(e);
         if rotating {
-            if let Err(e) = rotate_view_pointer(app, kind, vectorcraft_geom::Point::new(x, y), screen, mods.shift) {
+            if let Err(e) = rotate_view_pointer(app, kind, vansoncraft_geom::Point::new(x, y), screen, mods.shift) {
                 return err(e);
             }
             continue;
@@ -1001,7 +1001,7 @@ fn pointer_events_inner(app: &mut VectorcraftApp, ctx: &egui::Context, req: &Con
                 None => return err("no canvas yet"),
             }
         } else {
-            vectorcraft_geom::Point::new(x, y)
+            vansoncraft_geom::Point::new(x, y)
         };
         // A tilt given in screen axes leans the same way on the page as on the screen.
         let pen = PointerEvent::json_pen(e).map(|q| match xf {
@@ -1028,7 +1028,7 @@ fn pointer_events_inner(app: &mut VectorcraftApp, ctx: &egui::Context, req: &Con
 }
 
 /// `ui.click` and `ui.drag`: pointer input through egui itself.
-fn synthetic_click(app: &mut VectorcraftApp, ctx: &egui::Context, req: &ControlRequest) -> Outcome {
+fn synthetic_click(app: &mut VansoncraftApp, ctx: &egui::Context, req: &ControlRequest) -> Outcome {
     let p = &req.params;
     let s = |k: &str| p.get(k).and_then(Value::as_str);
     // Validate the entire expansion before appending even the initial move/press.
@@ -1083,7 +1083,7 @@ fn synthetic_click(app: &mut VectorcraftApp, ctx: &egui::Context, req: &ControlR
 }
 
 /// `ui.set`: view flags, panels and status.
-fn set_ui(app: &mut VectorcraftApp, req: &ControlRequest) -> Outcome {
+fn set_ui(app: &mut VansoncraftApp, req: &ControlRequest) -> Outcome {
     let p = &req.params;
     let s = |k: &str| p.get(k).and_then(Value::as_str);
     // A flag of the wrong type is refused before anything is set.

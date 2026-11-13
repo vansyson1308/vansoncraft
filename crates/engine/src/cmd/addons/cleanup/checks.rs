@@ -3,11 +3,11 @@
 
 use std::collections::{HashMap, HashSet};
 
-use vectorcraft_color::BlendMode;
-use vectorcraft_doc::appearance::AppearanceItem;
-use vectorcraft_doc::{Appearance, Document, Knockout, Node, NodeExtras, NodeId, NodeKind, Selection, SymbolBoxes};
-use vectorcraft_geom::{PathData, Point, Rect};
-use vectorcraft_pathops::addons as po;
+use vansoncraft_color::BlendMode;
+use vansoncraft_doc::appearance::AppearanceItem;
+use vansoncraft_doc::{Appearance, Document, Knockout, Node, NodeExtras, NodeId, NodeKind, Selection, SymbolBoxes};
+use vansoncraft_geom::{PathData, Point, Rect};
+use vansoncraft_pathops::addons as po;
 
 use super::super::super::edit::outermost;
 use super::super::super::layer::empty_artboards;

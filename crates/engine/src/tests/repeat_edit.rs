@@ -3,8 +3,8 @@
 //! keeps its settings and draws the new text in every copy.
 
 use serde_json::json;
-use vectorcraft_doc::{NodeId, NodeKind};
-use vectorcraft_tools::{PointerEvent, PointerKind};
+use vansoncraft_doc::{NodeId, NodeKind};
+use vansoncraft_tools::{PointerEvent, PointerKind};
 
 use crate::*;
 
@@ -128,10 +128,10 @@ fn an_isolated_repeat_is_not_dimmed() {
     s.execute("paint.setFill", &json!({"ids": [other], "color": "#000000"})).unwrap();
     let doc = s.doc().unwrap().doc.clone();
     let render = |iso: Option<u64>| {
-        let opts = vectorcraft_render::RenderOptions { isolated: iso.map(NodeId), ..Default::default() };
-        vectorcraft_render::Renderer::new().render(&doc, 200, 200, vectorcraft_geom::Affine::IDENTITY, &opts)
+        let opts = vansoncraft_render::RenderOptions { isolated: iso.map(NodeId), ..Default::default() };
+        vansoncraft_render::Renderer::new().render(&doc, 200, 200, vansoncraft_geom::Affine::IDENTITY, &opts)
     };
-    let alpha = |img: &vectorcraft_render::Rendered, x: usize, y: usize| img.pixels[(y * 200 + x) * 4 + 3];
+    let alpha = |img: &vansoncraft_render::Rendered, x: usize, y: usize| img.pixels[(y * 200 + x) * 4 + 3];
     let plain = render(None);
     let iso = render(Some(repeat));
     assert_eq!(alpha(&plain, 20, 20), 255, "the source");

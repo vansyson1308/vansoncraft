@@ -11,7 +11,7 @@ use std::cell::{Cell, OnceCell, RefCell};
 use std::collections::HashMap;
 
 use skrifa::{FontRef, GlyphId, MetadataProvider};
-use vectorcraft_geom::BezPath;
+use vansoncraft_geom::BezPath;
 
 use super::obj::Obj;
 

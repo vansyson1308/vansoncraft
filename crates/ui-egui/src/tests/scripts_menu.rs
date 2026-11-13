@@ -3,11 +3,11 @@
 //! is gone, the notes, the macOS menu bar and the reads of the folder.
 
 use serde_json::{Value, json};
-use vectorcraft_engine::Session;
+use vansoncraft_engine::Session;
 
 use crate::menus::{self, Entry, Item};
 use crate::native_menu::{self, Node};
-use crate::{VectorcraftApp, script_runs, scripts_menu};
+use crate::{VansoncraftApp, script_runs, scripts_menu};
 
 /// A fresh folder for test `name`, holding an empty `Scripts` folder.
 fn folder(name: &str) -> std::path::PathBuf {
@@ -18,16 +18,16 @@ fn folder(name: &str) -> std::path::PathBuf {
 }
 
 /// An app with a document whose Scripts folder is `dir`'s.
-fn app(dir: &std::path::Path) -> VectorcraftApp {
+fn app(dir: &std::path::Path) -> VansoncraftApp {
     let mut session = Session::new();
     session.attach_scripts_dir(dir.join("Scripts"));
-    let mut app = VectorcraftApp::new(session, crate::Services::default());
+    let mut app = VansoncraftApp::new(session, crate::Services::default());
     app.run("file.new", json!({})).unwrap();
     app
 }
 
 /// Reads the folder again and waits for the listing.
-fn read(app: &VectorcraftApp) {
+fn read(app: &VansoncraftApp) {
     scripts_menu::refresh(app, None);
     scripts_menu::wait();
 }
@@ -64,11 +64,11 @@ fn shape(items: &[Item]) -> String {
     items.iter().map(one).collect::<Vec<_>>().join(", ")
 }
 
-fn objects(app: &VectorcraftApp) -> usize {
+fn objects(app: &VansoncraftApp) -> usize {
     app.session.doc().unwrap().doc.layers.iter().map(|l| l.children().map_or(0, Vec::len)).sum()
 }
 
-fn finish(app: &mut VectorcraftApp) {
+fn finish(app: &mut VansoncraftApp) {
     for _ in 0..10_000 {
         if !app.session.script_running() {
             return;
@@ -240,12 +240,12 @@ fn the_read_after_a_script_that_left_the_folder_asks_for_a_frame() {
 fn the_menu_notes_a_listing_that_stopped_and_a_folder_it_cannot_read() {
     let dir = folder("notes");
     let app = app(&dir);
-    for n in 0..vectorcraft_engine::script::folder::MAX_SCRIPTS + 1 {
+    for n in 0..vansoncraft_engine::script::folder::MAX_SCRIPTS + 1 {
         write(&dir, &format!("s{n:04}.js"), "");
     }
     read(&app);
     let items = scripts();
-    assert_eq!(items.len(), vectorcraft_engine::script::folder::MAX_SCRIPTS + 4);
+    assert_eq!(items.len(), vansoncraft_engine::script::folder::MAX_SCRIPTS + 4);
     assert_eq!(shape(&items[items.len() - 4..]), format!("({}), -, Check Script…, Other Script…", scripts_menu::TRUNCATED));
     // A file where the folder should be.
     std::fs::remove_dir_all(dir.join("Scripts")).unwrap();
@@ -257,7 +257,7 @@ fn the_menu_notes_a_listing_that_stopped_and_a_folder_it_cannot_read() {
 
 #[test]
 fn a_menu_listing_under_a_read_root_leaves_out_scripts_outside_it() {
-    use vectorcraft_engine::file_access::{AutomationRoots, confine};
+    use vansoncraft_engine::file_access::{AutomationRoots, confine};
     let dir = folder("read-root");
     let app = app(&dir);
     let path = write(&dir, "Export/All Artboards.js", "");
@@ -422,7 +422,7 @@ fn a_read_asked_for_during_another_runs_when_that_one_ends() {
 
 #[test]
 fn an_app_without_a_scripts_folder_keeps_the_two_fixed_items() {
-    let mut app = VectorcraftApp::new(Session::new(), crate::Services::default());
+    let mut app = VansoncraftApp::new(Session::new(), crate::Services::default());
     read(&app);
     assert_eq!(shape(&scripts()), "Check Script…, Other Script…");
     let e = menus::run_ui_command(&mut app, scripts_menu::COMMAND, &json!({ "path": "draw.js" })).unwrap().unwrap_err();

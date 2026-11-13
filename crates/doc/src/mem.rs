@@ -16,8 +16,8 @@ use std::mem::size_of;
 use std::sync::Arc;
 
 use serde_json::Value;
-use vectorcraft_color::{Paint, Swatch, SwatchGroup};
-use vectorcraft_geom::{Affine, Anchor, PathData, SubPath};
+use vansoncraft_color::{Paint, Swatch, SwatchGroup};
+use vansoncraft_geom::{Affine, Anchor, PathData, SubPath};
 
 use crate::live::{BlendSpec, EnvelopeKind};
 use crate::text::{ParaStyle, TextObject, TextRun, TextStyleDef};
@@ -374,7 +374,7 @@ fn json_bytes(v: &Value) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use vectorcraft_geom::shapes;
+    use vansoncraft_geom::shapes;
 
     fn doc_with_rects(n: usize) -> Document {
         let mut d = Document::new(1000.0, 1000.0);
@@ -458,7 +458,7 @@ mod tests {
         let n = 100;
         let before = doc_with_rects(n);
         let ids: Vec<_> = before.layers[0].children().unwrap().iter().map(|c| c.id).collect();
-        let ap = Appearance::basic(Paint::None, Paint::solid(vectorcraft_color::Color::BLACK), 2.0);
+        let ap = Appearance::basic(Paint::None, Paint::solid(vansoncraft_color::Color::BLACK), 2.0);
         let restyled = |each: bool| {
             let mut d = before.clone();
             let one = Shared::new(ap.clone());

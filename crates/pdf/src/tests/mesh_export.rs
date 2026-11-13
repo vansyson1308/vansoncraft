@@ -2,11 +2,11 @@
 //! viewer blends each patch's corner colours smoothly, instead of the mesh being cut into small
 //! flat-coloured paths that band, show seams and make the file large.
 
-use vectorcraft_color::Color;
-use vectorcraft_doc::live::{GradientMesh, MeshAppearance};
-use vectorcraft_doc::{ColorMode, Document, Node, NodeKind};
-use vectorcraft_geom::{Rect, shapes};
-use vectorcraft_testkit::raster::{assert_similar, render_artboard};
+use vansoncraft_color::Color;
+use vansoncraft_doc::live::{GradientMesh, MeshAppearance};
+use vansoncraft_doc::{ColorMode, Document, Node, NodeKind};
+use vansoncraft_geom::{Rect, shapes};
+use vansoncraft_testkit::raster::{assert_similar, render_artboard};
 
 use crate::*;
 

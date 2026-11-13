@@ -1,9 +1,9 @@
 //! Gradients along and across strokes: positions along the path and across the stroke, no seams
 //! between the slices, translucent stops painted once.
 
-use vectorcraft_color::{Gradient, GradientPaint, Paint};
-use vectorcraft_doc::{Appearance, AppearanceItem, Node, StrokeGradientMode, StrokeLayer};
-use vectorcraft_geom::PathData;
+use vansoncraft_color::{Gradient, GradientPaint, Paint};
+use vansoncraft_doc::{Appearance, AppearanceItem, Node, StrokeGradientMode, StrokeLayer};
+use vansoncraft_geom::PathData;
 
 use crate::*;
 
@@ -51,7 +51,7 @@ fn along_a_quarter_of_the_length_is_a_quarter_of_the_gradient_in_any_direction()
 /// backwards.
 #[test]
 fn along_a_reflecting_gradient_runs_its_stops_that_many_times() {
-    let g = Gradient { spread: vectorcraft_color::GradientSpread::Reflect, repeats: 2, ..Gradient::default() };
+    let g = Gradient { spread: vansoncraft_color::GradientSpread::Reflect, repeats: 2, ..Gradient::default() };
     let img = render(&line((20.0, 100.0), (180.0, 100.0)), g, StrokeGradientMode::Along, true);
     for (f, want) in [(0.125, 0.75), (0.375, 0.25), (0.625, 0.25), (0.875, 0.75)] {
         let x = 20.0 + 160.0 * f;

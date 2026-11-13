@@ -1,4 +1,4 @@
-//! VectorCraft Image Trace: raster → vector.
+//! VansonCraft Image Trace: raster → vector.
 //!
 //! A clean-room tracer built from the published ideas behind bitmap tracers (the potrace paper
 //! and classic colour quantisation), not from any existing implementation:
@@ -59,7 +59,7 @@ mod subpixel;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use serde::{Deserialize, Serialize};
-use vectorcraft_geom::PathData;
+use vansoncraft_geom::PathData;
 
 pub use contour::{Component, Loop, trace_mask};
 pub use gradient::TracedGradient;

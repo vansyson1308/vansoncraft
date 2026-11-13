@@ -40,10 +40,10 @@ pub fn generate(root: &Path) -> Result<String, String> {
     rustfmt_source(root, &render_mirror(&resolved))
 }
 
-/// Format `src` with the workspace `rustfmt` (edition 2024, same as `cargo fmt -p vectorcraft-mcp`).
+/// Format `src` with the workspace `rustfmt` (edition 2024, same as `cargo fmt -p vansoncraft-mcp`).
 fn rustfmt_source(root: &Path, src: &str) -> Result<String, String> {
     let dir = std::env::temp_dir();
-    let path = dir.join(format!("vectorcraft-ui-catalog-{}.rs", std::process::id()));
+    let path = dir.join(format!("vansoncraft-ui-catalog-{}.rs", std::process::id()));
     std::fs::write(&path, src).map_err(|e| format!("temp mirror: {e}"))?;
     let config = root.join("rustfmt.toml");
     let status =

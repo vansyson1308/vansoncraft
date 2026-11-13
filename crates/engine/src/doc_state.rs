@@ -13,6 +13,12 @@ pub struct DocState {
     /// Increments on every change (also selection and view-only changes); UIs re-render when it
     /// moves. Not a dirty flag: see [`DocState::is_dirty`].
     pub revision: u64,
+    /// The lowest id the next new object may take: the highest `next_id` the document has had
+    /// since it opened. Undo and redo bring back an earlier document with its earlier counter;
+    /// without this, the next new object would take the id of one that was undone, and an agent
+    /// or script still holding that id would change the new object instead of failing (F2 in
+    /// docs/speed/audit.md). Not saved: a saved file keeps the counter it reached.
+    pub(crate) id_floor: u64,
     /// The document as last saved (or opened). Structural sharing makes "unchanged" a pointer
     /// comparison, and undoing back to the saved state counts as clean.
     pub(crate) saved_doc: Arc<Document>,
@@ -81,11 +87,11 @@ pub struct DocState {
     pub converted: bool,
     /// The view saved into native files (`Document::last_view`); the UI keeps it current before a
     /// save and restores it when the document opens.
-    pub view: Option<vectorcraft_doc::SavedView>,
+    pub view: Option<vansoncraft_doc::SavedView>,
     /// The id of the view's active artboard, which the UI keeps current before each command it
     /// runs: a `.ai` save or export names that artboard as the file's active one. `None`, or an
     /// artboard the document no longer has: the artboard the document opened on
-    /// ([`vectorcraft_doc::Document::opened_artboard`]), else the first.
+    /// ([`vansoncraft_doc::Document::opened_artboard`]), else the first.
     pub active_artboard: Option<u32>,
     /// Restored by Data Recovery: the title says "[Recovered]" and Save asks where to save it
     /// (suggesting `path`, the file it was copied from) instead of overwriting that file.
@@ -114,8 +120,8 @@ pub struct DocState {
     /// asks about a link outside any caller's scope.
     pub opened_by: Option<Arc<file_access::AutomationRoots>>,
     /// The live-effect plug-in stages deferred while the document is drawn on screen, and the time
-    /// budget of its first view ([`vectorcraft_plugins::deferred`]). Not saved.
-    pub plugin_effects: vectorcraft_plugins::deferred::Deferrals,
+    /// budget of its first view ([`vansoncraft_plugins::deferred`]). Not saved.
+    pub plugin_effects: vansoncraft_plugins::deferred::Deferrals,
     /// What [`DocState::any_empty_artboards`] last measured. Not saved.
     empty_artboards: std::cell::RefCell<EmptyArtboards>,
     /// What [`DocState::any_art_to_fit`] last measured. Not saved.
@@ -213,15 +219,15 @@ pub struct RecalledSelection {
     id: Option<u64>,
     /// Each version of the saved selections (identified by its allocation), with the id of each saved
     /// selection in it.
-    versions: Vec<(std::sync::Weak<Vec<vectorcraft_doc::SavedSelection>>, Vec<u64>)>,
+    versions: Vec<(std::sync::Weak<Vec<vansoncraft_doc::SavedSelection>>, Vec<u64>)>,
     /// The last id given.
     last: u64,
 }
 
 impl RecalledSelection {
     /// The ids of `list`'s saved selections; a version not met before gets new ones.
-    pub(crate) fn ids(&mut self, list: &vectorcraft_doc::Shared<Vec<vectorcraft_doc::SavedSelection>>) -> Vec<u64> {
-        let version = vectorcraft_doc::Shared::downgrade(list);
+    pub(crate) fn ids(&mut self, list: &vansoncraft_doc::Shared<Vec<vansoncraft_doc::SavedSelection>>) -> Vec<u64> {
+        let version = vansoncraft_doc::Shared::downgrade(list);
         if let Some((_, ids)) = self.versions.iter().find(|(v, _)| v.ptr_eq(&version)) {
             return ids.clone();
         }
@@ -235,19 +241,19 @@ impl RecalledSelection {
         self.last
     }
     /// Keep `ids` as those of `list`'s saved selections, dropping versions nothing holds any more.
-    pub(crate) fn remember(&mut self, list: &vectorcraft_doc::Shared<Vec<vectorcraft_doc::SavedSelection>>, ids: Vec<u64>) {
-        let version = vectorcraft_doc::Shared::downgrade(list);
+    pub(crate) fn remember(&mut self, list: &vansoncraft_doc::Shared<Vec<vansoncraft_doc::SavedSelection>>, ids: Vec<u64>) {
+        let version = vansoncraft_doc::Shared::downgrade(list);
         self.versions.retain(|(v, _)| v.strong_count() > 0 && !v.ptr_eq(&version));
         self.versions.push((version, ids));
     }
     /// Recall the saved selection at `index` in `list`.
-    pub(crate) fn recall(&mut self, list: &vectorcraft_doc::Shared<Vec<vectorcraft_doc::SavedSelection>>, index: usize) {
+    pub(crate) fn recall(&mut self, list: &vansoncraft_doc::Shared<Vec<vansoncraft_doc::SavedSelection>>, index: usize) {
         self.id = self.ids(list).get(index).copied();
     }
     /// Where the recalled saved selection is in `list`, if `list` holds it.
-    pub fn index_in(&self, list: &vectorcraft_doc::Shared<Vec<vectorcraft_doc::SavedSelection>>) -> Option<usize> {
+    pub fn index_in(&self, list: &vansoncraft_doc::Shared<Vec<vansoncraft_doc::SavedSelection>>) -> Option<usize> {
         let id = self.id?;
-        let version = vectorcraft_doc::Shared::downgrade(list);
+        let version = vansoncraft_doc::Shared::downgrade(list);
         let (_, ids) = self.versions.iter().find(|(v, _)| v.ptr_eq(&version))?;
         ids.iter().position(|&x| x == id).filter(|&i| i < list.len())
     }
@@ -300,6 +306,7 @@ impl DocState {
             history: History { limit: 500, ..Default::default() },
             path,
             revision: 1,
+            id_floor: 0,
             active_layer,
             layer_rows: vec![],
             variables_highlight: None,
@@ -317,7 +324,7 @@ impl DocState {
             mask_view: None,
             spelling_ignored: Default::default(),
             transparency_grid,
-            format: "vectorcraft",
+            format: "vansoncraft",
             save_options: Default::default(),
             save_artboards: vec![],
             converted: false,
@@ -356,14 +363,14 @@ impl DocState {
     /// document changes: the installed plug-ins, whose effects draw art, and the installed fonts,
     /// which set the bounds of all type.
     pub fn any_art_to_fit(&self, indices: &[usize]) -> bool {
-        self.any_art_to_fit_with(indices, (vectorcraft_plugins::registry::revision(), vectorcraft_text::FontDb::global().generation()))
+        self.any_art_to_fit_with(indices, (vansoncraft_plugins::registry::revision(), vansoncraft_text::FontDb::global().generation()))
     }
     /// [`Self::any_art_to_fit`], with `outside` the generations of the plug-ins and the fonts.
     pub(crate) fn any_art_to_fit_with(&self, indices: &[usize], outside: (u64, u64)) -> bool {
         // Measuring runs renderer and plug-in code; should it ever ask again while measuring, it
         // is measured without being kept rather than borrowed twice.
         let Ok(mut last) = self.art_to_fit.try_borrow_mut() else {
-            let mut r = vectorcraft_render::Renderer::new();
+            let mut r = vansoncraft_render::Renderer::new();
             return indices.iter().filter_map(|i| self.doc.artboards.get(*i)).any(|a| !a.locked && r.art_bounds_on(&self.doc, a.rect).is_some());
         };
         if let Some(k) = last.as_ref()
@@ -376,7 +383,7 @@ impl DocState {
         #[cfg(test)]
         ART_TO_FIT_MEASURES.with(|c| c.set(c.get() + 1));
         // One renderer measures every artboard: each object once.
-        let mut r = vectorcraft_render::Renderer::new();
+        let mut r = vansoncraft_render::Renderer::new();
         let any = indices.iter().filter_map(|i| self.doc.artboards.get(*i)).any(|a| !a.locked && r.art_bounds_on(&self.doc, a.rect).is_some());
         *last = Some(ArtToFit { doc: Arc::downgrade(&self.doc), indices: indices.to_vec(), outside, any });
         any
@@ -501,7 +508,7 @@ impl DocState {
                 let then = before.unwrap_or(doc);
                 let was: std::collections::HashSet<NodeId> =
                     was.iter().filter_map(|o| then.layer_object(*o)).map(|n| n.id).filter(|o| old.contains(o)).collect();
-                let selected: Vec<(NodeId, &vectorcraft_doc::Node)> =
+                let selected: Vec<(NodeId, &vansoncraft_doc::Node)> =
                     self.selection.objects.iter().filter_map(|o| doc.layer_object(*o).map(|n| (*o, n))).collect();
                 // One walk of the document before the edit finds where the selected objects were;
                 // the objects the edit made aren't in it.

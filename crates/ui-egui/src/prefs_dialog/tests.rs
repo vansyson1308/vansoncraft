@@ -1,6 +1,6 @@
 use super::*;
 use crate::Services;
-use vectorcraft_engine::Session;
+use vansoncraft_engine::Session;
 
 /// The three marquee choices are available in Preferences and saved through the same path as
 /// other selection preferences.
@@ -22,7 +22,7 @@ fn marquee_selection_choices_are_saved_from_preferences() {
 
 #[test]
 fn geometric_snapping_is_a_saved_smart_guides_preference() {
-    let mut a = VectorcraftApp::new(vectorcraft_engine::Session::new(), Default::default());
+    let mut a = VansoncraftApp::new(vansoncraft_engine::Session::new(), Default::default());
     open(&mut a, Some("Smart Guides"));
     let text = crate::tests_labels::painted_text(&mut a, |a, ui| show(a, ui.ctx()));
     assert!(text.contains("Geometric Guides") && text.contains("Snap to Perpendicular") && text.contains("Snap to Tangent"), "{text}");
@@ -39,7 +39,7 @@ fn geometric_snapping_is_a_saved_smart_guides_preference() {
 #[test]
 fn start_lists_from_typed_markers_is_a_saved_type_preference() {
     const LABEL: &str = "Start Lists From Typed Markers";
-    let mut a = VectorcraftApp::new(vectorcraft_engine::Session::new(), Default::default());
+    let mut a = VansoncraftApp::new(vansoncraft_engine::Session::new(), Default::default());
     assert!(a.session.prefs.typed_lists);
     open(&mut a, Some("Type"));
     let text = crate::tests_labels::painted_text(&mut a, |a, ui| show(a, ui.ctx()));
@@ -81,7 +81,7 @@ fn preference_checkboxes_draw_outlines_without_hover() {
 /// artboards; Match User Interface Brightness keeps the theme's.
 #[test]
 fn canvas_color_choices_paint_the_pasteboard() {
-    let mut app = VectorcraftApp::new(Session::new(), Services::default());
+    let mut app = VansoncraftApp::new(Session::new(), Services::default());
     let ctx = egui::Context::default();
     apply_runtime(&mut app, &ctx);
     let themed = Tokens::get(&ctx).pasteboard;
@@ -127,8 +127,8 @@ fn reapply_restarts_the_renderer_after_a_render_threads_change() {
     apply_runtime(&mut app, &ctx);
     app.canvas.worker_started = true;
     // The automatic count as an explicit value: the process-wide count other tests read stays the same.
-    // `VECTORCRAFT_RENDER_THREADS` can give more than the 64 the preference accepts.
-    let threads = vectorcraft_render::default_threads().min(64);
+    // `VANSONCRAFT_RENDER_THREADS` can give more than the 64 the preference accepts.
+    let threads = vansoncraft_render::default_threads().min(64);
     app.run("prefs.set", json!({"key": "renderThreads", "value": threads})).unwrap();
     reapply(&mut app, &ctx);
     let restarted = !app.canvas.worker_started;
@@ -136,8 +136,8 @@ fn reapply_restarts_the_renderer_after_a_render_threads_change() {
     assert!(restarted, "the canvas renderer kept its old thread count");
 }
 
-fn app() -> VectorcraftApp {
-    VectorcraftApp::new(Session::new(), Services::default())
+fn app() -> VansoncraftApp {
+    VansoncraftApp::new(Session::new(), Services::default())
 }
 
 #[test]
@@ -172,7 +172,7 @@ fn show_tool_tips_off_hides_tool_tips() {
     let ctx = egui::Context::default();
     let mut time = 0.0;
     // Come from elsewhere and hover the button for two seconds: did its tool tip show?
-    let mut hover = |a: &mut VectorcraftApp| {
+    let mut hover = |a: &mut VansoncraftApp| {
         let mut shown = vec![];
         for i in 0..20 {
             time += 0.1;
@@ -274,10 +274,10 @@ fn preferences_ok_changes_the_guide_lock_only_with_the_option() {
 }
 
 /// Click the Preferences dialog's button `label` with the pointer.
-fn click_button(app: &mut VectorcraftApp, label: &str) {
+fn click_button(app: &mut VansoncraftApp, label: &str) {
     let ctx = egui::Context::default();
     crate::theme::install_fonts(&ctx);
-    let frame = |app: &mut VectorcraftApp, events: Vec<egui::Event>| {
+    let frame = |app: &mut VansoncraftApp, events: Vec<egui::Event>| {
         // A window takes a sizing frame and fades in: each frame is a quarter second on.
         let time = ctx.input(|i| i.time) + 0.25;
         let screen_rect = Some(egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(1200.0, 900.0)));
@@ -306,7 +306,7 @@ fn click_button(app: &mut VectorcraftApp, label: &str) {
 
 /// Click Reset Preferences and answer its question with OK: Preferences again, its working copy
 /// at the defaults.
-fn reset_preferences(app: &mut VectorcraftApp) {
+fn reset_preferences(app: &mut VansoncraftApp) {
     click_button(app, "Reset Preferences");
     assert_eq!(app.ui.dialog.as_ref().map(|d| d.kind.as_str()), Some(crate::dialogs::confirm::RESET_PREFS));
     crate::dialogs::confirm(app).unwrap();
@@ -330,7 +330,7 @@ fn reset_preferences_then_ok_leaves_the_documents_units() {
     assert_eq!(a.session.prefs.keyboard_increment, Prefs::default().keyboard_increment);
     assert_eq!(a.session.prefs.units_general, Prefs::default().units_general);
     let st = a.session.active().unwrap();
-    assert_eq!(st.doc.units, vectorcraft_doc::Unit::Millimeters);
+    assert_eq!(st.doc.units, vansoncraft_doc::Unit::Millimeters);
     assert_eq!(st.history.undo.len(), undo, "no undo step");
 }
 
@@ -346,7 +346,7 @@ fn reset_preferences_keeps_an_edit_of_general_units() {
     reset_preferences(&mut a);
     a.ui.dialog.as_mut().unwrap().fields.insert("unitsGeneral".into(), json!("inches"));
     confirm(&mut a).unwrap();
-    assert_eq!(a.session.active().unwrap().doc.units, vectorcraft_doc::Unit::Inches);
+    assert_eq!(a.session.active().unwrap().doc.units, vansoncraft_doc::Unit::Inches);
     assert_eq!(a.session.prefs.units_general, "inches");
 
     // Between frames, as `ui.dialog.set` sets fields.
@@ -357,7 +357,7 @@ fn reset_preferences_keeps_an_edit_of_general_units() {
         crate::dialogs::set_field(a.ui.dialog.as_mut().unwrap(), "unitsGeneral".into(), json!(u));
     }
     confirm(&mut a).unwrap();
-    assert_eq!(a.session.active().unwrap().doc.units, vectorcraft_doc::Unit::Points);
+    assert_eq!(a.session.active().unwrap().doc.units, vansoncraft_doc::Unit::Points);
 
     // Through a frame of the dialog.
     a.run("document.setUnits", json!({"units": "Millimeters"})).unwrap();
@@ -367,7 +367,7 @@ fn reset_preferences_keeps_an_edit_of_general_units() {
     click_button(&mut a, "General");
     a.ui.dialog.as_mut().unwrap().fields.insert("unitsGeneral".into(), json!("points"));
     confirm(&mut a).unwrap();
-    assert_eq!(a.session.active().unwrap().doc.units, vectorcraft_doc::Unit::Points);
+    assert_eq!(a.session.active().unwrap().doc.units, vansoncraft_doc::Unit::Points);
 
     let mut b = app();
     b.run("prefs.set", json!({"key": "unitsGeneral", "value": "Millimeters"})).unwrap();
@@ -410,7 +410,7 @@ fn graphics_processor_preference_shows_and_persists() {
     out.shapes.iter().for_each(|c| texts(&c.shape, &mut shown));
     assert!(shown.iter().any(|t| t.starts_with("Graphics Processor")), "{shown:?}");
     assert!(shown.iter().any(|t| t == "Automatic"), "{shown:?}");
-    assert!(shown.iter().any(|t| t == "Applies the next time VectorCraft starts."), "{shown:?}");
+    assert!(shown.iter().any(|t| t == "Applies the next time VansonCraft starts."), "{shown:?}");
     a.ui.dialog.as_mut().unwrap().fields.insert("gpuPreference".into(), json!("highPerformance"));
     assert!(!a.take_prefs_changed(), "nothing to write before OK");
     confirm(&mut a).unwrap();
@@ -445,7 +445,7 @@ fn system_title_bar_preference_shows_and_persists() {
     out.shapes.iter().for_each(|c| texts(&c.shape, &mut shown));
     let supported = cfg!(all(not(target_arch = "wasm32"), not(target_os = "macos")));
     assert_eq!(shown.iter().any(|t| t == "System Title Bar"), supported, "{shown:?}");
-    assert_eq!(shown.iter().any(|t| t == "Applies the next time VectorCraft starts."), supported, "{shown:?}");
+    assert_eq!(shown.iter().any(|t| t == "Applies the next time VansonCraft starts."), supported, "{shown:?}");
     a.ui.dialog.as_mut().unwrap().fields.insert("systemTitleBar".into(), json!(true));
     confirm(&mut a).unwrap();
     assert!(a.session.prefs.system_title_bar);
@@ -453,7 +453,7 @@ fn system_title_bar_preference_shows_and_persists() {
     assert_eq!(saved["engine_prefs"]["systemTitleBar"], json!(true));
 }
 
-/// User Interface › VectorCraft Title Bar on Every Desktop: shown on Linux and the BSDs only, under
+/// User Interface › VansonCraft Title Bar on Every Desktop: shown on Linux and the BSDs only, under
 /// System Title Bar with the next-launch note once, and saved under the key the desktop app reads
 /// before the window opens.
 #[test]
@@ -476,8 +476,8 @@ fn app_title_bar_preference_shows_and_persists() {
     let mut shown = vec![];
     out.shapes.iter().for_each(|c| texts(&c.shape, &mut shown));
     let supported = cfg!(not(any(target_arch = "wasm32", target_os = "macos", target_os = "windows")));
-    assert_eq!(shown.iter().any(|t| t == "VectorCraft Title Bar on Every Desktop"), supported, "{shown:?}");
-    let notes = shown.iter().filter(|t| *t == "Applies the next time VectorCraft starts.").count();
+    assert_eq!(shown.iter().any(|t| t == "VansonCraft Title Bar on Every Desktop"), supported, "{shown:?}");
+    let notes = shown.iter().filter(|t| *t == "Applies the next time VansonCraft starts.").count();
     assert_eq!(notes, usize::from(cfg!(all(not(target_arch = "wasm32"), not(target_os = "macos")))), "{shown:?}");
     a.ui.dialog.as_mut().unwrap().fields.insert("appTitleBar".into(), json!(true));
     confirm(&mut a).unwrap();
@@ -486,8 +486,8 @@ fn app_title_bar_preference_shows_and_persists() {
     assert_eq!(saved["engine_prefs"]["appTitleBar"], json!(true));
 }
 
-/// VectorCraft Title Bar on Every Desktop does not take clicks while System Title Bar is on or
-/// VECTORCRAFT_TITLEBAR is set. With the variable set its note names the variable in place of the
+/// VansonCraft Title Bar on Every Desktop does not take clicks while System Title Bar is on or
+/// VANSONCRAFT_TITLEBAR is set. With the variable set its note names the variable in place of the
 /// next-launch note, and with System Title Bar on and the variable unset a note says that System
 /// Title Bar takes precedence.
 #[test]
@@ -499,9 +499,9 @@ fn app_title_bar_is_dimmed_while_something_takes_precedence() {
             _ => {}
         }
     }
-    let note = "The VECTORCRAFT_TITLEBAR environment variable chooses the title bar while it is set.";
+    let note = "The VANSONCRAFT_TITLEBAR environment variable chooses the title bar while it is set.";
     let system_note = "System Title Bar takes precedence over this option while it is on.";
-    let restart_note = "Applies the next time VectorCraft starts.";
+    let restart_note = "Applies the next time VansonCraft starts.";
     let supported = cfg!(not(any(target_arch = "wasm32", target_os = "macos", target_os = "windows")));
     for (from_env, system) in [(false, false), (true, false), (false, true), (true, true)] {
         let mut a = app();
@@ -524,7 +524,7 @@ fn app_title_bar_is_dimmed_while_something_takes_precedence() {
         assert_eq!(shown.iter().filter(|t| *t == restart_note).count(), usize::from(restart_shown), "{shown:?}");
         // A click on the checkbox's label turns the preference on only when nothing takes precedence.
         let label = out.shapes.iter().find_map(|c| match &c.shape {
-            egui::Shape::Text(t) if t.galley.text() == "VectorCraft Title Bar on Every Desktop" => Some(t.visual_bounding_rect()),
+            egui::Shape::Text(t) if t.galley.text() == "VansonCraft Title Bar on Every Desktop" => Some(t.visual_bounding_rect()),
             _ => None,
         });
         assert_eq!(label.is_some(), supported);
@@ -545,7 +545,7 @@ fn app_title_bar_is_dimmed_while_something_takes_precedence() {
     }
 }
 
-/// While VECTORCRAFT_TITLEBAR chooses the frame, System Title Bar does not take clicks.
+/// While VANSONCRAFT_TITLEBAR chooses the frame, System Title Bar does not take clicks.
 #[test]
 fn system_title_bar_is_dimmed_while_the_environment_variable_chooses_the_frame() {
     let supported = cfg!(all(not(target_arch = "wasm32"), not(target_os = "macos")));
@@ -644,7 +644,7 @@ fn the_category_shown_is_highlighted() {
 }
 
 /// One frame of the Preferences dialog with `events`, keys first as the app takes them.
-fn search_frame(a: &mut VectorcraftApp, ctx: &egui::Context, events: Vec<egui::Event>) -> egui::FullOutput {
+fn search_frame(a: &mut VansoncraftApp, ctx: &egui::Context, events: Vec<egui::Event>) -> egui::FullOutput {
     let mut out = ctx.run_ui(egui::RawInput { events, ..Default::default() }, |ui| {
         crate::shortcuts::handle(a, ui.ctx());
         show(a, ui.ctx());
@@ -658,7 +658,7 @@ fn key_press(key: egui::Key, modifiers: egui::Modifiers) -> Vec<egui::Event> {
     [true, false].map(|pressed| egui::Event::Key { key, physical_key: None, pressed, repeat: false, modifiers }).to_vec()
 }
 
-fn search_text(a: &VectorcraftApp) -> String {
+fn search_text(a: &VansoncraftApp) -> String {
     a.ui.dialog.as_ref().map(|d| d.str("__search")).unwrap_or_default()
 }
 
@@ -796,7 +796,7 @@ fn escape_clears_the_search_then_closes_the_dialog() {
 
 /// One frame of the open dialog as the app draws it, keys first, a quarter second after the last
 /// (a window takes a sizing frame and fades in). → The texts it painted, with their rectangles.
-fn dialog_frame(a: &mut VectorcraftApp, ctx: &egui::Context, events: Vec<egui::Event>) -> Vec<(String, egui::Rect)> {
+fn dialog_frame(a: &mut VansoncraftApp, ctx: &egui::Context, events: Vec<egui::Event>) -> Vec<(String, egui::Rect)> {
     let time = ctx.input(|i| i.time) + 0.25;
     let screen_rect = Some(egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(1200.0, 900.0)));
     let raw = egui::RawInput { screen_rect, events, time: Some(time), ..Default::default() };
@@ -818,7 +818,7 @@ fn dialog_frame(a: &mut VectorcraftApp, ctx: &egui::Context, events: Vec<egui::E
 }
 
 /// Click the text `label` in the open dialog with the pointer.
-fn click_text(a: &mut VectorcraftApp, ctx: &egui::Context, label: &str) {
+fn click_text(a: &mut VansoncraftApp, ctx: &egui::Context, label: &str) {
     dialog_frame(a, ctx, vec![]);
     let texts = dialog_frame(a, ctx, vec![]);
     let at = texts.iter().find(|(t, _)| t == label).map(|(_, r)| r.center()).unwrap_or_else(|| panic!("no `{label}` in {texts:?}"));
@@ -830,7 +830,7 @@ fn click_text(a: &mut VectorcraftApp, ctx: &egui::Context, label: &str) {
 
 /// Preferences with an edited Keyboard Increment, the Units category and a search, over a stored
 /// Keyboard Increment of 5.
-fn edited_preferences() -> VectorcraftApp {
+fn edited_preferences() -> VansoncraftApp {
     let mut a = app();
     a.run("prefs.set", json!({"key": "keyboardIncrement", "value": 5})).unwrap();
     open(&mut a, Some("Units"));
@@ -906,19 +906,19 @@ fn numbers_without_units_are_points_reaches_the_fields_and_dims_without_picas() 
     let mut a = app();
     let ctx = egui::Context::default();
     crate::theme::install_fonts(&ctx);
-    let frame = |a: &mut VectorcraftApp| {
+    let frame = |a: &mut VansoncraftApp| {
         let mut out = ctx.run_ui(egui::RawInput::default(), |ui| {
             apply_runtime(a, ui.ctx());
             show(a, ui.ctx());
         });
         out.textures_delta.clear();
     };
-    let read = |ctx: &egui::Context| widgets::typed_unit(ctx, vectorcraft_doc::Unit::Picas);
+    let read = |ctx: &egui::Context| widgets::typed_unit(ctx, vansoncraft_doc::Unit::Picas);
     frame(&mut a);
-    assert_eq!(read(&ctx), vectorcraft_doc::Unit::Points, "on by default");
+    assert_eq!(read(&ctx), vansoncraft_doc::Unit::Points, "on by default");
     a.run("prefs.set", json!({"key": "numbersWithoutUnitsArePoints", "value": false})).unwrap();
     frame(&mut a);
-    assert_eq!(read(&ctx), vectorcraft_doc::Unit::Picas, "off");
+    assert_eq!(read(&ctx), vansoncraft_doc::Unit::Picas, "off");
     // The checkbox: dimmed with every unit in points, enabled once a unit is Picas.
     open(&mut a, Some("Units"));
     let d = a.ui.dialog.as_mut().unwrap();
@@ -1003,7 +1003,7 @@ fn hyphenation_exceptions_dialog_ok_reaches_the_hyphenator() {
     struct Clear;
     impl Drop for Clear {
         fn drop(&mut self) {
-            vectorcraft_text::set_hyphenation_exceptions("");
+            vansoncraft_text::set_hyphenation_exceptions("");
         }
     }
     let _clear = Clear;
@@ -1015,16 +1015,16 @@ fn hyphenation_exceptions_dialog_ok_reaches_the_hyphenator() {
     confirm(&mut a).unwrap();
     assert!(a.ui.dialog.is_none());
     assert_eq!(a.session.prefs.hyphenation_exceptions, "typography, hap-pen");
-    assert_eq!(vectorcraft_text::hyphenation_exceptions(), "typography, hap-pen");
-    assert!(vectorcraft_text::hyphen::hyphen_points("typography").is_empty());
-    assert_eq!(vectorcraft_text::hyphen::hyphen_points("happen"), vec![3]);
+    assert_eq!(vansoncraft_text::hyphenation_exceptions(), "typography, hap-pen");
+    assert!(vansoncraft_text::hyphen::hyphen_points("typography").is_empty());
+    assert_eq!(vansoncraft_text::hyphen::hyphen_points("happen"), vec![3]);
 }
 
 /// #5236: File Handling › Use System Defaults for Edit Original is a checkbox, on by default, and
 /// OK saves it off.
 #[test]
 fn use_system_defaults_for_edit_original_is_a_checkbox() {
-    let mut a = VectorcraftApp::new(Session::new(), Default::default());
+    let mut a = VansoncraftApp::new(Session::new(), Default::default());
     assert!(a.session.prefs.edit_original_system_defaults, "on by default");
     open(&mut a, Some("File Handling"));
     let text = crate::tests_labels::painted_text(&mut a, |a, ui| show(a, ui.ctx()));
@@ -1044,7 +1044,7 @@ fn temp_folder(name: &str) -> std::path::PathBuf {
 }
 
 /// An app whose save and open dialogs answer `path`, and that writes and reads real files.
-fn app_with_file_dialogs(path: &str) -> VectorcraftApp {
+fn app_with_file_dialogs(path: &str) -> VansoncraftApp {
     let mut a = app();
     let (save, open) = (path.to_string(), path.to_string());
     a.services.pick_save = Some(Box::new(move |_: &crate::FilePick| Some(save.clone())));
@@ -1060,7 +1060,7 @@ fn app_with_file_dialogs(path: &str) -> VectorcraftApp {
 #[test]
 fn export_and_import_preferences_buttons_round_trip() {
     let dir = temp_folder("prefs-file");
-    let path = dir.join("VectorCraft Preferences.json").to_string_lossy().into_owned();
+    let path = dir.join("VansonCraft Preferences.json").to_string_lossy().into_owned();
     let mut a = app_with_file_dialogs(&path);
     a.run("file.new", json!({"width": 400, "height": 400})).unwrap();
     a.run("document.setUnits", json!({"units": "Millimeters"})).unwrap();
@@ -1070,7 +1070,7 @@ fn export_and_import_preferences_buttons_round_trip() {
     open(&mut a, Some("General"));
     click_button(&mut a, "Export Preferences…");
     let file: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
-    assert_eq!(file["format"], "vectorcraft-preferences");
+    assert_eq!(file["format"], "vansoncraft-preferences");
     assert_eq!(file["prefs"]["uiAccent"], "green");
 
     a.ui.dialog = None;
@@ -1087,7 +1087,7 @@ fn export_and_import_preferences_buttons_round_trip() {
     confirm(&mut a).unwrap();
     assert_eq!(a.session.prefs.to_json(), saved);
     let st = a.session.active().unwrap();
-    assert_eq!(st.doc.units, vectorcraft_doc::Unit::Millimeters, "the document's units stay");
+    assert_eq!(st.doc.units, vansoncraft_doc::Unit::Millimeters, "the document's units stay");
     assert_eq!(st.history.undo.len(), undo, "no undo step");
     let _ = std::fs::remove_dir_all(&dir);
 }
@@ -1098,13 +1098,13 @@ fn export_and_import_preferences_buttons_round_trip() {
 fn import_preferences_of_a_bad_file_changes_nothing() {
     let dir = temp_folder("prefs-bad-file");
     let path = dir.join("newer.json");
-    std::fs::write(&path, r#"{"format": "vectorcraft-preferences", "version": 2, "prefs": {"uiAccent": "pink"}}"#).unwrap();
+    std::fs::write(&path, r#"{"format": "vansoncraft-preferences", "version": 2, "prefs": {"uiAccent": "pink"}}"#).unwrap();
     let mut a = app_with_file_dialogs(&path.to_string_lossy());
     let before = a.session.prefs.to_json();
     open(&mut a, Some("General"));
     a.ui.dialog.as_mut().unwrap().fields.insert("keyboardIncrement".into(), json!(9));
     click_button(&mut a, "Import Preferences…");
-    assert!(a.ui.status.contains("newer version of VectorCraft"), "{}", a.ui.status);
+    assert!(a.ui.status.contains("newer version of VansonCraft"), "{}", a.ui.status);
     assert_eq!(a.session.prefs.to_json(), before);
     assert_eq!(a.ui.dialog.as_ref().unwrap().fields["keyboardIncrement"], json!(9), "the dialog keeps its edits");
     let _ = std::fs::remove_dir_all(&dir);
@@ -1116,7 +1116,7 @@ fn import_preferences_of_a_bad_file_changes_nothing() {
 fn prefs_import_refreshes_an_open_preferences_dialog() {
     let mut a = app();
     open(&mut a, Some("General"));
-    let data = json!({"format": "vectorcraft-preferences", "version": 1, "prefs": {"keyboardIncrement": 7}}).to_string();
+    let data = json!({"format": "vansoncraft-preferences", "version": 1, "prefs": {"keyboardIncrement": 7}}).to_string();
     a.run("prefs.import", json!({ "data": data })).unwrap();
     assert_eq!(a.ui.dialog.as_ref().unwrap().fields["keyboardIncrement"], json!(7.0));
     assert_eq!(a.ui.engine_prefs["keyboardIncrement"], json!(7.0));
@@ -1135,7 +1135,7 @@ fn prefs_import_of_touch_workspace_switches_the_workspace() {
     a.run("prefs.set", json!({"key": "touchWorkspace", "value": false})).unwrap();
     a.touch_screen = true;
     a.ui.workspace = "Typography".into();
-    let file = |on: bool| json!({"format": "vectorcraft-preferences", "version": 1, "prefs": {"touchWorkspace": on}}).to_string();
+    let file = |on: bool| json!({"format": "vansoncraft-preferences", "version": 1, "prefs": {"touchWorkspace": on}}).to_string();
     a.run("prefs.import", json!({ "data": file(true) })).unwrap();
     assert_eq!(a.ui.workspace, crate::workspaces::TOUCH);
     a.run("prefs.import", json!({ "data": file(false) })).unwrap();
@@ -1146,7 +1146,7 @@ fn prefs_import_of_touch_workspace_switches_the_workspace() {
 /// picker, and none where it has not (the web).
 #[test]
 fn recovery_folder_has_a_choose_button_with_a_folder_picker() {
-    let mut a = VectorcraftApp::new(Session::new(), Default::default());
+    let mut a = VansoncraftApp::new(Session::new(), Default::default());
     a.services.pick_folder = Some(Box::new(|| None));
     open(&mut a, Some("File Handling"));
     let text = crate::tests_labels::painted_text(&mut a, |a, ui| show(a, ui.ctx()));
@@ -1162,7 +1162,7 @@ fn recovery_folder_has_a_choose_button_with_a_folder_picker() {
 fn a_chosen_recovery_folder_fills_the_field_and_cancel_keeps_it() {
     let dir = temp_folder("recovery-chosen");
     let picked = dir.to_string_lossy().into_owned();
-    let mut a = VectorcraftApp::new(Session::new(), Default::default());
+    let mut a = VansoncraftApp::new(Session::new(), Default::default());
     open(&mut a, Some("File Handling"));
     let answer = picked.clone();
     a.services.pick_folder = Some(Box::new(move || Some(answer.clone())));
@@ -1187,7 +1187,7 @@ fn a_recovery_folder_that_cannot_be_written_is_refused() {
     let dir = temp_folder("recovery-refused");
     let file = dir.join("not-a-folder.txt");
     std::fs::write(&file, b"x").unwrap();
-    let mut a = VectorcraftApp::new(Session::new(), Default::default());
+    let mut a = VansoncraftApp::new(Session::new(), Default::default());
     open(&mut a, Some("File Handling"));
     let mut d = a.ui.dialog.clone().unwrap();
     d.fields.insert("recoveryFolder".into(), json!("kept"));
@@ -1239,7 +1239,7 @@ fn a_recovery_folder_that_cannot_be_written_is_refused() {
 fn a_chosen_recovery_folder_fills_the_field_after_the_active_document_closes() {
     let dir = temp_folder("recovery-closed");
     let picked = dir.to_string_lossy().into_owned();
-    let mut a = VectorcraftApp::new(Session::new(), Default::default());
+    let mut a = VansoncraftApp::new(Session::new(), Default::default());
     let (shown, _) = crate::tests_picks::off_the_ui_thread(&mut a.services);
     a.run("file.new", json!({"width": 100, "height": 80})).unwrap();
     open(&mut a, Some("File Handling"));
@@ -1260,7 +1260,7 @@ fn a_chosen_recovery_folder_fills_the_field_after_the_active_document_closes() {
 /// folder picker, and none where it has not (the web).
 #[test]
 fn plugins_folder_has_a_choose_button_with_a_folder_picker() {
-    let mut a = VectorcraftApp::new(Session::new(), Default::default());
+    let mut a = VansoncraftApp::new(Session::new(), Default::default());
     a.services.pick_folder = Some(Box::new(|| None));
     open(&mut a, Some("Plug-ins & Scratch Disks"));
     let text = crate::tests_labels::painted_text(&mut a, |a, ui| show(a, ui.ctx()));
@@ -1277,7 +1277,7 @@ fn a_chosen_plugins_folder_fills_the_field_and_others_keep_it() {
     let dir = temp_folder("plugins-chosen");
     let file = dir.join("not-a-folder.txt");
     std::fs::write(&file, b"x").unwrap();
-    let mut a = VectorcraftApp::new(Session::new(), Default::default());
+    let mut a = VansoncraftApp::new(Session::new(), Default::default());
     open(&mut a, Some("Plug-ins & Scratch Disks"));
     let mut d = a.ui.dialog.clone().unwrap();
     for path in [file.clone(), dir.join("missing")] {
@@ -1314,7 +1314,7 @@ fn ok_refuses_a_typed_folder_that_choose_would_refuse() {
     std::fs::write(&file, b"x").unwrap();
     let missing = dir.join("missing").to_string_lossy().into_owned();
     for key in ["recoveryFolder", "pluginsFolder"] {
-        let mut a = VectorcraftApp::new(Session::new(), Default::default());
+        let mut a = VansoncraftApp::new(Session::new(), Default::default());
         open(&mut a, Some("File Handling"));
         let before = a.session.prefs.to_json();
         for path in [file.to_string_lossy().into_owned(), missing.clone()] {
@@ -1356,7 +1356,7 @@ fn preference_inputs_expose_their_visible_labels() {
     open(&mut app, Some("General"));
     let mut fonts = false;
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(900.0, 700.0)).with_accessibility_check(false).build_ui_state(
-        move |ui, app: &mut VectorcraftApp| {
+        move |ui, app: &mut VansoncraftApp| {
             if !std::mem::replace(&mut fonts, true) {
                 crate::theme::install_fonts(ui.ctx());
                 return;
@@ -1370,14 +1370,14 @@ fn preference_inputs_expose_their_visible_labels() {
 }
 
 /// Render the real category without the dialog's scroll viewport clipping later rows.
-fn preference_category_harness(category: &'static str) -> egui_kittest::Harness<'static, (VectorcraftApp, Dialog)> {
+fn preference_category_harness(category: &'static str) -> egui_kittest::Harness<'static, (VansoncraftApp, Dialog)> {
     let mut app = app();
     app.services.pick_folder = Some(Box::new(|| None));
     open(&mut app, Some(category));
     let dialog = app.ui.dialog.take().unwrap();
     let mut fonts = false;
     let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(900.0, 1400.0)).with_accessibility_check(false).build_ui_state(
-        move |ui, (app, dialog): &mut (VectorcraftApp, Dialog)| {
+        move |ui, (app, dialog): &mut (VansoncraftApp, Dialog)| {
             if !std::mem::replace(&mut fonts, true) {
                 crate::theme::install_fonts(ui.ctx());
                 return;
@@ -1440,14 +1440,14 @@ fn preference_folder_label_preserves_the_choose_action_name() {
 /// Under automation roots, OK refuses a typed folder outside them before it looks at the folder.
 #[test]
 fn ok_refuses_a_typed_folder_outside_the_automation_roots_before_looking_at_it() {
-    use vectorcraft_engine::file_access::{self, Access};
+    use vansoncraft_engine::file_access::{self, Access};
     let dir = temp_folder("typed-roots");
     let inside = dir.join("inside");
     std::fs::create_dir_all(&inside).unwrap();
     let outside = dir.join("outside-missing").to_string_lossy().into_owned();
     let roots = file_access::AutomationRoots::new(&[inside.as_path()], &[inside.as_path()]).unwrap().unwrap();
     for (key, access) in [("recoveryFolder", Access::Write), ("pluginsFolder", Access::Read)] {
-        let mut a = VectorcraftApp::new(Session::new(), Default::default());
+        let mut a = VansoncraftApp::new(Session::new(), Default::default());
         open(&mut a, Some("File Handling"));
         a.ui.dialog.as_mut().unwrap().fields.insert(key.into(), json!(outside));
         let r = file_access::confine(Some(&roots), || confirm(&mut a));

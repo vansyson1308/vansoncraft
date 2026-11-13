@@ -1,6 +1,6 @@
 #![allow(clippy::unwrap_used, clippy::panic)]
 use serde_json::{Value, json};
-use vectorcraft_doc::{NodeId, NodeKind};
+use vansoncraft_doc::{NodeId, NodeKind};
 
 use crate::Session;
 
@@ -54,7 +54,7 @@ fn every_three_d_type_applies_to_clipping_groups_blends_and_symbol_instances_in_
             // The object stays what it is, and the effect draws its solid.
             assert!(!matches!(n.kind, NodeKind::Path { .. }), "{id} on a {what}");
             let d = &s.doc().unwrap().doc;
-            let art = vectorcraft_render::effects::revolve_art_in(Some(d), &n).or_else(|| vectorcraft_render::effects::solid_art_in(Some(d), &n));
+            let art = vansoncraft_render::effects::revolve_art_in(Some(d), &n).or_else(|| vansoncraft_render::effects::solid_art_in(Some(d), &n));
             assert!(art.is_some_and(|a| a.visual_bounds().is_some()), "{id} on a {what} draws its solid");
             // Edited through the dialog's command too.
             s.execute("effect.setParams", &json!({"index": 0, "item": null, "params": {"rotationY": 20.0}}))
@@ -70,17 +70,17 @@ fn a_group_holding_an_image_refuses_every_three_d_type_and_names_image_trace() {
     let image = s
         .edit("Place", |d, _| {
             let id = d.alloc_id();
-            let img = vectorcraft_doc::ImageObject {
+            let img = vansoncraft_doc::ImageObject {
                 key: "k".into(),
                 width: 4,
                 height: 4,
-                xf: vectorcraft_geom::Affine::translate((100.0, 100.0)),
+                xf: vansoncraft_geom::Affine::translate((100.0, 100.0)),
                 link: None,
                 placement: Default::default(),
                 pixels: None,
             };
             let (parent, index, _) = d.position(a).unwrap();
-            d.insert(parent, index + 1, vectorcraft_doc::Node::new(id, NodeKind::Image(Box::new(img))))?;
+            d.insert(parent, index + 1, vansoncraft_doc::Node::new(id, NodeKind::Image(Box::new(img))))?;
             Ok(id)
         })
         .unwrap();

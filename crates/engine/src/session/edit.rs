@@ -16,10 +16,14 @@ impl Session {
             cmd::settle_interaction(self)?;
         }
         let menu = self.menu.clone();
+        let unique_ids = self.unique_ids;
         let st = self.doc_mut()?;
         let before = st.doc.clone();
         let before_sel = st.selection.clone();
+        let floor = if unique_ids { st.id_floor } else { 0 };
         let doc = Arc::make_mut(&mut st.doc);
+        // With `unique_ids`, new objects never take the id of one an undo took away.
+        doc.raise_next_id(floor);
         // The Global Edit members the edit reached besides the selection.
         let mut spread = vec![];
         let mut dim_changed = false;
@@ -361,7 +365,7 @@ impl Session {
         // `keep_interaction` records no undo step): the last real transformation stands.
         let changed = !Arc::ptr_eq(&it.doc, &st.doc);
         // How far a drag of direct-selected anchors moved them (`path.moveAnchors`).
-        let moved = vectorcraft_geom::Vec2::new(
+        let moved = vansoncraft_geom::Vec2::new(
             preview.1.get("dx").and_then(Value::as_f64).unwrap_or(0.0),
             preview.1.get("dy").and_then(Value::as_f64).unwrap_or(0.0),
         );
@@ -387,7 +391,7 @@ impl Session {
             if let Some(patterns) = preview.1.get("patterns") {
                 options["patterns"] = patterns.clone();
             }
-            st.last_transform = Some(LastTransform::Matrix(vectorcraft_geom::Affine::translate(moved), options));
+            st.last_transform = Some(LastTransform::Matrix(vansoncraft_geom::Affine::translate(moved), options));
             st.last_perspective = None;
         } else if preview.0 == "object.transformEach" && changed {
             // Transform Again repeats it as it stood when OK was pressed.

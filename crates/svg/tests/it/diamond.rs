@@ -3,11 +3,11 @@
 //! (or the stroke's outline), others as an image, with a warning; read back, the SVG looks as the
 //! canvas paints the gradient.
 
-use vectorcraft_color::{Color, Gradient, GradientGeom, GradientKind, GradientMethod, GradientPaint, GradientStop, Paint};
-use vectorcraft_doc::{Appearance, Document, Node, NodeId};
-use vectorcraft_geom::{Point, Rect, shapes};
-use vectorcraft_svg::{ExportOptions, export_full, import};
-use vectorcraft_testkit::raster::{assert_similar, render_artboard};
+use vansoncraft_color::{Color, Gradient, GradientGeom, GradientKind, GradientMethod, GradientPaint, GradientStop, Paint};
+use vansoncraft_doc::{Appearance, Document, Node, NodeId};
+use vansoncraft_geom::{Point, Rect, shapes};
+use vansoncraft_svg::{ExportOptions, export_full, import};
+use vansoncraft_testkit::raster::{assert_similar, render_artboard};
 
 /// `gradient` (red to blue when `None`), from (100, 80) out to a square turned and stretched
 /// across its vector.
@@ -63,7 +63,7 @@ fn a_stroke_past_its_paint_box_is_painted_to_its_tip() {
     // The center lies below the art, so the miter's tip is farther from it than any corner of the
     // paint box.
     let c = Point::new(100.0, 200.0);
-    let geom = GradientGeom { start: c, end: c + vectorcraft_geom::Vec2::new(200.0, 0.0), aspect: 1.0, focal: None };
+    let geom = GradientGeom { start: c, end: c + vansoncraft_geom::Vec2::new(200.0, 0.0), aspect: 1.0, focal: None };
     let ramp = |kind, method| {
         let stops = vec![GradientStop::new(0.0, Color::WHITE), GradientStop::new(1.0, Color::BLACK)];
         let mut g = GradientPaint::new(Gradient { method, ..Gradient::new(kind, stops) });
@@ -78,14 +78,14 @@ fn a_stroke_past_its_paint_box_is_painted_to_its_tip() {
     ] {
         let mut ap = Appearance::basic(Paint::None, paint, 8.0);
         for it in &mut ap.items {
-            if let vectorcraft_doc::AppearanceItem::Stroke(s) = it {
+            if let vansoncraft_doc::AppearanceItem::Stroke(s) = it {
                 s.miter_limit = 10.0;
             }
         }
         // The miter's tip runs up to y 23.5; the paint box starts at y 36. Rows 30 and 31 are
         // covered across pixel column 100.
-        let peak = vectorcraft_geom::SubPath::polyline(&[Point::new(85.0, 100.0), Point::new(100.0, 40.0), Point::new(115.0, 100.0)], false);
-        let d = doc_with(Node::path(NodeId(0), vectorcraft_geom::PathData::single(peak), ap));
+        let peak = vansoncraft_geom::SubPath::polyline(&[Point::new(85.0, 100.0), Point::new(100.0, 40.0), Point::new(115.0, 100.0)], false);
+        let d = doc_with(Node::path(NodeId(0), vansoncraft_geom::PathData::single(peak), ap));
         let o = export_full(&d, &ExportOptions::default(), None);
         let (want, got) = (render_artboard(&d), render_artboard(&import(&o.svg).unwrap()));
         for y in [30, 31] {
@@ -134,7 +134,7 @@ fn a_diamond_that_quadrants_cannot_draw_is_an_image() {
 /// plug-in's or a file's, which a diamond doesn't draw).
 #[test]
 fn a_diamond_on_characters_is_written_radial() {
-    use vectorcraft_doc::{CharStyle, NodeKind, TextObject};
+    use vansoncraft_doc::{CharStyle, NodeKind, TextObject};
     let Paint::Gradient(mut g) = diamond(None) else { panic!("a gradient") };
     g.geom = g.geom.map(|geom| GradientGeom { focal: Some(Point::new(110.0, 75.0)), ..geom });
     let st = CharStyle { fill: Paint::Gradient(g), size: 48.0, ..CharStyle::default() };

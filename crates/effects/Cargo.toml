@@ -1,20 +1,20 @@
 [package]
-name = "vectorcraft-effects"
+name = "vansoncraft-effects"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "VectorCraft live effects evaluated to geometry"
+description = "VansonCraft live effects evaluated to geometry"
 
 [lints]
 workspace = true
 
 [dependencies]
-vectorcraft-geom = { workspace = true }
-vectorcraft-three-d = { workspace = true }
-vectorcraft-doc = { workspace = true }
-vectorcraft-pathops = { workspace = true }
-vectorcraft-text = { workspace = true }
-vectorcraft-plugins = { workspace = true }
+vansoncraft-geom = { workspace = true }
+vansoncraft-three-d = { workspace = true }
+vansoncraft-doc = { workspace = true }
+vansoncraft-pathops = { workspace = true }
+vansoncraft-text = { workspace = true }
+vansoncraft-plugins = { workspace = true }
 image = { workspace = true }
 kurbo = { workspace = true }
 # Effect › SVG Filters draws its filters with resvg (MIT OR Apache-2.0), at the usvg version the
@@ -25,4 +25,4 @@ svgtypes = "0.16"
 serde_json = { workspace = true }
 
 [dev-dependencies]
-vectorcraft-color = { workspace = true }
+vansoncraft-color = { workspace = true }

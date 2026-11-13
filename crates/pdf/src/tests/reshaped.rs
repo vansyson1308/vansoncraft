@@ -2,13 +2,13 @@
 //! only when that type draws what the file drew; otherwise the file's glyphs stay, as outlines.
 //! The file is written from scratch from the PDF specification (ISO 32000-1 §9.7, composite
 //! fonts), its font program a test font built in code over Source Sans 3
-//! ([`vectorcraft_text::test_fonts::matra_font`]): Ka draws Source Sans 3's `a` and the vowel sign
+//! ([`vansoncraft_text::test_fonts::matra_font`]): Ka draws Source Sans 3's `a` and the vowel sign
 //! I, set before its consonant, draws its `i`.
 
-use vectorcraft_doc::{Document, NodeKind};
-use vectorcraft_testkit::pdf::{PdfPage, first_extra, pdf_with};
-use vectorcraft_text::FontDb;
-use vectorcraft_text::test_fonts::{MATRA_FAMILY, matra_font};
+use vansoncraft_doc::{Document, NodeKind};
+use vansoncraft_testkit::pdf::{PdfPage, first_extra, pdf_with};
+use vansoncraft_text::FontDb;
+use vansoncraft_text::test_fonts::{MATRA_FAMILY, matra_font};
 
 use crate::tests_import_fidelity::stream;
 use crate::*;

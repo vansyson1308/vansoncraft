@@ -1,7 +1,7 @@
 use super::*;
 use crate::testutil::*;
-use vectorcraft_doc::{Appearance, Selection};
-use vectorcraft_geom::shapes;
+use vansoncraft_doc::{Appearance, Selection};
+use vansoncraft_geom::shapes;
 
 fn two_rects() -> (Document, NodeId, NodeId) {
     two_rects_at(0.0)
@@ -140,7 +140,7 @@ fn shape_builder_builds_its_map_once_for_hover_alt_hover_and_a_merge() {
     // The same objects, one of them moved.
     let mut moved = d.clone();
     let second = s.objects[1];
-    moved.node_mut(second).unwrap().transform(vectorcraft_geom::Affine::translate((10.0, 0.0)), false);
+    moved.node_mut(second).unwrap().transform(vansoncraft_geom::Affine::translate((10.0, 0.0)), false);
     let cx3 = ToolContext { revision: (1, 3), ..cx(&moved, &s, &p) };
     t.pointer(&cx3, &ev(PointerKind::Move, 75.0, 75.0));
     assert_eq!(t.cache.builds, 2, "a hover on a new revision of other art");
@@ -1229,8 +1229,8 @@ fn bucket_highlights_an_edge_thinner_than_a_face() {
 #[test]
 fn bucket_alt_samples_face_edge_and_selected_region_without_painting() {
     let (mut d, _gid, face, edge) = live_group_doc();
-    d.node_mut(face).unwrap().appearance.set_fill(vectorcraft_color::Paint::solid(vectorcraft_color::Color::WHITE));
-    d.node_mut(edge).unwrap().appearance.set_stroke(vectorcraft_color::Paint::solid(vectorcraft_color::Color::BLACK));
+    d.node_mut(face).unwrap().appearance.set_fill(vansoncraft_color::Paint::solid(vansoncraft_color::Color::WHITE));
+    d.node_mut(edge).unwrap().appearance.set_stroke(vansoncraft_color::Paint::solid(vansoncraft_color::Color::BLACK));
     let s = Selection::default();
     let p = paint();
     let cx = crate::testutil::cx(&d, &s, &p);
@@ -1261,7 +1261,7 @@ fn bucket_alt_samples_face_edge_and_selected_region_without_painting() {
 #[test]
 fn bucket_alt_shift_samples_only_solid_color_and_restores_hover() {
     let (mut d, _gid, face, _edge) = live_group_doc();
-    d.node_mut(face).unwrap().appearance.set_fill(vectorcraft_color::Paint::solid(vectorcraft_color::Color::WHITE));
+    d.node_mut(face).unwrap().appearance.set_fill(vansoncraft_color::Paint::solid(vansoncraft_color::Color::WHITE));
     let s = Selection::default();
     let p = paint();
     let cx = cx(&d, &s, &p);
@@ -1278,7 +1278,7 @@ fn bucket_alt_shift_samples_only_solid_color_and_restores_hover() {
     assert!(t.overlays(&cx).is_empty());
     assert_eq!(
         t.pointer(&cx, &ev(PointerKind::Down, 75.0, 25.0).with_mods(both)),
-        vec![Action::Exec("paint.sampleColor".into(), json!({"color": crate::params::color_json(&vectorcraft_color::Color::WHITE), "ids": []}))]
+        vec![Action::Exec("paint.sampleColor".into(), json!({"color": crate::params::color_json(&vansoncraft_color::Color::WHITE), "ids": []}))]
     );
     assert!(t.pointer(&cx, &ev(PointerKind::Down, 400.0, 400.0).with_mods(both)).is_empty());
     t.pointer(&cx, &ev(PointerKind::Move, 75.0, 25.0));
@@ -1289,7 +1289,7 @@ fn bucket_alt_shift_samples_only_solid_color_and_restores_hover() {
 #[test]
 fn bucket_alt_shift_samples_gradient_image_and_stroke_color() {
     let (mut d, _a, b) = two_rects();
-    let gradient = vectorcraft_color::Paint::Gradient(Box::new(vectorcraft_color::GradientPaint::new(vectorcraft_color::Gradient::default())));
+    let gradient = vansoncraft_color::Paint::Gradient(Box::new(vansoncraft_color::GradientPaint::new(vansoncraft_color::Gradient::default())));
     d.node_mut(b).unwrap().appearance.set_fill(gradient.clone());
     let s = Selection::default();
     let p = paint();
@@ -1299,15 +1299,15 @@ fn bucket_alt_shift_samples_gradient_image_and_stroke_color() {
         t.pointer(&cx(&d, &s, &p), &ev(PointerKind::Down, 100.0, 50.0).with_mods(both)),
         vec![Action::Exec(
             "paint.sampleColor".into(),
-            json!({"color": crate::params::color_json(&vectorcraft_color::Color::rgb(0.5, 0.5, 0.5)), "ids": []})
+            json!({"color": crate::params::color_json(&vansoncraft_color::Color::rgb(0.5, 0.5, 0.5)), "ids": []})
         )]
     );
 
     let (mut d, _gid, _face, edge) = live_group_doc();
-    d.node_mut(edge).unwrap().appearance.set_stroke(vectorcraft_color::Paint::solid(vectorcraft_color::Color::BLACK));
+    d.node_mut(edge).unwrap().appearance.set_stroke(vansoncraft_color::Paint::solid(vansoncraft_color::Color::BLACK));
     assert_eq!(
         t.pointer(&cx(&d, &s, &p), &ev(PointerKind::Down, 50.0, 25.0).with_mods(both)),
-        vec![Action::Exec("paint.sampleColor".into(), json!({"color": crate::params::color_json(&vectorcraft_color::Color::BLACK), "ids": []}))]
+        vec![Action::Exec("paint.sampleColor".into(), json!({"color": crate::params::color_json(&vansoncraft_color::Color::BLACK), "ids": []}))]
     );
 
     let mut d = Document::new(500.0, 500.0);
@@ -1315,32 +1315,32 @@ fn bucket_alt_shift_samples_gradient_image_and_stroke_color() {
     let img = image::RgbaImage::from_raw(3, 1, [[255, 0, 0, 255], [0, 255, 0, 255], [0, 0, 255, 255]].concat()).unwrap();
     let mut png = vec![];
     img.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
-    d.images.insert("px".into(), vectorcraft_doc::ImageBlob::png(png));
-    let im = vectorcraft_doc::ImageObject {
+    d.images.insert("px".into(), vansoncraft_doc::ImageBlob::png(png));
+    let im = vansoncraft_doc::ImageObject {
         key: "px".into(),
         width: 3,
         height: 1,
-        xf: vectorcraft_geom::Affine::scale(10.0),
+        xf: vansoncraft_geom::Affine::scale(10.0),
         link: None,
         placement: Default::default(),
         pixels: None,
     };
     let id = d.alloc_id();
-    d.insert(Some(l), 0, Node::new(id, vectorcraft_doc::NodeKind::Image(Box::new(im)))).unwrap();
+    d.insert(Some(l), 0, Node::new(id, vansoncraft_doc::NodeKind::Image(Box::new(im)))).unwrap();
     let mut cx = cx(&d, &s, &p);
     cx.raster_sample = 3;
     assert_eq!(
         t.pointer(&cx, &ev(PointerKind::Down, 15.0, 5.0).with_mods(Mods { alt: true, ..Default::default() })),
         vec![Action::Exec(
             "paint.sampleColor".into(),
-            json!({"color": crate::params::color_json(&vectorcraft_color::Color::rgb8(85, 85, 85)), "stroke": false, "ids": [], "clearStroke": true})
+            json!({"color": crate::params::color_json(&vansoncraft_color::Color::rgb8(85, 85, 85)), "stroke": false, "ids": [], "clearStroke": true})
         )]
     );
     assert_eq!(
         t.pointer(&cx, &ev(PointerKind::Down, 15.0, 5.0).with_mods(both)),
         vec![Action::Exec(
             "paint.sampleColor".into(),
-            json!({"color": crate::params::color_json(&vectorcraft_color::Color::rgb8(85, 85, 85)), "ids": []})
+            json!({"color": crate::params::color_json(&vansoncraft_color::Color::rgb8(85, 85, 85)), "ids": []})
         )]
     );
 }
@@ -1401,7 +1401,7 @@ fn bucket_keeps_its_map_while_the_document_is_unchanged() {
     t.pointer(&cx2, &ev(PointerKind::Move, 25.0, 50.0));
     assert_eq!(t.cache.builds, 1, "a hover on a new revision of the same art");
     let mut moved = d.clone();
-    moved.node_mut(b).unwrap().transform(vectorcraft_geom::Affine::translate((10.0, 0.0)), false);
+    moved.node_mut(b).unwrap().transform(vansoncraft_geom::Affine::translate((10.0, 0.0)), false);
     let cx3 = ToolContext { revision: (1, 3), ..cx(&moved, &s, &p) };
     t.pointer(&cx3, &ev(PointerKind::Move, 25.0, 50.0));
     assert_eq!(t.cache.builds, 2, "a hover on a new revision of other art");

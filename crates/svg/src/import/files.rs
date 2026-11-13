@@ -10,8 +10,8 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 
 use usvg::{ImageHrefResolver, ImageKind, roxmltree};
-use vectorcraft_doc::LinkInfo;
-use vectorcraft_doc::links::missing_placeholder;
+use vansoncraft_doc::LinkInfo;
+use vansoncraft_doc::links::missing_placeholder;
 
 use super::{Edits, depth, href};
 use crate::{ImportOptions, MAX_ELEMENT_DEPTH, MAX_SVGZ, SvgError};
@@ -149,7 +149,7 @@ impl Files {
                     None => {
                         let read = file.clone().and_then(|file| opts.read.and_then(|read| read(&file)));
                         let source = match read {
-                            Some((bytes, link)) => files.source(bytes, link).ok_or("is not an image VectorCraft reads"),
+                            Some((bytes, link)) => files.source(bytes, link).ok_or("is not an image VansonCraft reads"),
                             None => Err("not found"),
                         };
                         if let Some(file) = file {

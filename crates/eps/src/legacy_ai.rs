@@ -65,14 +65,14 @@
 use std::fmt::Write;
 use std::sync::Arc;
 
-use vectorcraft_color::cms::Cms;
-use vectorcraft_color::{BlendMode, Color, Gradient, GradientKind, GradientPaint, Paint};
-use vectorcraft_doc::{
+use vansoncraft_color::cms::Cms;
+use vansoncraft_color::{BlendMode, Color, Gradient, GradientKind, GradientPaint, Paint};
+use vansoncraft_doc::{
     AppearanceItem, AreaOptions, CharPosition, CharStyle, CompositeFont, Document, FillLayer, ImageBlob, Justify, Node, NodeKind, ParaDirection,
     ParaStyle, PathAlign, PathEffect, StrokeLayer, TextKind, TextObject,
 };
-use vectorcraft_effects::stroke;
-use vectorcraft_geom::{Affine, BezPath, FillRule, PathData, Rect, Shape, SubPath, Vec2};
+use vansoncraft_effects::stroke;
+use vansoncraft_geom::{Affine, BezPath, FillRule, PathData, Rect, Shape, SubPath, Vec2};
 
 use crate::{ai_ops, latin, ps};
 
@@ -83,13 +83,13 @@ mod writer;
 use encoding::{gradient_def, latin_string};
 #[cfg(test)]
 use encoding::{rotated, writable};
-pub(crate) use prolog::PROCSET;
+pub(crate) use prolog::{FORMER_PROCSET, PROCSET};
 use prolog::{PROLOG, PS_HEADER, fonts};
 use writer::Writer;
 
 /// How deep symbols and live objects may nest in one another (deeper art is left out). Groups and
 /// layers need no limit of their own: a document is never deeper than
-/// [`vectorcraft_doc::MAX_DEPTH`].
+/// [`vansoncraft_doc::MAX_DEPTH`].
 const MAX_NEST: u32 = 8;
 /// Largest image written (pixels).
 const MAX_IMAGE_PIXELS: u64 = 1 << 26;
@@ -122,7 +122,7 @@ const STROKES: &str =
 const IMAGE_ALPHA: &str = "transparent image pixels are written over white";
 const LIVE: &str = "symbols, blends, envelopes, meshes, repeats, placed documents and intertwines are written as their art";
 /// The warning for an image left out because it can't be decoded: the note raster exports give
-/// (`vectorcraft-engine`'s `rasterfx::undecoded_warning`).
+/// (`vansoncraft-engine`'s `rasterfx::undecoded_warning`).
 const UNDECODED: &str = "an image couldn't be decoded and is missing from the picture";
 const LARGE_IMAGE: &str = "an image that is empty or too large for legacy .ai was left out";
 const ELLIPTICAL: &str = "elliptical radial gradients are written circular";
@@ -191,7 +191,7 @@ pub fn export_legacy_ai(doc: &Document, o: &LegacyAiOptions) -> Result<LegacyAiO
         return Err("the document has no artboard".into());
     }
     // Type in the document's composite fonts is drawn in them, whether or not an app has the document open.
-    let _lent = vectorcraft_text::FontDb::global().lend_composite_fonts(&doc.composite_fonts);
+    let _lent = vansoncraft_text::FontDb::global().lend_composite_fonts(&doc.composite_fonts);
     // The document is y down; art space y up from the artboard's left edge, its top on a whole point.
     let (width, height) = (board.width(), board.height());
     let top = if (height - height.round()).abs() < 1e-6 { height.round() } else { height.ceil() };
@@ -220,10 +220,10 @@ pub fn export_legacy_ai(doc: &Document, o: &LegacyAiOptions) -> Result<LegacyAiO
     let mut s = String::new();
     s.push_str(PS_HEADER);
     s.push('\n');
-    let _ = writeln!(s, "%%Creator: VectorCraft {}", env!("CARGO_PKG_VERSION"));
+    let _ = writeln!(s, "%%Creator: VansonCraft {}", env!("CARGO_PKG_VERSION"));
     let _ = writeln!(s, "%%Title: {}", latin_string(&title));
     if let Some(t) = o.created {
-        let [y, mo, d, h, mi, _] = vectorcraft_doc::metadata::civil(t);
+        let [y, mo, d, h, mi, _] = vansoncraft_doc::metadata::civil(t);
         let _ = writeln!(s, "%%CreationDate: ({mo}/{d}/{y:04}) ({h:02}:{mi:02})");
     }
     let _ = writeln!(s, "%%BoundingBox: {} {} {} {}", art.x0.floor() as i64, art.y0.floor() as i64, art.x1.ceil() as i64, art.y1.ceil() as i64);

@@ -4,8 +4,8 @@
 use std::sync::Arc;
 
 use serde_json::json;
-use vectorcraft_doc::{Node, NodeId, NodeKind};
-use vectorcraft_engine::Session;
+use vansoncraft_doc::{Node, NodeId, NodeKind};
+use vansoncraft_engine::Session;
 
 fn id(v: &serde_json::Value) -> NodeId {
     NodeId(v["id"].as_u64().unwrap())
@@ -96,7 +96,7 @@ fn ruler_guides_are_not_art_to_select_paint_or_inspect() {
     s.execute("paint.setFill", &json!({"ids": [layer.0], "color": "#ff0000"})).unwrap();
     let d = &s.doc().unwrap().doc;
     for g in &guides {
-        assert_eq!(d.node(*g).unwrap().appearance, vectorcraft_doc::Appearance::default());
+        assert_eq!(d.node(*g).unwrap().appearance, vansoncraft_doc::Appearance::default());
     }
     // Document inspection lists the objects, not the guides.
     assert_eq!(s.execute("document.find", &json!({"kind": "Guide"})).unwrap()["total"], json!(0));
@@ -150,7 +150,7 @@ fn object_commands_refuse_a_ruler_guide_id() {
     }
     // A selection holding a guide id as an object loses it when pruned; the guide stays.
     let d = &s.doc().unwrap().doc;
-    let mut sel = vectorcraft_doc::Selection { objects: vec![art[0], guides[0]], key: Some(guides[1]), ..Default::default() };
+    let mut sel = vansoncraft_doc::Selection { objects: vec![art[0], guides[0]], key: Some(guides[1]), ..Default::default() };
     sel.prune(d);
     assert_eq!((sel.objects, sel.key), (vec![art[0]], None));
     assert!(d.node(guides[0]).is_some_and(Node::is_ruler_guide));
@@ -267,12 +267,12 @@ fn undated(bytes: &[u8]) -> Vec<u8> {
 
 /// The bytes of each export format (PDF without the embedded native document, which keeps the
 /// guides, and without its dates), and the box Fit All in Window fits (the art and every artboard).
-fn exports(s: &mut Session) -> (Vec<(String, Vec<u8>)>, Option<vectorcraft_geom::Rect>) {
+fn exports(s: &mut Session) -> (Vec<(String, Vec<u8>)>, Option<vansoncraft_geom::Rect>) {
     let files = [json!({"format": "svg"}), json!({"format": "pdf", "preserveEditing": false}), json!({"format": "png"}), json!({"format": "psd"})]
         .iter()
         .map(|p| {
             let out = s.execute("document.export", p).unwrap();
-            let bytes = vectorcraft_format::base64_decode(out["dataBase64"].as_str().unwrap()).unwrap();
+            let bytes = vansoncraft_format::base64_decode(out["dataBase64"].as_str().unwrap()).unwrap();
             let format = p["format"].as_str().unwrap().to_string();
             let bytes = if format == "pdf" { undated(&bytes) } else { bytes };
             (format, bytes)

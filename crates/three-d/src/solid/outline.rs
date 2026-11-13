@@ -2,7 +2,7 @@
 //! wall along the profile follow the profile's curves as cubics, while each facet's polygon stays
 //! the shape that visibility and depth are worked out on.
 
-use vectorcraft_geom::{BezPath, CubicBez, ParamCurve, PathData, Point};
+use vansoncraft_geom::{BezPath, CubicBez, ParamCurve, PathData, Point};
 
 use super::rings::{Ring, Span};
 

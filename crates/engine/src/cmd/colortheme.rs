@@ -4,10 +4,10 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use vectorcraft_color::Color;
-use vectorcraft_color::harmony::{Harmony, THEME_SIZE};
-use vectorcraft_color::recolor::ColorKey;
-use vectorcraft_tools::params::color_json;
+use vansoncraft_color::Color;
+use vansoncraft_color::harmony::{Harmony, THEME_SIZE};
+use vansoncraft_color::recolor::ColorKey;
+use vansoncraft_tools::params::color_json;
 
 use super::{CommandSpec, Result, Session, always, bad, cmd, color_value, has_doc, str_param};
 

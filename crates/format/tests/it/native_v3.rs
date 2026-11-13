@@ -1,15 +1,15 @@
-//! `.vectorcraft` v3: compression, pruning unused images, keys from newer versions, colour
+//! `.vansoncraft` v3: compression, pruning unused images, keys from newer versions, colour
 //! profiles as a document field, saving for older versions and the embedded preview.
 
 use std::io::Write as _;
 use std::sync::Arc;
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{ColorProfiles, Composer, Document, ImageBlob, ImageObject, Node, NodeKind, OpacityMask, Symbol};
-use vectorcraft_format::{FormatError, SaveOptions, VERSION, is_compressed, load, preview, save, save_with, sniff};
-use vectorcraft_geom::Affine;
-use vectorcraft_testkit::fixtures;
-use vectorcraft_testkit::invariants::{check_native_roundtrip, doc_json, json_approx_eq};
+use vansoncraft_doc::{ColorProfiles, Composer, Document, ImageBlob, ImageObject, Node, NodeKind, OpacityMask, Symbol};
+use vansoncraft_format::{FormatError, SaveOptions, VERSION, is_compressed, load, preview, save, save_with, sniff};
+use vansoncraft_geom::Affine;
+use vansoncraft_testkit::fixtures;
+use vansoncraft_testkit::invariants::{check_native_roundtrip, doc_json, json_approx_eq};
 
 fn rich_doc() -> Document {
     (*fixtures::rich_session().doc().unwrap().doc).clone()
@@ -61,7 +61,7 @@ fn area_type_vertical_alignment_round_trips() {
         d.walk(|n| {
             // The fixture's centred area type, by its text (the fixture has other area type).
             if let NodeKind::Text(t) = &n.kind
-                && matches!(t.kind, vectorcraft_doc::TextKind::Area { .. })
+                && matches!(t.kind, vansoncraft_doc::TextKind::Area { .. })
                 && t.runs.iter().map(|r| r.text.as_str()).collect::<String>() == "Centred area type"
             {
                 found = Some(t.area.vertical_align);
@@ -69,7 +69,7 @@ fn area_type_vertical_alignment_round_trips() {
         });
         found.unwrap()
     };
-    assert_eq!(area(&back), vectorcraft_doc::VerticalAlign::Center);
+    assert_eq!(area(&back), vansoncraft_doc::VerticalAlign::Center);
     // Files from before the option open top-aligned.
     // (Every area type the fixture has writes its options, so the key goes from all of them.)
     fn strip(v: &mut Value) {
@@ -86,7 +86,7 @@ fn area_type_vertical_alignment_round_trips() {
     strip(&mut v);
     let old = serde_json::to_string(&v).unwrap();
     assert!(!old.contains("verticalAlign"));
-    assert_eq!(area(&load(old.as_bytes()).unwrap()), vectorcraft_doc::VerticalAlign::Top);
+    assert_eq!(area(&load(old.as_bytes()).unwrap()), vansoncraft_doc::VerticalAlign::Top);
 }
 
 #[test]
@@ -252,7 +252,7 @@ fn saves_down_to_older_versions() {
         assert_eq!(text.contains("\"p\":["), version == 2);
     }
     let v3 = json_of(&save(&d, false));
-    assert_eq!((v3["format"].as_str(), v3["version"].as_u64()), (Some("vectorcraft"), Some(VERSION as u64)));
+    assert_eq!((v3["format"].as_str(), v3["version"].as_u64()), (Some(vansoncraft_format::FORMAT_NAME), Some(VERSION as u64)));
     assert_eq!(v3["document"]["color_profiles"], json!({"cmyk": "Coated"}));
     assert!(v3["document"]["unknown"].get("colorProfiles").is_none());
     // Out of range, and compression older apps can't read.
@@ -290,7 +290,7 @@ fn pretty_files_are_indented_like_serde_json() {
 /// did, and a file without it (an older version's) opens with canvas guides.
 #[test]
 fn artboard_guides_round_trip_and_canvas_guides_save_as_before() {
-    use vectorcraft_doc::Guide;
+    use vansoncraft_doc::Guide;
     let mut d = Document::new(100.0, 100.0);
     let id = d.artboards[0].id;
     d.add_ruler_guide(&Guide::new(true, 10.0));

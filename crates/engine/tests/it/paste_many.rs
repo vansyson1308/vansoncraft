@@ -4,10 +4,10 @@
 use std::collections::HashSet;
 
 use serde_json::{Value, json};
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::{Appearance, Document, Node, NodeId, NodeKind};
-use vectorcraft_engine::Session;
-use vectorcraft_geom::Point;
+use vansoncraft_color::{Color, Paint};
+use vansoncraft_doc::{Appearance, Document, Node, NodeId, NodeKind};
+use vansoncraft_engine::Session;
+use vansoncraft_geom::Point;
 
 fn run(s: &mut Session, command: &str, params: Value) -> Value {
     s.execute(command, &params).unwrap()
@@ -36,10 +36,10 @@ fn named_groups() -> Session {
         doc.insert(Some(layer), usize::MAX, node).unwrap();
         for r in 0..3 {
             let x = f64::from(g * 3 + r) * 10.0;
-            let shape = vectorcraft_geom::rect_from_points(Point::new(x, 0.0), Point::new(x + 8.0, 8.0));
+            let shape = vansoncraft_geom::rect_from_points(Point::new(x, 0.0), Point::new(x + 8.0, 8.0));
             let appearance = Appearance::basic(Paint::solid(Color::BLACK), Paint::None, 1.0);
             let id = doc.alloc_id();
-            let mut node = Node::path(id, vectorcraft_geom::shapes::rectangle(shape), appearance);
+            let mut node = Node::path(id, vansoncraft_geom::shapes::rectangle(shape), appearance);
             node.name = Some(format!("rect {g}.{r}"));
             doc.insert(Some(group), usize::MAX, node).unwrap();
         }

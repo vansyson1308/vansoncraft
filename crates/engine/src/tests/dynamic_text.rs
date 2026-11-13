@@ -4,7 +4,7 @@
 //! <https://helpx.adobe.com/photoshop/desktop/text-typography/work-with-dynamic-text/dynamic-text-overview.html>
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{NodeKind, TextObject};
+use vansoncraft_doc::{NodeKind, TextObject};
 
 use crate::*;
 
@@ -31,7 +31,7 @@ fn text(s: &Session, id: NodeId) -> TextObject {
 }
 
 fn fit(s: &Session, id: NodeId) -> f64 {
-    vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &text(s, id)).fit_scale
+    vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &text(s, id)).fit_scale
 }
 
 fn undo_len(s: &Session) -> usize {
@@ -56,7 +56,7 @@ fn dynamic_text_turns_on_and_off_and_toggles() {
     assert!(text(&s, id).dynamic_text);
     // The bounds the engine keeps are the fitted layout's.
     let t = text(&s, id);
-    let lay = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &t);
+    let lay = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &t);
     assert_eq!(t.cached_bounds, Some(lay.bounds));
     // Already on: nothing changes and no undo step is recorded.
     let r = s.execute("type.dynamicText", &json!({"on": true})).unwrap();
@@ -123,7 +123,7 @@ fn dynamic_text_fits_again_after_each_edit() {
     assert!(reshaped > longer * 1.3, "{reshaped} vs {longer}");
     // Each fit keeps the cached bounds in step with the layout.
     let t = text(&s, id);
-    assert_eq!(t.cached_bounds, Some(vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &t).bounds));
+    assert_eq!(t.cached_bounds, Some(vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &t).bounds));
     // Scaling the object: the fit is in document points, so the drawn size stays.
     let drawn = |s: &Session| {
         let t = text(s, id);
@@ -133,7 +133,7 @@ fn dynamic_text_fits_again_after_each_edit() {
     s.execute("object.scale", &json!({"ids": [id.0], "sx": 50, "sy": 50})).unwrap();
     let smaller = drawn(&s);
     assert!(smaller < size * 0.6, "the path is half as long: {smaller} vs {size}");
-    assert!(!vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &text(&s, id)).overflow);
+    assert!(!vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &text(&s, id)).overflow);
 }
 
 #[test]
@@ -191,19 +191,19 @@ fn dynamic_text_is_saved_only_when_on_and_reads_back() {
     let mut s = session();
     let id = on_line(&mut s, "Saved");
     let data =
-        |s: &mut Session| s.execute("document.serialize", &json!({"format": "vectorcraft"})).unwrap()["dataBase64"].as_str().unwrap().to_string();
+        |s: &mut Session| s.execute("document.serialize", &json!({"format": "vansoncraft"})).unwrap()["dataBase64"].as_str().unwrap().to_string();
     let off = data(&mut s);
     s.execute("type.dynamicText", &json!({"on": true})).unwrap();
     let f = fit(&s, id);
     let on = data(&mut s);
     let mut o = Session::new();
-    o.execute("document.open", &json!({"name": "on.vectorcraft", "dataBase64": on})).unwrap();
+    o.execute("document.open", &json!({"name": "on.vansoncraft", "dataBase64": on})).unwrap();
     let t = first_text(&o);
     assert!(text(&o, t).dynamic_text);
     assert_eq!(text(&o, t).runs[0].style.size, 12.0);
     assert_eq!(fit(&o, t), f);
     let mut o = Session::new();
-    o.execute("document.open", &json!({"name": "off.vectorcraft", "dataBase64": off})).unwrap();
+    o.execute("document.open", &json!({"name": "off.vansoncraft", "dataBase64": off})).unwrap();
     let t = first_text(&o);
     assert!(!text(&o, t).dynamic_text);
     // The document summary reports the setting and the factor.
@@ -218,7 +218,7 @@ fn svg_export_writes_the_drawn_size() {
     s.execute("type.dynamicText", &json!({"on": true})).unwrap();
     let size = 12.0 * fit(&s, id);
     let svg = s.execute("document.export", &json!({"format": "svg"})).unwrap();
-    let svg = String::from_utf8(vectorcraft_format::base64_decode(svg["dataBase64"].as_str().unwrap()).unwrap()).unwrap();
+    let svg = String::from_utf8(vansoncraft_format::base64_decode(svg["dataBase64"].as_str().unwrap()).unwrap()).unwrap();
     assert!(svg.contains("<textPath"), "{svg}");
     let sizes: Vec<f64> = svg
         .match_indices("font-size")
@@ -253,18 +253,18 @@ fn release_type_on_a_path_keeps_the_drawn_size() {
 }
 
 /// 12 pt point type at (100, 100), selected, with its layout bounds.
-fn point(s: &mut Session, content: &str) -> (NodeId, vectorcraft_geom::Rect) {
+fn point(s: &mut Session, content: &str) -> (NodeId, vansoncraft_geom::Rect) {
     let r = s.execute("text.create", &json!({"x": 100, "y": 100, "text": content, "size": 12})).unwrap();
     let id = NodeId(r["id"].as_u64().unwrap());
     s.execute("select.set", &json!({"ids": [id.0]})).unwrap();
-    let b = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &text(s, id)).bounds;
+    let b = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &text(s, id)).bounds;
     (id, b)
 }
 
 /// Type on a path's path, start bracket and end bracket.
-fn on_path(t: &TextObject) -> (vectorcraft_geom::PathData, f64, Option<f64>) {
+fn on_path(t: &TextObject) -> (vansoncraft_geom::PathData, f64, Option<f64>) {
     match &t.kind {
-        vectorcraft_doc::TextKind::OnPath { path, start, end } => (path.clone(), *start, *end),
+        vansoncraft_doc::TextKind::OnPath { path, start, end } => (path.clone(), *start, *end),
         k => panic!("not type on a path: {k:?}"),
     }
 }
@@ -285,7 +285,7 @@ fn presets_put_point_type_on_a_fitted_circle_arch_or_bow() {
     assert_eq!(s.doc().unwrap().history.undo.last().unwrap().label, "Dynamic Text");
     let t = text(&s, id);
     assert!(t.dynamic_text);
-    assert_eq!(t.path_align, vectorcraft_doc::PathAlign::Descender, "above by default");
+    assert_eq!(t.path_align, vansoncraft_doc::PathAlign::Descender, "above by default");
     let (path, start, end) = on_path(&t);
     assert!(path.is_closed());
     assert_eq!((start, end), (0.75, None));
@@ -296,13 +296,13 @@ fn presets_put_point_type_on_a_fitted_circle_arch_or_bow() {
     let bottom = path.subpaths[0].anchors[3].p;
     assert!(close(bottom.y, pb.y1) && close(bottom.x, pb.center().x), "{bottom:?}");
     // Round a circle as wide as the text, the text grows to fill it and does not overflow.
-    let lay = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &t);
+    let lay = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &t);
     assert!(lay.fit_scale > 2.0 && !lay.overflow, "{} {}", lay.fit_scale, lay.overflow);
     assert_eq!(r["fitScale"], json!(lay.fit_scale));
     assert_eq!(t.cached_bounds, Some(lay.bounds));
     // Undo gives the point type back.
     s.execute("edit.undo", &json!({})).unwrap();
-    assert!(matches!(text(&s, id).kind, vectorcraft_doc::TextKind::Point) && !text(&s, id).dynamic_text);
+    assert!(matches!(text(&s, id).kind, vansoncraft_doc::TextKind::Point) && !text(&s, id).dynamic_text);
 
     for (preset, up) in [("arch", true), ("bow", false)] {
         s.execute("type.dynamicTextPreset", &json!({"preset": preset, "ids": [id.0]})).unwrap();
@@ -318,7 +318,7 @@ fn presets_put_point_type_on_a_fitted_circle_arch_or_bow() {
         assert!(close(pb.height(), w / 3f64.sqrt() / 2.0), "{preset}: {pb:?}");
         assert!(close(pb.center().y, b.center().y), "{preset}: {pb:?} vs {b:?}");
         assert_eq!(middle.y < first.y, up, "{preset}: {middle:?} {first:?}");
-        let lay = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &t);
+        let lay = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &t);
         assert!(lay.fit_scale > 1.0 && !lay.overflow, "{preset}: {}", lay.fit_scale);
         s.execute("edit.undo", &json!({})).unwrap();
     }
@@ -329,9 +329,9 @@ fn preset_position_and_flip_set_align_to_path_and_direction() {
     let mut s = session();
     let (id, _) = point(&mut s, "Over the hill");
     for (position, align) in [
-        ("above", vectorcraft_doc::PathAlign::Descender),
-        ("center", vectorcraft_doc::PathAlign::Center),
-        ("below", vectorcraft_doc::PathAlign::Ascender),
+        ("above", vansoncraft_doc::PathAlign::Descender),
+        ("center", vansoncraft_doc::PathAlign::Center),
+        ("below", vansoncraft_doc::PathAlign::Ascender),
     ] {
         s.execute("type.dynamicTextPreset", &json!({"preset": "arch", "position": position})).unwrap();
         assert_eq!(text(&s, id).path_align, align, "{position}");
@@ -343,8 +343,8 @@ fn preset_position_and_flip_set_align_to_path_and_direction() {
     let a = &path.subpaths[0].anchors;
     assert!(a[0].p.x > a[a.len() - 1].p.x, "{path:?}");
     assert_eq!((start, end), (0.0, None));
-    assert_eq!(t.path_align, vectorcraft_doc::PathAlign::Descender);
-    assert!(!vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &t).overflow);
+    assert_eq!(t.path_align, vansoncraft_doc::PathAlign::Descender);
+    assert!(!vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &t).overflow);
     // A flipped circle runs the other way round from its bottom.
     s.execute("type.dynamicTextPreset", &json!({"preset": "circle", "flip": true})).unwrap();
     let (path, start, end) = on_path(&text(&s, id));
@@ -425,7 +425,7 @@ fn presets_refuse_bad_params_area_type_and_threads() {
         assert!(e.contains(key), "{p}: {e}");
     }
     assert_eq!(undo_len(&s), before);
-    assert!(matches!(text(&s, id).kind, vectorcraft_doc::TextKind::Point));
+    assert!(matches!(text(&s, id).kind, vansoncraft_doc::TextKind::Point));
     // Area type alone is refused; beside point type it is left as it is.
     let area =
         s.execute("text.create", &json!({"x": 10, "y": 300, "text": "Area", "area": {"width": 100, "height": 50}})).unwrap()["id"].as_u64().unwrap();
@@ -434,7 +434,7 @@ fn presets_refuse_bad_params_area_type_and_threads() {
     s.execute("select.set", &json!({"ids": [area, id.0]})).unwrap();
     let r = s.execute("type.dynamicTextPreset", &json!({"preset": "circle"})).unwrap();
     assert_eq!(r["ids"], json!([id.0]));
-    assert!(matches!(text(&s, NodeId(area)).kind, vectorcraft_doc::TextKind::Area { .. }) && !text(&s, NodeId(area)).dynamic_text);
+    assert!(matches!(text(&s, NodeId(area)).kind, vansoncraft_doc::TextKind::Area { .. }) && !text(&s, NodeId(area)).dynamic_text);
     // Type on a path in a thread is refused by id.
     let threaded = on_line(&mut s, "Threaded story");
     let frame = s.execute("shape.rectangle", &json!({"x": 100, "y": 400, "width": 200, "height": 100})).unwrap()["id"].as_u64().unwrap();

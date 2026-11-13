@@ -1,8 +1,8 @@
 //! Import options: the pages picked, the box each artboard gets (Crop To), passwords and `info`.
 
-use vectorcraft_doc::{Document, NodeKind};
-use vectorcraft_geom::Rect;
-use vectorcraft_testkit::pdf::{PdfPage, first_extra, pdf, pdf_with};
+use vansoncraft_doc::{Document, NodeKind};
+use vansoncraft_geom::Rect;
+use vansoncraft_testkit::pdf::{PdfPage, first_extra, pdf, pdf_with};
 
 use crate::*;
 

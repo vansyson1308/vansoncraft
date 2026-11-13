@@ -1,10 +1,10 @@
 use serde_json::json;
-use vectorcraft_engine::Session;
+use vansoncraft_engine::Session;
 
 use super::*;
 
 /// Filled target circles drawn by one headless frame of the panel.
-fn filled_targets(app: &mut VectorcraftApp, ctx: &egui::Context) -> usize {
+fn filled_targets(app: &mut VansoncraftApp, ctx: &egui::Context) -> usize {
     let mut out = ctx.run_ui(egui::RawInput::default(), |ui| show(app, ui));
     out.textures_delta.clear();
     out.shapes.iter().filter(|c| matches!(&c.shape, egui::Shape::Circle(cs) if cs.radius == 3.2 && cs.fill != Color32::TRANSPARENT)).count()
@@ -15,8 +15,8 @@ fn filled_targets(app: &mut VectorcraftApp, ctx: &egui::Context) -> usize {
 #[test]
 fn only_generated_names_are_translated() {
     let zh = crate::i18n::Lang::from_code("zh-hant").unwrap();
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
-    let run = |app: &mut VectorcraftApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
+    let run = |app: &mut VansoncraftApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
     run(&mut app, "file.new", json!({"width": 100, "height": 100}));
     let rect = run(&mut app, "shape.rectangle", json!({"x": 0, "y": 0, "width": 50, "height": 50}))["id"].as_u64().unwrap();
     let text = run(&mut app, "text.create", json!({"x": 10, "y": 40, "text": "<Path>"}))["id"].as_u64().unwrap();
@@ -33,8 +33,8 @@ fn only_generated_names_are_translated() {
 
 #[test]
 fn target_circle_fills_for_non_default_transparency() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
-    let run = |app: &mut VectorcraftApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
+    let run = |app: &mut VansoncraftApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
     run(&mut app, "file.new", json!({"width": 100, "height": 100}));
     let id = run(&mut app, "shape.rectangle", json!({"x": 0, "y": 0, "width": 50, "height": 50}))["id"].clone();
     run(&mut app, "select.set", json!({ "ids": [id] }));
@@ -51,8 +51,8 @@ fn target_circle_fills_for_non_default_transparency() {
 
 #[test]
 fn a_layer_clipping_mask_underlines_its_clipping_path() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
-    let run = |app: &mut VectorcraftApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
+    let run = |app: &mut VansoncraftApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
     run(&mut app, "file.new", json!({"width": 100, "height": 100}));
     run(&mut app, "shape.rectangle", json!({"x": 0, "y": 0, "width": 100, "height": 100}));
     run(&mut app, "shape.rectangle", json!({"x": 25, "y": 25, "width": 50, "height": 50}));
@@ -60,7 +60,7 @@ fn a_layer_clipping_mask_underlines_its_clipping_path() {
     let ctx = egui::Context::default();
     let text = Tokens::get(&ctx).text;
     // Line segments in the text colour: the underlines.
-    let underlines = |app: &mut VectorcraftApp| {
+    let underlines = |app: &mut VansoncraftApp| {
         let mut out = ctx.run_ui(egui::RawInput::default(), |ui| show(app, ui));
         out.textures_delta.clear();
         out.shapes.iter().filter(|c| matches!(&c.shape, egui::Shape::LineSegment { stroke, .. } if stroke.color == text)).count()
@@ -74,7 +74,7 @@ fn a_layer_clipping_mask_underlines_its_clipping_path() {
 
 /// One headless frame of the panel with `events` (Alt held when `alt`): the centres of the
 /// target circles, top row first, and the text-coloured line segments (underlines) drawn.
-fn frame(app: &mut VectorcraftApp, ctx: &egui::Context, events: Vec<egui::Event>, alt: bool) -> (Vec<egui::Pos2>, usize) {
+fn frame(app: &mut VansoncraftApp, ctx: &egui::Context, events: Vec<egui::Event>, alt: bool) -> (Vec<egui::Pos2>, usize) {
     let mut events = events;
     events.insert(0, egui::Event::ModifiersChanged(egui::Modifiers { alt, ..Default::default() }));
     let mut out = ctx.run_ui(egui::RawInput { events, ..Default::default() }, |ui| show(app, ui));
@@ -98,7 +98,7 @@ fn button(pos: egui::Pos2, pressed: bool) -> egui::Event {
 }
 
 /// Drag from `a` to `b` over a few frames (Alt held when `alt`).
-fn drag(app: &mut VectorcraftApp, ctx: &egui::Context, a: egui::Pos2, b: egui::Pos2, alt: bool) {
+fn drag(app: &mut VansoncraftApp, ctx: &egui::Context, a: egui::Pos2, b: egui::Pos2, alt: bool) {
     let steps = [
         vec![egui::Event::PointerMoved(a)],
         vec![button(a, true)],
@@ -114,8 +114,8 @@ fn drag(app: &mut VectorcraftApp, ctx: &egui::Context, a: egui::Pos2, b: egui::P
 
 #[test]
 fn alt_clicking_an_eye_or_lock_toggles_the_other_layers() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
-    let run = |app: &mut VectorcraftApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
+    let run = |app: &mut VansoncraftApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
     run(&mut app, "file.new", json!({"width": 200, "height": 200}));
     run(&mut app, "layer.new", json!({}));
     run(&mut app, "layer.new", json!({}));
@@ -124,14 +124,14 @@ fn alt_clicking_an_eye_or_lock_toggles_the_other_layers() {
     let (circles, _) = frame(&mut app, &ctx, vec![], false);
     assert_eq!(circles.len(), 3);
     let state =
-        |app: &VectorcraftApp| -> Vec<(bool, bool)> { app.session.active().unwrap().doc.layers.iter().map(|l| (l.visible, l.locked)).collect() };
-    let click = |app: &mut VectorcraftApp, at: egui::Pos2, alt: bool| {
+        |app: &VansoncraftApp| -> Vec<(bool, bool)> { app.session.active().unwrap().doc.layers.iter().map(|l| (l.visible, l.locked)).collect() };
+    let click = |app: &mut VansoncraftApp, at: egui::Pos2, alt: bool| {
         frame(app, &ctx, vec![egui::Event::PointerMoved(at)], alt);
         frame(app, &ctx, vec![button(at, true)], alt);
         frame(app, &ctx, vec![button(at, false)], alt);
     };
     let (eye, lock) = (egui::pos2(12.0, circles[1].y), egui::pos2(37.0, circles[1].y));
-    let undo = |app: &VectorcraftApp| app.session.active().unwrap().history.undo.len();
+    let undo = |app: &VansoncraftApp| app.session.active().unwrap().history.undo.len();
     let before = undo(&app);
     // Alt-click Layer 2's eye: Layers 1 and 3 hide in one step; again, they show.
     click(&mut app, eye, true);
@@ -163,8 +163,8 @@ fn alt_clicking_an_eye_or_lock_toggles_the_other_layers() {
 
 #[test]
 fn ctrl_alt_clicking_an_eye_switches_the_other_layers_between_outline_and_preview() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
-    let run = |app: &mut VectorcraftApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
+    let run = |app: &mut VansoncraftApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
     run(&mut app, "file.new", json!({"width": 200, "height": 200}));
     run(&mut app, "layer.new", json!({}));
     run(&mut app, "layer.new", json!({}));
@@ -173,12 +173,12 @@ fn ctrl_alt_clicking_an_eye_switches_the_other_layers_between_outline_and_previe
     let (circles, _) = frame(&mut app, &ctx, vec![], false);
     assert_eq!(circles.len(), 3);
     // Each layer bottom first: (visible, preview).
-    let state = |app: &VectorcraftApp| -> Vec<(bool, bool)> {
+    let state = |app: &VansoncraftApp| -> Vec<(bool, bool)> {
         let doc = &app.session.active().unwrap().doc;
         doc.layers.iter().map(|l| (l.visible, !matches!(l.kind, NodeKind::Layer { preview: false, .. }))).collect()
     };
-    let last = |app: &VectorcraftApp| app.session.active().unwrap().history.undo.last().map(|u| u.label.clone());
-    let undo = |app: &VectorcraftApp| app.session.active().unwrap().history.undo.len();
+    let last = |app: &VansoncraftApp| app.session.active().unwrap().history.undo.last().map(|u| u.label.clone());
+    let undo = |app: &VansoncraftApp| app.session.active().unwrap().history.undo.len();
     let eye = |i: usize| egui::pos2(12.0, circles[i].y);
     let ctrl_alt = egui::Modifiers { alt: true, command: true, ..Default::default() };
     let before = undo(&app);
@@ -200,9 +200,9 @@ fn ctrl_alt_clicking_an_eye_switches_the_other_layers_between_outline_and_previe
 }
 
 /// A document with two rectangles on one layer → (app, layer, [bottom, top]).
-fn two_rects() -> (VectorcraftApp, NodeId, [NodeId; 2]) {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
-    let run = |app: &mut VectorcraftApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
+fn two_rects() -> (VansoncraftApp, NodeId, [NodeId; 2]) {
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
+    let run = |app: &mut VansoncraftApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
     run(&mut app, "file.new", json!({"width": 200, "height": 200}));
     let a = run(&mut app, "shape.rectangle", json!({"x": 0, "y": 0, "width": 50, "height": 50}))["id"].as_u64().unwrap();
     let b = run(&mut app, "shape.rectangle", json!({"x": 60, "y": 0, "width": 50, "height": 50}))["id"].as_u64().unwrap();
@@ -212,7 +212,7 @@ fn two_rects() -> (VectorcraftApp, NodeId, [NodeId; 2]) {
 }
 
 /// The painted names one headless frame of the panel draws italic.
-fn italic_names(app: &mut VectorcraftApp, ctx: &egui::Context) -> Vec<String> {
+fn italic_names(app: &mut VansoncraftApp, ctx: &egui::Context) -> Vec<String> {
     let mut out = ctx.run_ui(egui::RawInput::default(), |ui| show(app, ui));
     out.textures_delta.clear();
     fn collect(shape: &egui::Shape, names: &mut Vec<String>) {
@@ -356,7 +356,7 @@ fn the_row_thumbnails_follow_the_document_shown_and_none_once_it_closes() {
     assert_eq!(showing(), None, "no document is shown once both close");
 
     // The Links panel alone does the same.
-    let links = |app: &mut VectorcraftApp| {
+    let links = |app: &mut VansoncraftApp| {
         let mut out = ctx.run_ui(egui::RawInput::default(), |ui| super::super::links::show(app, ui));
         out.textures_delta.clear();
     };
@@ -406,7 +406,7 @@ fn dragging_a_target_circle_moves_or_copies_the_appearance_and_the_trash_clears_
     app.session.execute("transparency.set", &json!({"ids": [a.0], "opacity": 30})).unwrap();
     let ctx = egui::Context::default();
     let (c, _) = frame(&mut app, &ctx, vec![], false);
-    let opacity = |app: &VectorcraftApp, id: NodeId| app.session.active().unwrap().doc.node(id).unwrap().opacity;
+    let opacity = |app: &VansoncraftApp, id: NodeId| app.session.active().unwrap().doc.node(id).unwrap().opacity;
     // Alt-drag the bottom rectangle's circle onto the top one's: both have it.
     drag(&mut app, &ctx, c[2], c[1], true);
     assert!((opacity(&app, b) - 0.3).abs() < 1e-6 && (opacity(&app, a) - 0.3).abs() < 1e-6);
@@ -424,13 +424,13 @@ fn dragging_a_target_circle_moves_or_copies_the_appearance_and_the_trash_clears_
 }
 
 /// The trash button: the bottom bar's rightmost button.
-fn trash_pos(app: &mut VectorcraftApp, ctx: &egui::Context) -> egui::Pos2 {
+fn trash_pos(app: &mut VansoncraftApp, ctx: &egui::Context) -> egui::Pos2 {
     bar_buttons(app, ctx)[0]
 }
 
 #[test]
 fn dragging_rows_onto_the_trash_deletes_them() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 200, "height": 200})).unwrap();
     app.session.execute("layer.new", &json!({})).unwrap();
     let ctx = egui::Context::default();
@@ -446,15 +446,15 @@ fn dragging_rows_onto_the_trash_deletes_them() {
 
 #[test]
 fn renaming_a_layer_commits_on_enter_and_escape_cancels() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
     let layer = app.session.doc().unwrap().doc.layers[0].id;
-    let name = |app: &VectorcraftApp| app.session.doc().unwrap().doc.layers[0].display_name();
+    let name = |app: &VansoncraftApp| app.session.doc().unwrap().doc.layers[0].display_name();
     let ctx = egui::Context::default();
     let key = |key| egui::Event::Key { key, physical_key: None, pressed: true, repeat: false, modifiers: egui::Modifiers::NONE };
     let select_all = egui::Event::Key { key: egui::Key::A, physical_key: None, pressed: true, repeat: false, modifiers: egui::Modifiers::COMMAND };
     // What a double-click on the row does: the name field opens with the name.
-    let open = |app: &mut VectorcraftApp| {
+    let open = |app: &mut VansoncraftApp| {
         ctx.data_mut(|d| d.insert_temp(egui::Id::unique("layers-rename"), (layer.0, name(app))));
         frame(app, &ctx, vec![], false);
         frame(app, &ctx, vec![], false);
@@ -476,10 +476,10 @@ fn renaming_a_layer_commits_on_enter_and_escape_cancels() {
 /// selected; Enter then renames it again and closes the field.
 #[test]
 fn shift_enter_renames_a_layer_and_keeps_the_field_open() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
     let layer = app.session.doc().unwrap().doc.layers[0].id;
-    let name = |app: &VectorcraftApp| app.session.doc().unwrap().doc.layers[0].display_name();
+    let name = |app: &VansoncraftApp| app.session.doc().unwrap().doc.layers[0].display_name();
     let ctx = egui::Context::default();
     let key = |key, modifiers| egui::Event::Key { key, physical_key: None, pressed: true, repeat: false, modifiers };
     let field = rename_id().with("field");
@@ -508,7 +508,7 @@ fn rename_opens_the_name_field_of_the_selected_object() {
     let (mut app, _, [a, _]) = two_rects();
     let ctx = egui::Context::default();
     app.ui_ctx = Some(ctx.clone());
-    let name = |app: &VectorcraftApp| app.session.doc().unwrap().doc.node(a).unwrap().display_name();
+    let name = |app: &VansoncraftApp| app.session.doc().unwrap().doc.node(a).unwrap().display_name();
     let before = name(&app);
     app.session.execute("select.set", &json!({"ids": [a.0]})).unwrap();
     let opened = app.run("ui.rename", json!({})).unwrap();
@@ -563,7 +563,7 @@ fn rename_names_the_current_layer_and_refuses_several_or_hidden_rows() {
 
 #[test]
 fn an_open_rename_does_not_follow_into_another_document() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
     let layer = app.session.doc().unwrap().doc.layers[0].id;
     let ctx = egui::Context::default();
@@ -604,9 +604,9 @@ fn masks_underline_dashed_and_mask_editing_lists_only_the_mask() {
 /// Layer 1 holding rectangle `c` and a sublayer holding rectangle `a` and a group of
 /// rectangle `b`, every row open, nothing selected → (app, [layer, sub, g, b, a, c]): the rows
 /// top down.
-fn nested() -> (VectorcraftApp, [NodeId; 6]) {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
-    let run = |app: &mut VectorcraftApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
+fn nested() -> (VansoncraftApp, [NodeId; 6]) {
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
+    let run = |app: &mut VansoncraftApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
     let id = |v: serde_json::Value| NodeId(v["id"].as_u64().unwrap());
     run(&mut app, "file.new", json!({"width": 400, "height": 400}));
     let layer = app.session.active().unwrap().doc.layers[0].id;
@@ -622,14 +622,14 @@ fn nested() -> (VectorcraftApp, [NodeId; 6]) {
 }
 
 /// Press and release at `at` with `mods` held, over three frames.
-fn click_with(app: &mut VectorcraftApp, ctx: &egui::Context, at: egui::Pos2, mods: egui::Modifiers) {
+fn click_with(app: &mut VansoncraftApp, ctx: &egui::Context, at: egui::Pos2, mods: egui::Modifiers) {
     for e in [egui::Event::PointerMoved(at), button(at, true), button(at, false)] {
         let mut out = ctx.run_ui(egui::RawInput { events: vec![egui::Event::ModifiersChanged(mods), e], ..Default::default() }, |ui| show(app, ui));
         out.textures_delta.clear();
     }
 }
 
-fn rows_of(app: &VectorcraftApp) -> Vec<NodeId> {
+fn rows_of(app: &VansoncraftApp) -> Vec<NodeId> {
     app.session.active().unwrap().highlighted_rows()
 }
 
@@ -669,8 +669,8 @@ fn rows_at_every_depth_are_clickable() {
 /// another layer's row moves it there, and a guide on a locked layer is left alone.
 #[test]
 fn guide_rows_select_and_move_their_guides() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
-    let run = |app: &mut VectorcraftApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
+    let run = |app: &mut VansoncraftApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
     run(&mut app, "file.new", json!({"width": 200, "height": 200}));
     run(&mut app, "shape.rectangle", json!({"x": 0, "y": 0, "width": 20, "height": 20}));
     run(&mut app, "guide.add", json!({"vertical": true, "pos": 50}));
@@ -682,9 +682,9 @@ fn guide_rows_select_and_move_their_guides() {
     let (circles, _) = frame(&mut app, &ctx, vec![], false);
     assert_eq!(circles.len(), 3);
     let guide_row = egui::pos2(150.0, (circles[1].y + circles[2].y) / 2.0);
-    let guides = |app: &VectorcraftApp| {
+    let guides = |app: &VansoncraftApp| {
         let st = app.session.active().unwrap();
-        vectorcraft_engine::cmd::guide_indexes(&st.doc, &st.selection.guides)
+        vansoncraft_engine::cmd::guide_indexes(&st.doc, &st.selection.guides)
     };
     click_with(&mut app, &ctx, guide_row, egui::Modifiers::NONE);
     assert_eq!(guides(&app), [0], "its row selects it");
@@ -706,7 +706,7 @@ fn guide_rows_select_and_move_their_guides() {
 
 /// The selection squares drawn: (big ones on rows whose object is selected, small ones on rows
 /// holding selected art).
-fn squares(app: &mut VectorcraftApp, ctx: &egui::Context) -> (usize, usize) {
+fn squares(app: &mut VansoncraftApp, ctx: &egui::Context) -> (usize, usize) {
     let mut out = ctx.run_ui(egui::RawInput::default(), |ui| show(app, ui));
     out.textures_delta.clear();
     let size = |w: f32| {
@@ -724,7 +724,7 @@ fn selection_squares_show_and_select_a_rows_art() {
     assert_eq!(squares(&mut app, &ctx), (1, 2), "the group's square, and small ones on the sublayer and the layer");
     let (circles, _) = frame(&mut app, &ctx, vec![], false);
     let square = |i: usize| circles[i] + vec2(TARGET_X - SQUARE_X, 0.0);
-    let sel = |app: &VectorcraftApp| app.session.active().unwrap().selection.objects.clone();
+    let sel = |app: &VansoncraftApp| app.session.active().unwrap().selection.objects.clone();
     click_with(&mut app, &ctx, square(4), egui::Modifiers::NONE);
     assert_eq!(sel(&app), vec![a]);
     click_with(&mut app, &ctx, square(5), egui::Modifiers::SHIFT);
@@ -746,7 +746,7 @@ fn alt_clicking_a_layer_name_selects_its_art() {
     let (circles, _) = frame(&mut app, &ctx, vec![], false);
     // The rows' names start right of the thumbnail; the sublayer's row is one level deeper.
     let name = |i: usize, depth: f32| egui::pos2(2.0 * COLUMN + 2.0 + 6.0 + depth * INDENT + 16.0 + 30.0, circles[i].y);
-    let state = |app: &VectorcraftApp| {
+    let state = |app: &VansoncraftApp| {
         let st = app.session.active().unwrap();
         (st.selection.objects.clone(), st.highlighted_rows(), st.current_layer())
     };
@@ -786,7 +786,7 @@ fn eye_and_lock_toggle_nested_rows_and_drag_down_the_column() {
     let ctx = egui::Context::default();
     let (circles, _) = frame(&mut app, &ctx, vec![], false);
     let (eye, lock) = (|i: usize| egui::pos2(12.0, circles[i].y), |i: usize| egui::pos2(37.0, circles[i].y));
-    let node = |app: &VectorcraftApp, id: NodeId| app.session.active().unwrap().doc.node(id).unwrap().clone();
+    let node = |app: &VansoncraftApp, id: NodeId| app.session.active().unwrap().doc.node(id).unwrap().clone();
     click_with(&mut app, &ctx, eye(3), egui::Modifiers::NONE);
     assert!(!node(&app, b).visible, "an object in a group in a sublayer hides");
     click_with(&mut app, &ctx, eye(3), egui::Modifiers::NONE);
@@ -799,7 +799,7 @@ fn eye_and_lock_toggle_nested_rows_and_drag_down_the_column() {
     click_with(&mut app, &ctx, eye(1), egui::Modifiers::COMMAND);
     assert!(matches!(node(&app, sub).kind, NodeKind::Layer { preview: true, .. }));
     // Drag down the eye column from the group to the rectangle below: all three hide, one step.
-    let undo = |app: &VectorcraftApp| app.session.active().unwrap().history.undo.len();
+    let undo = |app: &VansoncraftApp| app.session.active().unwrap().history.undo.len();
     let before = undo(&app);
     let steps = [
         vec![egui::Event::PointerMoved(eye(2))],
@@ -825,7 +825,7 @@ fn eye_and_lock_toggle_nested_rows_and_drag_down_the_column() {
 fn triangles_open_and_close_rows_and_alt_does_everything_inside() {
     let (mut app, [layer, sub, ..]) = nested();
     let ctx = egui::Context::default();
-    let count = |app: &mut VectorcraftApp| frame(app, &ctx, vec![], false).0.len();
+    let count = |app: &mut VansoncraftApp| frame(app, &ctx, vec![], false).0.len();
     assert_eq!(count(&mut app), 6);
     let (circles, _) = frame(&mut app, &ctx, vec![], false);
     let triangle = |depth: f32, y: f32| egui::pos2(2.0 * COLUMN + 8.0 + depth * INDENT + 7.0, y);
@@ -852,11 +852,11 @@ fn triangles_open_and_close_rows_and_alt_does_everything_inside() {
 /// effect, a compound path, a guide, an embedded and a linked image and a ruler guide, and on top
 /// a sublayer "Sub" holding a hidden path named "Sky" and a locked path; only Layer 1 open and
 /// nothing selected → (app, the rows' ids by name).
-fn kinds() -> (VectorcraftApp, HashMap<&'static str, NodeId>) {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
-    let run = |app: &mut VectorcraftApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
+fn kinds() -> (VansoncraftApp, HashMap<&'static str, NodeId>) {
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
+    let run = |app: &mut VansoncraftApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
     let id = |v: serde_json::Value| NodeId(v["id"].as_u64().unwrap());
-    let star = |app: &mut VectorcraftApp, x: u32| id(run(app, "shape.star", json!({"cx": x, "cy": 50, "radius1": 20, "radius2": 10})));
+    let star = |app: &mut VansoncraftApp, x: u32| id(run(app, "shape.star", json!({"cx": x, "cy": 50, "radius1": 20, "radius2": 10})));
     run(&mut app, "file.new", json!({"width": 400, "height": 400}));
     let mut ids = HashMap::from([("layer", app.session.active().unwrap().doc.layers[0].id)]);
     ids.insert("path", star(&mut app, 50));
@@ -879,12 +879,12 @@ fn kinds() -> (VectorcraftApp, HashMap<&'static str, NodeId>) {
     image::RgbaImage::from_pixel(4, 4, image::Rgba([200, 40, 40, 255]))
         .write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)
         .unwrap();
-    let placed = |app: &mut VectorcraftApp, p: serde_json::Value| NodeId(run(app, "file.place", p)["ids"][0].as_u64().unwrap());
-    ids.insert("embedded", placed(&mut app, json!({"name": "pic.png", "dataBase64": vectorcraft_format::base64_encode(&png)})));
+    let placed = |app: &mut VansoncraftApp, p: serde_json::Value| NodeId(run(app, "file.place", p)["ids"][0].as_u64().unwrap());
+    ids.insert("embedded", placed(&mut app, json!({"name": "pic.png", "dataBase64": vansoncraft_format::base64_encode(&png)})));
     // One file for every test that calls this, written by the first.
     static LINKED: std::sync::OnceLock<std::path::PathBuf> = std::sync::OnceLock::new();
     let file = LINKED.get_or_init(|| {
-        let file = vectorcraft_testkit::temp_dir("layers-filter").join("linked.png");
+        let file = vansoncraft_testkit::temp_dir("layers-filter").join("linked.png");
         std::fs::write(&file, &png).unwrap();
         file
     });
@@ -901,7 +901,7 @@ fn kinds() -> (VectorcraftApp, HashMap<&'static str, NodeId>) {
 
 /// The rows [`list_rows`] lists for `query` and `filter`, by their names in `ids` ("ruler guide"
 /// for a guide's row).
-fn listed(app: &VectorcraftApp, ids: &HashMap<&'static str, NodeId>, query: &str, filter: &Filter) -> Vec<&'static str> {
+fn listed(app: &VansoncraftApp, ids: &HashMap<&'static str, NodeId>, query: &str, filter: &Filter) -> Vec<&'static str> {
     let st = app.session.active().unwrap();
     let rows = list_rows(&st.doc, &st.layers_open, &PanelOptions::default(), query, filter);
     let name = |r: &Row| match r.guide {
@@ -965,7 +965,7 @@ fn the_filter_combines_with_the_search() {
 }
 
 /// (target circles, lit 24 pt buttons) one frame of the panel draws.
-fn circles_and_lit_buttons(app: &mut VectorcraftApp, ctx: &egui::Context) -> (usize, usize) {
+fn circles_and_lit_buttons(app: &mut VansoncraftApp, ctx: &egui::Context) -> (usize, usize) {
     let lit = Tokens::get(ctx).tool_active;
     let mut out = ctx.run_ui(egui::RawInput::default(), |ui| show(app, ui));
     out.textures_delta.clear();
@@ -1020,7 +1020,7 @@ fn the_filter_popup_ticks_kinds_and_states_and_clear_all_turns_the_filter_off() 
     app.run("ui.layersFilter", json!({"layers": []})).unwrap();
     click_with(&mut app, &ctx, filter, egui::Modifiers::NONE);
     // Where the popup draws `label` (after a frame for it to settle).
-    let at = |app: &mut VectorcraftApp, label: &str| {
+    let at = |app: &mut VansoncraftApp, label: &str| {
         super::super::tests_appearance::frame_events(&ctx, app, vec![], show);
         let texts = super::super::tests_appearance::frame_events(&ctx, app, vec![], show);
         texts.iter().find(|(t, _)| t == label).map(|(_, r)| r.center()).unwrap_or_else(|| panic!("{label} not in {texts:?}"))
@@ -1042,7 +1042,7 @@ fn the_filter_popup_ticks_kinds_and_states_and_clear_all_turns_the_filter_off() 
 /// and changes nothing when a list holds anything else.
 #[test]
 fn the_filter_command_reads_its_lists_by_name() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     let r = app.run("ui.layersFilter", json!({"objects": ["guides", "paths", "paths"], "layers": ["hidden"]})).unwrap();
     assert_eq!(r, json!({"objects": ["paths", "guides"], "layers": ["hidden"]}));
     let r = app.run("ui.layersFilter", json!({"layers": []})).unwrap();
@@ -1057,10 +1057,10 @@ fn the_filter_command_reads_its_lists_by_name() {
 
 #[test]
 fn dragging_a_layer_into_the_empty_space_under_the_rows_moves_it_to_the_bottom() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 200, "height": 200})).unwrap();
     app.session.execute("layer.new", &json!({"top": true})).unwrap();
-    let ids = |app: &VectorcraftApp| app.session.active().unwrap().doc.layers.iter().map(|l| l.id).collect::<Vec<_>>();
+    let ids = |app: &VansoncraftApp| app.session.active().unwrap().doc.layers.iter().map(|l| l.id).collect::<Vec<_>>();
     let [bottom, top] = ids(&app)[..] else { panic!("two layers") };
     let ctx = egui::Context::default();
     // Rows: the top layer, the bottom layer, then empty space.
@@ -1079,7 +1079,7 @@ fn dragging_rows_moves_them_into_other_layers_and_alt_copies() {
     let (circles, _) = frame(&mut app, &ctx, vec![], false);
     assert_eq!(circles.len(), 7);
     let name = |i: usize| egui::pos2(150.0, circles[i].y);
-    let parent = |app: &VectorcraftApp, id: NodeId| app.session.active().unwrap().doc.parent_of(id);
+    let parent = |app: &VansoncraftApp, id: NodeId| app.session.active().unwrap().doc.parent_of(id);
     // Rectangle a onto the middle of the Top layer's row: into it.
     drag(&mut app, &ctx, name(5), name(0), false);
     assert_eq!(parent(&app, a), Some(l2));
@@ -1103,7 +1103,7 @@ fn dragging_rows_moves_them_into_other_layers_and_alt_copies() {
 
 /// The centres of the bottom bar's buttons, right to left from under the right end of its top
 /// divider: Delete, New Layer, New Sublayer, Make/Release Clipping Mask, Locate Object.
-fn bar_buttons(app: &mut VectorcraftApp, ctx: &egui::Context) -> Vec<egui::Pos2> {
+fn bar_buttons(app: &mut VansoncraftApp, ctx: &egui::Context) -> Vec<egui::Pos2> {
     let mut out = ctx.run_ui(egui::RawInput::default(), |ui| show(app, ui));
     out.textures_delta.clear();
     let divider = Tokens::get(ctx).divider;
@@ -1121,7 +1121,7 @@ fn bar_buttons(app: &mut VectorcraftApp, ctx: &egui::Context) -> Vec<egui::Pos2>
 }
 
 /// How many texts reading `s` the frame after `events` paints.
-fn texts(app: &mut VectorcraftApp, ctx: &egui::Context, events: Vec<egui::Event>, s: &str) -> usize {
+fn texts(app: &mut VansoncraftApp, ctx: &egui::Context, events: Vec<egui::Event>, s: &str) -> usize {
     let mut out = ctx.run_ui(egui::RawInput { events, ..Default::default() }, |ui| show(app, ui));
     out.textures_delta.clear();
     out.shapes.iter().filter(|c| matches!(&c.shape, egui::Shape::Text(t) if t.galley.text() == s)).count()
@@ -1129,7 +1129,7 @@ fn texts(app: &mut VectorcraftApp, ctx: &egui::Context, events: Vec<egui::Event>
 
 /// Drag the row at `a` to `b` and drop it there. Returns how many times its `name` was painted
 /// while it hung over `b`.
-fn drag_row(app: &mut VectorcraftApp, ctx: &egui::Context, a: egui::Pos2, b: egui::Pos2, name: &str) -> usize {
+fn drag_row(app: &mut VansoncraftApp, ctx: &egui::Context, a: egui::Pos2, b: egui::Pos2, name: &str) -> usize {
     frame(app, ctx, vec![egui::Event::PointerMoved(a)], false);
     frame(app, ctx, vec![button(a, true)], false);
     frame(app, ctx, vec![egui::Event::PointerMoved(a + vec2(0.0, 6.0))], false);
@@ -1145,7 +1145,7 @@ fn dropping_rows_on_new_layer_duplicates_them() {
     let second = app.session.execute("layer.new", &json!({"name": "Top"})).unwrap()["id"].as_u64().map(NodeId).unwrap();
     let ctx = egui::Context::default();
     crate::theme::install_fonts(&ctx);
-    let layers = |app: &VectorcraftApp| app.session.active().unwrap().doc.layers.iter().map(|l| l.id).collect::<Vec<_>>();
+    let layers = |app: &VansoncraftApp| app.session.active().unwrap().doc.layers.iter().map(|l| l.id).collect::<Vec<_>>();
     // Rows top down: Top, Layer 1 (expanded: its two rectangles).
     let (c, _) = frame(&mut app, &ctx, vec![], false);
     let buttons = bar_buttons(&mut app, &ctx);
@@ -1178,7 +1178,7 @@ fn cmd_alt_l_is_new_layer_options() {
     assert_eq!((chord.modifiers, chord.logical_key), (egui::Modifiers::COMMAND | egui::Modifiers::ALT, egui::Key::L));
     let shown = crate::menus::pretty_shortcut("Cmd+Alt+L");
     assert_eq!(shown, if cfg!(target_os = "macos") { "⌥⌘L" } else { "Ctrl+Alt+L" });
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     let listed = app.run("shortcuts.list", json!({"query": "ui.newLayer"})).unwrap();
     let rows: Vec<_> = listed.as_array().expect("rows").iter().map(|r| (r["label"].clone(), r["default"].clone())).collect();
     assert_eq!(rows, [(json!("New Layer Options…"), json!("Cmd+Alt+L"))], "Keyboard Shortcuts lists it");
@@ -1191,21 +1191,21 @@ fn cmd_alt_l_is_new_layer_options() {
 /// a layer without the dialog.
 #[test]
 fn cmd_alt_l_opens_new_layer_options_as_alt_clicking_new_layer_does() {
-    fn press(app: &mut VectorcraftApp, modifiers: egui::Modifiers) {
+    fn press(app: &mut VansoncraftApp, modifiers: egui::Modifiers) {
         let ctx = egui::Context::default();
         let ev = egui::Event::Key { key: egui::Key::L, physical_key: None, pressed: true, repeat: false, modifiers };
         let mut out = ctx.run_ui(egui::RawInput { events: vec![ev], ..Default::default() }, |ui| crate::shortcuts::handle(app, ui.ctx()));
         out.textures_delta.clear();
     }
     /// Layer 1 with two rectangles under a layer named Top, with Layer 1 current.
-    fn two_layers() -> VectorcraftApp {
+    fn two_layers() -> VansoncraftApp {
         let (mut app, first, _) = two_rects();
         app.session.execute("layer.new", &json!({"name": "Top"})).unwrap();
         app.session.execute("layer.setCurrent", &json!({"id": first.0})).unwrap();
         app
     }
-    let names = |app: &VectorcraftApp| app.session.active().unwrap().doc.layers.iter().map(|l| l.display_name()).collect::<Vec<_>>();
-    let dialog = |app: &VectorcraftApp| app.ui.dialog.as_ref().map(|d| (d.kind.clone(), d.fields.clone()));
+    let names = |app: &VansoncraftApp| app.session.active().unwrap().doc.layers.iter().map(|l| l.display_name()).collect::<Vec<_>>();
+    let dialog = |app: &VansoncraftApp| app.ui.dialog.as_ref().map(|d| (d.kind.clone(), d.fields.clone()));
     let mut keyed = two_layers();
     press(&mut keyed, egui::Modifiers::COMMAND | egui::Modifiers::ALT);
     let mut clicked = two_layers();
@@ -1242,11 +1242,11 @@ fn cmd_alt_click_puts_a_new_layer_below_and_a_new_sublayer_at_the_bottom() {
     app.session.execute("layer.new", &json!({"name": "Top"})).unwrap();
     app.session.execute("layer.setCurrent", &json!({"id": first.0})).unwrap();
     let ctx = egui::Context::default();
-    let names = |app: &VectorcraftApp| app.session.active().unwrap().doc.layers.iter().map(|l| l.display_name()).collect::<Vec<_>>();
-    let undos = |app: &VectorcraftApp| app.session.active().unwrap().history.undo.len();
+    let names = |app: &VansoncraftApp| app.session.active().unwrap().doc.layers.iter().map(|l| l.display_name()).collect::<Vec<_>>();
+    let undos = |app: &VansoncraftApp| app.session.active().unwrap().history.undo.len();
     let cmd_alt = egui::Modifiers::COMMAND | egui::Modifiers::ALT;
     // Clicks the bottom bar's button `k` (1: New Layer, 2: New Sublayer) with `mods` held.
-    let click = |app: &mut VectorcraftApp, k: usize, mods: egui::Modifiers| {
+    let click = |app: &mut VansoncraftApp, k: usize, mods: egui::Modifiers| {
         let at = bar_buttons(app, &ctx)[k];
         click_with(app, &ctx, at, mods);
     };
@@ -1336,9 +1336,9 @@ fn the_save_selection_submenu_recalls_updates_and_saves_selections() {
     app.run("select.none", json!({})).unwrap();
     let ctx = egui::Context::default();
     crate::theme::install_fonts(&ctx);
-    let frame = |app: &mut VectorcraftApp, events: Vec<egui::Event>| super::super::tests_appearance::frame_events(&ctx, app, events, menu);
+    let frame = |app: &mut VansoncraftApp, events: Vec<egui::Event>| super::super::tests_appearance::frame_events(&ctx, app, events, menu);
     // Opens the submenu (when closed) and clicks the item labeled `label` in it.
-    let choose = |app: &mut VectorcraftApp, label: &str| {
+    let choose = |app: &mut VansoncraftApp, label: &str| {
         let at = |texts: &[(String, egui::Rect)], label: &str| texts.iter().find(|(t, _)| t.trim() == label).map(|(_, r)| r.center());
         let mut texts = frame(app, vec![]);
         if at(&texts, label).is_none() {
@@ -1353,7 +1353,7 @@ fn the_save_selection_submenu_recalls_updates_and_saves_selections() {
             frame(app, vec![e]);
         }
     };
-    let selected = |app: &VectorcraftApp| app.session.active().unwrap().selection.objects.clone();
+    let selected = |app: &VansoncraftApp| app.session.active().unwrap().selection.objects.clone();
     choose(&mut app, "Left");
     assert_eq!(selected(&app), vec![a], "choosing a name recalls it");
     app.run("select.set", json!({"ids": [a.0, b.0]})).unwrap();
@@ -1376,7 +1376,7 @@ fn rows_work_in_the_floating_flyout() {
     crate::theme::install_fonts(&ctx);
     let screen = egui::Rect::from_min_size(egui::Pos2::ZERO, vec2(1600.0, 1000.0));
     let mut time = 0.0;
-    let mut frame = |app: &mut VectorcraftApp, events: Vec<egui::Event>| {
+    let mut frame = |app: &mut VansoncraftApp, events: Vec<egui::Event>| {
         time += 0.05;
         let input = egui::RawInput { time: Some(time), events, screen_rect: Some(screen), ..Default::default() };
         let mut out = ctx.run_ui(input, |ui| crate::panel_docking::show(app, ui));
@@ -1411,9 +1411,9 @@ fn rows_work_in_the_floating_flyout() {
 /// A layer of `n` groups of one path each, with only the layer open, as a document opens →
 /// (app, layer, the paths in stacking order, so the first is in the bottom row). The path in
 /// group `i` is named `Path {i}`.
-fn groups_of_one(n: usize) -> (VectorcraftApp, NodeId, Vec<NodeId>) {
-    use vectorcraft_doc::Appearance;
-    use vectorcraft_geom::{Rect, shapes};
+fn groups_of_one(n: usize) -> (VansoncraftApp, NodeId, Vec<NodeId>) {
+    use vansoncraft_doc::Appearance;
+    use vansoncraft_geom::{Rect, shapes};
     let mut d = Document::new(1000.0, 1000.0);
     let mut groups = vec![];
     let mut paths = vec![];
@@ -1426,14 +1426,14 @@ fn groups_of_one(n: usize) -> (VectorcraftApp, NodeId, Vec<NodeId>) {
     }
     *Arc::make_mut(&mut d.layers[0]).children_mut().unwrap() = groups;
     let layer = d.layers[0].id;
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.add_document(d, None);
     (app, layer, paths)
 }
 
 /// One frame of the panel in a 300 × 800 window, one second after the previous frame: the
 /// centers of the target circles, top row first, and whether `name` is drawn.
-fn tall_frame(app: &mut VectorcraftApp, ctx: &egui::Context, name: &str) -> (Vec<egui::Pos2>, bool) {
+fn tall_frame(app: &mut VansoncraftApp, ctx: &egui::Context, name: &str) -> (Vec<egui::Pos2>, bool) {
     let time = ctx.input(|i| i.time) + 1.0;
     let screen = egui::Rect::from_min_size(egui::Pos2::ZERO, vec2(300.0, 800.0));
     let mut out = ctx.run_ui(egui::RawInput { screen_rect: Some(screen), time: Some(time), ..Default::default() }, |ui| show(app, ui));
@@ -1537,7 +1537,7 @@ fn with_the_option_the_panel_menu_locates_nothing() {
     expand(&mut app, &json!({"ids": [sub.0, g.0], "open": false})).unwrap();
     app.session.execute("layer.highlight", &json!({"ids": [c.0]})).unwrap();
     assert_eq!(frame(&mut app, &ctx, vec![], false).0.len(), 3, "Layer 1, Sub (closed) and c");
-    let menu_frame = |app: &mut VectorcraftApp, events| super::super::tests_appearance::frame_events(&ctx, app, events, menu);
+    let menu_frame = |app: &mut VansoncraftApp, events| super::super::tests_appearance::frame_events(&ctx, app, events, menu);
     let at = menu_frame(&mut app, vec![]).iter().find(|(t, _)| t.trim() == "Delete Selection").map(|(_, r)| r.center()).unwrap();
     for e in [egui::Event::PointerMoved(at), button(at, true), button(at, false)] {
         menu_frame(&mut app, vec![e]);
@@ -1560,7 +1560,7 @@ fn with_the_option_a_selection_recalled_from_the_panel_menu_is_not_located() {
     frame(&mut app, &ctx, vec![], false);
     expand(&mut app, &json!({"ids": [sub.0, g.0], "open": false})).unwrap();
     assert_eq!(frame(&mut app, &ctx, vec![], false).0.len(), 3, "Layer 1, Sub (closed) and c");
-    let menu_frame = |app: &mut VectorcraftApp, events| super::super::tests_appearance::frame_events(&ctx, app, events, menu);
+    let menu_frame = |app: &mut VansoncraftApp, events| super::super::tests_appearance::frame_events(&ctx, app, events, menu);
     let at = |texts: &[(String, egui::Rect)], label: &str| texts.iter().find(|(t, _)| t.trim() == label).map(|(_, r)| r.center());
     let sub_menu = at(&menu_frame(&mut app, vec![]), "Save Selection").expect("the Save Selection submenu");
     for e in [egui::Event::PointerMoved(sub_menu), button(sub_menu, true), button(sub_menu, false)] {
@@ -1641,12 +1641,12 @@ fn with_the_option_the_located_object_is_revealed_instead_of_its_active_layer() 
 /// row, so the panel scrolls to the row of the layer that the selection makes the active one.
 #[test]
 fn with_the_option_and_show_layers_only_the_active_layer_is_revealed() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.ui.layers_panel.locate_selected = true;
     app.ui.layers_panel.layers_only = true;
-    let run = |app: &mut VectorcraftApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
+    let run = |app: &mut VansoncraftApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
     run(&mut app, "file.new", json!({"width": 100, "height": 100}));
-    let rect = |app: &mut VectorcraftApp| run(app, "shape.rectangle", json!({"x": 0, "y": 0, "width": 5, "height": 5}))["id"].as_u64().unwrap();
+    let rect = |app: &mut VansoncraftApp| run(app, "shape.rectangle", json!({"x": 0, "y": 0, "width": 5, "height": 5}))["id"].as_u64().unwrap();
     let bottom = rect(&mut app);
     for _ in 0..59 {
         run(&mut app, "layer.new", json!({}));
@@ -1669,11 +1669,11 @@ fn with_the_option_art_the_panel_does_not_list_opens_nothing() {
     let (mut app, _, paths) = groups_of_one(500);
     app.ui.layers_panel.locate_selected = true;
     let ctx = egui::Context::default();
-    let open = |app: &VectorcraftApp, i: usize| {
+    let open = |app: &VansoncraftApp, i: usize| {
         let st = app.session.active().unwrap();
         st.layers_open.contains(st.doc.parent_of(paths[i]).unwrap())
     };
-    let locate = |app: &mut VectorcraftApp, i: usize| {
+    let locate = |app: &mut VansoncraftApp, i: usize| {
         app.session.execute("select.set", &json!({"ids": [paths[i].0]})).unwrap();
         for _ in 0..4 {
             tall_frame(app, &ctx, "");
@@ -1697,8 +1697,8 @@ fn with_the_option_art_the_panel_does_not_list_opens_nothing() {
 /// in view, and a row highlighted far below them is scrolled to.
 #[test]
 fn only_the_rows_in_view_are_laid_out() {
-    use vectorcraft_doc::Appearance;
-    use vectorcraft_geom::{Rect, shapes};
+    use vansoncraft_doc::Appearance;
+    use vansoncraft_geom::{Rect, shapes};
     let mut d = Document::new(1000.0, 1000.0);
     let mut groups = vec![];
     let mut needle = None;
@@ -1717,14 +1717,14 @@ fn only_the_rows_in_view_are_laid_out() {
         groups.push(Arc::new(Node::group(d.alloc_id(), kids)));
     }
     *Arc::make_mut(&mut d.layers[0]).children_mut().unwrap() = groups;
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.add_document(d, None);
     expand(&mut app, &json!({})).unwrap();
     let ctx = egui::Context::default();
     // (shapes drawn, whether the needle's name is among them); a second passes per frame, so
     // scrolling ends.
     let mut time = 0.0;
-    let mut frame = |app: &mut VectorcraftApp| {
+    let mut frame = |app: &mut VansoncraftApp| {
         time += 1.0;
         let screen = egui::Rect::from_min_size(egui::Pos2::ZERO, vec2(300.0, 800.0));
         let mut out = ctx.run_ui(egui::RawInput { screen_rect: Some(screen), time: Some(time), ..Default::default() }, |ui| show(app, ui));
@@ -1746,8 +1746,8 @@ fn only_the_rows_in_view_are_laid_out() {
 /// from a row highlighted in the panel.
 #[test]
 fn a_canvas_selection_reveals_its_active_layer() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
-    let run = |app: &mut VectorcraftApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
+    let run = |app: &mut VansoncraftApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
     run(&mut app, "file.new", json!({"width": 100, "height": 100}));
     let mut rects = vec![run(&mut app, "shape.rectangle", json!({"x": 0, "y": 0, "width": 5, "height": 5}))["id"].as_u64().unwrap()];
     for _ in 0..59 {
@@ -1761,7 +1761,7 @@ fn a_canvas_selection_reveals_its_active_layer() {
     let ctx = egui::Context::default();
     let mut time = 0.0;
     // Whether a row with this name is drawn after a few frames.
-    let mut shown = |app: &mut VectorcraftApp, s: &str| {
+    let mut shown = |app: &mut VansoncraftApp, s: &str| {
         let mut found = false;
         for _ in 0..4 {
             time += 1.0;
@@ -1789,8 +1789,8 @@ fn a_canvas_selection_reveals_its_active_layer() {
 /// nothing, and searching leaves the row out.
 #[test]
 fn a_blends_spine_is_a_row_below_its_keys_that_selects_the_blend() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
-    let run = |app: &mut VectorcraftApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
+    let run = |app: &mut VansoncraftApp, id: &str, p: serde_json::Value| app.session.execute(id, &p).unwrap();
     run(&mut app, "file.new", json!({"width": 300, "height": 200}));
     let a = run(&mut app, "shape.rectangle", json!({"x": 0, "y": 0, "width": 20, "height": 20}))["id"].as_u64().unwrap();
     let b = run(&mut app, "shape.rectangle", json!({"x": 200, "y": 0, "width": 20, "height": 20}))["id"].as_u64().unwrap();
@@ -1809,7 +1809,7 @@ fn a_blends_spine_is_a_row_below_its_keys_that_selects_the_blend() {
     let (circles, _) = frame(&mut app, &ctx, vec![], false);
     assert_eq!(circles.len(), 4);
     let spine_row = egui::pos2(150.0, circles[3].y + (circles[3].y - circles[2].y));
-    let selected = |app: &VectorcraftApp| app.session.active().unwrap().selection.objects.to_vec();
+    let selected = |app: &VansoncraftApp| app.session.active().unwrap().selection.objects.to_vec();
     click_with(&mut app, &ctx, spine_row, egui::Modifiers::NONE);
     assert_eq!(selected(&app), [blend], "its row selects the blend");
     click_with(&mut app, &ctx, spine_row, egui::Modifiers::SHIFT);
@@ -1822,7 +1822,7 @@ fn a_blends_spine_is_a_row_below_its_keys_that_selects_the_blend() {
 /// A ruler guide node gets no object row, and a layer that holds only one has no rows to open.
 #[test]
 fn ruler_guide_nodes_get_no_object_row() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
     let rect = NodeId(app.session.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 50, "height": 50})).unwrap()["id"].as_u64().unwrap());
     expand(&mut app, &json!({})).unwrap();
@@ -1846,7 +1846,7 @@ fn ruler_guide_nodes_get_no_object_row() {
 /// the guide nodes in the layer (`guide.setLayer` puts a moved guide at the top of its new layer).
 #[test]
 fn guide_rows_list_by_index_whatever_the_node_order() {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.session.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
     for pos in [10, 20, 30] {
         app.session.execute("guide.add", &json!({"vertical": true, "pos": pos})).unwrap();

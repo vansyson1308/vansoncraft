@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title>VansonCraft</title>
+  <defs>
+    <clipPath id="tile"><rect width="512" height="512" rx="112"/></clipPath>
+  </defs>
+  <g clip-path="url(#tile)">
+    <rect width="512" height="512" fill="#123c46"/>
+    <g transform="translate(-20 7)">
+      <!-- A V drawn as a path: a straight stroke down to a corner point, a curve up to a smooth point. -->
+      <path d="M128 150 L240 388 C282 300 306 214 360 166" fill="none" stroke="#f4efe4" stroke-width="58" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- The smooth point's handle, along the curve's tangent there, with its knob. -->
+      <path d="M360 166 L428.7 104.9" fill="none" stroke="#f2b134" stroke-width="14" stroke-linecap="round"/>
+      <circle cx="428.7" cy="104.9" r="24" fill="#f2b134"/>
+      <rect x="334" y="140" width="52" height="52" rx="8" fill="#f2b134" stroke="#123c46" stroke-width="10"/>
+    </g>
+  </g>
+</svg>

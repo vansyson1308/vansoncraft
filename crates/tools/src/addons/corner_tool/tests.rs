@@ -1,6 +1,6 @@
-use vectorcraft_doc::corners::set_corners;
-use vectorcraft_doc::{Appearance, Node, Selection};
-use vectorcraft_geom::{PathData, SubPath};
+use vansoncraft_doc::corners::set_corners;
+use vansoncraft_doc::{Appearance, Node, Selection};
+use vansoncraft_geom::{PathData, SubPath};
 
 use super::*;
 use crate::testutil::*;

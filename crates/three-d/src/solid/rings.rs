@@ -21,7 +21,7 @@ pub(super) const TOO_COMPLEX_SURFACE: &str = "The 3D surface is too complex; sim
 
 /// How many straight pieces follow `c` within `tolerance` (Wang's bound on a cubic's distance from
 /// its chords), 1 to [`CURVE_PIECES`].
-fn pieces(c: vectorcraft_geom::CubicBez, tolerance: f64) -> u32 {
+fn pieces(c: vansoncraft_geom::CubicBez, tolerance: f64) -> u32 {
     let d = |a: Point, b: Point, c: Point| (a.to_vec2() - 2.0 * b.to_vec2() + c.to_vec2()).hypot();
     let bend = d(c.p0, c.p1, c.p2).max(d(c.p1, c.p2, c.p3));
     let n = (0.75 * bend / tolerance).sqrt().ceil();
@@ -127,7 +127,7 @@ pub(super) fn meets(sampled: &[Vec<Point>], closed: &PathData) -> bool {
 pub(super) fn closed_straight(path: &PathData) -> std::borrow::Cow<'_, PathData> {
     // The closing segment (last anchor to first) as the boolean will draw it once closed; the
     // length test comes first, so a subpath of fewer than two anchors never reaches the index.
-    let straight = |sp: &vectorcraft_geom::SubPath| sp.closed || sp.anchors.len() < 2 || sp.segment_is_line(sp.anchors.len() - 1);
+    let straight = |sp: &vansoncraft_geom::SubPath| sp.closed || sp.anchors.len() < 2 || sp.segment_is_line(sp.anchors.len() - 1);
     if path.subpaths.iter().all(straight) {
         return std::borrow::Cow::Borrowed(path);
     }
@@ -247,7 +247,7 @@ fn segments_meet(a: Point, b: Point, c: Point, d: Point, touch: f64) -> bool {
 /// to `t1` (`t1` below `t0` on a ring that runs against its curve).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(super) struct Span {
-    pub(super) curve: vectorcraft_geom::CubicBez,
+    pub(super) curve: vansoncraft_geom::CubicBez,
     pub(super) t0: f64,
     pub(super) t1: f64,
 }
@@ -302,7 +302,7 @@ pub(super) fn solid_rings_traced(path: &PathData, rule: FillRule, size: f64, lim
     if !meets(&points, &closed) {
         return orient(sampled, rule);
     }
-    match vectorcraft_pathops::try_unite_all_with(&[(&closed, rule)], DEBRIS) {
+    match vansoncraft_pathops::try_unite_all_with(&[(&closed, rule)], DEBRIS) {
         Ok(merged) => sample_traced(&merged, size, limit, most).map(wound),
         Err(_) => orient(sampled, rule),
     }

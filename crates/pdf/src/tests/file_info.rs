@@ -1,8 +1,8 @@
 //! File Info read from a PDF: the information dictionary, the XMP packet, the packet's values
 //! where both give a field, and the dictionary's alone where the packet can't be read.
 
-use vectorcraft_doc::Document;
-use vectorcraft_testkit::pdf::{PdfPage, first_extra, pdf_with_catalog};
+use vansoncraft_doc::Document;
+use vansoncraft_testkit::pdf::{PdfPage, first_extra, pdf_with_catalog};
 
 use crate::*;
 
@@ -232,7 +232,7 @@ fn a_written_pdf_carries_the_file_info_title_not_the_documents_name() {
 
 #[test]
 fn a_written_pdf_gives_its_copyright_back() {
-    use vectorcraft_doc::CopyrightStatus;
+    use vansoncraft_doc::CopyrightStatus;
     let notice = "(c) 2026 Ada & <Babbage>\r\nAll rights \"reserved\"";
     let url = "https://example.com/rights?a=1&b=2";
     for standard in [Standard::None, Standard::PdfA2b, Standard::PdfX1a, Standard::PdfX4] {

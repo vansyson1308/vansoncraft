@@ -17,9 +17,9 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use vectorcraft_doc::live::Hooks;
-use vectorcraft_doc::{Appearance, AppearanceItem, Document, Effect, ImageObject, Node, NodeId, NodeKind};
-use vectorcraft_geom::{Affine, BezPath, FillRule, PathData, Point, Rect, Shape, shapes};
+use vansoncraft_doc::live::Hooks;
+use vansoncraft_doc::{Appearance, AppearanceItem, Document, Effect, ImageObject, Node, NodeId, NodeKind};
+use vansoncraft_geom::{Affine, BezPath, FillRule, PathData, Point, Rect, Shape, shapes};
 
 use crate::{Budget, GeomContext, OutlineHook, apply_one, is_geometry, merged_params};
 
@@ -116,8 +116,8 @@ pub fn has_transform_art(n: &Node) -> bool {
 /// Is `e` a visible live-effect plug-in whose manifest declares `paintOutput`: its id's plug-in id,
 /// else `None`.
 fn painted_plugin(e: &Effect) -> Option<&str> {
-    let id = vectorcraft_plugins::effect::plugin_id(&e.id).filter(|_| e.visible)?;
-    vectorcraft_plugins::effect::paints_output(id).then_some(id)
+    let id = vansoncraft_plugins::effect::plugin_id(&e.id).filter(|_| e.visible)?;
+    vansoncraft_plugins::effect::paints_output(id).then_some(id)
 }
 
 /// Is `n` a path or compound path with a live-effect plug-in that paints what it returns
@@ -210,7 +210,7 @@ pub fn image_paint(doc: Option<&Document>, n: &Node) -> Vec<(BezPath, FillRule, 
 
 /// The glyph outlines of type `t` in text space with its underline and strikethrough bars: one
 /// path per run, and all of them as one.
-pub(crate) fn glyph_outlines(t: &vectorcraft_doc::TextObject) -> (Vec<kurbo::BezPath>, kurbo::BezPath) {
+pub(crate) fn glyph_outlines(t: &vansoncraft_doc::TextObject) -> (Vec<kurbo::BezPath>, kurbo::BezPath) {
     let (runs, all, ..) = laid_out(t);
     (runs, all)
 }
@@ -218,9 +218,9 @@ pub(crate) fn glyph_outlines(t: &vectorcraft_doc::TextObject) -> (Vec<kurbo::Bez
 /// [`glyph_outlines`], the bounds of `t`'s layout in text space, and its colour glyphs, which have
 /// no outlines, placed in the document with their runs: bitmap glyphs (emoji) as images holding
 /// their pixels, then COLR and SVG glyphs as their art, as the renderer paints them.
-fn laid_out(t: &vectorcraft_doc::TextObject) -> (Vec<kurbo::BezPath>, kurbo::BezPath, Rect, Vec<(usize, Node)>) {
-    let db = vectorcraft_text::FontDb::global();
-    let layout = vectorcraft_text::layout(db, t);
+fn laid_out(t: &vansoncraft_doc::TextObject) -> (Vec<kurbo::BezPath>, kurbo::BezPath, Rect, Vec<(usize, Node)>) {
+    let db = vansoncraft_text::FontDb::global();
+    let layout = vansoncraft_text::layout(db, t);
     let mut runs = vec![kurbo::BezPath::new(); t.runs.len()];
     let mut all = kurbo::BezPath::new();
     // Ruby (furigana) glyphs are painted with their base text's run, as the renderer paints them.
@@ -231,7 +231,7 @@ fn laid_out(t: &vectorcraft_doc::TextObject) -> (Vec<kurbo::BezPath>, kurbo::Bez
         all.extend(g.outline.iter());
     }
     // Underline and strikethrough bars, painted as their run's type is (#847).
-    for (run, bar) in vectorcraft_text::decorations(&layout, db, t) {
+    for (run, bar) in vansoncraft_text::decorations(&layout, db, t) {
         if let Some(r) = runs.get_mut(run) {
             r.extend(bar.iter());
         }
@@ -249,12 +249,12 @@ fn laid_out(t: &vectorcraft_doc::TextObject) -> (Vec<kurbo::BezPath>, kurbo::Bez
 /// weights and dashes and transforms its pattern tiles; its unplaced gradients are first fixed to
 /// the layout's bounds in text space. The object's own unplaced gradients are fixed to the
 /// bounding box of those bounds in the document. The group is marked as type's outlines
-/// ([`vectorcraft_doc::NodeExtras::type_outlines`]).
+/// ([`vansoncraft_doc::NodeExtras::type_outlines`]).
 pub fn outline_text(n: &Node) -> Option<Node> {
     let NodeKind::Text(t) = &n.kind else { return None };
     let (runs, all, bounds, colours) = laid_out(t);
     let path = |bp: &kurbo::BezPath| PathData::from_bezpath(bp).transformed(t.xf);
-    let scaling = vectorcraft_doc::Scaling { strokes: true, patterns: true, ..Default::default() };
+    let scaling = vansoncraft_doc::Scaling { strokes: true, patterns: true, ..Default::default() };
     let mut children: Vec<Arc<Node>> = vec![];
     for (i, (bp, run)) in runs.iter().zip(&t.runs).enumerate() {
         // Colour glyphs paint themselves, under their run's fill, as the renderer paints them.
@@ -304,7 +304,7 @@ fn with_id(art: &Node, id: NodeId) -> Node {
 /// a symbol instance as `symbol_art` (the symbol's art, stained as the caller draws it) placed by
 /// the instance's transform (through the symbol's 9-slice guides in `doc`, when it has them).
 /// `None` for other kinds (images, paths, containers), and for an instance whose art placed
-/// through the guides could hold more than [`vectorcraft_doc::MAX_SYMBOL_NODES`] objects. A Repeat counts the Repeats in the art of
+/// through the guides could hold more than [`vansoncraft_doc::MAX_SYMBOL_NODES`] objects. A Repeat counts the Repeats in the art of
 /// `doc`'s symbols that its instances show toward its instance budget.
 pub fn outline_art(doc: Option<&Document>, n: &Node, symbol_art: Option<&Node>) -> Option<Node> {
     outline_art_with(doc, doc, n, symbol_art, &outline_text, &SymbolNodes::default(), false)
@@ -347,7 +347,7 @@ fn outline_art_with(
             one.appearance.effects.clear();
             Node::group(n.id, vec![Arc::new(one)])
         }
-        _ if vectorcraft_doc::live::is_live(n) => evaluated_with(symbols, n, outline, nodes),
+        _ if vansoncraft_doc::live::is_live(n) => evaluated_with(symbols, n, outline, nodes),
         _ => return None,
     };
     outline_nested_text(paint_doc, &mut art, false);
@@ -355,7 +355,7 @@ fn outline_art_with(
     art.blend = Default::default();
     art.isolate = false;
     // One element: its pieces never knock each other out.
-    art.knockout = vectorcraft_doc::Knockout::Off;
+    art.knockout = vansoncraft_doc::Knockout::Off;
     art.extras_mut().mask = None;
     art.appearance.effects.clear();
     Some(art)
@@ -363,7 +363,7 @@ fn outline_art_with(
 
 /// `n` with every live object in it evaluated, type inside them outlined ([`outline_text`]). The
 /// Repeats among them count the Repeats in the art of `doc`'s symbols that their instances show
-/// toward their instance budget ([`vectorcraft_doc::RepeatSpec::expand`]).
+/// toward their instance budget ([`vansoncraft_doc::RepeatSpec::expand`]).
 pub(crate) fn evaluated(doc: Option<&Document>, n: &Node) -> Node {
     evaluated_with(doc, n, &outline_text, &SymbolNodes::default())
 }
@@ -400,7 +400,7 @@ impl SymbolNodes {
 /// plain group) replaced by its art from `outline`, with the instance's name, visibility and
 /// transparency. The live objects and symbol instances inside that art are given as their art in
 /// turn, except an instance of a symbol that holds an instance of itself, of a symbol nested
-/// more than [`vectorcraft_doc::depth::MAX_DEPTH`] deep, or whose art would take `nodes` past
+/// more than [`vansoncraft_doc::depth::MAX_DEPTH`] deep, or whose art would take `nodes` past
 /// [`SYMBOL_ART_MAX_NODES`], which stays as it is. With [`outline_text`], symbol instances stay as
 /// they are.
 pub(crate) fn evaluated_with(doc: Option<&Document>, n: &Node, outline: OutlineHook, nodes: &SymbolNodes) -> Node {
@@ -416,7 +416,7 @@ pub(crate) fn symbol_art_with(art: &Node, outline: OutlineHook, nodes: &SymbolNo
 /// [`evaluated_with`] inside the art of the symbols named in `shown`, outermost first.
 fn resolved(doc: Option<&Document>, n: &Node, outline: OutlineHook, nodes: &SymbolNodes, shown: &[String]) -> Node {
     let inner = |m: &Node| art_of(doc, m, outline, nodes, shown);
-    let mut art = vectorcraft_doc::live::expand_deep_hooks(n, Hooks { outline: Some(&inner), symbols: doc, ..Default::default() });
+    let mut art = vansoncraft_doc::live::expand_deep_hooks(n, Hooks { outline: Some(&inner), symbols: doc, ..Default::default() });
     instances_as_art(doc, &mut art, outline, nodes, shown);
     art
 }
@@ -424,11 +424,11 @@ fn resolved(doc: Option<&Document>, n: &Node, outline: OutlineHook, nodes: &Symb
 /// `n`'s art from `outline`, inside the art of the symbols named in `shown`. For a symbol instance
 /// it is the symbol's art with the live objects and instances inside it given as their art in turn
 /// ([`resolved`]); `None` for an instance of a symbol in `shown` (one that holds an instance of
-/// itself), for every instance once `shown` holds [`vectorcraft_doc::depth::MAX_DEPTH`] symbols,
+/// itself), for every instance once `shown` holds [`vansoncraft_doc::depth::MAX_DEPTH`] symbols,
 /// and for an instance whose symbol's art `nodes` cannot take ([`SymbolNodes::charge`]).
 fn art_of(doc: Option<&Document>, n: &Node, outline: OutlineHook, nodes: &SymbolNodes, shown: &[String]) -> Option<Node> {
     let NodeKind::SymbolInstance { symbol, .. } = &n.kind else { return outline(n) };
-    if shown.len() >= vectorcraft_doc::depth::MAX_DEPTH || shown.contains(symbol) {
+    if shown.len() >= vansoncraft_doc::depth::MAX_DEPTH || shown.contains(symbol) {
         return None;
     }
     let art = outline(n).filter(|art| nodes.charge(art))?;
@@ -601,7 +601,7 @@ fn as_art_opts(
     out.blend = n.blend;
     out.isolate = n.isolate;
     // One element: its pieces never knock each other out.
-    out.knockout = vectorcraft_doc::Knockout::Off;
+    out.knockout = vansoncraft_doc::Knockout::Off;
     out.knockout_shape = n.knockout_shape;
     out.extras_mut().mask = n.extras().mask.clone();
     out.appearance.effects = n.appearance.effects.iter().filter(|e| !is_geometry(&e.id)).cloned().collect();
@@ -612,7 +612,7 @@ fn as_art_opts(
 /// masks of the objects under it, through the projective map `h`, curves split finely enough to
 /// follow it. The type and live objects in the art of those masks are outlined and evaluated
 /// first ([`outlined_members`], with the symbols of `doc`).
-fn project_leaves(art: &mut Node, h: &vectorcraft_geom::Homography, doc: Option<&Document>) {
+fn project_leaves(art: &mut Node, h: &vansoncraft_geom::Homography, doc: Option<&Document>) {
     project_paths(art, h);
     each_linked_mask_mut(art, false, 0, &mut |m| {
         *m = outlined_mask_art(doc, m);
@@ -630,13 +630,13 @@ fn outlined_mask_art(doc: Option<&Document>, art: &Node) -> Node {
 }
 
 /// The paths of [`project_leaves`] outside the art of masks.
-fn project_paths(art: &mut Node, h: &vectorcraft_geom::Homography) {
-    let f = |p: vectorcraft_geom::Point| h.apply(p).unwrap_or(p);
+fn project_paths(art: &mut Node, h: &vansoncraft_geom::Homography) {
+    let f = |p: vansoncraft_geom::Point| h.apply(p).unwrap_or(p);
     let piece = art.geometric_bounds().map_or(1.0, |b| (b.width().max(b.height()) / 64.0).max(0.25));
-    let project = |path: &mut PathData| *path = vectorcraft_doc::live::map_nonlinear(path, piece, f);
+    let project = |path: &mut PathData| *path = vansoncraft_doc::live::map_nonlinear(path, piece, f);
     for_each_leaf(art, &mut |leaf| {
         leaf.pin_gradients();
-        leaf.appearance.warp_gradients(&|p| h.affine_at(p).unwrap_or(vectorcraft_geom::Affine::IDENTITY));
+        leaf.appearance.warp_gradients(&|p| h.affine_at(p).unwrap_or(vansoncraft_geom::Affine::IDENTITY));
         match &mut leaf.kind {
             NodeKind::Path { path, live, .. } => {
                 project(path);
@@ -829,7 +829,7 @@ impl Step<'_> {
             if own || has_linked_mask(art, false) {
                 return stayed;
             }
-            let at = self.effect.map(|effect| vectorcraft_plugins::deferred::Stage { object: seed, effect, item: None });
+            let at = self.effect.map(|effect| vansoncraft_plugins::deferred::Stage { object: seed, effect, item: None });
             for_each_leaf(art, &mut |leaf| {
                 let Some((path, _)) = leaf_geometry(leaf) else { return };
                 let before = Budget::of(&path);
@@ -959,7 +959,7 @@ impl Step<'_> {
                     return;
                 }
                 if separate {
-                    let scaling = vectorcraft_doc::Scaling { keep_fit_when_flat: true, ..Default::default() };
+                    let scaling = vansoncraft_doc::Scaling { keep_fit_when_flat: true, ..Default::default() };
                     let made = copy_leaf(leaf, &path, m, copies, scaling, room);
                     *used = used.minus(before).plus(made);
                     moved_ids.insert(leaf.id);
@@ -967,7 +967,7 @@ impl Step<'_> {
                     return;
                 }
             }
-            let stage = self.effect.map(|effect| vectorcraft_plugins::deferred::Stage { object: seed, effect, item: None });
+            let stage = self.effect.map(|effect| vansoncraft_plugins::deferred::Stage { object: seed, effect, item: None });
             let Some(out) = apply_one(&e.id, params, &path, bounds, &GeomContext { seed, stage, ..GeomContext::of(leaf) }, room) else {
                 kept_ids.insert(leaf.id);
                 kept_leaves.insert(at);
@@ -1044,10 +1044,10 @@ impl Step<'_> {
     /// compound path, group and layer under it, with the art's reference box, as the paths the mask
     /// covers take it: the mask moves and bends with what it masks. The mask of an object
     /// transformed as an object moved with it already and is left as it is. A mask stays as it was
-    /// past [`vectorcraft_doc::depth::MAX_DEPTH`] masks inside masks, and for the reasons
+    /// past [`vansoncraft_doc::depth::MAX_DEPTH`] masks inside masks, and for the reasons
     /// [`Step::reshape_own_mask`] gives. Returns whether a mask stayed for one of those reasons.
     fn reshape_masks(&self, n: &mut Node, own: bool, skip: &Skip, max: Budget, used: &mut Budget, depth: usize) -> bool {
-        if depth >= vectorcraft_doc::depth::MAX_DEPTH || !has_linked_mask(n, own) {
+        if depth >= vansoncraft_doc::depth::MAX_DEPTH || !has_linked_mask(n, own) {
             return false;
         }
         let mut stayed = own && self.reshape_own_mask(n, skip, max, used, depth);
@@ -1067,7 +1067,7 @@ impl Step<'_> {
     /// path in it would keep its shape, its copies would stop short, or a mask inside it would stay
     /// (no mask is left half moved). Returns whether the mask stayed for one of those reasons.
     fn reshape_own_mask(&self, n: &mut Node, skip: &Skip, max: Budget, used: &mut Budget, depth: usize) -> bool {
-        if depth >= vectorcraft_doc::depth::MAX_DEPTH || !reshapes_mask_of(n) || skip.moved.contains(&n.id) {
+        if depth >= vansoncraft_doc::depth::MAX_DEPTH || !reshapes_mask_of(n) || skip.moved.contains(&n.id) {
             return false;
         }
         let stays = holds_any(n, skip.kept);
@@ -1123,9 +1123,9 @@ fn has_linked_mask(n: &Node, own: bool) -> bool {
 /// Run `f` on the id of `n` (with `own`) and of each path, compound path, group and layer under it
 /// that carries a linked opacity mask, with the art of that mask, and on the masks inside that
 /// art, as [`Step::reshape_masks`] reaches them: `depth` masks deep already, up to
-/// [`vectorcraft_doc::depth::MAX_DEPTH`].
+/// [`vansoncraft_doc::depth::MAX_DEPTH`].
 fn each_linked_mask(n: &Node, own: bool, depth: usize, f: &mut dyn FnMut(NodeId, &Node)) {
-    if depth >= vectorcraft_doc::depth::MAX_DEPTH {
+    if depth >= vansoncraft_doc::depth::MAX_DEPTH {
         return;
     }
     if own
@@ -1145,7 +1145,7 @@ fn each_linked_mask(n: &Node, own: bool, depth: usize, f: &mut dyn FnMut(NodeId,
 /// [`each_linked_mask`] that changes the art of each mask: `f` runs on a mask's art before the
 /// masks inside it are reached.
 fn each_linked_mask_mut(n: &mut Node, own: bool, depth: usize, f: &mut dyn FnMut(&mut Node)) {
-    if depth >= vectorcraft_doc::depth::MAX_DEPTH || !has_linked_mask(n, own) {
+    if depth >= vansoncraft_doc::depth::MAX_DEPTH || !has_linked_mask(n, own) {
         return;
     }
     if own
@@ -1228,8 +1228,8 @@ const MAX_STROKE_SCALE: f64 = 1.0e6;
 
 /// How a Transform effect with `options` scales what it maps: strokes, effects and patterns as
 /// its options say.
-fn copy_scaling(options: crate::distort::TransformOptions) -> vectorcraft_doc::Scaling {
-    vectorcraft_doc::Scaling {
+fn copy_scaling(options: crate::distort::TransformOptions) -> vansoncraft_doc::Scaling {
+    vansoncraft_doc::Scaling {
         strokes: options.strokes,
         effects: options.strokes.then_some(crate::scale_effect as fn(&mut Effect, f64)),
         patterns: options.patterns,
@@ -1258,13 +1258,13 @@ fn transform_leaf(
     let scaling = copy_scaling(options);
     if !options.objects {
         if options.strokes
-            && let Some(k) = vectorcraft_doc::Scaling::factor(m).filter(|k| k.is_finite() && *k > 0.0)
+            && let Some(k) = vansoncraft_doc::Scaling::factor(m).filter(|k| k.is_finite() && *k > 0.0)
         {
             leaf.appearance.scale_strokes(k);
             leaf.appearance.scale_effects(k, crate::scale_effect);
         }
         if options.patterns {
-            vectorcraft_doc::pattern::transform_pattern_paints(leaf, m);
+            vansoncraft_doc::pattern::transform_pattern_paints(leaf, m);
         }
         return (Budget::of(path), true);
     }
@@ -1336,7 +1336,7 @@ fn makes_art(n: &Node) -> bool {
 /// What the paths under `n` cost together, those of its opacity masks included.
 fn copy_cost(n: &Node) -> Budget {
     let mut cost = Budget { anchors: 0, lines: 0 };
-    vectorcraft_doc::swatches::walk_with_masks(n, &mut |c| {
+    vansoncraft_doc::swatches::walk_with_masks(n, &mut |c| {
         if let NodeKind::Path { guide: false, path, .. } = &c.kind {
             cost = cost.plus(Budget::of(path));
         }
@@ -1377,7 +1377,7 @@ fn without_guides(n: &mut Node) {
 /// group, without its guides. The copies stop where [`copy_leaf`]'s would, before they pass `budget` or
 /// [`crate::distort::MAX_COPY_OBJECTS`] nodes in all, the art of opacity masks counted. Returns what
 /// the art costs after.
-fn copy_art(art: &mut Node, m: Affine, copies: usize, scaling: vectorcraft_doc::Scaling, budget: Budget) -> Budget {
+fn copy_art(art: &mut Node, m: Affine, copies: usize, scaling: vansoncraft_doc::Scaling, budget: Budget) -> Budget {
     let Some(mut members) = art.children().cloned() else { return art_cost(art) };
     // A layer's ruler guides are not copied: they stay above the copies, once.
     let guides = members.split_off(Node::guide_run_start(&members));
@@ -1391,7 +1391,7 @@ fn copy_art(art: &mut Node, m: Affine, copies: usize, scaling: vectorcraft_doc::
     let mut xf = Affine::IDENTITY;
     for _ in 0..copies {
         xf *= m;
-        if scaling.strokes && vectorcraft_doc::Scaling::factor(xf).is_some_and(|k| !(k.is_finite() && k <= MAX_STROKE_SCALE)) {
+        if scaling.strokes && vansoncraft_doc::Scaling::factor(xf).is_some_and(|k| !(k.is_finite() && k <= MAX_STROKE_SCALE)) {
             break;
         }
         nodes = nodes.saturating_add(one);
@@ -1425,7 +1425,7 @@ fn copy_art(art: &mut Node, m: Affine, copies: usize, scaling: vectorcraft_doc::
 /// `budget` with what each copy's own geometry effects make ([`effects_cost`]), and before one's
 /// strokes would scale past [`MAX_STROKE_SCALE`]. Returns what the copies cost, the original
 /// included.
-fn copy_leaf(leaf: &mut Node, path: &PathData, m: Affine, copies: usize, scaling: vectorcraft_doc::Scaling, budget: Budget) -> Budget {
+fn copy_leaf(leaf: &mut Node, path: &PathData, m: Affine, copies: usize, scaling: vansoncraft_doc::Scaling, budget: Budget) -> Budget {
     let mut made = Budget::of(path).plus(effects_cost(leaf, path));
     let mut placements: Vec<Arc<Node>> = vec![Arc::new(leaf.clone())];
     let mut xf = Affine::IDENTITY;
@@ -1433,7 +1433,7 @@ fn copy_leaf(leaf: &mut Node, path: &PathData, m: Affine, copies: usize, scaling
         xf *= m;
         // A copy scaled up is drawn with more lines.
         let moved = path.transformed(xf);
-        if scaling.strokes && vectorcraft_doc::Scaling::factor(xf).is_some_and(|k| !(k.is_finite() && k <= MAX_STROKE_SCALE)) {
+        if scaling.strokes && vansoncraft_doc::Scaling::factor(xf).is_some_and(|k| !(k.is_finite() && k <= MAX_STROKE_SCALE)) {
             break;
         }
         let mut copy = leaf.clone();
@@ -1461,7 +1461,7 @@ fn copy_leaf(leaf: &mut Node, path: &PathData, m: Affine, copies: usize, scaling
 /// path or compound path, as one of its object's effects with reference box `bounds`: `leaf`
 /// becomes a group with its id and name of one object for each piece returned, in order, each with
 /// the piece's geometry and the leaf's appearance with the piece's fills and strokes in place of
-/// its own ([`vectorcraft_plugins::painted::appearance`]). The swatches and patterns the pieces
+/// its own ([`vansoncraft_plugins::painted::appearance`]). The swatches and patterns the pieces
 /// name must be in `doc`, and without one the pieces may name none. Returns what the pieces cost
 /// ([`piece_cost`]); `None` (the leaf stays as it is) when the plug-in fails, the pieces are
 /// refused, or they would pass `budget`. A deferred run is listed by `at`.
@@ -1472,11 +1472,11 @@ fn paint_leaf(
     bounds: Rect,
     budget: Budget,
     doc: Option<&Document>,
-    at: Option<vectorcraft_plugins::deferred::Stage>,
+    at: Option<vansoncraft_plugins::deferred::Stage>,
 ) -> Option<Budget> {
     let (path, rule) = leaf_geometry(leaf)?;
-    let paints = vectorcraft_plugins::effect::Paints { appearance: Some(&leaf.appearance), item: None, at };
-    let pieces = vectorcraft_plugins::effect::apply_painted(plugin, params, &path, bounds, rule, paints, doc)?;
+    let paints = vansoncraft_plugins::effect::Paints { appearance: Some(&leaf.appearance), item: None, at };
+    let pieces = vansoncraft_plugins::effect::apply_painted(plugin, params, &path, bounds, rule, paints, doc)?;
     let made = pieces.iter().map(|p| piece_cost(&p.path)).fold(Budget { anchors: 0, lines: 0 }, Budget::plus);
     if !budget.fits(made) {
         return None;
@@ -1486,7 +1486,7 @@ fn paint_leaf(
         .map(|p| {
             let mut one = leaf.clone();
             one.name = None;
-            one.appearance = vectorcraft_plugins::painted::appearance(&leaf.appearance, p).into();
+            one.appearance = vansoncraft_plugins::painted::appearance(&leaf.appearance, p).into();
             set_geometry(&mut one, p.path.clone(), p.rule);
             Arc::new(one)
         })
@@ -1499,9 +1499,9 @@ fn paint_leaf(
 
 /// What a painted piece with geometry `path` costs: its anchors and lines, plus a share of the
 /// effects' budget for the object it becomes, so that a budget of [`Budget::EFFECTS`] holds at most
-/// [`MAX_OBJECTS`](vectorcraft_plugins::objects::MAX_OBJECTS) pieces however small their paths.
+/// [`MAX_OBJECTS`](vansoncraft_plugins::objects::MAX_OBJECTS) pieces however small their paths.
 fn piece_cost(path: &PathData) -> Budget {
-    let max = vectorcraft_plugins::objects::MAX_OBJECTS;
+    let max = vansoncraft_plugins::objects::MAX_OBJECTS;
     Budget::of(path).plus(Budget { anchors: Budget::EFFECTS.anchors / max, lines: Budget::EFFECTS.lines / max })
 }
 
@@ -1509,7 +1509,7 @@ fn piece_cost(path: &PathData) -> Budget {
 /// `item`, run on `leaf`, a path of [`transform_piece`] painted by copies of `item`, with reference
 /// box `bounds`: `leaf` becomes a group of one path for each piece returned, in order. A piece that
 /// gives fills (on a fill) or strokes (on a stroke) is painted by copies of `item`, the leaf's first
-/// fill or stroke, with those paints ([`vectorcraft_plugins::painted::items`]), under the leaf's
+/// fill or stroke, with those paints ([`vansoncraft_plugins::painted::items`]), under the leaf's
 /// other fills and strokes; one that gives none keeps the leaf's. Returns
 /// what the paths cost ([`piece_cost`]); `None` (the leaf stays as it is) when the plug-in fails,
 /// the pieces are refused (a swatch or pattern not in `doc`, or any without one), or they would pass
@@ -1521,11 +1521,11 @@ fn paint_piece(
     bounds: Rect,
     budget: Budget,
     doc: Option<&Document>,
-    at: Option<vectorcraft_plugins::deferred::Stage>,
+    at: Option<vansoncraft_plugins::deferred::Stage>,
 ) -> Option<Budget> {
     let (path, rule) = leaf_geometry(leaf)?;
-    let paints = vectorcraft_plugins::effect::Paints { appearance: Some(&leaf.appearance), item: Some(0), at };
-    let pieces = vectorcraft_plugins::effect::apply_painted(plugin, params, &path, bounds, rule, paints, doc)?;
+    let paints = vansoncraft_plugins::effect::Paints { appearance: Some(&leaf.appearance), item: Some(0), at };
+    let pieces = vansoncraft_plugins::effect::apply_painted(plugin, params, &path, bounds, rule, paints, doc)?;
     let made = pieces.iter().map(|p| piece_cost(&p.path)).fold(Budget { anchors: 0, lines: 0 }, Budget::plus);
     if !budget.fits(made) {
         return None;
@@ -1537,7 +1537,7 @@ fn paint_piece(
             AppearanceItem::Stroke(_) => p.strokes.is_some(),
         };
         let items = if gives {
-            let mut items = vectorcraft_plugins::painted::items(item, p);
+            let mut items = vansoncraft_plugins::painted::items(item, p);
             items.extend_from_slice(leaf.appearance.items.get(1..).unwrap_or_default());
             items
         } else {
@@ -1595,7 +1595,7 @@ fn item_makes_piece(item: &AppearanceItem) -> bool {
 /// A fill or stroke whose first such effect is a live-effect plug-in that paints what it returns
 /// ([`painted_plugin`]) becomes, in place of a transformed path, one path for each piece the
 /// plug-in returns, painted by copies of the fill or stroke with the piece's paints
-/// ([`vectorcraft_plugins::painted::items`]); the plug-in is given the geometry before it and told
+/// ([`vansoncraft_plugins::painted::items`]); the plug-in is given the geometry before it and told
 /// which fill or stroke it is on. When it fails (or names a swatch or pattern not in `doc`, or any
 /// without a document), the
 /// fill or stroke paints that geometry as it is. The geometry effects after it then apply to all
@@ -1668,10 +1668,10 @@ fn transform_item_leaf(leaf: &mut Node, max: Budget, used: &mut Budget, doc: Opt
                 carry.apply(&mut one);
             }
             let it = one.items.pop().unwrap_or(it);
-            let stage = vectorcraft_plugins::deferred::Stage { object: ctx.seed, effect: at, item: Some(i) };
-            let paints = vectorcraft_plugins::effect::Paints { appearance: Some(&original.appearance), item: Some(i), at: Some(stage) };
-            let painted = vectorcraft_plugins::effect::apply_painted(plugin, &params, &g, tb, rule, paints, doc)
-                .map(|pieces| pieces.iter().map(|p| (p.path.clone(), p.rule, vectorcraft_plugins::painted::items(&it, p))).collect::<Vec<_>>())
+            let stage = vansoncraft_plugins::deferred::Stage { object: ctx.seed, effect: at, item: Some(i) };
+            let paints = vansoncraft_plugins::effect::Paints { appearance: Some(&original.appearance), item: Some(i), at: Some(stage) };
+            let painted = vansoncraft_plugins::effect::apply_painted(plugin, &params, &g, tb, rule, paints, doc)
+                .map(|pieces| pieces.iter().map(|p| (p.path.clone(), p.rule, vansoncraft_plugins::painted::items(&it, p))).collect::<Vec<_>>())
                 .filter(|pieces| room.fits(pieces.iter().map(|(p, ..)| piece_cost(p)).fold(Budget { anchors: 0, lines: 0 }, Budget::plus)));
             // A failed run draws the fill or stroke on the geometry it was given.
             let returned = painted.unwrap_or_else(|| vec![(g.clone(), rule, vec![it])]);
@@ -1709,7 +1709,7 @@ fn transform_item_leaf(leaf: &mut Node, max: Budget, used: &mut Budget, doc: Opt
     }
     leaf.appearance.items.clear();
     leaf.appearance.contents_index = None;
-    leaf.knockout = vectorcraft_doc::Knockout::Off;
+    leaf.knockout = vansoncraft_doc::Knockout::Off;
     leaf.kind = NodeKind::Group { children: pieces, clip: false };
 }
 
@@ -1742,7 +1742,7 @@ fn transform_piece(p: &mut Node, (seed, source, kept): (u64, usize, &[usize]), m
             // What the other paths leave of the budget.
             let before = Budget::of(&path);
             let room = max.minus(used.minus(before));
-            let stage = vectorcraft_plugins::deferred::Stage { object: seed, effect: kept.get(j).copied().unwrap_or(j), item: Some(source) };
+            let stage = vansoncraft_plugins::deferred::Stage { object: seed, effect: kept.get(j).copied().unwrap_or(j), item: Some(source) };
             if let Some(plugin) = painted_plugin(&e) {
                 if let Some(made) = paint_piece(leaf, &item, (plugin, &merged_params(&e.id, &e.params)), bounds, room, doc, Some(stage)) {
                     *used = used.minus(before).plus(made);
@@ -1867,7 +1867,7 @@ fn group_marks(
                 // Only members measured in the bounds hold the group's gradients in place.
                 let counts = if *clip { i == 0 } else { i >= skip && (c.visible || !layer) };
                 if counts {
-                    bounds = vectorcraft_geom::union_opt(bounds, b);
+                    bounds = vansoncraft_geom::union_opt(bounds, b);
                     held |= h;
                 }
             }
@@ -1948,13 +1948,13 @@ pub(crate) fn follow_boxes(ap: &mut Appearance, from: Rect, to: Rect) {
     for i in &mut ap.items {
         match i {
             AppearanceItem::Fill(f) => {
-                if let vectorcraft_doc::color::Paint::Gradient(g) = &mut f.paint {
+                if let vansoncraft_doc::color::Paint::Gradient(g) = &mut f.paint {
                     g.transform(box_map(from, to));
                 }
             }
             AppearanceItem::Stroke(s) => {
                 let m = box_map(s.paint_bounds(from), s.paint_bounds(to));
-                if let vectorcraft_doc::color::Paint::Gradient(g) = &mut s.paint {
+                if let vansoncraft_doc::color::Paint::Gradient(g) = &mut s.paint {
                     g.transform(m);
                 }
             }
@@ -1964,7 +1964,7 @@ pub(crate) fn follow_boxes(ap: &mut Appearance, from: Rect, to: Rect) {
 
 /// The map that takes box `from` onto box `to` along each axis (along an axis `from` has no extent
 /// on, a move from its center to `to`'s).
-fn box_map(from: Rect, to: Rect) -> vectorcraft_geom::Affine {
+fn box_map(from: Rect, to: Rect) -> vansoncraft_geom::Affine {
     let axis = |a0: f64, a1: f64, b0: f64, b1: f64| {
         if (a1 - a0).abs() > 1e-12 {
             let s = (b1 - b0) / (a1 - a0);
@@ -1975,7 +1975,7 @@ fn box_map(from: Rect, to: Rect) -> vectorcraft_geom::Affine {
     };
     let (sx, tx) = axis(from.x0, from.x1, to.x0, to.x1);
     let (sy, ty) = axis(from.y0, from.y1, to.y0, to.y1);
-    vectorcraft_geom::Affine::new([sx, 0.0, 0.0, sy, tx, ty])
+    vansoncraft_geom::Affine::new([sx, 0.0, 0.0, sy, tx, ty])
 }
 
 /// Apply the Transform effect's map `m` to every image and symbol instance under `n`, as
@@ -1983,7 +1983,7 @@ fn box_map(from: Rect, to: Rect) -> vectorcraft_geom::Affine {
 /// follow, each mapped once more than the last. Without copies the object itself takes the map,
 /// as a path does. The art of each one's linked opacity mask takes the map with `scaling`, as a
 /// path's mask does.
-fn transform_placed(n: &mut Node, m: Affine, copies: usize, scaling: vectorcraft_doc::Scaling) {
+fn transform_placed(n: &mut Node, m: Affine, copies: usize, scaling: vansoncraft_doc::Scaling) {
     let mut room = crate::distort::MAX_COPY_OBJECTS.saturating_sub(placed_count(n));
     copy_placed(n, m, copies, scaling, &mut room);
 }
@@ -1994,10 +1994,10 @@ fn transform_placed(n: &mut Node, m: Affine, copies: usize, scaling: vectorcraft
 #[cfg(test)]
 pub(crate) fn transform_placed_within(n: &mut Node, m: Affine, copies: usize, max: usize) {
     let mut room = max.saturating_sub(placed_count(n));
-    copy_placed(n, m, copies, vectorcraft_doc::Scaling::default(), &mut room);
+    copy_placed(n, m, copies, vansoncraft_doc::Scaling::default(), &mut room);
 }
 
-/// Rows and columns of the pieces a Warp effect cuts an image into (VectorCraft's own number).
+/// Rows and columns of the pieces a Warp effect cuts an image into (VansonCraft's own number).
 pub(crate) const WARP_IMAGE_CELLS: usize = 10;
 
 /// A Warp effect's point map, shared by the images it bends.
@@ -2076,7 +2076,7 @@ impl WarpedImages {
                 count += 1;
             }
         });
-        vectorcraft_doc::live::mesh_warp_cost(WARP_IMAGE_CELLS).saturating_mul(count) <= max.saturating_sub(n.count())
+        vansoncraft_doc::live::mesh_warp_cost(WARP_IMAGE_CELLS).saturating_mul(count) <= max.saturating_sub(n.count())
     }
 
     /// The geometric bounds of `art` as it draws after the effects so far: each image this table
@@ -2141,7 +2141,7 @@ pub(crate) fn mark_warped_images(n: &mut Node, f: &WarpMap, kept: &HashSet<usize
 }
 
 /// Give each image under `n` that `warped` lists its own key back, and cut it into the pieces of
-/// a raster mesh warp ([`vectorcraft_doc::live::mesh_warp_image`], each piece drawn as the image
+/// a raster mesh warp ([`vansoncraft_doc::live::mesh_warp_image`], each piece drawn as the image
 /// is, smoothed or not) through the warps it took and the moves between and after them
 /// ([`warped_map`]). The art keeps to [`crate::distort::MAX_COPY_OBJECTS`] nodes: when the pieces
 /// would pass it, no image is cut. An image whose placement has no inverse is not cut either.
@@ -2179,7 +2179,7 @@ fn restore_warped_images(n: &mut Node, warped: &WarpedImages, cut: bool) {
         *c = Arc::new(match (first, map) {
             (Some(first), Some(map)) if cut => {
                 let pixelated = image.extras().pixelated;
-                vectorcraft_doc::live::mesh_warp_image(&image, &first, &*map, WARP_IMAGE_CELLS, pixelated, false)
+                vansoncraft_doc::live::mesh_warp_image(&image, &first, &*map, WARP_IMAGE_CELLS, pixelated, false)
             }
             _ => image,
         });
@@ -2226,7 +2226,7 @@ fn is_placed(n: &Node) -> bool {
 /// document order, each copy taking one from `room` (what the art can still grow by), until the
 /// budget is full. As with a path, the copies stop before one reaches past
 /// [`crate::distort::within_reach`].
-fn copy_placed(n: &mut Node, m: Affine, copies: usize, scaling: vectorcraft_doc::Scaling, room: &mut usize) {
+fn copy_placed(n: &mut Node, m: Affine, copies: usize, scaling: vansoncraft_doc::Scaling, room: &mut usize) {
     let Some(children) = n.children_mut() else { return };
     for c in children.iter_mut() {
         if !is_placed(c) {

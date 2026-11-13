@@ -29,7 +29,7 @@ fn session() -> (Session, Arc<MemoryStore>) {
 /// The copies in the store, without their areas.
 fn copies(store: &dyn RecoveryStore) -> Vec<String> {
     let mut v: Vec<String> =
-        store.list().unwrap().iter().filter_map(|n| n.strip_suffix(".vectorcraft")).map(|n| n.split_once('/').unwrap().1.to_string()).collect();
+        store.list().unwrap().iter().filter_map(|n| n.strip_suffix(".vansoncraft")).map(|n| n.split_once('/').unwrap().1.to_string()).collect();
     v.sort();
     v
 }
@@ -63,10 +63,10 @@ fn restored(r: serde_json::Value) -> usize {
 fn native_recovery_copies_leave_out_the_pdf() {
     let (mut s, store) = session();
     let r = s.execute("file.recovery.save", &json!({})).unwrap();
-    let file = format!("{}.vectorcraft", r["saved"][0]["file"].as_str().unwrap());
+    let file = format!("{}.vansoncraft", r["saved"][0]["file"].as_str().unwrap());
     let bytes = store.read(&file).unwrap();
-    assert!(vectorcraft_format::pdf_content(&bytes).is_none());
-    assert_eq!(vectorcraft_format::load(&bytes).unwrap().node_count(), s.doc().unwrap().doc.node_count());
+    assert!(vansoncraft_format::pdf_content(&bytes).is_none());
+    assert_eq!(vansoncraft_format::load(&bytes).unwrap().node_count(), s.doc().unwrap().doc.node_count());
 }
 
 #[test]
@@ -74,18 +74,18 @@ fn restored_recovery_copies_keep_the_original_pdf_preference() {
     let dir = crate::tests_links::Folder::new("recovered-pdf-preference");
     for pdf in [false, true] {
         let (mut s, store) = session();
-        s.execute("file.saveAs", &json!({"path": dir.file(&format!("original-{pdf}.vectorcraft")), "pdfCompatible": pdf})).unwrap();
+        s.execute("file.saveAs", &json!({"path": dir.file(&format!("original-{pdf}.vansoncraft")), "pdfCompatible": pdf})).unwrap();
         s.execute("shape.ellipse", &json!({"x": 80, "y": 20, "width": 20, "height": 20})).unwrap();
         let copied = s.execute("file.recovery.save", &json!({})).unwrap();
-        let file = format!("{}.vectorcraft", copied["saved"][0]["file"].as_str().unwrap());
-        assert!(vectorcraft_format::pdf_content(&store.read(&file).unwrap()).is_none());
+        let file = format!("{}.vansoncraft", copied["saved"][0]["file"].as_str().unwrap());
+        assert!(vansoncraft_format::pdf_content(&store.read(&file).unwrap()).is_none());
         drop(s);
         let mut s = relaunch(&store);
         assert_eq!(restored(s.execute("file.recovery.restore", &json!({})).unwrap()), 1);
         assert_eq!(s.doc().unwrap().save_options.get("pdfCompatible"), Some(&json!(pdf)));
         let saved = s.execute("document.save", &json!({})).unwrap();
-        let bytes = vectorcraft_format::base64_decode(saved["dataBase64"].as_str().unwrap()).unwrap();
-        assert_eq!(vectorcraft_format::pdf_content(&bytes).is_some(), pdf);
+        let bytes = vansoncraft_format::base64_decode(saved["dataBase64"].as_str().unwrap()).unwrap();
+        assert_eq!(vansoncraft_format::pdf_content(&bytes).is_some(), pdf);
     }
 }
 
@@ -96,7 +96,7 @@ fn recovered_unsaved_documents_keep_inheriting_the_current_pdf_preference() {
     s.execute("file.recovery.save", &json!({})).unwrap();
     assert!(s.doc().unwrap().save_options.get("pdfCompatible").is_none());
     s.execute("file.new", &json!({"width": 10, "height": 10})).unwrap();
-    s.execute("file.saveAs", &json!({"path":dir.file("other.vectorcraft"),"pdfCompatible":false})).unwrap();
+    s.execute("file.saveAs", &json!({"path":dir.file("other.vansoncraft"),"pdfCompatible":false})).unwrap();
     assert!(s.execute("file.recovery.save", &json!({})).unwrap()["saved"].as_array().unwrap().is_empty());
     let latest_preferences = s.prefs.clone();
     drop(s);
@@ -106,8 +106,8 @@ fn recovered_unsaved_documents_keep_inheriting_the_current_pdf_preference() {
     assert_eq!(restored(s.execute("file.recovery.restore", &json!({})).unwrap()), 1);
     assert!(s.doc().unwrap().save_options.get("pdfCompatible").is_none());
     let saved = s.execute("document.save", &json!({})).unwrap();
-    let bytes = vectorcraft_format::base64_decode(saved["dataBase64"].as_str().unwrap()).unwrap();
-    assert!(vectorcraft_format::pdf_content(&bytes).is_none());
+    let bytes = vansoncraft_format::base64_decode(saved["dataBase64"].as_str().unwrap()).unwrap();
+    assert!(vansoncraft_format::pdf_content(&bytes).is_none());
 }
 
 #[test]
@@ -119,9 +119,9 @@ fn recovery_save_writes_modified_documents_once() {
     assert_eq!(r["saved"].as_array().unwrap().len(), 1, "{r}");
     let area = s.recovery.own_area().unwrap().to_string();
     assert_eq!(r["saved"][0]["file"], format!("{area}/Untitled-1-1"));
-    assert_eq!(store.list().unwrap(), [format!("{area}/Untitled-1-1.json"), format!("{area}/Untitled-1-1.vectorcraft")]);
-    let doc = store.read(&format!("{area}/Untitled-1-1.vectorcraft")).unwrap();
-    assert_eq!(vectorcraft_format::load(&doc).unwrap().node_count(), s.documents()[0].doc.node_count());
+    assert_eq!(store.list().unwrap(), [format!("{area}/Untitled-1-1.json"), format!("{area}/Untitled-1-1.vansoncraft")]);
+    let doc = store.read(&format!("{area}/Untitled-1-1.vansoncraft")).unwrap();
+    assert_eq!(vansoncraft_format::load(&doc).unwrap().node_count(), s.documents()[0].doc.node_count());
     // Unchanged since: nothing written again.
     let again = s.execute("file.recovery.save", &json!({})).unwrap();
     assert!(again["saved"].as_array().unwrap().is_empty());
@@ -189,6 +189,49 @@ fn a_crash_leaves_copies_that_restore_modified_and_titled() {
     assert!(s.execute("file.recovery.restore", &json!({"file": format!("{mine}/Poster-1")})).is_err(), "an open document's copy");
 }
 
+/// A copy an earlier version left (its document entry named `.vectorcraft`, before the project took
+/// the name VansonCraft) is offered, restored and then removed; its area is not tidied away with
+/// it, nor are other such copies discarded unseen.
+#[test]
+fn copies_left_before_the_rename_are_offered_and_restored() {
+    let (mut s, store) = session();
+    s.doc_mut().unwrap().path = Some("/art/Poster.svg".into());
+    s.execute("file.recovery.save", &json!({})).unwrap();
+    let nodes = s.doc().unwrap().doc.node_count();
+    let crashed = s.recovery.own_area().unwrap().to_string();
+    drop(s);
+    // As an earlier version wrote it.
+    let file = format!("{crashed}/Poster-1");
+    let bytes = store.read(&format!("{file}.vansoncraft")).unwrap();
+    store.remove(&format!("{file}.vansoncraft")).unwrap();
+    store.write(&format!("{file}.vectorcraft"), &bytes).unwrap();
+
+    let mut s = relaunch(&store);
+    assert_eq!(offered(&mut s), ["Poster.svg"], "listing finds it and leaves the area alone");
+    assert!(store.list().unwrap().contains(&format!("{file}.vectorcraft")));
+    let r = s.execute("file.recovery.restore", &json!({})).unwrap();
+    assert_eq!(r["restored"][0]["title"], "Poster [Recovered]");
+    assert_eq!(s.doc().unwrap().doc.node_count(), nodes);
+    // It moved into this session's area under today's name; nothing of it is left under the old one.
+    let names = store.list().unwrap();
+    assert!(!names.iter().any(|n| n.ends_with(".vectorcraft")), "{names:?}");
+    let mine = s.recovery.own_area().unwrap().to_string();
+    assert!(names.contains(&format!("{mine}/Poster-1.vansoncraft")), "{names:?}");
+
+    // Discarding an old copy removes it.
+    let (mut s, store) = session();
+    s.execute("file.recovery.save", &json!({})).unwrap();
+    let crashed = s.recovery.own_area().unwrap().to_string();
+    let copy = format!("{crashed}/{}", copies(store.as_ref())[0]);
+    drop(s);
+    let bytes = store.read(&format!("{copy}.vansoncraft")).unwrap();
+    store.remove(&format!("{copy}.vansoncraft")).unwrap();
+    store.write(&format!("{copy}.vectorcraft"), &bytes).unwrap();
+    let mut s = relaunch(&store);
+    s.execute("file.recovery.discard", &json!({"file": copy})).unwrap();
+    assert!(!store.list().unwrap().iter().any(|n| n.ends_with(".vectorcraft")));
+}
+
 /// A threaded frame whose first paragraph continues from the frame before is restored without
 /// that paragraph's first-line indent.
 #[test]
@@ -203,8 +246,8 @@ fn a_restored_copy_keeps_continued_paragraphs_in_threaded_frames() {
     s.execute("select.set", &json!({"ids": [a, b]})).unwrap();
     s.execute("text.thread.create", &json!({})).unwrap();
     s.execute("text.setFormat", &json!({"ids": [a, b], "leftIndent": 0, "firstLineIndent": 24})).unwrap();
-    let continues = |s: &Session| match &s.doc().unwrap().doc.node(vectorcraft_doc::NodeId(b)).unwrap().kind {
-        vectorcraft_doc::NodeKind::Text(t) => t.first_para_continues,
+    let continues = |s: &Session| match &s.doc().unwrap().doc.node(vansoncraft_doc::NodeId(b)).unwrap().kind {
+        vansoncraft_doc::NodeKind::Text(t) => t.first_para_continues,
         _ => panic!("not text"),
     };
     assert!(continues(&s));
@@ -413,21 +456,21 @@ fn folder_areas_are_locked_by_running_apps() {
     let mut a = app(true);
     a.execute("file.recovery.save", &json!({})).unwrap();
     let area = a.recovery.own_area().unwrap().to_string();
-    assert!(dir.join(&area).join(".lock").is_file() && dir.join(&area).join("Untitled-1-1.vectorcraft").is_file());
+    assert!(dir.join(&area).join(".lock").is_file() && dir.join(&area).join("Untitled-1-1.vansoncraft").is_file());
     // The lock file is held: another app (another handle) can't take it.
     let store = FolderStore::new(&dir);
     assert!(matches!(store.lock(&area), Ok(cmd::recovery::Lock::Busy)));
     let mut b = app(false);
     assert!(offered(&mut b).is_empty());
     assert!(b.execute("file.recovery.discard", &json!({})).unwrap()["discarded"].as_array().unwrap().is_empty());
-    assert!(dir.join(&area).join("Untitled-1-1.vectorcraft").is_file());
+    assert!(dir.join(&area).join("Untitled-1-1.vansoncraft").is_file());
     // A crashes (its handle closes): B offers its copy, and restoring it tidies A's folder away.
     drop(a);
     assert_eq!(offered(&mut b), ["Untitled-1"]);
     b.execute("file.recovery.restore", &json!({})).unwrap();
     assert!(!dir.join(&area).exists(), "the crashed app's folder is removed");
     let mine = b.recovery.own_area().unwrap().to_string();
-    assert!(dir.join(&mine).join("Untitled-1-1.vectorcraft").is_file());
+    assert!(dir.join(&mine).join("Untitled-1-1.vansoncraft").is_file());
     // An empty folder a crash left (no copies) is tidied by the next list.
     std::fs::create_dir_all(dir.join("123-1")).unwrap();
     std::fs::write(dir.join("123-1").join(".lock"), b"").unwrap();
@@ -453,7 +496,7 @@ fn the_folder_store_makes_owner_only_folders() {
     // A store folder that doesn't exist yet is made with the first copy, owner-only like its area.
     let new = base.join("new");
     let store = FolderStore::new(&new);
-    store.write("1-1/Untitled-1-1.vectorcraft", b"copy").unwrap();
+    store.write("1-1/Untitled-1-1.vansoncraft", b"copy").unwrap();
     assert_eq!(mode(&new), 0o700);
     assert_eq!(mode(&new.join("1-1")), 0o700);
     assert!(matches!(store.lock("1-2"), Ok(cmd::recovery::Lock::Held(_))));
@@ -462,7 +505,7 @@ fn the_folder_store_makes_owner_only_folders() {
     let picked = base.join("picked");
     std::fs::create_dir_all(&picked).unwrap();
     std::fs::set_permissions(&picked, std::fs::Permissions::from_mode(0o755)).unwrap();
-    FolderStore::new(&picked).write("2-1/Untitled-1-1.vectorcraft", b"copy").unwrap();
+    FolderStore::new(&picked).write("2-1/Untitled-1-1.vansoncraft", b"copy").unwrap();
     assert_eq!(mode(&picked), 0o755);
     assert_eq!(mode(&picked.join("2-1")), 0o700);
     let _ = std::fs::remove_dir_all(&base);
@@ -475,10 +518,10 @@ fn the_folder_store_reads_no_linked_entries() {
     let base = std::env::temp_dir().join(format!("vc-recovery-links-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&base);
     let store = FolderStore::new(&base);
-    store.write("1-1/Untitled-1-1.vectorcraft", b"copy").unwrap();
+    store.write("1-1/Untitled-1-1.vansoncraft", b"copy").unwrap();
     std::fs::write(base.join("outside"), b"private").unwrap();
     std::os::unix::fs::symlink(base.join("outside"), base.join("1-1").join("img")).unwrap();
-    assert_eq!(store.read("1-1/Untitled-1-1.vectorcraft").unwrap(), b"copy");
+    assert_eq!(store.read("1-1/Untitled-1-1.vansoncraft").unwrap(), b"copy");
     assert!(store.read("1-1/img").is_err());
     let _ = std::fs::remove_dir_all(&base);
 }
@@ -501,11 +544,11 @@ fn folder_errors_name_a_file_in_the_way() {
     s.execute("file.new", &json!({"width": 50, "height": 50})).unwrap();
     s.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 5, "height": 5})).unwrap();
     let errors = [
-        ("write", store.write("1-1/Untitled-1-1.vectorcraft", b"copy").err()),
+        ("write", store.write("1-1/Untitled-1-1.vansoncraft", b"copy").err()),
         ("lock", store.lock("1-2").err()),
-        ("read", store.read("1-1/Untitled-1-1.vectorcraft").err()),
+        ("read", store.read("1-1/Untitled-1-1.vansoncraft").err()),
         ("list", store.list().err()),
-        ("remove", store.remove("1-1/Untitled-1-1.vectorcraft").err()),
+        ("remove", store.remove("1-1/Untitled-1-1.vansoncraft").err()),
         ("save", s.execute("file.recovery.save", &json!({})).err().map(|e| e.to_string())),
     ];
     let _ = std::fs::remove_dir_all(&base);
@@ -524,8 +567,8 @@ fn a_removal_reported_missing_names_a_file_in_the_way() {
     let file = base.join("file");
     std::fs::write(&file, b"").unwrap();
     let missing = || std::io::Error::from(std::io::ErrorKind::NotFound);
-    let behind = FolderStore::removed(&file.join("recovery").join("1-1").join("Untitled-1-1.vectorcraft"), Err(missing()));
-    let gone = FolderStore::removed(&base.join("recovery").join("1-1").join("Untitled-1-1.vectorcraft"), Err(missing()));
+    let behind = FolderStore::removed(&file.join("recovery").join("1-1").join("Untitled-1-1.vansoncraft"), Err(missing()));
+    let gone = FolderStore::removed(&base.join("recovery").join("1-1").join("Untitled-1-1.vansoncraft"), Err(missing()));
     let _ = std::fs::remove_dir_all(&base);
     let named = format!("{} is not a folder: ", file.display());
     assert!(behind.as_ref().is_err_and(|e| e.starts_with(&named)), "{behind:?}");
@@ -547,11 +590,11 @@ fn folder_errors_name_a_missing_folder_that_cannot_be_made() {
     let gone = closed.join("gone");
     let store = FolderStore::new(gone.join("recovery"));
     let unmade = format!("couldn't make {}: ", gone.display());
-    let area = FolderStore::new(&closed).write("1-1/Untitled-1-1.vectorcraft", b"copy").err();
+    let area = FolderStore::new(&closed).write("1-1/Untitled-1-1.vansoncraft", b"copy").err();
     let errors = [
-        ("write", store.write("1-1/Untitled-1-1.vectorcraft", b"copy").err(), unmade.clone()),
+        ("write", store.write("1-1/Untitled-1-1.vansoncraft", b"copy").err(), unmade.clone()),
         ("lock", store.lock("1-2").err(), unmade),
-        ("read", store.read("1-1/Untitled-1-1.vectorcraft").err(), format!("{} is missing", gone.display())),
+        ("read", store.read("1-1/Untitled-1-1.vansoncraft").err(), format!("{} is missing", gone.display())),
         ("area", area, format!("couldn't make {}: ", closed.join("1-1").display())),
     ];
     std::fs::set_permissions(&closed, std::fs::Permissions::from_mode(0o700)).unwrap();
@@ -776,7 +819,7 @@ fn a_recovery_save_takes_the_next_area_when_the_first_is_tidied_away() {
     let area = s.recovery.own_area().unwrap().to_string();
     assert!(area.ends_with("-2"), "{area}");
     assert_eq!(r["saved"][0]["file"], format!("{area}/Untitled-1-1").as_str(), "{r}");
-    assert!(dir.join(&area).join("Untitled-1-1.vectorcraft").is_file());
+    assert!(dir.join(&area).join("Untitled-1-1.vansoncraft").is_file());
     drop(s);
     let _ = std::fs::remove_dir_all(&dir);
 }
@@ -815,7 +858,7 @@ fn a_recovery_save_locks_the_area_again_when_its_lock_file_was_removed() {
     let mut b = other_app(&dir);
     assert!(offered(&mut b).is_empty());
     assert!(b.execute("file.recovery.discard", &json!({})).unwrap()["discarded"].as_array().unwrap().is_empty());
-    assert!(dir.join(&area).join("Untitled-1-1.vectorcraft").is_file());
+    assert!(dir.join(&area).join("Untitled-1-1.vansoncraft").is_file());
     assert!(matches!(FolderStore::new(&dir).lock(&area), Ok(Lock::Busy)));
     drop(a);
     let _ = std::fs::remove_dir_all(&dir);
@@ -833,7 +876,7 @@ fn a_recovery_save_makes_the_area_again_when_it_was_removed() {
     std::fs::remove_dir_all(dir.join(&area)).unwrap();
     let r = a.execute("file.recovery.save", &json!({})).unwrap();
     assert_eq!(r["saved"][0]["file"], format!("{area}/Untitled-1-1").as_str(), "{r}");
-    assert!(dir.join(&area).join("Untitled-1-1.vectorcraft").is_file());
+    assert!(dir.join(&area).join("Untitled-1-1.vansoncraft").is_file());
     assert!(matches!(FolderStore::new(&dir).lock(&area), Ok(Lock::Busy)));
     assert!(offered(&mut other_app(&dir)).is_empty());
     drop(a);
@@ -857,10 +900,10 @@ fn an_area_another_app_locked_meanwhile_is_left_for_a_new_one() {
     let mine = a.recovery.own_area().unwrap().to_string();
     assert_ne!(mine, area);
     assert!(a.doc().unwrap().recovery.is_none());
-    assert!(dir.join(&area).join("Untitled-1-1.vectorcraft").is_file(), "kept until the new copy is written");
+    assert!(dir.join(&area).join("Untitled-1-1.vansoncraft").is_file(), "kept until the new copy is written");
     let r = a.execute("file.recovery.save", &json!({})).unwrap();
     assert_eq!(r["saved"][0]["file"], format!("{mine}/Untitled-1-1").as_str(), "{r}");
-    assert!(!dir.join(&area).join("Untitled-1-1.vectorcraft").exists(), "the copy left there goes");
+    assert!(!dir.join(&area).join("Untitled-1-1.vansoncraft").exists(), "the copy left there goes");
     assert!(matches!(store.lock(&mine), Ok(Lock::Busy)));
     drop(other);
     assert!(offered(&mut other_app(&dir)).is_empty());
@@ -889,12 +932,12 @@ fn a_copy_written_into_an_area_left_meanwhile_goes_once_copied_again() {
         j.finish(&mut a);
     }
     assert!(a.doc().unwrap().recovery.is_none());
-    assert!(dir.join(&area).join("Untitled-1-1.vectorcraft").is_file());
+    assert!(dir.join(&area).join("Untitled-1-1.vansoncraft").is_file());
     let uid = a.doc().unwrap().uid;
     assert_eq!(cmd::recovery::heartbeat(&mut a), [uid], "the next heartbeat has it copied again");
     let r = a.execute("file.recovery.save", &json!({})).unwrap();
     assert_eq!(r["saved"].as_array().unwrap().len(), 1, "{r}");
-    assert!(!dir.join(&area).join("Untitled-1-1.vectorcraft").exists());
+    assert!(!dir.join(&area).join("Untitled-1-1.vansoncraft").exists());
     assert!(cmd::recovery::heartbeat(&mut a).is_empty());
     drop(other);
     assert!(offered(&mut other_app(&dir)).is_empty());
@@ -917,8 +960,8 @@ fn a_recovery_save_copies_unchanged_documents_into_the_new_area() {
     let mine = a.recovery.own_area().unwrap().to_string();
     assert_ne!(mine, area);
     assert_eq!(r["saved"][0]["file"], format!("{mine}/Untitled-1-1").as_str(), "{r}");
-    assert!(dir.join(&mine).join("Untitled-1-1.vectorcraft").is_file());
-    assert!(!dir.join(&area).join("Untitled-1-1.vectorcraft").exists());
+    assert!(dir.join(&mine).join("Untitled-1-1.vansoncraft").is_file());
+    assert!(!dir.join(&area).join("Untitled-1-1.vansoncraft").exists());
     drop(other);
     drop(a);
     let _ = std::fs::remove_dir_all(&dir);
@@ -933,8 +976,8 @@ fn copies_left_behind_go_when_their_document_is_saved_reverted_or_closed() {
     let base = std::env::temp_dir().join(format!("vc-recovery-leftgo-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&base);
     let dir = base.join("recovery");
-    let path = base.join("doc.vectorcraft").to_string_lossy().to_string();
-    let left = |area: &str| std::fs::read_dir(dir.join(area)).unwrap().flatten().any(|e| e.path().extension().is_some_and(|x| x == "vectorcraft"));
+    let path = base.join("doc.vansoncraft").to_string_lossy().to_string();
+    let left = |area: &str| std::fs::read_dir(dir.join(area)).unwrap().flatten().any(|e| e.path().extension().is_some_and(|x| x == "vansoncraft"));
     for how in ["save", "revert", "close", "quit"] {
         let (mut a, _) = saved_in(&dir);
         a.execute("document.save", &json!({"path": path})).unwrap();
@@ -1017,7 +1060,7 @@ fn a_copy_left_behind_that_cannot_be_removed_yet_stays_the_sessions_own() {
     let base = std::env::temp_dir().join(format!("vc-recovery-leftstuck-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&base);
     let dir = base.join("recovery");
-    let path = base.join("doc.vectorcraft").to_string_lossy().to_string();
+    let path = base.join("doc.vansoncraft").to_string_lossy().to_string();
     let (mut a, area) = saved_in(&dir);
     std::fs::remove_file(dir.join(&area).join(".lock")).unwrap();
     let Ok(Lock::Held(other)) = FolderStore::new(&dir).lock(&area) else { panic!("the other app locks the area") };
@@ -1025,7 +1068,7 @@ fn a_copy_left_behind_that_cannot_be_removed_yet_stays_the_sessions_own() {
     std::fs::set_permissions(dir.join(&area), std::fs::Permissions::from_mode(0o500)).unwrap();
     a.execute("document.save", &json!({"path": path})).unwrap();
     std::fs::set_permissions(dir.join(&area), std::fs::Permissions::from_mode(0o700)).unwrap();
-    let copy = dir.join(&area).join("Untitled-1-1.vectorcraft");
+    let copy = dir.join(&area).join("Untitled-1-1.vansoncraft");
     assert!(copy.is_file());
     drop(other);
     assert!(offered(&mut a).is_empty());
@@ -1052,7 +1095,7 @@ fn a_copy_left_behind_is_not_offered_by_its_own_app() {
     let r = a.execute("file.recovery.discard", &json!({})).unwrap();
     assert!(r["discarded"].as_array().unwrap().is_empty(), "{r}");
     assert!(a.execute("file.recovery.discard", &json!({"file": format!("{area}/Untitled-1-1")})).is_err());
-    assert!(dir.join(&area).join("Untitled-1-1.vectorcraft").is_file());
+    assert!(dir.join(&area).join("Untitled-1-1.vansoncraft").is_file());
     drop(a);
     let _ = std::fs::remove_dir_all(&dir);
 }
@@ -1067,7 +1110,7 @@ fn a_copy_left_behind_is_not_offered_by_another_app_while_its_app_runs() {
     use cmd::recovery::Lock;
     let dir = std::env::temp_dir().join(format!("vc-recovery-leftother-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
-    let left_behind = |area: &str| dir.join(area).join("Untitled-1-1.vectorcraft");
+    let left_behind = |area: &str| dir.join(area).join("Untitled-1-1.vansoncraft");
     let leave = |a: &mut Session, area: &str| {
         std::fs::remove_file(dir.join(area).join(".lock")).unwrap();
         let Ok(Lock::Held(other)) = FolderStore::new(&dir).lock(area) else { panic!("the other app locks the area") };
@@ -1202,12 +1245,12 @@ fn a_complex_documents_copy_left_behind_is_asked_for_once() {
     let dir = std::env::temp_dir().join(format!("vc-recovery-leftcomplex-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     let mut a = other_app(&dir);
-    let mut d = vectorcraft_doc::Document::new(1000.0, 1000.0);
+    let mut d = vansoncraft_doc::Document::new(1000.0, 1000.0);
     let layer = d.layers[0].id;
     for i in 0..cmd::recovery::COMPLEX_OBJECTS {
         let id = d.alloc_id();
-        let r = vectorcraft_geom::Rect::new((i % 200) as f64, (i / 200) as f64, (i % 200) as f64 + 1.0, (i / 200) as f64 + 1.0);
-        let n = vectorcraft_doc::Node::path(id, vectorcraft_geom::shapes::rectangle(r), vectorcraft_doc::Appearance::default_art());
+        let r = vansoncraft_geom::Rect::new((i % 200) as f64, (i / 200) as f64, (i % 200) as f64 + 1.0, (i / 200) as f64 + 1.0);
+        let n = vansoncraft_doc::Node::path(id, vansoncraft_geom::shapes::rectangle(r), vansoncraft_doc::Appearance::default_art());
         d.insert(Some(layer), i, n).unwrap();
     }
     a.add_document(d, None);
@@ -1223,7 +1266,7 @@ fn a_complex_documents_copy_left_behind_is_asked_for_once() {
     let r = a.execute("file.recovery.save", &json!({})).unwrap();
     assert!(r["saved"].as_array().unwrap().is_empty(), "{r}");
     assert!(cmd::recovery::heartbeat(&mut a).is_empty(), "asked for once");
-    assert!(dir.join(format!("{copy}.vectorcraft")).is_file(), "its copy stays");
+    assert!(dir.join(format!("{copy}.vansoncraft")).is_file(), "its copy stays");
     drop(other);
     drop(a);
     let _ = std::fs::remove_dir_all(&dir);
@@ -1247,9 +1290,9 @@ fn a_copy_finished_after_the_folder_changed_goes_from_its_own_folder() {
         j.write().unwrap();
         j.finish(&mut a);
     }
-    assert!(!old.join(&area).join("Untitled-1-1.vectorcraft").exists());
+    assert!(!old.join(&area).join("Untitled-1-1.vansoncraft").exists());
     assert_eq!(a.doc().unwrap().recovery.as_ref().unwrap().file, mine);
-    assert!(new.join(format!("{mine}.vectorcraft")).is_file());
+    assert!(new.join(format!("{mine}.vansoncraft")).is_file());
     drop(a);
     let _ = std::fs::remove_dir_all(&base);
 }
@@ -1258,7 +1301,7 @@ fn a_copy_finished_after_the_folder_changed_goes_from_its_own_folder() {
 fn saving_reverting_or_closing_removes_the_copy() {
     let dir = std::env::temp_dir().join(format!("vc-recovery-save-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
-    let path = dir.join("doc.vectorcraft").to_string_lossy().to_string();
+    let path = dir.join("doc.vansoncraft").to_string_lossy().to_string();
     // Save to a file.
     let (mut s, store) = session();
     s.execute("file.recovery.save", &json!({})).unwrap();
@@ -1287,7 +1330,7 @@ fn saving_reverting_or_closing_removes_the_copy() {
     assert!(copies(store.as_ref()).is_empty());
     let st = s2.doc().unwrap();
     assert!(!st.recovered && !st.is_dirty());
-    assert_eq!(st.title(), "doc.vectorcraft");
+    assert_eq!(st.title(), "doc.vansoncraft");
     let _ = std::fs::remove_dir_all(&dir);
 }
 
@@ -1307,12 +1350,12 @@ fn complex_documents_are_skipped_when_the_preference_says() {
     let store = Arc::new(MemoryStore::default());
     let mut s = Session::new();
     s.recovery.set_store(store.clone());
-    let mut d = vectorcraft_doc::Document::new(1000.0, 1000.0);
+    let mut d = vansoncraft_doc::Document::new(1000.0, 1000.0);
     let layer = d.layers[0].id;
     for i in 0..cmd::recovery::COMPLEX_OBJECTS {
         let id = d.alloc_id();
-        let r = vectorcraft_geom::Rect::new((i % 200) as f64, (i / 200) as f64, (i % 200) as f64 + 1.0, (i / 200) as f64 + 1.0);
-        let n = vectorcraft_doc::Node::path(id, vectorcraft_geom::shapes::rectangle(r), vectorcraft_doc::Appearance::default_art());
+        let r = vansoncraft_geom::Rect::new((i % 200) as f64, (i / 200) as f64, (i % 200) as f64 + 1.0, (i / 200) as f64 + 1.0);
+        let n = vansoncraft_doc::Node::path(id, vansoncraft_geom::shapes::rectangle(r), vansoncraft_doc::Appearance::default_art());
         d.insert(Some(layer), i, n).unwrap();
     }
     s.add_document(d, None);
@@ -1343,7 +1386,7 @@ fn discard_deletes_copies_left_behind_only() {
     let r = s.execute("file.recovery.discard", &json!({})).unwrap();
     assert_eq!(r["discarded"], json!([format!("{crashed}/Untitled-1-1")]));
     let mine = s.recovery.own_area().unwrap();
-    assert_eq!(store.list().unwrap(), [format!("{mine}/Untitled-1-1.json"), format!("{mine}/Untitled-1-1.vectorcraft")]);
+    assert_eq!(store.list().unwrap(), [format!("{mine}/Untitled-1-1.json"), format!("{mine}/Untitled-1-1.vansoncraft")]);
 }
 
 #[test]
@@ -1360,9 +1403,9 @@ fn without_a_store_the_commands_say_where_to_set_one() {
     s.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 5, "height": 5})).unwrap();
     s.execute("file.recovery.save", &json!({})).unwrap();
     let area = dir.join(s.recovery.own_area().unwrap());
-    assert!(area.join("Untitled-1-1.vectorcraft").is_file() && area.join("Untitled-1-1.json").is_file());
+    assert!(area.join("Untitled-1-1.vansoncraft").is_file() && area.join("Untitled-1-1.json").is_file());
     s.execute("file.close", &json!({})).unwrap();
-    assert!(!area.join("Untitled-1-1.vectorcraft").exists());
+    assert!(!area.join("Untitled-1-1.vansoncraft").exists());
     let _ = std::fs::remove_dir_all(&dir);
 }
 
@@ -1411,7 +1454,7 @@ impl RecoveryStore for Counting {
 
 fn place_png(s: &mut Session, name: &str, rgb: [u8; 3]) -> Vec<u8> {
     let png = crate::tests_links::png(64, 48, rgb);
-    s.execute("file.place", &json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(&png), "link": false})).unwrap();
+    s.execute("file.place", &json!({"name": name, "dataBase64": vansoncraft_format::base64_encode(&png), "link": false})).unwrap();
     png
 }
 
@@ -1432,8 +1475,8 @@ fn images_are_kept_apart_and_written_again_only_when_they_change() {
     assert_eq!(store.images_written().len(), 1);
     let area = s.recovery.own_area().unwrap().to_string();
     // The document entry doesn't hold the image.
-    let doc = store.read(&format!("{area}/Untitled-1-1.vectorcraft")).unwrap();
-    assert!(vectorcraft_format::load(&doc).unwrap().images.is_empty());
+    let doc = store.read(&format!("{area}/Untitled-1-1.vansoncraft")).unwrap();
+    assert!(vansoncraft_format::load(&doc).unwrap().images.is_empty());
     // An edit that leaves the image alone: the copy is written again, its image isn't.
     s.execute("shape.rectangle", &json!({"x": 10, "y": 10, "width": 50, "height": 20})).unwrap();
     let r = s.execute("file.recovery.save", &json!({})).unwrap();
@@ -1496,10 +1539,10 @@ fn copies_from_before_images_were_kept_apart_still_restore() {
     // The document entry is a whole native file, images inside; the details say nothing of them.
     let mut s = session_in(&store);
     place_png(&mut s, "red.png", crate::tests_links::RED);
-    let d = vectorcraft_doc::Document::clone(&s.doc().unwrap().doc);
+    let d = vansoncraft_doc::Document::clone(&s.doc().unwrap().doc);
     let images = images_of(&s);
     drop(s);
-    store.write("1-1/Old-1.vectorcraft", &vectorcraft_format::save_file(&d)).unwrap();
+    store.write("1-1/Old-1.vansoncraft", &vansoncraft_format::save_file(&d)).unwrap();
     store.write("1-1/Old-1.json", br#"{"title": "Old", "format": "vectorcraft", "saved": 5}"#).unwrap();
     let mut s = relaunch(&store);
     assert_eq!(restored(s.execute("file.recovery.restore", &json!({})).unwrap()), 1);
@@ -1526,7 +1569,7 @@ impl RecoveryStore for DiesAfterDocument {
             return Err("the app is gone".into());
         }
         self.inner.write(name, bytes)?;
-        if name.ends_with(".vectorcraft") {
+        if name.ends_with(".vansoncraft") {
             self.dead.store(true, std::sync::atomic::Ordering::Relaxed);
         }
         Ok(())
@@ -1557,8 +1600,8 @@ fn recovery_replies_leave_out_paths_outside_the_read_root() {
     std::fs::create_dir_all(&outside).unwrap();
     let store: Arc<dyn RecoveryStore> = Arc::new(FolderStore::new(outside.join("recovery")));
     let location = outside.join("recovery").to_string_lossy().to_string();
-    let kept = inside.join("kept.vectorcraft").to_string_lossy().to_string();
-    let hidden = outside.join("hidden.vectorcraft").to_string_lossy().to_string();
+    let kept = inside.join("kept.vansoncraft").to_string_lossy().to_string();
+    let hidden = outside.join("hidden.vansoncraft").to_string_lossy().to_string();
     let mut s = Session::new();
     s.recovery.set_store(store.clone());
     for path in [&kept, &hidden] {

@@ -1,11 +1,11 @@
 //! SVG `<text>` import fidelity: placement in the tree, type on a path, per-character positions,
 //! paints and the style cascade.
 
-use vectorcraft_color::{GradientKind, Paint};
-use vectorcraft_doc::{CharStyle, Document, Justify, Node, NodeKind, TextKind, TextObject};
-use vectorcraft_geom::{Point, Rect};
-use vectorcraft_svg::{import, import_with_report};
-use vectorcraft_text::{FontDb, layout};
+use vansoncraft_color::{GradientKind, Paint};
+use vansoncraft_doc::{CharStyle, Document, Justify, Node, NodeKind, TextKind, TextObject};
+use vansoncraft_geom::{Point, Rect};
+use vansoncraft_svg::{import, import_with_report};
+use vansoncraft_text::{FontDb, layout};
 
 fn svg(body: &str) -> String {
     format!(r#"<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="400" height="300">{body}</svg>"#)
@@ -61,7 +61,7 @@ fn metadata_ids_preserve_the_original_text_cascade() {
         for metadata in [false, true] {
             let attribute = if metadata { r#" data-note="kept""# } else { "" };
             let doc = open(&format!(r#"<style>{rules} rect[id]{{fill:black}}</style>{text}<rect width="5" height="5"{attribute}/>"#));
-            let expected = Paint::solid(vectorcraft_color::Color::rgb8(color.0, color.1, color.2));
+            let expected = Paint::solid(vansoncraft_color::Color::rgb8(color.0, color.1, color.2));
             assert_eq!(only_text(&doc).runs[0].style.fill, expected, "{rules}, metadata {metadata}");
         }
     }
@@ -204,10 +204,10 @@ fn a_use_of_a_text_passes_its_properties_on_to_the_text() {
     assert_eq!(t.len(), 3, "{t:?}");
     let s: Vec<CharStyle> = t.iter().map(|t| t.first_style()).collect();
     assert!(close(s[0].size, 100.0, 1e-9), "{}", s[0].size);
-    assert_eq!(s[0].fill, Paint::solid(vectorcraft_color::Color::rgb8(255, 0, 0)));
+    assert_eq!(s[0].fill, Paint::solid(vansoncraft_color::Color::rgb8(255, 0, 0)));
     assert!(close(s[1].size, 12.0, 1e-9), "the defaults, not the <defs>'s 30: {}", s[1].size);
     assert_eq!(s[1].font_style, "Bold");
-    assert_eq!(s[1].fill, Paint::solid(vectorcraft_color::Color::BLACK));
+    assert_eq!(s[1].fill, Paint::solid(vansoncraft_color::Color::BLACK));
     assert!(close(s[2].size, 20.0, 1e-9), "{}", s[2].size);
     assert!(t[0].xf.translation().to_point().distance(Point::new(0.0, 50.0)) < 1e-9, "{:?}", t[0].xf);
     assert!(t[1].xf.translation().to_point().distance(Point::new(200.0, 50.0)) < 1e-9, "{:?}", t[1].xf);
@@ -219,7 +219,7 @@ fn a_use_of_a_text_passes_its_properties_on_to_the_text() {
     let d = open(r##"<defs><text id="t" y="50" font-size="20" fill="blue">HI</text></defs><use href="#t" font-size="100" fill="red"/>"##);
     let s = only_text(&d).first_style();
     assert!(close(s.size, 20.0, 1e-9), "{}", s.size);
-    assert_eq!(s.fill, Paint::solid(vectorcraft_color::Color::rgb8(0, 0, 255)));
+    assert_eq!(s.fill, Paint::solid(vansoncraft_color::Color::rgb8(0, 0, 255)));
 }
 
 /// A `<use>` inside the text it shows does not make the text inherit from itself.
@@ -329,7 +329,7 @@ fn per_character_positions_with_middle_anchor() {
 }
 
 /// `text-anchor` aligns a line's advance, which ends after its last character's letter spacing,
-/// and VectorCraft aligns a line without that tracking: the imported lines move back by their
+/// and VansonCraft aligns a line without that tracking: the imported lines move back by their
 /// share of it and stay where a reader draws them, and a centred or right-aligned tracked line
 /// exported and read back stays where it was (export anchors lines the same way).
 #[test]
@@ -347,7 +347,7 @@ fn anchored_letter_spaced_lines_stay_where_a_reader_draws_them() {
         let t = only_text(&d);
         let (start, advance) = (starts(t)[0], advances(t)[0]);
         assert!(close(start, 200.0 - share * advance, 1e-6), "{anchor}: the line starts at {start}, not {}", 200.0 - share * advance);
-        let back = import(&vectorcraft_svg::export(&d, &vectorcraft_svg::ExportOptions::default())).unwrap();
+        let back = import(&vansoncraft_svg::export(&d, &vansoncraft_svg::ExportOptions::default())).unwrap();
         let again = starts(only_text(&back))[0];
         assert!(close(again, start, 1e-6), "{anchor}: read back, the line starts at {again}, not {start}");
     }
@@ -551,9 +551,9 @@ fn white_space_handling() {
 
 #[test]
 fn placeholder_ids_never_clash_with_the_files() {
-    let d = open(r#"<rect id="vectorcraft-text-0" width="5" height="5"/><text y="20">Safe</text>"#);
+    let d = open(r#"<rect id="vansoncraft-text-0" width="5" height="5"/><text y="20">Safe</text>"#);
     assert_eq!(only_text(&d).plain_text(), "Safe");
-    assert_eq!(art(&d)[0].name.as_deref(), Some("vectorcraft-text-0"));
+    assert_eq!(art(&d)[0].name.as_deref(), Some("vansoncraft-text-0"));
 }
 
 #[test]
@@ -565,7 +565,7 @@ fn linked_text_keeps_its_url_and_stroke_style() {
     assert_eq!(n.url(), Some("https://example.com/t"));
     let st = only_text(&d).first_style();
     assert!(close(st.stroke_width, 1.2, 1e-9), "{}", st.stroke_width);
-    assert_eq!(st.stroke_join, vectorcraft_doc::LineJoin::Round);
+    assert_eq!(st.stroke_join, vansoncraft_doc::LineJoin::Round);
     assert_eq!(st.stroke_dash.as_ref().map(|d| d.pattern.clone()), Some(vec![2.0, 1.0]));
 }
 
@@ -733,7 +733,7 @@ fn gradients_on_scaled_text_stay_in_place() {
 /// The start of a type-on-a-path object's path and a point a little way along it, in document
 /// space.
 fn path_start(t: &TextObject) -> (Point, Point) {
-    use vectorcraft_geom::kurbo::{ParamCurve, PathEl};
+    use vansoncraft_geom::kurbo::{ParamCurve, PathEl};
     let TextKind::OnPath { path, .. } = &t.kind else { panic!("{:?}", t.kind) };
     let mut bp = path.to_bezpath();
     bp.apply_affine(t.xf);

@@ -26,8 +26,8 @@ const INTERNAL: &str = "every search thread stopped on an internal error (please
 /// Why a search couldn't start, without the folder's path ([`Progress::failure`]).
 const UNREADABLE: &str = "the folder can't be read";
 const NOT_A_FOLDER: &str = "the path isn't a folder";
-const SHARED: &str = "VectorCraft doesn't search the Shared or Public folder in Users";
-const APPS: &str = "VectorCraft doesn't search other apps' or the system's folders";
+const SHARED: &str = "VansonCraft doesn't search the Shared or Public folder in Users";
+const APPS: &str = "VansonCraft doesn't search other apps' or the system's folders";
 const UNLISTED: &str = "the folder can't be listed";
 
 /// What a search looks for.
@@ -217,7 +217,7 @@ static POOL: Pool = Pool::new(MAX_LIVE);
 /// from 2 to 8.
 pub fn threads() -> usize {
     let cpus = std::thread::available_parallelism().map_or(2, std::num::NonZero::get);
-    threads_for(cpus, usize::from(vectorcraft_render::default_threads()))
+    threads_for(cpus, usize::from(vansoncraft_render::default_threads()))
 }
 
 /// [`threads`] on `cpus` logical CPUs with `render` renderer threads.
@@ -324,7 +324,7 @@ pub(crate) fn start_in(
     let mut spawned = 0;
     for _ in 0..n {
         let s = shared.clone();
-        let thread = std::thread::Builder::new().name("vectorcraft-find".into()).spawn(move || {
+        let thread = std::thread::Builder::new().name("vansoncraft-find".into()).spawn(move || {
             let _alive = Alive(s.clone());
             // A bug in the walk ends this walker and the others go on; when every walker ends this
             // way, the search fails ([`Alive`]).
@@ -442,8 +442,8 @@ impl Shared {
             Ok(folder) if !folder.is_dir() => (Err(format!("{path} is not a folder")), NOT_A_FOLDER),
             Ok(folder) => match rules.refusal(&folder) {
                 None => (Ok(folder), INTERNAL),
-                Some(Refusal::Shared) => (Err(format!("VectorCraft doesn't search the Shared or Public folder in Users: {path}")), SHARED),
-                Some(Refusal::Apps) => (Err(format!("VectorCraft doesn't search other apps' or the system's folders: {path}")), APPS),
+                Some(Refusal::Shared) => (Err(format!("VansonCraft doesn't search the Shared or Public folder in Users: {path}")), SHARED),
+                Some(Refusal::Apps) => (Err(format!("VansonCraft doesn't search other apps' or the system's folders: {path}")), APPS),
             },
         };
         let mut w = self.lock();

@@ -224,7 +224,7 @@ fn batch_folder(s: &mut Session, cmd: &str, p: &Value, override_open: bool, run:
         let ext = super::extension(path);
         let base = source_stem(std::path::Path::new(path).file_stem().and_then(|s| s.to_str()).unwrap_or(""));
         let own = place.as_ref().filter(|(_, own)| *own).map(|(name, _)| name.clone());
-        let pick = |doc: &vectorcraft_doc::Document| {
+        let pick = |doc: &vansoncraft_doc::Document| {
             let outputs = dataset_output_extensions(&run, doc, &ext);
             picker.pick(&base, |stem| output_names(run.dest_folder, stem, &outputs, doc), own.as_deref())
         };
@@ -298,7 +298,7 @@ fn source_stem(stem: &str) -> String {
 /// The names in lower case of the files and folders that a source with the stem `stem` writes
 /// into the destination folder ([`dataset_output_paths`]), artboard files included.
 #[cfg(not(target_arch = "wasm32"))]
-fn output_names(folder: Option<&str>, stem: &str, outputs: &[DatasetOutput], doc: &vectorcraft_doc::Document) -> Vec<String> {
+fn output_names(folder: Option<&str>, stem: &str, outputs: &[DatasetOutput], doc: &vansoncraft_doc::Document) -> Vec<String> {
     dataset_output_paths(folder, stem, outputs, doc)
         .iter()
         .filter_map(|path| path.file_name().and_then(|name| name.to_str()).map(str::to_lowercase))
@@ -371,7 +371,7 @@ fn process_one_file(
     run: &Run<'_>,
     path: &str,
     ext: &str,
-    stem_for: impl FnOnce(&vectorcraft_doc::Document) -> String,
+    stem_for: impl FnOnce(&vansoncraft_doc::Document) -> String,
 ) -> Result<Value> {
     s.execute("document.open", &json!({"path": path}))?;
     let stem = stem_for(&s.doc()?.doc);
@@ -385,10 +385,10 @@ fn process_one_file(
 #[cfg(not(target_arch = "wasm32"))]
 fn process_one_dataset(s: &mut Session, run: &Run<'_>, name: &str, stem: &str) -> Result<Value> {
     s.execute("dataset.select", &json!({"name": name}))?;
-    let rewritten = rewrite_paths(run.steps, run.override_save, run.override_export, run.dest_folder, stem, "vectorcraft");
+    let rewritten = rewrite_paths(run.steps, run.override_save, run.override_export, run.dest_folder, stem, "vansoncraft");
     let batch = s.execute("command.batch", &json!({"label": run.label, "commands": rewritten}))?;
     // Data sets share one open document: write each row out but leave it open for the next.
-    finish_destination(s, run, stem, "vectorcraft", "", false)?;
+    finish_destination(s, run, stem, "vansoncraft", "", false)?;
     Ok(json!({"dataset": name, "result": batch}))
 }
 
@@ -409,7 +409,7 @@ fn finish_destination(s: &mut Session, run: &Run<'_>, stem: &str, ext: &str, sou
         }
         "folder" => {
             let folder = run.dest_folder.ok_or_else(|| bad("action.batch", "missing destination folder"))?;
-            let out_ext = if ext.is_empty() { "vectorcraft" } else { ext };
+            let out_ext = if ext.is_empty() { "vansoncraft" } else { ext };
             let out = output_path(folder, stem, out_ext).ok_or_else(|| bad("action.batch", "unsafe destination file name"))?;
             let out = out.to_string_lossy().into_owned();
             // When `close` is false (data sets), write a copy so the template keeps its path.
@@ -427,7 +427,7 @@ fn finish_destination(s: &mut Session, run: &Run<'_>, stem: &str, ext: &str, sou
 /// suffixes when a stem was used earlier or its output already exists in a folder the batch may
 /// read and write.
 #[cfg(not(target_arch = "wasm32"))]
-fn dataset_stems(names: &[String], doc_stem: &str, naming: &str, run: &Run<'_>, doc: &vectorcraft_doc::Document) -> Result<Vec<String>> {
+fn dataset_stems(names: &[String], doc_stem: &str, naming: &str, run: &Run<'_>, doc: &vansoncraft_doc::Document) -> Result<Vec<String>> {
     use super::screens::{file_part, safe_file_name};
 
     if !matches!(naming, "fileNumber" | "fileDataSetName" | "dataSetName") {
@@ -448,7 +448,7 @@ fn dataset_stems(names: &[String], doc_stem: &str, naming: &str, run: &Run<'_>, 
             _ => safe_file_name(&format!("{doc_stem}_{safe}")),
         }
     });
-    let outputs = dataset_output_extensions(run, doc, "vectorcraft");
+    let outputs = dataset_output_extensions(run, doc, "vansoncraft");
     let mut taken = std::collections::HashSet::new();
     let mut reserved = std::collections::HashSet::new();
     let mut stems = Vec::with_capacity(bases.len());
@@ -485,13 +485,13 @@ struct DatasetOutput {
 }
 
 /// Lists step output extensions and reserves artboard file names for saves with any artboard or
-/// exports with multiple artboards. Per-artboard names count for vectorcraft, template, AI and AIT
+/// exports with multiple artboards. Per-artboard names count for vansoncraft, template, AI and AIT
 /// saves and SVG, SVGZ, EPS, raster, DXF, EMF, WMF and AI exports. An Export for Screens or Export
 /// Assets step reserves the folder `{stem}` ([`rewrite_paths`]). A step without a format and the
-/// Folder destination write `default_ext` (`vectorcraft` when it is empty).
+/// Folder destination write `default_ext` (`vansoncraft` when it is empty).
 #[cfg(not(target_arch = "wasm32"))]
-fn dataset_output_extensions(run: &Run<'_>, doc: &vectorcraft_doc::Document, default_ext: &str) -> Vec<DatasetOutput> {
-    let default_ext = if default_ext.is_empty() { "vectorcraft" } else { default_ext };
+fn dataset_output_extensions(run: &Run<'_>, doc: &vansoncraft_doc::Document, default_ext: &str) -> Vec<DatasetOutput> {
+    let default_ext = if default_ext.is_empty() { "vansoncraft" } else { default_ext };
     let mut outputs = Vec::new();
     if run.destination == "folder" {
         outputs.push(DatasetOutput { ext: default_ext.into(), artboards: false, joiner: "-", folder: false });
@@ -512,10 +512,10 @@ fn dataset_output_extensions(run: &Run<'_>, doc: &vectorcraft_doc::Document, def
                 None => default_ext.to_string(),
             };
             if safe_extension(&ext) {
-                let format_id = super::format(format.unwrap_or(default_ext)).map(|f| f.id).unwrap_or("vectorcraft");
+                let format_id = super::format(format.unwrap_or(default_ext)).map(|f| f.id).unwrap_or("vansoncraft");
                 let is_save = matches!(id, "document.save" | "file.save" | "file.saveAs");
                 let artboards = if is_save {
-                    !doc.artboards.is_empty() && matches!(format_id, "vectorcraft" | "template" | "ai" | "ait")
+                    !doc.artboards.is_empty() && matches!(format_id, "vansoncraft" | "template" | "ai" | "ait")
                 } else {
                     doc.artboards.len() > 1
                         && id == "document.export"
@@ -548,7 +548,7 @@ fn dataset_output_extensions(run: &Run<'_>, doc: &vectorcraft_doc::Document, def
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-fn dataset_output_exists(folder: Option<&str>, stem: &str, outputs: &[DatasetOutput], doc: &vectorcraft_doc::Document) -> bool {
+fn dataset_output_exists(folder: Option<&str>, stem: &str, outputs: &[DatasetOutput], doc: &vansoncraft_doc::Document) -> bool {
     let Some(folder) = folder else { return false };
     if super::may_read(folder).is_err() || super::may_write(folder).is_err() {
         return false;
@@ -560,7 +560,7 @@ fn dataset_output_exists(folder: Option<&str>, stem: &str, outputs: &[DatasetOut
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-fn dataset_output_paths(folder: Option<&str>, stem: &str, outputs: &[DatasetOutput], doc: &vectorcraft_doc::Document) -> Vec<std::path::PathBuf> {
+fn dataset_output_paths(folder: Option<&str>, stem: &str, outputs: &[DatasetOutput], doc: &vansoncraft_doc::Document) -> Vec<std::path::PathBuf> {
     let Some(folder) = folder else { return Vec::new() };
     let boards: Vec<_> = (0..doc.artboards.len()).collect();
     let mut parts = super::artboard_file_names(doc, &boards);
@@ -624,7 +624,7 @@ fn output_folder(folder: &str, stem: &str) -> Option<std::path::PathBuf> {
 #[cfg(not(target_arch = "wasm32"))]
 fn write_result(s: &mut Session, path: &str, ext: &str, as_copy: bool) -> Result<()> {
     use super::SAVE_FORMATS;
-    let id = if ext == "drawcraft" { "vectorcraft" } else { ext };
+    let id = if vansoncraft_format::is_former_native_ext(ext) { "vansoncraft" } else { ext };
     if SAVE_FORMATS.contains(&id) {
         let cmd = if as_copy { "file.saveCopy" } else { "document.save" };
         s.execute(cmd, &json!({"path": path}))?;
@@ -1261,13 +1261,13 @@ mod tests {
     }
 
     /// With the destination folder the same as the source folder, a save's artboard files do not
-    /// replace another source file: `a.vectorcraft` would also write `a-Artboard-1.vectorcraft`, so
+    /// replace another source file: `a.vansoncraft` would also write `a-Artboard-1.vansoncraft`, so
     /// it is saved as `a-2`.
     #[test]
     fn batch_does_not_save_artboard_files_over_another_source_file() {
         let src = tmp("in-place-artboards");
         let mut s = Session::new();
-        for (name, width) in [("a.vectorcraft", 20), ("a-Artboard-1.vectorcraft", 30)] {
+        for (name, width) in [("a.vansoncraft", 20), ("a-Artboard-1.vansoncraft", 30)] {
             s.execute("file.new", &json!({"width": width, "height": 20, "artboards": 1})).unwrap();
             s.execute("document.save", &json!({"path": src.join(name).to_string_lossy()})).unwrap();
         }
@@ -1284,10 +1284,10 @@ mod tests {
         assert_eq!(r["failed"], 0, "{r}");
         assert_eq!(
             file_names(&src),
-            ["a-2-Artboard-1.vectorcraft", "a-2.vectorcraft", "a-Artboard-1-Artboard-1.vectorcraft", "a-Artboard-1.vectorcraft", "a.vectorcraft"],
+            ["a-2-Artboard-1.vansoncraft", "a-2.vansoncraft", "a-Artboard-1-Artboard-1.vansoncraft", "a-Artboard-1.vansoncraft", "a.vansoncraft"],
             "{r}"
         );
-        s.execute("document.open", &json!({"path": src.join("a-Artboard-1.vectorcraft").to_string_lossy()})).unwrap();
+        s.execute("document.open", &json!({"path": src.join("a-Artboard-1.vansoncraft").to_string_lossy()})).unwrap();
         assert_eq!(s.doc().unwrap().doc.artboards[0].rect.width(), 30.0, "{r}");
     }
 
@@ -1461,17 +1461,17 @@ mod tests {
     #[test]
     fn batch_data_set_naming_choices_and_omitted_default() {
         for (i, (naming, want)) in [
-            (Some("fileNumber"), ["source001.vectorcraft", "source002.vectorcraft"]),
-            (Some("fileDataSetName"), ["source_Alpha.vectorcraft", "source_Beta.vectorcraft"]),
-            (Some("dataSetName"), ["Alpha.vectorcraft", "Beta.vectorcraft"]),
-            (None, ["source_Alpha.vectorcraft", "source_Beta.vectorcraft"]),
+            (Some("fileNumber"), ["source001.vansoncraft", "source002.vansoncraft"]),
+            (Some("fileDataSetName"), ["source_Alpha.vansoncraft", "source_Beta.vansoncraft"]),
+            (Some("dataSetName"), ["Alpha.vansoncraft", "Beta.vansoncraft"]),
+            (None, ["source_Alpha.vansoncraft", "source_Beta.vansoncraft"]),
         ]
         .into_iter()
         .enumerate()
         {
             let dest = tmp(&format!("choice-{i}"));
             let mut s = with_data_sets(&["Alpha", "Beta"]);
-            let saved = tmp(&format!("saved-{i}")).join("source.vectorcraft");
+            let saved = tmp(&format!("saved-{i}")).join("source.vansoncraft");
             s.execute("document.save", &json!({"path": saved.to_string_lossy()})).unwrap();
             let r = named_batch(&mut s, &dest, naming);
             assert_eq!(r["failed"], 0, "{r}");
@@ -1492,7 +1492,7 @@ mod tests {
             dest_folder: None,
             dataset_file_naming: "fileDataSetName",
         };
-        let stems = dataset_stems(&names, "source", "fileNumber", &run, &vectorcraft_doc::Document::new(100.0, 80.0)).unwrap();
+        let stems = dataset_stems(&names, "source", "fileNumber", &run, &vansoncraft_doc::Document::new(100.0, 80.0)).unwrap();
         for n in [1, 2, 10, 100, 500] {
             assert_eq!(stems[n - 1], format!("source{n:03}"));
         }
@@ -1503,10 +1503,10 @@ mod tests {
         let dest = tmp("unsaved-number");
         let mut s = with_data_sets(&["Alpha"]);
         assert_eq!(named_batch(&mut s, &dest, Some("fileNumber"))["failed"], 0);
-        assert_eq!(file_names(&dest), ["Untitled001.vectorcraft"]);
+        assert_eq!(file_names(&dest), ["Untitled001.vansoncraft"]);
         let dest = tmp("unsaved-name");
         assert_eq!(named_batch(&mut s, &dest, Some("fileDataSetName"))["failed"], 0);
-        assert_eq!(file_names(&dest), ["Untitled_Alpha.vectorcraft"]);
+        assert_eq!(file_names(&dest), ["Untitled_Alpha.vansoncraft"]);
         let run = Run {
             label: "Test",
             steps: &[],
@@ -1527,14 +1527,14 @@ mod tests {
         let mut s = with_data_sets(&["a:b", "a-b"]);
         let r = named_batch(&mut s, &clear, Some("dataSetName"));
         assert_eq!(r["failed"], 0, "{r}");
-        assert_eq!(file_names(&clear), ["a-b-2.vectorcraft", "a-b.vectorcraft"]);
+        assert_eq!(file_names(&clear), ["a-b-2.vansoncraft", "a-b.vansoncraft"]);
         let dest = tmp("choice-collision");
-        std::fs::write(dest.join("a-b.vectorcraft"), b"keep").unwrap();
+        std::fs::write(dest.join("a-b.vansoncraft"), b"keep").unwrap();
         let mut s = with_data_sets(&["a:b", "a-b"]);
         let r = named_batch(&mut s, &dest, Some("dataSetName"));
         assert_eq!(r["failed"], 0, "{r}");
-        assert_eq!(std::fs::read(dest.join("a-b.vectorcraft")).unwrap(), b"keep");
-        assert_eq!(file_names(&dest), ["a-b-2.vectorcraft", "a-b-3.vectorcraft", "a-b.vectorcraft"]);
+        assert_eq!(std::fs::read(dest.join("a-b.vansoncraft")).unwrap(), b"keep");
+        assert_eq!(file_names(&dest), ["a-b-2.vansoncraft", "a-b-3.vansoncraft", "a-b.vansoncraft"]);
     }
 
     #[test]
@@ -1543,7 +1543,7 @@ mod tests {
         let mut s = with_data_sets(&["CON"]);
         let r = named_batch(&mut s, &dest, Some("dataSetName"));
         assert_eq!(r["failed"], 0, "{r}");
-        assert_eq!(file_names(&dest), ["CON-.vectorcraft"]);
+        assert_eq!(file_names(&dest), ["CON-.vansoncraft"]);
     }
 
     #[test]
@@ -1595,9 +1595,9 @@ mod tests {
         let dest = tmp("choice-remembered-separate-dest");
         let mut s = Session::new();
         s.execute("file.new", &json!({"width": 20, "height": 20, "artboards": 2})).unwrap();
-        s.execute("document.save", &json!({"path": source.join("source.vectorcraft").to_string_lossy(), "separateArtboards": true})).unwrap();
-        assert!(source.join("source-Artboard-1.vectorcraft").exists());
-        let existing = dest.join("Alpha-Artboard-1.vectorcraft");
+        s.execute("document.save", &json!({"path": source.join("source.vansoncraft").to_string_lossy(), "separateArtboards": true})).unwrap();
+        assert!(source.join("source-Artboard-1.vansoncraft").exists());
+        let existing = dest.join("Alpha-Artboard-1.vansoncraft");
         std::fs::write(&existing, b"keep").unwrap();
         s.execute("dataset.new", &json!({"name": "Alpha"})).unwrap();
         let r = s
@@ -1614,7 +1614,7 @@ mod tests {
         assert_eq!(std::fs::read(existing).unwrap(), b"keep");
         assert_eq!(
             file_names(&dest),
-            ["Alpha-2-Artboard-1.vectorcraft", "Alpha-2-Artboard-2.vectorcraft", "Alpha-2.vectorcraft", "Alpha-Artboard-1.vectorcraft",]
+            ["Alpha-2-Artboard-1.vansoncraft", "Alpha-2-Artboard-2.vansoncraft", "Alpha-2.vansoncraft", "Alpha-Artboard-1.vansoncraft",]
         );
     }
 
@@ -1627,14 +1627,14 @@ mod tests {
         s.execute(
             "document.save",
             &json!({
-                "path": source.join("source.vectorcraft").to_string_lossy(),
+                "path": source.join("source.vansoncraft").to_string_lossy(),
                 "separateArtboards": true
             }),
         )
         .unwrap();
-        assert!(source.join("source-Artboard-1.vectorcraft").exists());
+        assert!(source.join("source-Artboard-1.vansoncraft").exists());
 
-        let existing = dest.join("Alpha-Artboard-1.vectorcraft");
+        let existing = dest.join("Alpha-Artboard-1.vansoncraft");
         std::fs::write(&existing, b"keep").unwrap();
         s.execute("dataset.new", &json!({"name": "Alpha"})).unwrap();
         let r = s
@@ -1649,7 +1649,7 @@ mod tests {
             .unwrap();
         assert_eq!(r["failed"], 0, "{r}");
         assert_eq!(std::fs::read(existing).unwrap(), b"keep");
-        assert_eq!(file_names(&dest), ["Alpha-2-Artboard-1.vectorcraft", "Alpha-2.vectorcraft", "Alpha-Artboard-1.vectorcraft"]);
+        assert_eq!(file_names(&dest), ["Alpha-2-Artboard-1.vansoncraft", "Alpha-2.vansoncraft", "Alpha-Artboard-1.vansoncraft"]);
     }
 
     #[test]
@@ -1695,7 +1695,7 @@ mod tests {
             .unwrap();
         assert_eq!(r["failed"], 0, "{r}");
         assert_eq!(std::fs::read(unrelated).unwrap(), b"keep");
-        assert_eq!(file_names(&dest), ["Alpha-Artboard-1.vectorcraft", "Alpha-Artboard-2.vectorcraft", "Alpha-photo.png", "Alpha.vectorcraft"]);
+        assert_eq!(file_names(&dest), ["Alpha-Artboard-1.vansoncraft", "Alpha-Artboard-2.vansoncraft", "Alpha-photo.png", "Alpha.vansoncraft"]);
     }
 
     #[test]
@@ -1716,8 +1716,8 @@ mod tests {
             )
             .unwrap();
         assert_eq!(r["failed"], 0, "{r}");
-        assert!(dest.join("Alpha-Artboard-1.vectorcraft").exists());
-        assert!(dest.join("Alpha-Artboard-1-2.vectorcraft").exists());
+        assert!(dest.join("Alpha-Artboard-1.vansoncraft").exists());
+        assert!(dest.join("Alpha-Artboard-1-2.vansoncraft").exists());
     }
 
     #[test]
@@ -1740,7 +1740,7 @@ mod tests {
         };
         crate::file_access::confine(Some(&roots), || {
             assert_eq!(
-                dataset_stems(&["Alpha".into()], "source", "dataSetName", &run, &vectorcraft_doc::Document::new(100.0, 80.0)).unwrap(),
+                dataset_stems(&["Alpha".into()], "source", "dataSetName", &run, &vansoncraft_doc::Document::new(100.0, 80.0)).unwrap(),
                 ["Alpha"]
             );
             let mut s = with_data_sets(&["Alpha"]);
@@ -1778,12 +1778,12 @@ mod tests {
                 dataset_file_naming: "fileDataSetName",
             };
             assert_eq!(
-                dataset_stems(&["Alpha".into()], "source", "dataSetName", &run, &vectorcraft_doc::Document::new(100.0, 80.0))
+                dataset_stems(&["Alpha".into()], "source", "dataSetName", &run, &vansoncraft_doc::Document::new(100.0, 80.0))
                     .unwrap_or_else(|e| panic!("{format}: {e}")),
                 ["Alpha"],
                 "{format}"
             );
-            assert_eq!(rewrite_paths(&steps, false, true, Some(&folder), "Alpha", "vectorcraft"), steps, "{format}");
+            assert_eq!(rewrite_paths(&steps, false, true, Some(&folder), "Alpha", "vansoncraft"), steps, "{format}");
         }
     }
 
@@ -1805,18 +1805,18 @@ mod tests {
             dataset_file_naming: "fileDataSetName",
         };
         assert_eq!(
-            dataset_stems(&[".".into(), "..".into()], ".", "dataSetName", &run, &vectorcraft_doc::Document::new(100.0, 80.0)).unwrap(),
+            dataset_stems(&[".".into(), "..".into()], ".", "dataSetName", &run, &vansoncraft_doc::Document::new(100.0, 80.0)).unwrap(),
             ["Untitled001", "Untitled002"]
         );
         assert_eq!(
-            dataset_stems(&["Alpha".into()], "..", "fileNumber", &run, &vectorcraft_doc::Document::new(100.0, 80.0)).unwrap(),
+            dataset_stems(&["Alpha".into()], "..", "fileNumber", &run, &vansoncraft_doc::Document::new(100.0, 80.0)).unwrap(),
             ["Untitled001"]
         );
         let output = root.join("named");
         let mut s = with_data_sets(&[".", ".."]);
         let r = named_batch(&mut s, &output, Some("dataSetName"));
         assert_eq!(r["failed"], 0, "{r}");
-        assert_eq!(file_names(&output), ["Untitled001.vectorcraft", "Untitled002.vectorcraft"]);
+        assert_eq!(file_names(&output), ["Untitled001.vansoncraft", "Untitled002.vansoncraft"]);
     }
 
     #[test]
@@ -1830,7 +1830,7 @@ mod tests {
             Some(&folder),
             "../outside",
             &[DatasetOutput { ext: "svg".into(), artboards: false, joiner: "-", folder: false }],
-            &vectorcraft_doc::Document::new(100.0, 80.0),
+            &vansoncraft_doc::Document::new(100.0, 80.0),
         ));
     }
 
@@ -1873,7 +1873,7 @@ mod tests {
             )
             .unwrap();
         assert_eq!(r["failed"], 0, "{r}");
-        assert_eq!(file_names(&dest), ["Untitled_..-y.vectorcraft", "Untitled_a", "Untitled_a-..-..-x.vectorcraft"], "{r}");
+        assert_eq!(file_names(&dest), ["Untitled_..-y.vansoncraft", "Untitled_a", "Untitled_a-..-..-x.vansoncraft"], "{r}");
         assert_eq!(file_names(&root), ["out"], "nothing is written outside the destination folder");
     }
 
@@ -1895,7 +1895,7 @@ mod tests {
             )
             .unwrap();
         assert_eq!(r["failed"], 0, "{r}");
-        assert_eq!(file_names(&dest), ["Untitled_a-b.vectorcraft", "Untitled_c-d.vectorcraft", "Untitled_e-f.vectorcraft"], "{r}");
+        assert_eq!(file_names(&dest), ["Untitled_a-b.vansoncraft", "Untitled_c-d.vansoncraft", "Untitled_e-f.vansoncraft"], "{r}");
         // Override Export points each data set's export at the destination folder under the same name.
         let r = s
             .execute(
@@ -1933,7 +1933,7 @@ mod tests {
         assert_eq!(r["failed"], 0, "{r}");
         assert_eq!(
             file_names(&dest),
-            ["Untitled_a-b.vectorcraft", "Untitled_c-d-e-.vectorcraft", "Untitled_f-g-h.vectorcraft", "Untitled_i-j.vectorcraft"],
+            ["Untitled_a-b.vansoncraft", "Untitled_c-d-e-.vansoncraft", "Untitled_f-g-h.vansoncraft", "Untitled_i-j.vansoncraft"],
             "{r}"
         );
     }
@@ -1954,7 +1954,7 @@ mod tests {
             )
             .unwrap();
         assert_eq!(r["failed"], 0, "{r}");
-        assert_eq!(file_names(&dest), ["Untitled_A-B-3.vectorcraft", "Untitled_a-b-2.vectorcraft", "Untitled_a-b.vectorcraft"], "{r}");
+        assert_eq!(file_names(&dest), ["Untitled_A-B-3.vansoncraft", "Untitled_a-b-2.vansoncraft", "Untitled_a-b.vansoncraft"], "{r}");
     }
 
     /// A saved document with a text object bound to `Name` and two data sets, `A` and `B`.
@@ -1980,14 +1980,14 @@ mod tests {
 
     #[test]
     fn batch_save_and_close_over_data_sets_saves_each_over_the_template_and_warns() {
-        let path = tmp("save-close-sets").join("template.vectorcraft");
+        let path = tmp("save-close-sets").join("template.vansoncraft");
         let mut s = saved_with_two_data_sets(&path);
         std::fs::write(&path, b"stale").unwrap();
         let r = save_and_close_over_data_sets(&mut s).unwrap();
         assert_eq!((r["count"].as_u64(), r["failed"].as_u64()), (Some(2), Some(0)), "{r}");
         assert_eq!(r["warning"], ONE_FILE_WARNING, "{r}");
         assert_ne!(std::fs::read(&path).unwrap(), b"stale", "the template's file is saved over");
-        assert_eq!(file_names(path.parent().unwrap()), ["template.vectorcraft"], "{r}");
+        assert_eq!(file_names(path.parent().unwrap()), ["template.vansoncraft"], "{r}");
         let st = s.doc().unwrap();
         assert_eq!(st.doc.variables.active_dataset.as_deref(), Some("B"), "the last data set is applied");
         assert_eq!(st.path.as_deref(), Some(path.to_string_lossy().as_ref()), "the template stays open");
@@ -1996,7 +1996,7 @@ mod tests {
 
     #[test]
     fn batch_warns_when_a_recorded_save_writes_one_file_for_every_data_set() {
-        let path = tmp("recorded-save-sets").join("template.vectorcraft");
+        let path = tmp("recorded-save-sets").join("template.vansoncraft");
         let mut s = saved_with_two_data_sets(&path);
         let save = json!([{"command": "document.save", "params": {}}]);
         let r = s.execute("action.batch", &json!({"source": "datasets", "commands": save})).unwrap();
@@ -2021,7 +2021,7 @@ mod tests {
                 "commands": [{"command": "document.save", "params": {}}]
             })
         };
-        let path = tmp("redirected-save-close").join("template.vectorcraft");
+        let path = tmp("redirected-save-close").join("template.vansoncraft");
         let mut s = saved_with_two_data_sets(&path);
         let bytes = std::fs::read(&path).unwrap();
         let dest = tmp("redirected-save-close-dest");
@@ -2032,7 +2032,7 @@ mod tests {
         let r = s.execute("action.batch", &p).unwrap();
         assert_eq!(r["failed"], 0, "{r}");
         assert!(r.get("warning").is_none(), "{r}");
-        assert_eq!(file_names(&dest), ["template_A.vectorcraft", "template_B.vectorcraft"], "{r}");
+        assert_eq!(file_names(&dest), ["template_A.vansoncraft", "template_B.vansoncraft"], "{r}");
         assert_eq!(std::fs::read(&path).unwrap(), bytes, "the template's file stays as it was");
         // A document never saved gets its files from the redirected save too.
         let mut unsaved = with_data_sets(&["a", "b"]);
@@ -2040,7 +2040,7 @@ mod tests {
         let r = unsaved.execute("action.batch", &save_close(&dest)).unwrap();
         assert_eq!(r["failed"], 0, "{r}");
         assert!(r.get("warning").is_none(), "{r}");
-        assert_eq!(file_names(&dest), ["Untitled_a.vectorcraft", "Untitled_b.vectorcraft"], "{r}");
+        assert_eq!(file_names(&dest), ["Untitled_a.vansoncraft", "Untitled_b.vansoncraft"], "{r}");
         // A template save writes a copy: Save and Close still saves over the document's own file.
         let mut template = save_close(&dest);
         template["commands"] = json!([{"command": "document.save", "params": {"format": "template"}}]);
@@ -2050,7 +2050,7 @@ mod tests {
         assert!(msg.ends_with("the document has never been saved"), "{msg}");
         // A recorded Save As with its own path gives a never-saved document its file, the same one
         // for every data set.
-        let one = tmp("save-as-then-close").join("one.vectorcraft");
+        let one = tmp("save-as-then-close").join("one.vansoncraft");
         let p = json!({
             "source": "datasets",
             "destination": "saveAndClose",
@@ -2064,7 +2064,7 @@ mod tests {
 
     #[test]
     fn one_file_rule_covers_save_and_close_and_steps_left_in_place() {
-        let saved = saved_with_two_data_sets(&tmp("one-file-rule").join("template.vectorcraft"));
+        let saved = saved_with_two_data_sets(&tmp("one-file-rule").join("template.vansoncraft"));
         let unsaved = with_data_sets(&["a"]);
         let with = |extra: Value| {
             let mut p = json!({"source": "datasets", "commands": [{"command": "document.export", "params": {"path": "/x/a.png"}}]});
@@ -2084,14 +2084,14 @@ mod tests {
         assert!(!with(json!({"destination": "folder", "destinationFolder": "/out", "commands": saved_as["commands"]})));
         assert!(!with(json!({"commands": [{"command": "file.saveAs", "params": {}}]})), "no path: the data comes back");
         assert!(!with(json!({"commands": [{"command": "document.export", "params": {"format": "png"}}]})), "no path: the data comes back");
-        let copy = json!([{"command": "file.saveCopy", "params": {"path": "/x/a.vectorcraft"}}]);
+        let copy = json!([{"command": "file.saveCopy", "params": {"path": "/x/a.vansoncraft"}}]);
         assert!(with(json!({"destination": "folder", "destinationFolder": "/out", "commands": copy})), "Override Save leaves copies alone");
         let save = |format: Option<&str>| {
             let params = format.map_or(json!({}), |f| json!({"format": f}));
             json!({"source": "datasets", "commands": [{"command": "document.save", "params": params}]})
         };
         assert!(batch_overwrites_one_file(&saved, &save(None)), "the document's own file");
-        assert!(batch_overwrites_one_file(&saved, &save(Some("vectorcraft"))), "the document's own format");
+        assert!(batch_overwrites_one_file(&saved, &save(Some("vansoncraft"))), "the document's own format");
         assert!(!batch_overwrites_one_file(&unsaved, &save(None)), "a document never saved has no file to write");
         assert!(!batch_overwrites_one_file(&saved, &save(Some("svg"))), "another format without a path: the data comes back");
         assert!(!with(json!({"commands": [{"command": "file.saveCopy", "params": {"folder": "/x"}}]})), "a folder alone: the data comes back");
@@ -2118,7 +2118,7 @@ mod tests {
     #[test]
     fn batch_refuses_save_and_close_over_data_sets_of_a_converted_or_recovered_document() {
         for converted in [true, false] {
-            let path = tmp(if converted { "converted-sets" } else { "recovered-sets" }).join("template.vectorcraft");
+            let path = tmp(if converted { "converted-sets" } else { "recovered-sets" }).join("template.vansoncraft");
             let mut s = saved_with_two_data_sets(&path);
             let bytes = std::fs::read(&path).unwrap();
             let (active, revision) = {

@@ -6,7 +6,7 @@
 //! the file drew; one that would look different keeps the file's glyphs as outlines.
 
 use kurbo::{Rect, Shape};
-use vectorcraft_doc::TextObject;
+use vansoncraft_doc::TextObject;
 
 /// Does `text` have a character of a script whose letters reorder and join into conjuncts: the
 /// Brahmic scripts of U+0900 to U+0DFF (Devanagari, Bengali, Gurmukhi, Gujarati, Oriya, Tamil,
@@ -19,7 +19,7 @@ pub(super) fn reshapes(text: &str) -> bool {
 /// document space)? As many glyphs with ink, each within 3 % of the type's size of one of the
 /// file's.
 pub(super) fn draws_as(t: &TextObject, ink: &[Rect]) -> bool {
-    let laid = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t);
+    let laid = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), t);
     let mut set: Vec<Rect> =
         laid.glyphs.iter().filter(|g| !g.outline.elements().is_empty()).map(|g| (t.xf * g.outline.clone()).bounding_box()).collect();
     if set.len() != ink.len() {

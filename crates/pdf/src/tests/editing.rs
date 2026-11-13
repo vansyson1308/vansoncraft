@@ -2,9 +2,9 @@
 //! name) and checked against the pages it was written with.
 
 use serde_json::json;
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::{Appearance, Document, Node};
-use vectorcraft_geom::{Rect, shapes};
+use vansoncraft_color::{Color, Paint};
+use vansoncraft_doc::{Appearance, Document, Node};
+use vansoncraft_geom::{Rect, shapes};
 
 use crate::*;
 
@@ -52,10 +52,10 @@ fn the_native_document_comes_back_intact() {
 #[test]
 fn the_native_documents_modification_date_is_the_time_of_writing() {
     // Created in 1970: the information dictionary's dates say so, the embedded file's doesn't.
-    let year = |t: Option<i64>| vectorcraft_doc::metadata::civil(t.unwrap())[0];
-    let before = year(vectorcraft_doc::metadata::output_time());
+    let year = |t: Option<i64>| vansoncraft_doc::metadata::civil(t.unwrap())[0];
+    let before = year(vansoncraft_doc::metadata::output_time());
     let text = String::from_utf8_lossy(&pdf_with(Some(b"native"), false).bytes).into_owned();
-    let after = year(vectorcraft_doc::metadata::output_time());
+    let after = year(vansoncraft_doc::metadata::output_time());
     assert!(text.contains("/CreationDate(D:1970"), "the file's creation date");
     assert!([before, after].iter().any(|y| text.contains(&format!("/ModDate(D:{y:04}"))), "the embedded file is dated when it is written");
 }
@@ -76,7 +76,7 @@ fn changed_pages_are_noticed() {
 /// held, in the text string encoding `bom` starts (UTF-16BE or UTF-8), padded with spaces to its
 /// length.
 fn described(pdf: &[u8], bom: &[u8]) -> Vec<u8> {
-    let from = b"(VectorCraft editing data; page hash ";
+    let from = b"(VansonCraft editing data; page hash ";
     let at = pdf.windows(from.len()).position(|w| w == from).unwrap_or_else(|| panic!("no description"));
     let (hash, len) = (&pdf[at + from.len()..at + from.len() + 16], from.len() + 17);
     let mut desc = [b"(", bom].concat();
@@ -99,6 +99,27 @@ fn the_hash_is_read_from_a_description_in_any_encoding() {
         assert!(editing(&described(&r.bytes, bom)).unwrap().intact, "{bom:?}: the same pages");
         assert!(!editing(&described(&resized, bom)).unwrap().intact, "{bom:?}: another page size");
     }
+}
+
+#[test]
+fn the_name_from_before_the_rename_is_read() {
+    // PDFs saved before the project took the name VansonCraft carry `vectorcraft-editing.vectorcraft`,
+    // as long as today's name, so the offsets hold.
+    assert_eq!(FORMER_EDITING_FILE.len(), EDITING_FILE.len());
+    let r = pdf_with(Some(b"former"), false);
+    let (name, former) = (format!("({EDITING_FILE})"), format!("({FORMER_EDITING_FILE})"));
+    let mut old = r.bytes.clone();
+    while let Some(at) = old.windows(name.len()).position(|w| w == name.as_bytes()) {
+        old[at..at + former.len()].copy_from_slice(former.as_bytes());
+    }
+    assert!(old.windows(former.len()).any(|w| w == former.as_bytes()));
+    // Today's name is nowhere in the file, in ASCII or UTF-16, so only the former name can match.
+    let utf16: Vec<u8> = EDITING_FILE.encode_utf16().flat_map(u16::to_be_bytes).collect();
+    for name in [EDITING_FILE.as_bytes(), utf16.as_slice()] {
+        assert!(!old.windows(name.len()).any(|w| w == name), "{}", String::from_utf8_lossy(name));
+    }
+    let e = editing(&old).unwrap();
+    assert_eq!((e.data.as_slice(), e.intact), (&b"former"[..], true));
 }
 
 #[test]

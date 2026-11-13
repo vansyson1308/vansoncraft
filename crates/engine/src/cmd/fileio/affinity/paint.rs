@@ -8,8 +8,8 @@ use super::{
 };
 
 impl Builder {
-    /// Drop shadows, inner shadows and outer glows as VectorCraft's Stylize effects. Affinity's
-    /// blur radius sets the same Gaussian as VectorCraft's blur (σ = half of it), and its angle
+    /// Drop shadows, inner shadows and outer glows as VansonCraft's Stylize effects. Affinity's
+    /// blur radius sets the same Gaussian as VansonCraft's blur (σ = half of it), and its angle
     /// is the direction the shadow goes in.
     pub(super) fn effects(&mut self, effects: &[af::Effect]) -> Vec<Effect> {
         let k = self.k;
@@ -317,7 +317,7 @@ impl Builder {
         }
         if px.iter().all(|p| p[4] == 255) {
             let inks = px.iter().flat_map(|p| [p[0], p[1], p[2], p[3]]).collect();
-            if let Some(blob) = vectorcraft_doc::cmyk::Inks::new(width, height, inks).and_then(|i| vectorcraft_doc::ImageBlob::cmyk_tiff(&i)) {
+            if let Some(blob) = vansoncraft_doc::cmyk::Inks::new(width, height, inks).and_then(|i| vansoncraft_doc::ImageBlob::cmyk_tiff(&i)) {
                 return Some(Arc::unwrap_or_clone(blob.bytes));
             }
         }
@@ -325,7 +325,7 @@ impl Builder {
         let lut = self
             .working_cmyk
             .get_or_insert_with(|| {
-                Arc::new(vectorcraft_color::cms::CmykLut::build(|[c, m, y, k]| {
+                Arc::new(vansoncraft_color::cms::CmykLut::build(|[c, m, y, k]| {
                     let [r, g, b] = Color::cmyk(c, m, y, k).to_rgb();
                     [r, g, b, 0.0]
                 }))
@@ -344,8 +344,8 @@ impl Builder {
     /// The document's CMYK profile as a table from ink amounts to sRGB (relative colorimetric,
     /// with black-point compensation, as Affinity's pixel layers convert), made once; `None` when
     /// the document embeds none, or not one that converts.
-    fn document_cmyk(&mut self) -> Option<Arc<vectorcraft_color::cms::CmykLut>> {
-        use vectorcraft_color::cms::{self, CmykLut, IccProfile, Intent};
+    fn document_cmyk(&mut self) -> Option<Arc<vansoncraft_color::cms::CmykLut>> {
+        use vansoncraft_color::cms::{self, CmykLut, IccProfile, Intent};
         if let Some(lut) = &self.cmyk_lut {
             return lut.clone();
         }

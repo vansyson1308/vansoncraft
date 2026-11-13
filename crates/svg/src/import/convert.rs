@@ -1,11 +1,11 @@
 use super::{Affine, Arc, BezPath, BlendMode, Color, FillRule, GradientStop, HashMap, Node, PathData, Point, XNode, roxmltree};
-use vectorcraft_geom::path::{Anchor, AnchorKind, SubPath};
-use vectorcraft_geom::shapes::KAPPA;
+use vansoncraft_geom::path::{Anchor, AnchorKind, SubPath};
+use vansoncraft_geom::shapes::KAPPA;
 
 /// `n` with every object id (its descendants' and its mask art's too) zeroed, to compare art.
 pub(super) fn without_ids(n: &Node) -> Node {
     let mut n = n.clone();
-    n.id = vectorcraft_doc::NodeId(0);
+    n.id = vansoncraft_doc::NodeId(0);
     if let Some(m) = n.extras_if_any().and_then(|e| e.mask.as_deref_mut()) {
         m.art = Arc::new(without_ids(&m.art));
     }
@@ -64,22 +64,27 @@ pub(super) fn gradient_stops(g: &usvg::BaseGradient, marks: Option<&[Option<f32>
     out
 }
 
-/// The options [`crate::export::MASK_FLAGS`] records on exported `<mask>` elements, by mask id:
-/// (clip, invert).
+/// The attribute SVG files written before the project took the name VansonCraft record the same
+/// options in.
+const FORMER_MASK_FLAGS: &str = "data-vectorcraft-mask"; // brand-ok: files saved before the rename
+
+/// The options [`crate::export::MASK_FLAGS`] (or [`FORMER_MASK_FLAGS`]) records on exported
+/// `<mask>` elements, by mask id: (clip, invert).
 pub(super) fn mask_flags(xml: &roxmltree::Document) -> HashMap<String, (bool, bool)> {
-    let attr = crate::export::MASK_FLAGS;
-    if !xml.input_text().contains(attr) {
+    let attrs = [crate::export::MASK_FLAGS, FORMER_MASK_FLAGS];
+    if !attrs.iter().any(|a| xml.input_text().contains(a)) {
         return HashMap::new();
     }
     let flags = |n: roxmltree::Node| {
-        let has = |f: &str| n.attribute(attr).is_some_and(|v| v.split_whitespace().any(|x| x == f));
+        let value = attrs.iter().find_map(|a| n.attribute(*a))?;
+        let has = |f: &str| value.split_whitespace().any(|x| x == f);
         Some((n.attribute("id")?.to_string(), (!has("noclip"), has("invert"))))
     };
-    xml.descendants().filter(|n| n.tag_name().name() == "mask" && n.has_attribute(attr)).filter_map(flags).collect()
+    xml.descendants().filter(|n| n.tag_name().name() == "mask").filter_map(flags).collect()
 }
 
 /// Prefix of the ids [`prepass`] gives the elements it has to find again that have none.
-pub(super) const MADE_UP_ID: &str = "vectorcraft-id-";
+pub(super) const MADE_UP_ID: &str = "vansoncraft-id-";
 
 /// Is `id` one [`prepass`] made up (not a name)?
 pub(super) fn made_up(id: &str) -> bool {
@@ -143,7 +148,7 @@ pub(super) fn bezpath(p: &usvg::tiny_skia_path::Path, m: Affine) -> BezPath {
 }
 
 /// The path usvg makes of a `<circle>` or `<ellipse>` (`p`: one closed outline of arcs from the
-/// right end of the horizontal axis round through the bottom) as the ellipse VectorCraft draws: four
+/// right end of the horizontal axis round through the bottom) as the ellipse VansonCraft draws: four
 /// smooth anchors on the axes in the same order, each quarter a cubic with handles [`KAPPA`] of the
 /// radii long, the ellipse export writes as `<ellipse>`. `None` when `p` is not such an outline.
 pub(super) fn drawn_ellipse(p: &usvg::tiny_skia_path::Path) -> Option<PathData> {
@@ -262,12 +267,12 @@ fn intersect_shapes(shapes: &[(BezPath, FillRule)], clips: &[(BezPath, FillRule)
         _ => {
             let paths: Vec<(PathData, FillRule)> = clips.iter().map(|(bp, r)| (PathData::from_bezpath(bp), *r)).collect();
             let refs: Vec<(&PathData, FillRule)> = paths.iter().map(|(p, r)| (p, *r)).collect();
-            (vectorcraft_pathops::unite_all(&refs), FillRule::NonZero)
+            (vansoncraft_pathops::unite_all(&refs), FillRule::NonZero)
         }
     };
     for (bp, r) in shapes {
         let child_data = PathData::from_bezpath(bp);
-        let inter = vectorcraft_pathops::boolean(&child_data, *r, &clip_data.0, clip_data.1, vectorcraft_pathops::BoolOp::Intersect);
+        let inter = vansoncraft_pathops::boolean(&child_data, *r, &clip_data.0, clip_data.1, vansoncraft_pathops::BoolOp::Intersect);
         if !inter.subpaths.is_empty() {
             out.push((inter.to_bezpath(), FillRule::NonZero));
         }

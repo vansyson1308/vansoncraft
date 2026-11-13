@@ -1,8 +1,8 @@
 //! File › Scripts: the scripts of the Scripts folder next to the settings
-//! ([`vectorcraft_engine::Session::attach_scripts_dir`]), each `.js` or `.jsx` file by its name
+//! ([`vansoncraft_engine::Session::attach_scripts_dir`]), each `.js` or `.jsx` file by its name
 //! without the extension and each subfolder as a submenu, above Check Script… and Other Script….
 //!
-//! The folder is read on another thread ([`vectorcraft_engine::script::folder::list`]: names only,
+//! The folder is read on another thread ([`vansoncraft_engine::script::folder::list`]: names only,
 //! within its limits), one read at a time: when the app starts, each time its window becomes the
 //! active one, and each time the File menu of the window's menu bar opens ([`refresh`]). The menus show the last finished
 //! listing ([`items`]), so a script added to the folder is listed without a restart.
@@ -16,9 +16,9 @@ use std::sync::mpsc::{Receiver, TryRecvError};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use serde_json::{Value, json};
-use vectorcraft_engine::script::folder::{Entry, Listing};
+use vansoncraft_engine::script::folder::{Entry, Listing};
 
-use crate::VectorcraftApp;
+use crate::VansoncraftApp;
 use crate::menus::Item;
 
 /// The command a listed script's menu item runs.
@@ -99,7 +99,7 @@ pub fn revision() -> u64 {
 /// Read the Scripts folder again on another thread, unless the session has no folder (the web, and
 /// a run without preferences). While a read is under way, another read starts when it ends
 /// ([`poll`]). `ctx` is asked to draw when the read ends.
-pub fn refresh(app: &VectorcraftApp, ctx: Option<&egui::Context>) {
+pub fn refresh(app: &VansoncraftApp, ctx: Option<&egui::Context>) {
     let Some(root) = app.session.scripts_dir().map(Path::to_path_buf) else { return };
     let mut state = state();
     if state.reading.is_some() {
@@ -108,9 +108,9 @@ pub fn refresh(app: &VectorcraftApp, ctx: Option<&egui::Context>) {
     }
     let (tx, rx) = std::sync::mpsc::channel();
     let ctx = ctx.cloned();
-    let spawned = std::thread::Builder::new().name("vectorcraft-scripts".into()).spawn(move || {
+    let spawned = std::thread::Builder::new().name("vansoncraft-scripts".into()).spawn(move || {
         // The app's own folder, read for the person at the keyboard.
-        let listing = vectorcraft_engine::file_access::unconfined(|| vectorcraft_engine::script::folder::list(&root));
+        let listing = vansoncraft_engine::file_access::unconfined(|| vansoncraft_engine::script::folder::list(&root));
         if tx.send(listing).is_ok()
             && let Some(ctx) = ctx
         {
@@ -124,7 +124,7 @@ pub fn refresh(app: &VectorcraftApp, ctx: Option<&egui::Context>) {
 
 /// Once per iteration: start a read on the first one and when the window becomes the active one,
 /// take in a read that ended, and then start a read asked for while it was under way.
-pub fn poll(app: &VectorcraftApp, ctx: &egui::Context) {
+pub fn poll(app: &VansoncraftApp, ctx: &egui::Context) {
     let focused = ctx.input(|i| i.focused);
     let start = {
         let mut state = state();
@@ -238,13 +238,13 @@ pub fn is_folder(children: &[Item]) -> bool {
 /// (a control client's request), a script outside the root is left out of `ui.menu.list`, as
 /// `script.listInstalled` refuses to list the folder there.
 pub fn readable(p: &Value) -> bool {
-    p.get("path").and_then(Value::as_str).is_some_and(|path| vectorcraft_engine::file_access::check_read(path).is_ok())
+    p.get("path").and_then(Value::as_str).is_some_and(|path| vansoncraft_engine::file_access::check_read(path).is_ok())
 }
 
 /// `ui.runInstalledScript {path}`: run the listed script at `path`. A script that is no longer in
 /// the folder is not run, and the folder is read again. The script runs from its file, so its
 /// `#include` lines and `$.evalFile` read beside it.
-pub fn run(app: &mut VectorcraftApp, p: &Value) -> Result<Value, String> {
+pub fn run(app: &mut VansoncraftApp, p: &Value) -> Result<Value, String> {
     let path = p.get("path").and_then(Value::as_str).ok_or("missing `path`")?;
     app.session.installed_script(path).map_err(|e| {
         let ctx = app.ui_ctx.clone();

@@ -4,7 +4,7 @@
 //! starts with "Live Paint" and that holds a group named "Live Paint Sources". That group is its
 //! first child, hidden, and holds the original paths (the planar map's inputs, used by Release,
 //! Merge and re-computation); then come the faces (paths named "Face", fill only) and the edges
-//! (open paths named "Edge", stroke only). See `vectorcraft_tools::builder` for the shared helpers.
+//! (open paths named "Edge", stroke only). See `vansoncraft_tools::builder` for the shared helpers.
 //!
 //! **Image Trace** makes a group named "Image Trace" holding the source image (hidden, bottom)
 //! and the traced filled paths above it, mapped with the image's transform. Expand drops the
@@ -14,15 +14,15 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use serde_json::{Value, json};
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::appearance::{AppearanceItem, FillLayer, LineCap, LineJoin, StrokeLayer};
-use vectorcraft_doc::{Appearance, Document, GapOptions, GapSize, LiveShape, Node, NodeId, NodeKind, Selection, TraceView};
-use vectorcraft_geom::{FillRule, PathData, Point, Rect, SubPath};
-use vectorcraft_pathops as po;
-use vectorcraft_tools::builder::{
+use vansoncraft_color::{Color, Paint};
+use vansoncraft_doc::appearance::{AppearanceItem, FillLayer, LineCap, LineJoin, StrokeLayer};
+use vansoncraft_doc::{Appearance, Document, GapOptions, GapSize, LiveShape, Node, NodeId, NodeKind, Selection, TraceView};
+use vansoncraft_geom::{FillRule, PathData, Point, Rect, SubPath};
+use vansoncraft_pathops as po;
+use vansoncraft_tools::builder::{
     self as b, BuilderMap, EDGE_NAME, FACE_NAME, LIVE_PAINT_NAME, SOURCES_NAME, Touched, edge_near, face_at, is_live_paint, sorted_roots,
 };
-use vectorcraft_trace as tr;
+use vansoncraft_trace as tr;
 
 use super::draw2::replace_with_pieces;
 use super::edit::{outermost, selected_roots};

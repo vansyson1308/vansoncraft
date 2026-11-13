@@ -2,8 +2,8 @@
 
 use crate::*;
 use kurbo::Shape;
-use vectorcraft_doc::{AreaFit, CharStyle, TextKind, TextRun};
-use vectorcraft_geom::PathData;
+use vansoncraft_doc::{AreaFit, CharStyle, TextKind, TextRun};
+use vansoncraft_geom::PathData;
 
 const COPY: &str = "Typography is the craft of arranging type to make written language legible, readable and appealing when displayed. \
 The arrangement of type involves selecting typefaces, point sizes, line lengths, line spacing and letter spacing, and adjusting the space \
@@ -72,7 +72,7 @@ fn scaled_area_shrink_accepts_small_local_sizes_and_uses_document_tenths() {
 #[test]
 fn shrink_text_steps_the_size_the_character_panel_shows() {
     let mut t = area(COPY, 14.0, Rect::new(0.0, 0.0, 200.0, 90.0), shrink(30.0));
-    t.runs[0].style.font_height_reference = vectorcraft_doc::text::FontHeightReference::CapHeight;
+    t.runs[0].style.font_height_reference = vansoncraft_doc::text::FontHeightReference::CapHeight;
     let l = layout(db(), &t);
     assert!(!l.overflow && l.fit_scale < 1.0, "{}", l.fit_scale);
     let shown = 14.0 * l.fit_scale;
@@ -152,7 +152,7 @@ fn shrink_text_guards_degenerate_sizes() {
 
 #[test]
 fn shrink_text_follows_top_to_top_leading_and_character_alignment() {
-    use vectorcraft_doc::{CharAlign, LeadingModel, TextRun};
+    use vansoncraft_doc::{CharAlign, LeadingModel, TextRun};
     // Mixed sizes aligned on the em box centre, leading measured from em box top to top.
     let mut t = area(COPY, 14.0, Rect::new(0.0, 0.0, 200.0, 90.0), shrink(20.0));
     t.para.leading_model = LeadingModel::EmBoxTop;
@@ -308,7 +308,7 @@ fn dynamic_text_edges_and_limits() {
     assert!((100.0 * l.fit_scale - 1296.0).abs() < 1e-9, "{}", 100.0 * l.fit_scale);
     // A size that measures the cap height steps and stops as the Character panel shows it.
     let mut cap = dynamic("i", 12.0, 100_000.0);
-    cap.runs[0].style.font_height_reference = vectorcraft_doc::text::FontHeightReference::CapHeight;
+    cap.runs[0].style.font_height_reference = vansoncraft_doc::text::FontHeightReference::CapHeight;
     let l = layout(db(), &cap);
     assert!((12.0 * l.fit_scale - 1296.0).abs() < 1e-9, "{}", 12.0 * l.fit_scale);
     let cap_short =
@@ -340,7 +340,7 @@ fn dynamic_text_fits_every_kind_of_line() {
     vertical.vertical = true;
     assert!(assert_fills(&vertical, "vertical").fit_scale > 1.0);
     let mut bullet = dynamic_on("Bulleted", 12.0, &arc, None);
-    bullet.para.list = Some(vectorcraft_doc::text::ParaList::bulleted(vectorcraft_doc::text::Bullet::Dot));
+    bullet.para.list = Some(vansoncraft_doc::text::ParaList::bulleted(vansoncraft_doc::text::Bullet::Dot));
     let l = assert_fills(&bullet, "bulleted");
     assert!(!l.markers.is_empty());
     let mut optical = dynamic_on("“Quoted.”", 12.0, &arc, None);

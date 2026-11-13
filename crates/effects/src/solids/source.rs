@@ -7,9 +7,9 @@
 use std::borrow::Cow;
 use std::sync::Arc;
 
-use vectorcraft_doc::{Appearance, AppearanceItem, Document, FillLayer, Node, NodeKind};
-use vectorcraft_geom::{FillRule, PathData, Rect};
-use vectorcraft_pathops as po;
+use vansoncraft_doc::{Appearance, AppearanceItem, Document, FillLayer, Node, NodeKind};
+use vansoncraft_geom::{FillRule, PathData, Rect};
+use vansoncraft_pathops as po;
 
 use super::{MAX_MEMBERS, Scope, geometry, is_container, members, profile, region, reshape_members, solid_paints};
 use crate::{GeomContext, is_geometry};
@@ -139,7 +139,7 @@ impl Resolver<'_> {
                 if self.work.saturating_add(sym.art.count_with_masks()) > MAX_WORK {
                     return Err(self.too_much_work());
                 }
-                let art = vectorcraft_doc::symbol_overrides::dynamic_art(&sym.art, n);
+                let art = vansoncraft_doc::symbol_overrides::dynamic_art(&sym.art, n);
                 let most = doc.symbol_slice_map(symbol, *xf).map_or(art.count_with_masks() as u64, |m| m.most_placed(&art, doc));
                 if (self.work as u64).saturating_add(most) > MAX_WORK as u64 {
                     return Err(self.too_much_work());
@@ -149,7 +149,7 @@ impl Resolver<'_> {
             }
             NodeKind::Blend { children, spec } => {
                 // Counted before the steps are made, so a blend past the limit is never expanded.
-                let made = vectorcraft_doc::blend::blend_steps(children, spec).into_iter().fold(children.len(), usize::saturating_add);
+                let made = vansoncraft_doc::blend::blend_steps(children, spec).into_iter().fold(children.len(), usize::saturating_add);
                 if self.leaves.saturating_add(made) > MAX_MEMBERS {
                     return Err(self.too_many());
                 }

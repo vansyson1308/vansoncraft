@@ -1,11 +1,11 @@
 //! Gradients that repeat or reflect: the canvas draws each kind's stops `repeats` times along its
 //! vector and on past its ends, as the model's parameter gives them, on fills and strokes.
 
-use vectorcraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, GradientSpread, Paint};
-use vectorcraft_doc::{Appearance, Document};
-use vectorcraft_geom::{Point, Rect, Vec2, shapes};
-use vectorcraft_testkit::fixtures::DocBuilder;
-use vectorcraft_testkit::raster::{Image, render_view};
+use vansoncraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, GradientSpread, Paint};
+use vansoncraft_doc::{Appearance, Document};
+use vansoncraft_geom::{Point, Rect, Vec2, shapes};
+use vansoncraft_testkit::fixtures::DocBuilder;
+use vansoncraft_testkit::raster::{Image, render_view};
 
 /// A white-to-black gradient of `kind` on `geom` that spreads by `spread`, twice.
 fn gradient(kind: GradientKind, spread: GradientSpread, geom: GradientGeom, dither: bool) -> GradientPaint {

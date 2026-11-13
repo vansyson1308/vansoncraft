@@ -1,7 +1,7 @@
 use kurbo::{BezPath, Point, Shape, Vec2};
-use vectorcraft_color::{Color, Gradient, GradientPaint, GradientStop, Paint};
-use vectorcraft_doc::{ArrowAlign, Arrowhead, Dash, LineCap, LineJoin, StrokeAlign, StrokeGradientMode, StrokeLayer, WidthProfile};
-use vectorcraft_geom::FillRule;
+use vansoncraft_color::{Color, Gradient, GradientPaint, GradientStop, Paint};
+use vansoncraft_doc::{ArrowAlign, Arrowhead, Dash, LineCap, LineJoin, StrokeAlign, StrokeGradientMode, StrokeLayer, WidthProfile};
+use vansoncraft_geom::FillRule;
 
 use super::*;
 
@@ -291,7 +291,7 @@ fn a_narrow_pass_beside_a_wide_one_leaves_its_edge_alone() {
 /// the spread gives its place.
 #[test]
 fn a_spread_gradient_runs_its_stops_along_the_stroke_that_many_times() {
-    use vectorcraft_color::GradientSpread;
+    use vansoncraft_color::GradientSpread;
     let bp = poly(&[(0.0, 0.0), (120.0, 0.0)], false);
     for (mode, spread) in [StrokeGradientMode::Along, StrokeGradientMode::Across]
         .into_iter()
@@ -311,7 +311,7 @@ fn a_spread_gradient_runs_its_stops_along_the_stroke_that_many_times() {
                     continue;
                 }
                 let want = g.sample(g.spread_param(t) as f32).0.to_rgb();
-                let got = p.gradient.sample(geom.param_at(vectorcraft_color::GradientKind::Linear, at) as f32).0.to_rgb();
+                let got = p.gradient.sample(geom.param_at(vansoncraft_color::GradientKind::Linear, at) as f32).0.to_rgb();
                 assert!(want.iter().zip(got).all(|(a, b)| (a - b).abs() < 1e-3), "{mode:?} at {t}: {want:?} vs {got:?}");
             }
         }
@@ -331,12 +331,12 @@ fn a_spread_gradient_runs_its_stops_along_the_stroke_that_many_times() {
 /// stop's color.
 #[test]
 fn a_narrow_peak_where_a_reflecting_gradient_turns_back_stays_in_the_mesh() {
-    use vectorcraft_color::GradientSpread;
+    use vansoncraft_color::GradientSpread;
     let bp = poly(&[(0.0, 0.0), (120.0, 0.0)], false);
     let stops = vec![GradientStop::new(0.0, Color::BLACK), GradientStop::new(0.995, Color::BLACK), GradientStop::new(1.0, Color::WHITE)];
     for mode in [StrokeGradientMode::Along, StrokeGradientMode::Across] {
         let mut st = stroke(10.0, mode);
-        let g = Gradient { spread: GradientSpread::Reflect, repeats: 100, ..Gradient::new(vectorcraft_color::GradientKind::Linear, stops.clone()) };
+        let g = Gradient { spread: GradientSpread::Reflect, repeats: 100, ..Gradient::new(vansoncraft_color::GradientKind::Linear, stops.clone()) };
         st.paint = Paint::Gradient(Box::new(GradientPaint::new(g.clone())));
         let whites =
             gradient_meshes(&bp, FillRule::NonZero, &st, &g).iter().flat_map(|m| m.points.iter()).filter(|p| p.color.to_hex() == "#ffffff").count();

@@ -8,8 +8,8 @@
 mod tests;
 
 use serde_json::{Value, json};
-use vectorcraft_doc::NodeKind;
-use vectorcraft_render::effects;
+use vansoncraft_doc::NodeKind;
+use vansoncraft_render::effects;
 
 use super::super::edit::{copy_above, selected_roots};
 use super::super::pathops::{length_given, number_given};

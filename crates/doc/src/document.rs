@@ -190,7 +190,7 @@ impl Document {
 
     /// [`Document::new`] in colour `mode`, with that mode's default swatches.
     pub fn new_with_mode(width: f64, height: f64, mode: ColorMode) -> Self {
-        let (swatches, swatch_groups) = vectorcraft_color::default_swatches(mode.model());
+        let (swatches, swatch_groups) = vansoncraft_color::default_swatches(mode.model());
         let mut d = Self {
             version: FORMAT_VERSION,
             title: "Untitled-1".into(),

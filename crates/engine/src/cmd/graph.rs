@@ -9,12 +9,12 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use serde_json::{Value, json};
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::{
+use vansoncraft_color::{Color, Paint};
+use vansoncraft_doc::{
     Appearance, CharStyle, ColumnDesign, ColumnType, Document, Fractions, GraphDesign, GraphKind, GraphSpec, Justify, Node, NodeId, NodeKind,
     TextObject, TickLength, ValueAxisSide,
 };
-use vectorcraft_geom::{Affine, BezPath, FillRule, PathData, Point, Rect, shapes};
+use vansoncraft_geom::{Affine, BezPath, FillRule, PathData, Point, Rect, shapes};
 
 use super::typecmd::refresh_bounds;
 use super::{

@@ -121,7 +121,7 @@ fn import_adds_the_files_filters_it_does_not_have() {
     assert!(err(&mut s, "svgFilter.import", json!({"svg": ["x"]})).contains("`svg` must be a string"));
     assert!(err(&mut s, "svgFilter.delete", json!({"name": 3})).contains("`name` must be a string"));
     let svgz = std::env::temp_dir().join(format!("vc-svgfilters-{}.svgz", std::process::id()));
-    std::fs::write(&svgz, vectorcraft_svg::compress(&format!("<svg xmlns=\"http://www.w3.org/2000/svg\">{BLUR}</svg>"))).unwrap();
+    std::fs::write(&svgz, vansoncraft_svg::compress(&format!("<svg xmlns=\"http://www.w3.org/2000/svg\">{BLUR}</svg>"))).unwrap();
     let e = err(&mut s, "svgFilter.import", json!({"path": svgz.to_string_lossy()}));
     std::fs::remove_file(&svgz).ok();
     assert!(e.contains("not SVGZ"), "{e}");
@@ -201,7 +201,7 @@ fn deleting_a_filter_in_use_leaves_the_effect_drawing_nothing() {
     run(&mut s, "svgFilter.delete", json!({"name": "Shift"}));
     let fx = s.doc().unwrap().doc.node(a).unwrap().appearance.effects.clone();
     assert_eq!((fx.len(), fx[0].params["name"].as_str()), (1, Some("Shift")), "the effect stays, named");
-    assert!(vectorcraft_render::effects::raster_effects(&fx).is_empty(), "drawn without the filter");
+    assert!(vansoncraft_render::effects::raster_effects(&fx).is_empty(), "drawn without the filter");
     // Imported again: the effect draws with it.
     run(&mut s, "svgFilter.import", json!({"svg": format!("<svg xmlns=\"http://www.w3.org/2000/svg\">{SHIFT_MORE}</svg>")}));
     assert_eq!(drawn(&s, a), json!(SHIFT_MORE));
@@ -211,7 +211,7 @@ fn deleting_a_filter_in_use_leaves_the_effect_drawing_nothing() {
 fn filter_effects(s: &Session) -> Vec<(String, String)> {
     let mut out = vec![];
     s.doc().unwrap().doc.walk(|n| {
-        for e in n.appearance.effects.iter().filter(|e| e.id == vectorcraft_render::effects::SVG_FILTER) {
+        for e in n.appearance.effects.iter().filter(|e| e.id == vansoncraft_render::effects::SVG_FILTER) {
             out.push((e.params["name"].as_str().unwrap().to_string(), e.params["xml"].as_str().unwrap().to_string()));
         }
     });
@@ -268,8 +268,8 @@ fn pasted_art_with_a_filter_at_the_size_limit_still_draws_when_renamed() {
         let mut s = session();
         run(&mut s, "svgFilter.define", json!({"xml": held}));
         let (open, close) = (format!(r#"<filter id="{name}"><feOffset dx="9" dy="9" result=""#), r#""/></filter>"#);
-        let big = format!("{open}{}{close}", "a".repeat(vectorcraft_doc::SvgFilter::MAX_XML - open.len() - close.len()));
-        assert!(vectorcraft_render::effects::svg_filter::check(&big).is_ok());
+        let big = format!("{open}{}{close}", "a".repeat(vansoncraft_doc::SvgFilter::MAX_XML - open.len() - close.len()));
+        assert!(vansoncraft_render::effects::svg_filter::check(&big).is_ok());
         let svg = format!(
             r#"<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><defs>{big}</defs><rect width="30" height="30" filter="url(#{name})"/></svg>"#
         );
@@ -278,7 +278,7 @@ fn pasted_art_with_a_filter_at_the_size_limit_still_draws_when_renamed() {
         let pasted = filter_effects(&s);
         assert_eq!(pasted.len(), 1);
         assert_eq!(pasted[0].0, renamed, "renamed: {}", pasted[0].0);
-        assert_eq!(vectorcraft_render::effects::svg_filter::check(&pasted[0].1), Ok(renamed.to_string()), "the pasted filter draws under its name");
+        assert_eq!(vansoncraft_render::effects::svg_filter::check(&pasted[0].1), Ok(renamed.to_string()), "the pasted filter draws under its name");
         assert!(pasted[0].1.contains("dx=\"9\""), "its own filter");
         assert_eq!(names(&mut s), [name]);
     }
@@ -334,7 +334,7 @@ fn a_renamed_paste_takes_a_free_capital_letter() {
     }
     run(&mut s, "svgFilter.define", json!({"xml": r#"<filter id="S"><feOffset dx="3" dy="3"/></filter>"#}));
     let (open, close) = (r#"<filter id="S"><feOffset dx="9" dy="9" result=""#, r#""/></filter>"#);
-    let big = format!("{open}{}{close}", "a".repeat(vectorcraft_doc::SvgFilter::MAX_XML - open.len() - close.len()));
+    let big = format!("{open}{}{close}", "a".repeat(vansoncraft_doc::SvgFilter::MAX_XML - open.len() - close.len()));
     let svg = format!(
         r#"<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><defs>{big}</defs><rect width="30" height="30" filter="url(#S)"/></svg>"#
     );
@@ -343,7 +343,7 @@ fn a_renamed_paste_takes_a_free_capital_letter() {
     let pasted = filter_effects(&s);
     assert_eq!(pasted.len(), 1);
     assert_eq!(pasted[0].0, "A");
-    assert_eq!(vectorcraft_render::effects::svg_filter::check(&pasted[0].1), Ok("A".to_string()));
+    assert_eq!(vansoncraft_render::effects::svg_filter::check(&pasted[0].1), Ok("A".to_string()));
     assert!(pasted[0].1.contains("dx=\"9\""), "its own filter");
 }
 
@@ -367,7 +367,7 @@ fn a_renamed_paste_takes_a_free_punctuation_character() {
         run(&mut s, "svgFilter.define", json!({"xml": one_char_filter(n)}));
     }
     let (open, close) = (r#"<filter id="S"><feOffset dx="9" dy="9" result=""#, r#""/></filter>"#);
-    let big = format!("{open}{}{close}", "a".repeat(vectorcraft_doc::SvgFilter::MAX_XML - open.len() - close.len()));
+    let big = format!("{open}{}{close}", "a".repeat(vansoncraft_doc::SvgFilter::MAX_XML - open.len() - close.len()));
     let svg = format!(
         r#"<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><defs>{big}</defs><rect width="30" height="30" filter="url(#S)"/></svg>"#
     );
@@ -376,7 +376,7 @@ fn a_renamed_paste_takes_a_free_punctuation_character() {
     let pasted = filter_effects(&s);
     assert_eq!(pasted.len(), 1);
     assert_eq!(pasted[0].0, "!");
-    assert_eq!(vectorcraft_render::effects::svg_filter::check(&pasted[0].1), Ok("!".to_string()));
+    assert_eq!(vansoncraft_render::effects::svg_filter::check(&pasted[0].1), Ok("!".to_string()));
     assert!(pasted[0].1.contains("dx=\"9\""), "its own filter");
 }
 
@@ -398,7 +398,7 @@ fn a_paste_with_no_free_name_for_its_filter_is_refused() {
         run(&mut s, "svgFilter.delete", json!({"name": name}));
     }
     let (open, close) = (r#"<filter id="S"><feOffset dx="9" dy="9" result=""#, r#""/></filter>"#);
-    let big = format!("{open}{}{close}", "a".repeat(vectorcraft_doc::SvgFilter::MAX_XML - open.len() - close.len()));
+    let big = format!("{open}{}{close}", "a".repeat(vansoncraft_doc::SvgFilter::MAX_XML - open.len() - close.len()));
     let svg = format!(
         r#"<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><defs>{big}</defs><rect width="30" height="30" filter="url(#S)"/></svg>"#
     );
@@ -425,7 +425,7 @@ fn a_renamed_paste_keeps_whitespace_characters_in_its_id() {
         let pasted = filter_effects(&s);
         assert_eq!(pasted.len(), 1);
         assert_ne!(pasted[0].0, names(&mut s)[0], "renamed");
-        assert_eq!(vectorcraft_render::effects::svg_filter::check(&pasted[0].1), Ok(pasted[0].0.clone()), "{c}: its id is its name");
+        assert_eq!(vansoncraft_render::effects::svg_filter::check(&pasted[0].1), Ok(pasted[0].0.clone()), "{c}: its id is its name");
     }
 }
 
@@ -522,7 +522,7 @@ fn svg_export_leaves_out_a_filter_that_fails_the_check() {
     let a = rect(&mut s, 10.0);
     let bad = r#"<filter id="Bad"><feOffset/><script>alert(1)</script></filter>"#;
     assert!(err(&mut s, "effect.apply", json!({"effect": "svg.filter", "ids": [a.0], "params": {"xml": bad}})).contains("<script>"));
-    let effect = vectorcraft_doc::Effect { id: "svg.filter".into(), params: json!({"name": "Bad", "xml": bad}), visible: true };
+    let effect = vansoncraft_doc::Effect { id: "svg.filter".into(), params: json!({"name": "Bad", "xml": bad}), visible: true };
     s.edit("Plant", |d, _| {
         d.node_mut(a).unwrap().appearance.effects.push(effect);
         Ok(())
@@ -582,7 +582,7 @@ fn filters_survive_a_native_round_trip() {
     run(&mut s, "svgFilter.define", json!({"xml": BLUR}));
     run(&mut s, "svgFilter.apply", json!({"name": "Soft", "ids": [a.0]}));
     let doc = s.doc().unwrap().doc.clone();
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&doc, false)).unwrap();
+    let back = vansoncraft_format::load(&vansoncraft_format::save(&doc, false)).unwrap();
     assert_eq!(back.svg_filters, doc.svg_filters);
     assert_eq!(back.node(a).unwrap().appearance.effects, doc.node(a).unwrap().appearance.effects);
 }
@@ -603,8 +603,8 @@ fn rect_at(s: &mut Session, at: f64, size: f64) -> NodeId {
     NodeId(run(s, "shape.rectangle", json!({"x": at, "y": at, "width": size, "height": size}))["id"].as_u64().unwrap())
 }
 
-fn render(s: &Session) -> vectorcraft_render::Rendered {
-    vectorcraft_render::Renderer::new().render_region(&s.doc().unwrap().doc, vectorcraft_geom::Rect::new(0.0, 0.0, 200.0, 200.0), 1.0, true)
+fn render(s: &Session) -> vansoncraft_render::Rendered {
+    vansoncraft_render::Renderer::new().render_region(&s.doc().unwrap().doc, vansoncraft_geom::Rect::new(0.0, 0.0, 200.0, 200.0), 1.0, true)
 }
 
 #[test]
@@ -619,8 +619,8 @@ fn the_canvas_and_pdf_draw_the_filter() {
     // PDF writes the effected square as an image that reads back as the canvas shows it.
     let doc = s.doc().unwrap().doc.clone();
     let out = crate::cmd::rasterfx::export_pdf_with_report(&doc, &Default::default()).unwrap();
-    let back = vectorcraft_pdf::import(&out.bytes).unwrap();
-    let again = vectorcraft_render::Renderer::new().render_region(&back, vectorcraft_geom::Rect::new(0.0, 0.0, 200.0, 200.0), 1.0, true);
+    let back = vansoncraft_pdf::import(&out.bytes).unwrap();
+    let again = vansoncraft_render::Renderer::new().render_region(&back, vansoncraft_geom::Rect::new(0.0, 0.0, 200.0, 200.0), 1.0, true);
     let px = again.pixel(100, 100);
     assert!(px[0] > 240 && px[1] < 15 && px[2] < 15, "{px:?}");
 }
@@ -647,7 +647,7 @@ fn svg_export_writes_the_filter_when_it_is_the_last_effect() {
     assert!(out.contains("<g filter=\"url(#"), "{out}");
     assert!(!out.contains("<image"), "the object stays vector art: {out}");
     // SVG import reads it back as the same filter.
-    let (back, warnings) = vectorcraft_svg::import_with_report(&out).unwrap();
+    let (back, warnings) = vansoncraft_svg::import_with_report(&out).unwrap();
     assert!(warnings.is_empty(), "{warnings:?}");
     let mut kept = vec![];
     back.walk(|n| kept.extend(n.appearance.effects.iter().filter(|e| e.id == "svg.filter").cloned()));
@@ -655,7 +655,7 @@ fn svg_export_writes_the_filter_when_it_is_the_last_effect() {
     assert!(kept[0].params["xml"].as_str().unwrap().ends_with("<feOffset dx=\"3\" dy=\"3\"/></filter>"), "{kept:?}");
     // SVG Tiny 1.2 has no filters: the object is written as an image.
     let tiny = run(&mut s, "document.export", json!({"format": "svg", "profile": "tiny12"}));
-    let tiny = String::from_utf8(vectorcraft_format::base64_decode(tiny["dataBase64"].as_str().unwrap()).unwrap()).unwrap();
+    let tiny = String::from_utf8(vansoncraft_format::base64_decode(tiny["dataBase64"].as_str().unwrap()).unwrap()).unwrap();
     assert!(tiny.contains("<image") && !tiny.contains("<filter"), "{tiny}");
     // An artboard away from the origin: the object keeps the document's coordinates, which the
     // filter's user space measures, in a group that moves it.
@@ -669,7 +669,7 @@ fn svg_export_writes_the_filter_when_it_is_the_last_effect() {
     assert!(moved[at..].contains("10"), "the object in document coordinates: {moved}");
     assert!(!moved[at..].contains(" 5 5 ") && moved.contains("x=\"0\" y=\"0\" width=\"60\""), "the filter as written: {moved}");
     // Opened again, the filter's user space starts where the group places it.
-    let (back, warnings) = vectorcraft_svg::import_with_report(&moved).unwrap();
+    let (back, warnings) = vansoncraft_svg::import_with_report(&moved).unwrap();
     assert!(warnings.is_empty(), "{warnings:?}");
     let mut kept = vec![];
     back.walk(|n| kept.extend(n.appearance.effects.iter().filter(|e| e.id == "svg.filter").cloned()));
@@ -690,14 +690,14 @@ fn svg_export_draws_a_filter_too_long_to_read_back_as_an_image() {
     let (mut s, id) = blue_square();
     let (open, close) =
         (r##"<filter id="r"><feFlood flood-color="#ff0000" result=""##, r#""/><feComposite in2="SourceGraphic" operator="in"/></filter>"#);
-    let xml = format!("{open}{}{close}", "a".repeat(vectorcraft_doc::SvgFilter::MAX_XML - open.len() - close.len()));
+    let xml = format!("{open}{}{close}", "a".repeat(vansoncraft_doc::SvgFilter::MAX_XML - open.len() - close.len()));
     run(&mut s, "effect.apply", json!({"effect": "svg.filter", "ids": [id.0], "params": {"xml": xml}}));
     assert_eq!(&render(&s).pixel(100, 100)[..3], &[255, 0, 0]);
     let out = svg(&mut s);
     assert!(out.contains("<image") && !out.contains("<filter"), "{} bytes", out.len());
-    let (back, warnings) = vectorcraft_svg::import_with_report(&out).unwrap();
+    let (back, warnings) = vansoncraft_svg::import_with_report(&out).unwrap();
     assert!(warnings.is_empty(), "{warnings:?}");
-    let again = vectorcraft_render::Renderer::new().render_region(&back, vectorcraft_geom::Rect::new(0.0, 0.0, 200.0, 200.0), 1.0, true);
+    let again = vansoncraft_render::Renderer::new().render_region(&back, vansoncraft_geom::Rect::new(0.0, 0.0, 200.0, 200.0), 1.0, true);
     let px = again.pixel(100, 100);
     assert!(px[0] > 240 && px[1] < 15 && px[2] < 15, "{px:?}");
 }

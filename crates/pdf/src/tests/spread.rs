@@ -3,10 +3,10 @@
 //! shape needs (axial and radial shadings, which PDF/A allows); a conic's sweep shading runs over
 //! one run and repeats or reflects it. Read back, each draws as the canvas draws the gradient.
 
-use vectorcraft_color::{Color, Gradient, GradientGeom, GradientKind, GradientPaint, GradientSpread, GradientStop, Paint};
-use vectorcraft_doc::{Appearance, Document, Node};
-use vectorcraft_geom::{Point, Rect, Vec2, shapes};
-use vectorcraft_testkit::raster::render_artboard;
+use vansoncraft_color::{Color, Gradient, GradientGeom, GradientKind, GradientPaint, GradientSpread, GradientStop, Paint};
+use vansoncraft_doc::{Appearance, Document, Node};
+use vansoncraft_geom::{Point, Rect, Vec2, shapes};
+use vansoncraft_testkit::raster::render_artboard;
 
 use crate::*;
 
@@ -64,7 +64,7 @@ fn spread_gradients_come_back_as_the_canvas_draws_them() {
                 // Hard edges (where Repeat starts the stops again) differ by a pixel's
                 // antialiasing at most.
                 let (a, b) = (render_artboard(&back), render_artboard(&d));
-                let st = vectorcraft_testkit::raster::perceptual_diff(&a, &b, 10.0);
+                let st = vansoncraft_testkit::raster::perceptual_diff(&a, &b, 10.0);
                 assert!(
                     (st.bad_pixels as f64) < 0.03 * st.pixels as f64,
                     "{what} {spread:?} stroke {stroke}: {} of {} pixels differ",
@@ -214,7 +214,7 @@ fn a_perceptual_spot_gradient_too_long_once_repeated_is_an_image() {
     ] {
         for (geom, repeats, image_wanted) in [(long, 2, false), (short, 1, true)] {
             let g = Gradient {
-                method: vectorcraft_color::GradientMethod::Perceptual,
+                method: vansoncraft_color::GradientMethod::Perceptual,
                 spread: GradientSpread::Repeat,
                 repeats,
                 ..Gradient::new(kind, stops.clone())
@@ -224,8 +224,8 @@ fn a_perceptual_spot_gradient_too_long_once_repeated_is_an_image() {
             let mut gp = GradientPaint::new(g);
             gp.geom = Some(geom);
             let mut d = Document::new(200.0, 200.0);
-            d.color_mode = vectorcraft_doc::ColorMode::Cmyk;
-            d.swatches.push(vectorcraft_color::Swatch { name: "Gold".into(), paint: Paint::solid(gold), global: true, spot: true });
+            d.color_mode = vansoncraft_doc::ColorMode::Cmyk;
+            d.swatches.push(vansoncraft_color::Swatch { name: "Gold".into(), paint: Paint::solid(gold), global: true, spot: true });
             let (l, id) = (d.layers[0].id, d.alloc_id());
             let ap = Appearance::basic(Paint::Gradient(Box::new(gp)), Paint::None, 0.0);
             d.insert(Some(l), 0, Node::path(id, shapes::rectangle(Rect::new(20.0, 20.0, 180.0, 180.0)), ap)).unwrap();

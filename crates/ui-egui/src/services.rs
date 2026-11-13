@@ -44,11 +44,11 @@ pub type ReadHeadFn = Box<dyn Fn(&str, usize) -> Result<Vec<u8>, String>>;
 pub type WriteFn = Box<dyn FnMut(&str, &[u8]) -> Result<(), String>>;
 
 /// A save writer that keeps typed filesystem failures, on either the UI or background thread.
-pub type SaveWriteFn = Arc<dyn Fn(&str, &[u8]) -> vectorcraft_engine::Result<()> + Send + Sync>;
+pub type SaveWriteFn = Arc<dyn Fn(&str, &[u8]) -> vansoncraft_engine::Result<()> + Send + Sync>;
 
 /// A typed save writer for native files encoded directly into the output.
 pub type SaveStreamFn =
-    Arc<dyn Fn(&str, &mut dyn FnMut(&mut dyn std::io::Write) -> std::io::Result<()>) -> vectorcraft_engine::Result<()> + Send + Sync>;
+    Arc<dyn Fn(&str, &mut dyn FnMut(&mut dyn std::io::Write) -> std::io::Result<()>) -> vansoncraft_engine::Result<()> + Send + Sync>;
 
 /// Shared, so Background Save and Export can check from a worker thread too.
 pub type ExistsFn = Arc<dyn Fn(&str) -> bool + Send + Sync>;
@@ -106,7 +106,7 @@ pub struct Services {
     /// Web: the open picker's answers (`open_async`). A file opens as automation's when automation
     /// opened a picker that has not answered yet.
     pub picked_inbox: Option<PickedInbox>,
-    /// Web: files the page's script handed over (`window.vectorcraft.openFile`). They open as
+    /// Web: files the page's script handed over (`window.vansoncraft.openFile`). They open as
     /// automation's.
     pub page_inbox: Option<Inbox>,
     /// Web: trigger a browser download instead of writing a path.
@@ -166,8 +166,8 @@ pub struct Services {
     /// eyedropper button is gray.
     pub screen_color: Option<screen_color::StartSampler>,
     /// Where Data Recovery keeps its copies when not in a folder (the web's browser storage;
-    /// tests): installed into the session ([`vectorcraft_engine::cmd::recovery`]).
-    pub recovery_store: Option<std::sync::Arc<dyn vectorcraft_engine::cmd::recovery::RecoveryStore>>,
+    /// tests): installed into the session ([`vansoncraft_engine::cmd::recovery`]).
+    pub recovery_store: Option<std::sync::Arc<dyn vansoncraft_engine::cmd::recovery::RecoveryStore>>,
     /// File → Print: the system's printers and print queue (desktop), the browser's print dialog
     /// (web). Without it Print saves the job as a PDF.
     pub print: Option<Box<dyn print::PrintService>>,

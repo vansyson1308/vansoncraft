@@ -7,10 +7,10 @@
 use std::collections::{BTreeSet, HashMap};
 
 use serde_json::{Value, json};
-use vectorcraft_color::recolor::{ColorKey, GlobalAdjust, Method, Preserve, Rng, RowMap, cluster, same_ink};
-use vectorcraft_color::{Color, Paint, Swatch};
-use vectorcraft_doc::swatches::{node_colors, node_paints, override_paints};
-use vectorcraft_doc::{Document, Node, NodeId, NodeKind};
+use vansoncraft_color::recolor::{ColorKey, GlobalAdjust, Method, Preserve, Rng, RowMap, cluster, same_ink};
+use vansoncraft_color::{Color, Paint, Swatch};
+use vansoncraft_doc::swatches::{node_colors, node_paints, override_paints};
+use vansoncraft_doc::{Document, Node, NodeId, NodeKind};
 
 use super::colorcmds::{NotChanged, Recolor, Scope, left_out};
 use super::{CommandSpec, Result, Session, always, bad, checked_ids_param, cmd, color_value, has_doc, index, str_param, switch_or, text_param};

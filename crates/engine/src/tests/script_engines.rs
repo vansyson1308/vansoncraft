@@ -44,7 +44,7 @@ fn a_named_engine_keeps_its_globals_and_functions_between_runs() {
     assert_eq!(log(&mut s, "#targetengine 'session'\nvc.log(n);"), json!([1]), "single quotes name the same engine");
     assert_eq!(log(&mut s, "#targetengine Session\nvc.log(typeof n);"), json!(["undefined"]), "names are matched as written");
     assert_eq!(log(&mut s, "#targetengine other\nvc.log(typeof f);"), json!(["undefined"]));
-    assert_eq!(log(&mut s, "vc.log(typeof n, $.engineName);\nvc.log($.engineName);"), json!(["undefined", "VectorCraft"]));
+    assert_eq!(log(&mut s, "vc.log(typeof n, $.engineName);\nvc.log($.engineName);"), json!(["undefined", "VansonCraft"]));
     // `main` is new for each run, as a script without the line is.
     log(&mut s, "#targetengine main\nvar m = 1;");
     assert_eq!(log(&mut s, "#targetengine main\nvc.log(typeof m, $.engineName);\nvc.log($.engineName);"), json!(["undefined", "main"]));
@@ -80,7 +80,7 @@ fn engine_names_and_places_are_checked_before_anything_runs() {
     }
     assert!(names(&mut s).is_empty(), "no failed line made an engine");
     let ok = format!(
-        "// a comment\n/* and\n another */\n#target vectorcraft\n#script \"Named\"\n  #targetengine \"{}\"\nvc.log($.engineName.length);",
+        "// a comment\n/* and\n another */\n#target vansoncraft\n#script \"Named\"\n  #targetengine \"{}\"\nvc.log($.engineName.length);",
         "b".repeat(64)
     );
     assert_eq!(log(&mut s, &ok), json!([64]));

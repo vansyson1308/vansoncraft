@@ -4,9 +4,9 @@
 //! step.
 
 use serde_json::{Value, json};
-use vectorcraft_color::{Color, Paint, cms::Model};
-use vectorcraft_doc::{Appearance, AreaFit, Node, NodeKind, TextKind, TextObject};
-use vectorcraft_geom::{Point, Rect, shapes};
+use vansoncraft_color::{Color, Paint, cms::Model};
+use vansoncraft_doc::{Appearance, AreaFit, Node, NodeKind, TextKind, TextObject};
+use vansoncraft_geom::{Point, Rect, shapes};
 
 use super::super::super::{CommandSpec, bad, cmd, has_doc};
 use crate::{Result, Session};
@@ -107,8 +107,8 @@ fn legend(s: &mut Session, p: &Value) -> Result<Value> {
     }
     let st = s.doc()?;
     let doc = &st.doc;
-    let colour = |w: &&vectorcraft_color::Swatch| w.paint.color().is_some();
-    let swatches: Vec<vectorcraft_color::Swatch> = match p.get("names") {
+    let colour = |w: &&vansoncraft_color::Swatch| w.paint.color().is_some();
+    let swatches: Vec<vansoncraft_color::Swatch> = match p.get("names") {
         None | Some(Value::Null) => doc.swatches_iter().filter(colour).cloned().collect(),
         Some(Value::Array(a)) => {
             let mut out = vec![];

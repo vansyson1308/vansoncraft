@@ -4,9 +4,9 @@
 
 use std::sync::Arc;
 
-use vectorcraft_color::cms::{Cms, Intent, PROCESS_PLATES};
-use vectorcraft_color::swatch::REGISTRATION;
-use vectorcraft_color::{Color, Paint};
+use vansoncraft_color::cms::{Cms, Intent, PROCESS_PLATES};
+use vansoncraft_color::swatch::REGISTRATION;
+use vansoncraft_color::{Color, Paint};
 
 use crate::{AppearanceItem, Document, Node, NodeKind};
 
@@ -51,7 +51,7 @@ pub struct Plate {
 
 /// The plates of `doc`: the four process plates plus one per spot swatch.
 pub fn plates(doc: &Document) -> Vec<Plate> {
-    let c = vectorcraft_color::cms::active();
+    let c = vansoncraft_color::cms::active();
     let mut v: Vec<Plate> = PROCESS_PLATES
         .iter()
         .enumerate()
@@ -170,7 +170,7 @@ pub fn map_document_colors(doc: &mut Document, f: &mut dyn FnMut(&Color, Link) -
 mod tests {
     use super::*;
     use crate::{NodeId, SymbolOverride};
-    use vectorcraft_geom::Affine;
+    use vansoncraft_geom::Affine;
 
     #[test]
     fn a_dynamic_instances_own_fills_and_strokes_are_visited() {

@@ -45,12 +45,12 @@ fn each_member_has_its_value() {
         "Unix"
     };
     for (expr, want) in [
-        ("$.about()", json!(format!("VectorCraft script engine {version}"))),
+        ("$.about()", json!(format!("VansonCraft script engine {version}"))),
         ("$.appEncoding", json!("UTF-8")),
         ("$.build", json!(version)),
         ("$.buildDate", json!(null)),
         ("$.decimalPoint", json!(".")),
-        ("$.engineName", json!("VectorCraft")),
+        ("$.engineName", json!("VansonCraft")),
         ("$.error", json!(null)),
         ("$.flags", json!(0)),
         ("$.gc() === undefined", json!(true)),

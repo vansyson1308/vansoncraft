@@ -3,10 +3,10 @@
 use std::sync::Arc;
 
 use serde_json::Value;
-use vectorcraft_doc::color::{Color, Paint};
-use vectorcraft_doc::{Appearance, AppearanceItem, Document, Effect, FillLayer, LineJoin, Node, NodeId, NodeKind, StrokeLayer};
-use vectorcraft_geom::{PathData, PathEl, Point, Rect, Vec2};
-use vectorcraft_three_d::{Edge, Revolve};
+use vansoncraft_doc::color::{Color, Paint};
+use vansoncraft_doc::{Appearance, AppearanceItem, Document, Effect, FillLayer, LineJoin, Node, NodeId, NodeKind, StrokeLayer};
+use vansoncraft_geom::{PathData, PathEl, Point, Rect, Vec2};
+use vansoncraft_three_d::{Edge, Revolve};
 
 use crate::solids::{Profile, Scope, is_container, members, object_profile, profile, reshape_members, resolve_for, solid_paints, union_bounds};
 use crate::util::{flag, num, text};
@@ -37,7 +37,7 @@ const SEAM_WIDTH: f64 = 0.75;
 /// About the bytes one copy of `paint` takes, with the strings it owns (swatch and pattern names).
 fn paint_bytes(paint: &Paint) -> usize {
     use std::mem::size_of;
-    use vectorcraft_doc::color::{FreeformPoint, GradientStop};
+    use vansoncraft_doc::color::{FreeformPoint, GradientStop};
     let own = size_of::<Paint>();
     let name = |s: &Option<String>| s.as_ref().map_or(0, String::len);
     let g = match paint {
@@ -53,7 +53,7 @@ fn paint_bytes(paint: &Paint) -> usize {
             + f.lines.iter().map(|l| l.len() * size_of::<usize>()).sum::<usize>()
     });
     let stops: usize = g.gradient.stops.iter().map(|s| size_of::<GradientStop>() + name(&s.swatch)).sum();
-    own + size_of::<vectorcraft_doc::color::GradientPaint>() + name(&g.swatch) + stops + freeform
+    own + size_of::<vansoncraft_doc::color::GradientPaint>() + name(&g.swatch) + stops + freeform
 }
 
 /// Add `copies` copies of `paint` to the running byte total `used`; whether it still fits within
@@ -82,8 +82,8 @@ pub fn revolve_options(p: &Value) -> Revolve {
         rotation_z: num(p, "rotationZ", 0.0),
         perspective: num(p, "perspectiveAngle", 0.0),
         segments: num(p, "segments", 64.0).clamp(8.0, 128.0) as usize,
-        light_rotation: num(p, "lightRotation", vectorcraft_three_d::DEFAULT_LIGHT.0),
-        light_height: num(p, "lightHeight", vectorcraft_three_d::DEFAULT_LIGHT.1),
+        light_rotation: num(p, "lightRotation", vansoncraft_three_d::DEFAULT_LIGHT.0),
+        light_height: num(p, "lightHeight", vansoncraft_three_d::DEFAULT_LIGHT.1),
         light_behind: flag(p, "lightBehind", false),
         light_color: crate::lighting::light_color(p),
         lights: crate::lighting::lights(p),
@@ -158,8 +158,8 @@ fn check_shadow<'a>(p: &Value, paths: impl IntoIterator<Item = &'a PathData>, b:
     if crate::solids::shadow::options(p).is_none() {
         return Ok(());
     }
-    let mut caster = vectorcraft_three_d::ShadowCaster::new();
-    paths.into_iter().try_for_each(|path| caster.revolve(path, vectorcraft_geom::FillRule::NonZero, b, options).map(|_| ()))
+    let mut caster = vansoncraft_three_d::ShadowCaster::new();
+    paths.into_iter().try_for_each(|path| caster.revolve(path, vansoncraft_geom::FillRule::NonZero, b, options).map(|_| ()))
 }
 
 /// [`validate_revolve`] for a Revolve with parameters `p` at index `index` of the effects of
@@ -216,7 +216,7 @@ fn paint_copies(faces: usize, paint: &Paint) -> usize {
 /// An error when `path` does not revolve or when its surface in `item`'s paint takes `copies`, the
 /// bytes of an object's paint copies so far, past [`MAX_PAINT_COPIES`].
 fn check_surface(path: &PathData, b: Rect, options: Revolve, item: Option<&AppearanceItem>, copies: &mut usize) -> Result<(), String> {
-    let faces = vectorcraft_three_d::revolve(path, b, options)?;
+    let faces = vansoncraft_three_d::revolve(path, b, options)?;
     *copies = copies.saturating_add(item.map_or(0, |i| paint_copies(faces.len(), &paint_of(i).0)));
     if *copies > MAX_PAINT_COPIES {
         return Err("Revolve paint is too complex for this surface; reduce Segments or simplify the gradient".into());
@@ -227,7 +227,7 @@ fn check_surface(path: &PathData, b: Rect, options: Revolve, item: Option<&Appea
 /// `options` with one number of samples for every curve of `shapes`, the members of one group: the
 /// members share Revolve's limits.
 fn shared_options(shapes: &[Profile], options: Revolve) -> Result<Revolve, String> {
-    let samples = vectorcraft_three_d::revolve_curve_samples(shapes.iter().map(|s| &s.path), options)?;
+    let samples = vansoncraft_three_d::revolve_curve_samples(shapes.iter().map(|s| &s.path), options)?;
     Ok(Revolve { curve_samples: Some(samples), ..options })
 }
 
@@ -273,8 +273,8 @@ fn shadow_of(id: NodeId, fx: &Effect, path: &PathData, item: &AppearanceItem, b:
     if opacity <= 0.0 {
         return Ok(None);
     }
-    let mut caster = vectorcraft_three_d::ShadowCaster::new();
-    caster.revolve(path, vectorcraft_geom::FillRule::NonZero, b, options)?;
+    let mut caster = vansoncraft_three_d::ShadowCaster::new();
+    caster.revolve(path, vansoncraft_geom::FillRule::NonZero, b, options)?;
     Ok(crate::solids::shadow::art(id, &caster, settings, crate::solids::shadow::Ink { opacity, blend }))
 }
 
@@ -285,7 +285,7 @@ fn shadow_of(id: NodeId, fx: &Effect, path: &PathData, item: &AppearanceItem, b:
 /// limits.
 fn group_shadow(id: NodeId, fx: &Effect, shapes: &[Profile], b: Rect, options: Revolve) -> Result<Vec<Arc<Node>>, String> {
     let Some(settings) = crate::solids::shadow::options(&merged_params(&fx.id, &fx.params)) else { return Ok(vec![]) };
-    let mut caster = vectorcraft_three_d::ShadowCaster::new();
+    let mut caster = vansoncraft_three_d::ShadowCaster::new();
     let mut cast = vec![];
     for s in shapes {
         let Some((_, opacity, blend)) = surface_item(&s.items).map(paint_of) else { continue };
@@ -294,7 +294,7 @@ fn group_shadow(id: NodeId, fx: &Effect, shapes: &[Profile], b: Rect, options: R
         if ink.opacity <= 0.0 {
             continue;
         }
-        let faces = caster.revolve(&s.path, vectorcraft_geom::FillRule::NonZero, b, options)?;
+        let faces = caster.revolve(&s.path, vansoncraft_geom::FillRule::NonZero, b, options)?;
         cast.push((s.scopes.as_slice(), ink, faces));
     }
     Ok(crate::solids::shadow::scoped_art(id, &caster, settings, cast, crate::solids::has_masks(shapes)))
@@ -312,14 +312,14 @@ fn surface(
     fx: &Effect,
     paint: Paint,
     opacity: f32,
-    blend: vectorcraft_doc::color::BlendMode,
+    blend: vansoncraft_doc::color::BlendMode,
     expand: bool,
     copies: &mut usize,
 ) -> Option<(Vec<f64>, Node)> {
     // A loaded file or a profile edited past the limits keeps drawing its source path instead
     // of crashing the frame. Commands validate the same evaluator and report its errors.
     if fx.id == CLASSIC_REVOLVE {
-        let facets = vectorcraft_three_d::revolve_facets(path, b, options).ok()?;
+        let facets = vansoncraft_three_d::revolve_facets(path, b, options).ok()?;
         *copies = copies.saturating_add(paint_copies(facets.len(), &paint));
         if *copies > MAX_PAINT_COPIES {
             return None;
@@ -329,7 +329,7 @@ fn surface(
         return Some((depths, crate::solids::classic::surface(n, facets, &paint, opacity, blend, &p)));
     }
     let colored = options.light_color != [1.0; 3] || options.lights.is_some();
-    let faces = vectorcraft_three_d::revolve(path, b, options).ok()?;
+    let faces = vansoncraft_three_d::revolve(path, b, options).ok()?;
     *copies = copies.saturating_add(paint_copies(faces.len(), &paint));
     if *copies > MAX_PAINT_COPIES {
         return None;
@@ -343,12 +343,12 @@ fn surface(
         && opacity == 1.0
         && blend == Default::default()
         && n.has_default_transparency())
-    .then(|| vectorcraft_three_d::visible_faces(&faces).ok())
+    .then(|| vansoncraft_three_d::visible_faces(&faces).ok())
     .flatten();
     let faces = visible.unwrap_or_else(|| {
         faces
             .into_iter()
-            .map(|f| vectorcraft_three_d::VisibleFace {
+            .map(|f| vansoncraft_three_d::VisibleFace {
                 path: f.path(),
                 brightness: f.brightness,
                 depth: f.depth,
@@ -359,7 +359,7 @@ fn surface(
             })
             .collect()
     });
-    let depths: Vec<f64> = faces.iter().map(|f: &vectorcraft_three_d::VisibleFace| f.depth).collect();
+    let depths: Vec<f64> = faces.iter().map(|f: &vansoncraft_three_d::VisibleFace| f.depth).collect();
     let children = faces
         .into_iter()
         .map(|face| {
@@ -427,8 +427,8 @@ fn object_surface(n: &Node, path: &PathData, fx: &Effect, item: &AppearanceItem,
     surface(n, path, b, fx_options(fx), fx, paint, opacity, blend, expand, copies).map(|(_, art)| art)
 }
 
-fn shading_paint(g: vectorcraft_three_d::ShadeGradient, color: impl Fn(f64) -> Color, opacity: impl Fn(f64) -> f32) -> Paint {
-    use vectorcraft_doc::color::{Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop};
+fn shading_paint(g: vansoncraft_three_d::ShadeGradient, color: impl Fn(f64) -> Color, opacity: impl Fn(f64) -> f32) -> Paint {
+    use vansoncraft_doc::color::{Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop};
     let stops =
         g.brightness.into_iter().enumerate().map(|(i, s)| GradientStop { opacity: opacity(s), ..GradientStop::new(i as f32, color(s)) }).collect();
     let mut paint = GradientPaint::new(Gradient::new(GradientKind::Linear, stops));
@@ -436,7 +436,7 @@ fn shading_paint(g: vectorcraft_three_d::ShadeGradient, color: impl Fn(f64) -> C
     Paint::Gradient(Box::new(paint))
 }
 
-fn paint_of(item: &AppearanceItem) -> (Paint, f32, vectorcraft_doc::color::BlendMode) {
+fn paint_of(item: &AppearanceItem) -> (Paint, f32, vansoncraft_doc::color::BlendMode) {
     match item {
         AppearanceItem::Fill(f) => (f.paint.clone(), f.opacity, f.blend),
         AppearanceItem::Stroke(s) => (s.paint.clone(), s.opacity, s.blend),
@@ -481,7 +481,7 @@ pub(crate) fn revolve_meshes(n: &Node, total: &mut usize, limit: usize) -> Resul
     let mesh = |path: &PathData, fx: &Effect, item: &AppearanceItem| -> Result<crate::SolidMesh, String> {
         let b = path.bounds().ok_or("Revolve requires a shape with at least two anchors")?;
         let (paint, opacity, _) = paint_of(item);
-        let mesh = vectorcraft_three_d::revolve_mesh(path, rule, b, fx_options(fx))?;
+        let mesh = vansoncraft_three_d::revolve_mesh(path, rule, b, fx_options(fx))?;
         Ok(crate::SolidMesh { mesh, color: crate::solids::mesh_color(&paint, opacity) })
     };
     if let Some(index) = n.appearance.effects.iter().position(|e| e.visible && is_revolve(&e.id)) {
@@ -524,7 +524,7 @@ fn group_meshes(n: &Node, total: &mut usize, limit: usize) -> Result<Vec<crate::
     for s in &shapes {
         let Some(item) = surface_item(&s.items) else { continue };
         let (paint, opacity, _) = paint_of(item);
-        let mesh = vectorcraft_three_d::revolve_mesh(&s.path, s.rule, b, options)?;
+        let mesh = vansoncraft_three_d::revolve_mesh(&s.path, s.rule, b, options)?;
         crate::solids::keep_mesh(&mut out, total, crate::SolidMesh { mesh, color: crate::solids::mesh_color(&paint, opacity * s.opacity) }, limit)?;
     }
     Ok(out)
@@ -744,7 +744,7 @@ fn group_art(n: &Node, expand: bool) -> Option<Node> {
     let plain = surfaces.iter().all(|(depths, s, _)| matches!(&s.kind, NodeKind::Group { children, clip: false } if children.len() == depths.len()));
     // A classic surface whose gradient has transparent stops carries an opacity mask: its faces go
     // in runs, as a transparent member's do, and each run carries the mask.
-    let masks: Vec<Option<Box<vectorcraft_doc::OpacityMask>>> = surfaces.iter().map(|(_, s, _)| s.extras().mask.clone()).collect();
+    let masks: Vec<Option<Box<vansoncraft_doc::OpacityMask>>> = surfaces.iter().map(|(_, s, _)| s.extras().mask.clone()).collect();
     let opaque = opaque && masks.iter().all(Option::is_none);
     let children = if !plain {
         scoped(n.id, surfaces.into_iter().map(|(_, s, scopes)| (scopes, Arc::new(s))).collect(), 0)
@@ -774,7 +774,7 @@ fn group_art(n: &Node, expand: bool) -> Option<Node> {
                 faces: Vec<Arc<Node>>,
                 cover: Vec<Coverage>,
                 opacity: f32,
-                blend: vectorcraft_doc::color::BlendMode,
+                blend: vansoncraft_doc::color::BlendMode,
             }
             let mut runs: Vec<Run> = vec![];
             let mut last_run = vec![None; count];
@@ -847,8 +847,8 @@ fn group_art(n: &Node, expand: bool) -> Option<Node> {
 mod tests {
     use super::*;
     use serde_json::json;
-    use vectorcraft_doc::{Document, NodeId};
-    use vectorcraft_geom::{Affine, BezPath};
+    use vansoncraft_doc::{Document, NodeId};
+    use vansoncraft_geom::{Affine, BezPath};
     fn profile_node() -> Node {
         let mut b = BezPath::new();
         b.move_to((100.0, 40.0));
@@ -911,7 +911,7 @@ mod tests {
         assert_eq!(revolve_art(&n), Some(smooth.clone()));
         n.appearance.effects[0].params["smoothShading"] = json!(true);
         assert_eq!(revolve_art(&n), Some(smooth));
-        use vectorcraft_doc::color::{Gradient, GradientPaint};
+        use vansoncraft_doc::color::{Gradient, GradientPaint};
         let base = Paint::Gradient(Box::new(GradientPaint::new(Gradient::default())));
         n.appearance.set_fill(base.clone());
         let art = revolve_art(&n).unwrap();
@@ -974,7 +974,7 @@ mod tests {
         let mut n = profile_node();
         n.id = d.alloc_id();
         n.appearance.effects.push(fx());
-        let mut stroke = |_: &mut Document, _: &PathData, _: vectorcraft_geom::FillRule, _: &vectorcraft_doc::StrokeLayer| None;
+        let mut stroke = |_: &mut Document, _: &PathData, _: vansoncraft_geom::FillRule, _: &vansoncraft_doc::StrokeLayer| None;
         let art = crate::expand_leaf(&mut d, &n, &mut stroke).unwrap();
         let mut ids = std::collections::HashSet::new();
         fn visit(n: &Node, ids: &mut std::collections::HashSet<NodeId>) {
@@ -1053,7 +1053,7 @@ mod tests {
 
     /// The opacities and blending modes of the groups a face is drawn in, outermost first, leaving
     /// out groups with neither.
-    type Chain = Vec<(f32, vectorcraft_doc::color::BlendMode)>;
+    type Chain = Vec<(f32, vansoncraft_doc::color::BlendMode)>;
 
     /// The faces of `art` in drawing order, each with its [`Chain`].
     fn faces_in_order(art: &Node) -> Vec<(Node, Chain)> {
@@ -1151,12 +1151,12 @@ mod tests {
             .map(|i| {
                 let (s, c) = (i as f64 * std::f64::consts::PI / 600.0).sin_cos();
                 let r = if i % 2 == 0 { 100.0 } else { 60.0 };
-                vectorcraft_geom::Anchor::corner(vectorcraft_geom::Point::new(200.0 + r * c, 200.0 + r * s))
+                vansoncraft_geom::Anchor::corner(vansoncraft_geom::Point::new(200.0 + r * c, 200.0 + r * s))
             })
             .collect();
         Arc::new(Node::path(
             NodeId(id),
-            PathData::new(vec![vectorcraft_geom::SubPath::new(anchors, true)]),
+            PathData::new(vec![vansoncraft_geom::SubPath::new(anchors, true)]),
             Appearance::basic(Paint::solid(Color::BLACK), Paint::None, 0.0),
         ))
     }
@@ -1200,7 +1200,7 @@ mod tests {
 
     #[test]
     fn blending_modes_apply_once_to_the_member_or_group_that_has_them() {
-        use vectorcraft_doc::color::BlendMode;
+        use vansoncraft_doc::color::BlendMode;
         let blend = |n: Arc<Node>, mode: BlendMode| {
             let mut n = (*n).clone();
             n.blend = mode;
@@ -1287,7 +1287,7 @@ mod tests {
 
     #[test]
     fn paint_copies_past_the_budget_are_refused_for_the_whole_group() {
-        use vectorcraft_doc::color::{Gradient, GradientKind, GradientPaint, GradientStop};
+        use vansoncraft_doc::color::{Gradient, GradientKind, GradientPaint, GradientStop};
         let painted = |id: u64, x: f64, stops: usize| {
             let stops = (0..stops).map(|i| GradientStop::new(i as f32 / stops as f32, Color::BLACK)).collect();
             let paint = Paint::Gradient(Box::new(GradientPaint::new(Gradient::new(GradientKind::Linear, stops))));
@@ -1297,7 +1297,7 @@ mod tests {
         };
         let plain = member(1, 0.0);
         let NodeKind::Path { path: profile, .. } = &plain.kind else { panic!("a path") };
-        let faces = vectorcraft_three_d::revolve(profile, profile.bounds().unwrap(), revolve_options(&json!({}))).unwrap().len();
+        let faces = vansoncraft_three_d::revolve(profile, profile.bounds().unwrap(), revolve_options(&json!({}))).unwrap().len();
         let stops = MAX_PAINT_COPIES * 6 / 10 / (faces * 4) / std::mem::size_of::<GradientStop>();
         let one = group_with(json!({}), vec![painted(1, 0.0, stops)]);
         assert_eq!(validate_revolve(&one, &json!({})), Ok(()));
@@ -1311,11 +1311,11 @@ mod tests {
 
     #[test]
     fn the_art_of_symbol_instances_and_blends_shares_the_budget_of_paint_copies() {
-        use vectorcraft_doc::color::{Gradient, GradientKind, GradientPaint, GradientStop};
-        use vectorcraft_doc::{BlendSpacing, BlendSpec, Symbol};
+        use vansoncraft_doc::color::{Gradient, GradientKind, GradientPaint, GradientStop};
+        use vansoncraft_doc::{BlendSpacing, BlendSpec, Symbol};
         let plain = member(1, 0.0);
         let NodeKind::Path { path: profile, .. } = &plain.kind else { panic!("a path") };
-        let faces = vectorcraft_three_d::revolve(profile, profile.bounds().unwrap(), revolve_options(&json!({}))).unwrap().len();
+        let faces = vansoncraft_three_d::revolve(profile, profile.bounds().unwrap(), revolve_options(&json!({}))).unwrap().len();
         let stops = MAX_PAINT_COPIES * 6 / 10 / (faces * 4) / std::mem::size_of::<GradientStop>();
         let painted = |id: u64, x: f64| {
             let stops = (0..stops).map(|i| GradientStop::new(i as f32 / stops as f32, Color::BLACK)).collect();
@@ -1343,10 +1343,10 @@ mod tests {
 
     #[test]
     fn the_fills_of_one_object_share_the_budget_of_paint_copies() {
-        use vectorcraft_doc::color::{Gradient, GradientKind, GradientPaint, GradientStop};
+        use vansoncraft_doc::color::{Gradient, GradientKind, GradientPaint, GradientStop};
         let source = profile_node();
         let NodeKind::Path { path: profile, .. } = &source.kind else { panic!("a path") };
-        let faces = vectorcraft_three_d::revolve(profile, profile.bounds().unwrap(), revolve_options(&json!({}))).unwrap().len();
+        let faces = vansoncraft_three_d::revolve(profile, profile.bounds().unwrap(), revolve_options(&json!({}))).unwrap().len();
         let stops = MAX_PAINT_COPIES * 6 / 10 / (faces * 4) / std::mem::size_of::<GradientStop>();
         let fill = |stops: usize, revolved: bool| {
             let stops = (0..stops).map(|i| GradientStop::new(i as f32 / stops as f32, Color::BLACK)).collect();
@@ -1403,7 +1403,7 @@ mod tests {
                         f.opacity = 0.4;
                     }
                 }
-                2 => sample.blend = vectorcraft_doc::color::BlendMode::Multiply,
+                2 => sample.blend = vansoncraft_doc::color::BlendMode::Multiply,
                 _ => sample.appearance.effects.push(crate::new_effect("distort.twist", &json!({"angle":45})).unwrap()),
             }
             assert_eq!(expand_revolve_art(&sample), revolve_art(&sample), "preserve surface for case {change}");

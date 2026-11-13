@@ -20,8 +20,8 @@ use std::hash::{Hash, Hasher};
 use std::sync::{Arc, Mutex};
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{Appearance, AppearanceItem, Document};
-use vectorcraft_geom::{FillRule, PathData, Rect};
+use vansoncraft_doc::{Appearance, AppearanceItem, Document};
+use vansoncraft_geom::{FillRule, PathData, Rect};
 
 use crate::deferred::{Allowance, Reason, Stage};
 use crate::objects::{decode, output_geometry, paint_lists};
@@ -510,9 +510,9 @@ fn run(
 
 #[cfg(test)]
 mod tests {
-    use vectorcraft_color::{Color, Paint};
-    use vectorcraft_doc::{FillLayer, StrokeLayer};
-    use vectorcraft_geom::{Point, SubPath};
+    use vansoncraft_color::{Color, Paint};
+    use vansoncraft_doc::{FillLayer, StrokeLayer};
+    use vansoncraft_geom::{Point, SubPath};
 
     use super::*;
 
@@ -751,9 +751,9 @@ mod tests {
                 None,
             )
         };
-        let token = vectorcraft_doc::cancel::CancelToken::new();
+        let token = vansoncraft_doc::cancel::CancelToken::new();
         token.cancel();
-        assert_eq!(vectorcraft_doc::cancel::scope(&token, None, draw), None);
+        assert_eq!(vansoncraft_doc::cancel::scope(&token, None, draw), None);
         assert!(!ran_first(), "the cancelled run doesn't count as the first");
         // Runs to its instruction budget and fails: that run was the first.
         assert_eq!(draw(), None);

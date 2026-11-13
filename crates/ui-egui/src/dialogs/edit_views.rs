@@ -6,11 +6,11 @@
 //! `name<i>` (as edited) and `deleted<i>`; `selected` (the row picked).
 
 use serde_json::{Value, json};
-use vectorcraft_engine::doc::SavedView;
+use vansoncraft_engine::doc::SavedView;
 
 use super::{DialogSpec, form};
 use crate::state::Dialog;
-use crate::{VectorcraftApp, widgets};
+use crate::{VansoncraftApp, widgets};
 
 /// The dialog kind of Edit Views.
 pub const KIND: &str = "editViews";
@@ -18,7 +18,7 @@ pub const KIND: &str = "editViews";
 pub(super) const SPEC: DialogSpec = DialogSpec { heading: |_| tl!("Edit Views").into(), body, confirm, min_width: 420.0, ..DialogSpec::FORM };
 
 /// Open Edit Views on the active document's saved views.
-pub fn open(app: &mut VectorcraftApp) -> Result<Value, String> {
+pub fn open(app: &mut VansoncraftApp) -> Result<Value, String> {
     let names: Vec<String> = app.session.active().map(|d| d.doc.views.iter().map(|v| v.name.clone()).collect()).unwrap_or_default();
     if names.is_empty() {
         return Err("No saved views (View → New View…)".into());
@@ -47,7 +47,7 @@ fn selected(d: &Dialog, rows: &[usize]) -> Option<usize> {
     want.filter(|w| rows.contains(w)).or_else(|| rows.first().copied())
 }
 
-fn body(_: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
+fn body(_: &mut VansoncraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
     let rows = rows(d);
     let current = selected(d, &rows);
     let mut pick = None;
@@ -107,7 +107,7 @@ fn edits(d: &Dialog) -> Vec<Value> {
         .collect()
 }
 
-fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
+fn confirm(app: &mut VansoncraftApp, d: &Dialog) -> Result<Value, String> {
     let edits = edits(d);
     // A name two views would share keeps the dialog open, to be changed.
     let r = if edits.is_empty() { Ok(Value::Null) } else { app.run("view.saved.edit", json!({ "edits": edits })) };
@@ -121,10 +121,10 @@ fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
 mod tests {
     use serde_json::json;
 
-    use crate::VectorcraftApp;
+    use crate::VansoncraftApp;
 
-    fn app() -> VectorcraftApp {
-        let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), crate::Services::default());
+    fn app() -> VansoncraftApp {
+        let mut app = VansoncraftApp::new(vansoncraft_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({})).unwrap();
         for n in ["Overview", "Logo", "Text"] {
             app.run("view.saved.new", json!({ "name": n })).unwrap();
@@ -132,11 +132,11 @@ mod tests {
         app
     }
 
-    fn set(app: &mut VectorcraftApp, k: &str, v: serde_json::Value) {
+    fn set(app: &mut VansoncraftApp, k: &str, v: serde_json::Value) {
         app.ui.dialog.as_mut().unwrap().fields.insert(k.into(), v);
     }
 
-    fn names(app: &VectorcraftApp) -> Vec<String> {
+    fn names(app: &VansoncraftApp) -> Vec<String> {
         app.session.active().unwrap().doc.views.iter().map(|v| v.name.clone()).collect()
     }
 
@@ -175,7 +175,7 @@ mod tests {
 
     #[test]
     fn it_needs_a_saved_view() {
-        let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), crate::Services::default());
+        let mut app = VansoncraftApp::new(vansoncraft_engine::Session::new(), crate::Services::default());
         app.run("file.new", json!({})).unwrap();
         assert!(super::open(&mut app).is_err());
         assert!(app.ui.dialog.is_none());

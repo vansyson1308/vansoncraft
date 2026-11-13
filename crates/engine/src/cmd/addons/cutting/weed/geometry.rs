@@ -10,8 +10,8 @@
 
 use std::cell::Cell;
 
-use vectorcraft_doc::{Document, Node, NodeId, NodeKind};
-use vectorcraft_geom::{BezPath, FillRule, PathEl, Point, Rect};
+use vansoncraft_doc::{Document, Node, NodeId, NodeKind};
+use vansoncraft_geom::{BezPath, FillRule, PathEl, Point, Rect};
 
 use super::super::super::super::pathops::node_path;
 
@@ -24,7 +24,7 @@ pub(super) const MAX_POINTS: usize = 200_000;
 const MAX_PAIRS: usize = 40_000_000;
 /// The deepest groups, symbol instances and live objects are opened inside one another: as deep
 /// as any object is drawn.
-pub(super) const MAX_DEPTH: usize = vectorcraft_doc::depth::MAX_DRAWN_DEPTH;
+pub(super) const MAX_DEPTH: usize = vansoncraft_doc::depth::MAX_DRAWN_DEPTH;
 /// The most pairs of an outline segment and a weeding line it comes near that one run measures.
 const MAX_NEAR: usize = 10_000_000;
 /// Pieces of weeding line shorter than this, in points, are left out.
@@ -115,17 +115,17 @@ impl<'a> Reader<'a> {
                 self.polygon(&corners)
             }
             // An instance of a symbol the document doesn't have draws nothing.
-            NodeKind::SymbolInstance { .. } => match vectorcraft_render::effects::outline_object(Some(self.doc), n) {
+            NodeKind::SymbolInstance { .. } => match vansoncraft_render::effects::outline_object(Some(self.doc), n) {
                 Some(art) => self.node(&art, depth + 1),
                 None => Ok(None),
             },
             NodeKind::PlacedDocument(p) => {
                 // The art of the file it shows; a file that can't be read shows its preview in its
                 // box, which may be rotated.
-                if vectorcraft_doc::placed_document::read_cached(p).is_none() {
+                if vansoncraft_doc::placed_document::read_cached(p).is_none() {
                     return self.polygon(&p.corners());
                 }
-                let art = vectorcraft_render::effects::expand_live_deep(Some(self.doc), n);
+                let art = vansoncraft_render::effects::expand_live_deep(Some(self.doc), n);
                 if std::mem::discriminant(&art.kind) == std::mem::discriminant(&n.kind) {
                     self.polygon(&p.corners())
                 } else {
@@ -135,7 +135,7 @@ impl<'a> Reader<'a> {
             NodeKind::Blend { .. } | NodeKind::Envelope { .. } | NodeKind::Mesh(_) | NodeKind::Repeat(_) | NodeKind::Intertwine { .. } => {
                 // The art a live object draws, as the exporters write it; an object that stays
                 // as it is is measured by its box.
-                let art = vectorcraft_render::effects::expand_live_deep(Some(self.doc), n);
+                let art = vansoncraft_render::effects::expand_live_deep(Some(self.doc), n);
                 if std::mem::discriminant(&art.kind) == std::mem::discriminant(&n.kind) { self.frame(n) } else { self.node(&art, depth + 1) }
             }
         }
@@ -145,7 +145,7 @@ impl<'a> Reader<'a> {
     /// renderer clips to (a path, a compound path, type by its glyphs, a group's visible members,
     /// an image's frame). `None` when it clips to nothing, and the clipped art is hidden.
     fn clip_region(&mut self, first: &Node) -> Result<Option<Region>, String> {
-        let Some((outline, rule)) = vectorcraft_render::effects::clip_outline(first) else { return Ok(None) };
+        let Some((outline, rule)) = vansoncraft_render::effects::clip_outline(first) else { return Ok(None) };
         let mut polys = self.polys(outline)?;
         // A region is filled: an open subpath clips as if closed.
         polys.iter_mut().for_each(|p| p.closed = true);
@@ -245,7 +245,7 @@ impl<'a> Reader<'a> {
         // Past the budget no further curve is followed (one curve gives at most
         // `MAX_FLATTEN_PER_CURVE` points), and the read fails below.
         let elements = path.into_iter().take_while(|_| points.get() <= left);
-        vectorcraft_geom::flatten(elements, TOLERANCE, |el| {
+        vansoncraft_geom::flatten(elements, TOLERANCE, |el| {
             points.set(points.get() + 1);
             if points.get() > left {
                 return;

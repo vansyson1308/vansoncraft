@@ -1,7 +1,7 @@
 use super::*;
 use crate::testutil::*;
-use vectorcraft_doc::{Appearance, Document, Node, Selection};
-use vectorcraft_geom::{ParamCurve, PathData};
+use vansoncraft_doc::{Appearance, Document, Node, Selection};
+use vansoncraft_geom::{ParamCurve, PathData};
 
 /// The Curvature tool has its own cursor, not the Pen's start-a-path one.
 #[test]

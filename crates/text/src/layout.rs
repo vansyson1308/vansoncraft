@@ -5,12 +5,12 @@ use std::sync::Arc;
 
 use kurbo::{Affine, BezPath, ParamCurve, PathEl, Point, Rect, Shape, Vec2};
 use unicode_bidi::{BidiInfo, Level};
-use vectorcraft_doc::text::{Kashida, ListAlign};
-use vectorcraft_doc::{
+use vansoncraft_doc::text::{Kashida, ListAlign};
+use vansoncraft_doc::{
     Burasagari, CharStyle, HyphenationOptions, InlineArt, Justify, Kinsoku, KinsokuShoriType, LeadingModel, Mojikumi, ParaDirection, ParaStyle,
     PathAlign, PathEffect, RubyAlign, RubyPosition, SingleWordJustify, TextKind, TextObject,
 };
-use vectorcraft_geom::{ArcPath, PathData};
+use vansoncraft_geom::{ArcPath, PathData};
 
 use crate::GlyphBend;
 use crate::composer::{Breakpoint, Params, compose};
@@ -277,7 +277,7 @@ impl Ctx<'_> {
     /// [`list_markers`]) of list paragraph `pr` (attributes `para`, right to left when `rtl`)
     /// before its glyphs `sg` and return how many glyphs went in (none for a paragraph without a
     /// marker). The marker's characters are set in
-    /// [`vectorcraft_doc::text::ParaList::marker_style`], and a tab after them takes the text to
+    /// [`vansoncraft_doc::text::ParaList::marker_style`], and a tab after them takes the text to
     /// the next tab stop past them on the first line, the left indent plus its list level's indent
     /// ([`ParaStyle::laid_out_left_indent`]) counting as a stop when no explicit stop comes before
     /// it. With the list's [`ListAlign::Right`] that tab goes before them instead, with the same
@@ -290,7 +290,7 @@ impl Ctx<'_> {
     /// paragraph's embedding level.
     fn prepend_marker(&self, pr: &Range<usize>, para: &ParaStyle, text: Option<&str>, rtl: bool, sg: &mut Vec<SGlyph>) -> usize {
         let Some(text) = text.filter(|_| para.list.is_some() && !pr.is_empty()) else { return 0 };
-        let st = vectorcraft_doc::text::ParaList::marker_style(self.style_at(pr.start));
+        let st = vansoncraft_doc::text::ParaList::marker_style(self.style_at(pr.start));
         let run = self.runs.partition_point(|(r, _)| r.end <= pr.start);
         if !self.runs.get(run).is_some_and(|(r, _)| r.start <= pr.start && pr.start < r.end) {
             return 0;
@@ -345,12 +345,12 @@ impl Ctx<'_> {
         // Art in the text's colours takes the run's fill (black when it isn't a colour) and
         // stroke.
         let plain = g.inline.is_some() || blank;
-        let colour_of = |p: &vectorcraft_doc::color::Paint| match p {
-            vectorcraft_doc::color::Paint::Solid { color, .. } => Some(*color),
+        let colour_of = |p: &vansoncraft_doc::color::Paint| match p {
+            vansoncraft_doc::color::Paint::Solid { color, .. } => Some(*color),
             _ => None,
         };
         let st = self.style_at(g.byte);
-        let foreground = colour_of(&st.fill).unwrap_or(vectorcraft_doc::color::Color::BLACK);
+        let foreground = colour_of(&st.fill).unwrap_or(vansoncraft_doc::color::Color::BLACK);
         let stroke = colour_of(&st.stroke).filter(|_| st.has_stroke());
         let (colour, image) = match (!plain).then(|| self.db.glyph_colour(&g.face, g.gid, foreground, stroke)).flatten() {
             Some(crate::colr::ColourContent::Art(art)) => (Some(art), None),
@@ -648,7 +648,7 @@ mod wrapping_tests;
 mod emit_kashida_mark_last {
     use super::*;
     use std::sync::Arc;
-    use vectorcraft_doc::color::{Color, Paint};
+    use vansoncraft_doc::color::{Color, Paint};
 
     fn arabic_face() -> Option<Arc<crate::FontFace>> {
         let db = FontDb::global();

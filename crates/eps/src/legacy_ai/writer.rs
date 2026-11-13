@@ -50,7 +50,7 @@ impl<'a> Writer<'a> {
         Self {
             doc,
             to_art,
-            cms: vectorcraft_color::cms::active(),
+            cms: vansoncraft_color::cms::active(),
             body: String::new(),
             gradients: vec![],
             spots: vec![],
@@ -281,7 +281,7 @@ impl<'a> Writer<'a> {
                 self.warn(LIVE);
                 if let Some(sym) = self.doc.symbols.iter().find(|s| &s.name == symbol)
                     && self.nest < MAX_NEST
-                    && let Some(mut art) = self.doc.place_symbol_art(symbol, &vectorcraft_doc::symbol_overrides::dynamic_art(&sym.art, n), *xf)
+                    && let Some(mut art) = self.doc.place_symbol_art(symbol, &vansoncraft_doc::symbol_overrides::dynamic_art(&sym.art, n), *xf)
                 {
                     art.visible = true;
                     self.nest += 1;
@@ -297,7 +297,7 @@ impl<'a> Writer<'a> {
             | NodeKind::Intertwine { .. } => {
                 self.warn(LIVE);
                 if self.nest < MAX_NEST {
-                    let g = vectorcraft_effects::expand_live_deep(Some(self.doc), n);
+                    let g = vansoncraft_effects::expand_live_deep(Some(self.doc), n);
                     self.nest += 1;
                     if let Some(children) = g.children() {
                         self.group(children, false, locked);
@@ -331,7 +331,7 @@ impl<'a> Writer<'a> {
     fn clip_group(&mut self, children: &[Arc<Node>], locked: bool) {
         let Some((clip, rest)) = children.split_first() else { return };
         // Nothing to clip by hides the clipped art.
-        let Some((outline, rule)) = vectorcraft_effects::clip_outline(clip) else { return };
+        let Some((outline, rule)) = vansoncraft_effects::clip_outline(clip) else { return };
         let paint = clip.clip_paint();
         self.lock(locked);
         self.line("q");
@@ -480,7 +480,7 @@ impl<'a> Writer<'a> {
 
     /// A conic gradient fill (the format has no conic gradient) as [`CONIC_WEDGES`] solid wedges
     /// about its center clipped to `path` (filled by `rule`), each running on to the seam under
-    /// the next ([`vectorcraft_color::GradientGeom::conic_wedges`]).
+    /// the next ([`vansoncraft_color::GradientGeom::conic_wedges`]).
     fn conic_object(&mut self, path: &PathData, rule: FillRule, f: &FillLayer, g: &GradientPaint) {
         self.warn(CONIC);
         if g.gradient.stops.iter().any(|s| s.opacity < 1.0) {
@@ -512,7 +512,7 @@ impl<'a> Writer<'a> {
     /// A diamond gradient fill (the format has no diamond gradient) as four linear gradients
     /// clipped to `path` (filled by `rule`), one for each quadrant of its frame and equal to the
     /// diamond there, each running on under the next
-    /// ([`vectorcraft_color::GradientGeom::diamond_quadrants`]). A diamond without an extent is its
+    /// ([`vansoncraft_color::GradientGeom::diamond_quadrants`]). A diamond without an extent is its
     /// last stop.
     fn diamond_object(&mut self, path: &PathData, rule: FillRule, f: &FillLayer, g: &GradientPaint) {
         let area = path.to_bezpath().bounding_box();
@@ -786,13 +786,13 @@ impl<'a> Writer<'a> {
     /// Shrink Text to Fit or Dynamic Text scales is written in the styles it draws in, fitted at
     /// the sizes the Character panel shows; then a run whose font size measures a height other
     /// than the em box is written at the em size it is drawn at
-    /// ([`vectorcraft_text::FontDb::font_heights_resolved`]).
+    /// ([`vansoncraft_text::FontDb::font_heights_resolved`]).
     fn text_object(&mut self, t: &TextObject) {
         if lost_attributes(t) {
             self.warn(TYPE_ATTRIBUTES);
         }
-        let fitted = vectorcraft_text::drawn(t);
-        let resolved = vectorcraft_text::FontDb::global().font_heights_resolved(&fitted);
+        let fitted = vansoncraft_text::drawn(t);
+        let resolved = vansoncraft_text::FontDb::global().font_heights_resolved(&fitted);
         let t = &*resolved;
         let m = self.to_art * t.xf * Affine::new([1.0, 0.0, 0.0, -1.0, 0.0, 0.0]);
         let (kind, path, start) = match &t.kind {
@@ -917,7 +917,7 @@ impl<'a> Writer<'a> {
     /// Type as its glyphs' outlines: a group of a compound path for each run, with the run's fill
     /// and stroke.
     fn outlines(&mut self, t: &TextObject) {
-        let layout = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t);
+        let layout = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), t);
         let scale = t.xf.determinant().abs().sqrt();
         self.line("u");
         for (i, run) in t.runs.iter().enumerate() {
@@ -939,8 +939,8 @@ impl<'a> Writer<'a> {
                 s
             });
             let items: Vec<AppearanceItem> = fill.map(AppearanceItem::Fill).into_iter().chain(stroke.map(AppearanceItem::Stroke)).collect();
-            let mut n = Node::path(vectorcraft_doc::NodeId(0), path.clone(), vectorcraft_doc::Appearance::default());
-            n.appearance = vectorcraft_doc::Appearance { items, ..vectorcraft_doc::Appearance::default() }.into();
+            let mut n = Node::path(vansoncraft_doc::NodeId(0), path.clone(), vansoncraft_doc::Appearance::default());
+            n.appearance = vansoncraft_doc::Appearance { items, ..vansoncraft_doc::Appearance::default() }.into();
             self.shape(&n, &path, FillRule::NonZero);
         }
         // Colour bitmap glyphs (emoji): their images, which the runs' paint doesn't paint.

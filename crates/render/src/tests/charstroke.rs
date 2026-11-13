@@ -1,10 +1,10 @@
 //! Strokes on type: character strokes take their join, cap and dashes, and object strokes on type
 //! take every stroke option, as path strokes do.
 
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::text::{CharStyle, TextKind, TextObject};
-use vectorcraft_doc::{AppearanceItem, AreaFit, Dash, LineJoin, Node, NodeKind};
-use vectorcraft_geom::{PathData, Point};
+use vansoncraft_color::{Color, Paint};
+use vansoncraft_doc::text::{CharStyle, TextKind, TextObject};
+use vansoncraft_doc::{AppearanceItem, AreaFit, Dash, LineJoin, Node, NodeKind};
+use vansoncraft_geom::{PathData, Point};
 
 use crate::tests_fontchange::fonts_steady;
 use crate::*;
@@ -70,7 +70,7 @@ fn character_and_object_strokes_on_type_are_dashed() {
     assert!(transitions(&render_text("I", solid.clone(), vec![])) <= 2, "a solid stroke is continuous");
     let chars = CharStyle { stroke_dash: dash.clone(), ..solid };
     assert!(transitions(&render_text("I", chars, vec![])) >= 6, "character dashes");
-    let mut st = vectorcraft_doc::StrokeLayer::new(Paint::solid(Color::BLACK), 3.0);
+    let mut st = vansoncraft_doc::StrokeLayer::new(Paint::solid(Color::BLACK), 3.0);
     st.dash = dash;
     let object = render_text("I", none, vec![AppearanceItem::Stroke(st.clone())]);
     assert!(transitions(&object) >= 6, "object dashes");
@@ -87,7 +87,7 @@ fn character_and_object_strokes_on_type_are_dashed() {
 /// glyphs and leaves them unpainted, an inside one stays within them, as on paths.
 #[test]
 fn aligned_character_strokes_keep_to_their_side_of_the_glyphs() {
-    use vectorcraft_doc::StrokeAlign;
+    use vansoncraft_doc::StrokeAlign;
     let glyph = ink(&render_text("I", CharStyle::default(), vec![]));
     let reach = |b: (u32, u32, u32, u32)| {
         let d = |a: u32, b: u32| a as i64 - b as i64;
@@ -203,7 +203,7 @@ fn scaling_fitted_area_type_rebuilds_its_glyph_geometry() {
         Some(NodeKind::Text(t)) => (**t).clone(),
         _ => panic!("the text object"),
     };
-    let fit = |d: &Document| vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &text(d)).fit_scale;
+    let fit = |d: &Document| vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &text(d)).fit_scale;
     let view = Affine::scale(20.0);
     let opts = RenderOptions::default();
     let mut r = Renderer::new();
@@ -223,7 +223,7 @@ fn scaling_fitted_area_type_rebuilds_its_glyph_geometry() {
     // The words set at the earlier fit, which reusing the earlier layout would draw, draw other pixels.
     let mut stale = d.clone();
     if let Some(Node { kind: NodeKind::Text(t), .. }) = stale.node_mut(id) {
-        **t = vectorcraft_text::scaled(t, before);
+        **t = vansoncraft_text::scaled(t, before);
     }
     assert_eq!(fit(&stale), 1.0, "the earlier fit's words fit as they are");
     assert_ne!(scaled.pixels, Renderer::new().render(&stale, SIZE, SIZE, view, &opts).pixels, "the new fit changes the pixels");

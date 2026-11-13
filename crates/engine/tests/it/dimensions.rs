@@ -1,6 +1,6 @@
 //! Linked measurements, history, portable artwork and hostile command input.
 use serde_json::{Value, json};
-use vectorcraft_engine::{
+use vansoncraft_engine::{
     Session, ViewInfo,
     doc::{Document, NodeId, NodeKind},
     tools::{Mods, PointerEvent, PointerKind, ToolKey},
@@ -30,7 +30,7 @@ fn text(s: &Session, id: u64) -> String {
     let n = s.doc().unwrap().doc.node(NodeId(id)).unwrap();
     n.children().unwrap().iter().find_map(|n| if let NodeKind::Text(t) = &n.kind { Some(t.plain_text()) } else { None }).unwrap()
 }
-fn recipe(s: &Session, id: u64) -> vectorcraft_doc::dimension::Dimension {
+fn recipe(s: &Session, id: u64) -> vansoncraft_doc::dimension::Dimension {
     (**s.doc().unwrap().doc.node(NodeId(id)).unwrap().extras().dimension.as_ref().unwrap()).clone()
 }
 fn ev(s: &mut Session, kind: PointerKind, x: f64, y: f64) {
@@ -219,7 +219,7 @@ fn clicking_two_points_then_placing_measures_between_them() {
 /// their vertical distance. The dimension stays linked to the anchors it measures.
 #[test]
 fn two_points_measure_horizontally_vertically_or_aligned() {
-    use vectorcraft_doc::dimension::Orientation;
+    use vansoncraft_doc::dimension::Orientation;
     for ((x, y), want, orientation) in [
         ((210.0, 120.0), "100.00 pt", Orientation::Horizontal),
         ((90.0, 380.0), "100.00 pt", Orientation::Horizontal),
@@ -253,7 +253,7 @@ fn two_points_measure_horizontally_vertically_or_aligned() {
 /// counts as clicking again on the second point.
 #[test]
 fn clicking_again_by_the_second_point_places_an_aligned_dimension() {
-    use vectorcraft_doc::dimension::Orientation;
+    use vansoncraft_doc::dimension::Orientation;
     let click = |s: &mut Session, x: f64, y: f64, shift: bool| {
         for kind in [PointerKind::Move, PointerKind::Down, PointerKind::Up] {
             let e = PointerEvent::new(kind, x, y).with_mods(Mods { shift, ..Mods::default() });
@@ -283,7 +283,7 @@ fn clicking_again_by_the_second_point_places_an_aligned_dimension() {
 /// its horizontal or vertical length.
 #[test]
 fn a_segment_drag_measures_horizontally_vertically_or_aligned() {
-    use vectorcraft_doc::dimension::Orientation;
+    use vansoncraft_doc::dimension::Orientation;
     for (press, (x, y), want, orientation) in [
         ((150.0, 250.0), (210.0, 120.0), "100.00 pt", Orientation::Horizontal),
         ((110.0, 290.0), (210.0, 120.0), "100.00 pt", Orientation::Horizontal),
@@ -309,7 +309,7 @@ fn a_segment_drag_measures_horizontally_vertically_or_aligned() {
 /// vertical distance is the distance between them, and they have no horizontal distance.
 #[test]
 fn points_on_a_vertical_line_measure_aligned() {
-    use vectorcraft_doc::dimension::Orientation;
+    use vansoncraft_doc::dimension::Orientation;
     for (x, y) in [(60.0, 200.0), (160.0, 80.0), (100.0, 40.0), (40.0, 340.0), (100.0, 300.0)] {
         let mut s = session();
         s.select_tool("dimension", ViewInfo::default()).unwrap();
@@ -357,7 +357,7 @@ fn horizontal_and_vertical_dimensions_draw_lines_along_their_axis() {
 /// new horizontal distance, and 0 when the points come one above the other. It is not removed.
 #[test]
 fn turned_horizontal_dimensions_stay_horizontal() {
-    use vectorcraft_doc::dimension::Orientation;
+    use vansoncraft_doc::dimension::Orientation;
     let mut s = session();
     let id = run(&mut s, "dimension.create", json!({"a":[100,200],"b":[200,260],"orientation":"horizontal","offset":-50}))["id"].as_u64().unwrap();
     run(&mut s, "select.set", json!({"ids":[id]}));
@@ -439,7 +439,7 @@ fn a_linked_horizontal_dimension_below_or_between_its_points_follows_turned_art(
 /// A dimension recipe without an orientation reads as aligned.
 #[test]
 fn a_dimension_without_an_orientation_reads_as_aligned() {
-    use vectorcraft_doc::dimension::{Dimension, Orientation};
+    use vansoncraft_doc::dimension::{Dimension, Orientation};
     let mut s = session();
     let id = run(&mut s, "dimension.create", json!({"a":[0,0],"b":[30,40]}))["id"].as_u64().unwrap();
     let v = serde_json::to_value(recipe(&s, id)).unwrap();
@@ -560,8 +560,8 @@ fn dimension_anchor_links_and_native_file_survive_source_moves() {
     let second = edge(&mut s);
     let id=run(&mut s,"dimension.create",json!({"a":[100,100],"b":[172,100],"source":{"kind":"points","a":{"node":first,"subpath":0,"anchor":0},"b":{"node":second,"subpath":0,"anchor":1},"vertex":null},"options":{"units":"pt","precision":0}}))["id"].as_u64().unwrap();
     assert_eq!(text(&s, id), "72 pt");
-    let bytes = vectorcraft_format::save(&s.doc().unwrap().doc, false);
-    let doc = vectorcraft_format::load(&bytes).unwrap();
+    let bytes = vansoncraft_format::save(&s.doc().unwrap().doc, false);
+    let doc = vansoncraft_format::load(&bytes).unwrap();
     let mut s = Session::new();
     s.add_document(doc, None);
     run(&mut s, "select.set", json!({"ids":[second]}));
@@ -570,11 +570,11 @@ fn dimension_anchor_links_and_native_file_survive_source_moves() {
 }
 
 /// The anchors of path `id`'s first subpath.
-fn anchors(s: &Session, id: u64) -> Vec<vectorcraft_geom::Point> {
+fn anchors(s: &Session, id: u64) -> Vec<vansoncraft_geom::Point> {
     let doc = &s.doc().unwrap().doc;
     doc.node(NodeId(id)).unwrap().path_data().unwrap().subpaths[0].anchors.iter().map(|a| a.p).collect()
 }
-fn near(p: vectorcraft_geom::Point, q: vectorcraft_geom::Point) -> bool {
+fn near(p: vansoncraft_geom::Point, q: vansoncraft_geom::Point) -> bool {
     p.distance(q) < 1e-6
 }
 /// Clicks with the Dimension tool at each point in turn.
@@ -622,7 +622,7 @@ fn a_dimension_to_a_point_off_the_art_moves_with_the_art() {
     run(&mut s, "select.set", json!({"ids":[rect]}));
     run(&mut s, "object.move", json!({"dx":40,"dy":-30}));
     let d = recipe(&s, id);
-    let v = vectorcraft_geom::Vec2::new(40.0, -30.0);
+    let v = vansoncraft_geom::Vec2::new(40.0, -30.0);
     assert!(near(d.a, before.a + v) && near(d.b, before.b + v), "{before:?} → {d:?}");
     assert!((d.length - before.length).abs() < 1e-6 && (d.offset - before.offset).abs() < 1e-6);
     run(&mut s, "object.scale", json!({"sx":200,"sy":200}));
@@ -658,12 +658,12 @@ fn a_dimension_whose_art_changes_its_anchors_stays_where_it_was() {
 /// top edge is below that edge's points after a flip top to bottom.
 #[test]
 fn a_linked_dimension_of_reflected_art_has_its_line_on_the_reflected_side() {
-    use vectorcraft_doc::dimension::Orientation;
+    use vansoncraft_doc::dimension::Orientation;
     for orientation in ["aligned", "horizontal"] {
         let mut s = session();
         let rect = run(&mut s, "shape.rectangle", json!({"x":100,"y":100,"width":100,"height":100}))["id"].as_u64().unwrap();
         let at = anchors(&s, rect);
-        let top = |p: vectorcraft_geom::Point| (p.y - 100.0).abs() < 1e-9;
+        let top = |p: vansoncraft_geom::Point| (p.y - 100.0).abs() < 1e-9;
         let (i, j) = (at.iter().position(|p| top(*p)).unwrap(), at.iter().rposition(|p| top(*p)).unwrap());
         let anchor = |anchor: usize| json!({"node":rect,"subpath":0,"anchor":anchor});
         let src = json!({"kind":"points","a":anchor(i),"b":anchor(j)});
@@ -700,7 +700,7 @@ fn a_dimension_of_art_reflected_across_its_points_changes_sides() {
     run(&mut s, "select.set", json!({"ids":[curve]}));
     run(&mut s, "object.reflect", json!({"axis":"horizontal","origin":[0,200]}));
     let d = recipe(&s, id);
-    assert_eq!((d.a, d.b), (vectorcraft_geom::Point::new(100.0, 200.0), vectorcraft_geom::Point::new(200.0, 200.0)));
+    assert_eq!((d.a, d.b), (vansoncraft_geom::Point::new(100.0, 200.0), vansoncraft_geom::Point::new(200.0, 200.0)));
     assert!((d.line_ends().0.y - 230.0).abs() < 1e-6, "below with the arch: {:?}", d.line_ends());
     // Reflected together with the art, it ends in the same place.
     run(&mut s, "edit.undo", json!({}));
@@ -782,7 +782,7 @@ fn a_dimension_to_a_point_off_a_line_follows_the_line() {
     let at = anchors(&s, line);
     let (o, u) = (at[0], at[1] - at[0]);
     // 50 along the line and 60 across it before, now in the line's new frame at twice the size.
-    let want = o + u * 0.5 + vectorcraft_geom::Vec2::new(-u.y, u.x) * 0.6;
+    let want = o + u * 0.5 + vansoncraft_geom::Vec2::new(-u.y, u.x) * 0.6;
     let d = recipe(&s, id);
     assert!(near(d.a, o) && near(d.b, want), "{d:?} want {want:?}");
     assert!((d.length - 2.0 * (50.0f64.hypot(60.0))).abs() < 1e-6);
@@ -795,15 +795,15 @@ fn a_point_on_a_segment_stays_on_it_when_the_segment_curves() {
     let rect = run(&mut s, "shape.rectangle", json!({"x":100,"y":100,"width":100,"height":100}))["id"].as_u64().unwrap();
     let id = clicks(&mut s, &[(100.0, 100.0), (200.0, 150.0), (120.0, 90.0)]);
     let at = anchors(&s, rect);
-    assert!(near(at[1], vectorcraft_geom::Point::new(200.0, 100.0)) && near(at[2], vectorcraft_geom::Point::new(200.0, 200.0)), "{at:?}");
-    let a = |p: vectorcraft_geom::Point| json!({"x":p.x,"y":p.y});
+    assert!(near(at[1], vansoncraft_geom::Point::new(200.0, 100.0)) && near(at[2], vansoncraft_geom::Point::new(200.0, 200.0)), "{at:?}");
+    let a = |p: vansoncraft_geom::Point| json!({"x":p.x,"y":p.y});
     let mut curved = vec![a(at[0]), a(at[1]), a(at[2]), a(at[3])];
     curved[1]["out"] = json!([240, 110]);
     curved[2]["in"] = json!([240, 190]);
     run(&mut s, "path.setAnchors", json!({"id":rect,"subpaths":[{"anchors":curved,"closed":true}]}));
     let d = recipe(&s, id);
     assert!(d.source.is_some(), "still linked");
-    assert!(near(d.b, vectorcraft_geom::Point::new(230.0, 150.0)), "on the curve: {:?}", d.b);
+    assert!(near(d.b, vansoncraft_geom::Point::new(230.0, 150.0)), "on the curve: {:?}", d.b);
 }
 
 /// The line of a linked dimension of a curved two-anchor path goes to the reflected side when the
@@ -838,18 +838,18 @@ fn a_point_off_an_arch_is_reflected_with_the_arch() {
     let id = clicks(&mut s, &[(100.0, 200.0), (150.0, 120.0), (60.0, 120.0)]);
     let d = recipe(&s, id);
     assert!(d.source.as_ref().is_some_and(|src| src.nodes() == vec![NodeId(curve), NodeId(curve)]), "{:?}", d.source);
-    assert!(near(d.b, vectorcraft_geom::Point::new(150.0, 120.0)), "{:?}", d.b);
+    assert!(near(d.b, vansoncraft_geom::Point::new(150.0, 120.0)), "{:?}", d.b);
     run(&mut s, "select.set", json!({"ids":[curve]}));
     run(&mut s, "object.reflect", json!({"axis":"horizontal","origin":[0,200]}));
     let d = recipe(&s, id);
-    assert!(near(d.a, vectorcraft_geom::Point::new(100.0, 200.0)), "{:?}", d.a);
-    assert!(near(d.b, vectorcraft_geom::Point::new(150.0, 280.0)), "below with the arch: {:?}", d.b);
+    assert!(near(d.a, vansoncraft_geom::Point::new(100.0, 200.0)), "{:?}", d.a);
+    assert!(near(d.b, vansoncraft_geom::Point::new(150.0, 280.0)), "below with the arch: {:?}", d.b);
     run(&mut s, "edit.undo", json!({}));
     run(&mut s, "select.set", json!({"ids":[curve]}));
     run(&mut s, "object.reflect", json!({"axis":"vertical","origin":[150,0]}));
     let d = recipe(&s, id);
-    assert!(near(d.a, vectorcraft_geom::Point::new(200.0, 200.0)), "{:?}", d.a);
-    assert!(near(d.b, vectorcraft_geom::Point::new(150.0, 120.0)), "above with the arch: {:?}", d.b);
+    assert!(near(d.a, vansoncraft_geom::Point::new(200.0, 200.0)), "{:?}", d.a);
+    assert!(near(d.b, vansoncraft_geom::Point::new(150.0, 120.0)), "above with the arch: {:?}", d.b);
 }
 
 /// A point beside a curve that is almost straight is still held against it.
@@ -864,7 +864,7 @@ fn a_point_beside_an_almost_straight_curve_follows_it() {
     run(&mut s, "select.set", json!({"ids":[curve]}));
     run(&mut s, "object.move", json!({"dx":40,"dy":-30}));
     let d = recipe(&s, id);
-    assert!(near(d.b, vectorcraft_geom::Point::new(190.0, 120.0)), "{:?}", d.b);
+    assert!(near(d.b, vansoncraft_geom::Point::new(190.0, 120.0)), "{:?}", d.b);
 }
 
 /// A point off a loop whose two anchors are in one place is held against the loop's handles.
@@ -879,7 +879,7 @@ fn a_point_off_a_loop_with_its_anchors_in_one_place_follows_it() {
     run(&mut s, "select.set", json!({"ids":[curve]}));
     run(&mut s, "object.move", json!({"dx":40,"dy":-30}));
     let d = recipe(&s, id);
-    assert!(near(d.b, vectorcraft_geom::Point::new(140.0, 30.0)), "{:?}", d.b);
+    assert!(near(d.b, vansoncraft_geom::Point::new(140.0, 30.0)), "{:?}", d.b);
 }
 
 /// Beside a straight two-anchor line, a point is moved by a reflection as a half turn would move
@@ -893,8 +893,8 @@ fn a_point_beside_a_reflected_line_moves_as_a_half_turn_would() {
     run(&mut s, "object.reflect", json!({"axis":"vertical","origin":[150,0]}));
     let d = recipe(&s, id);
     assert!(d.source.is_some());
-    assert!(near(d.a, vectorcraft_geom::Point::new(200.0, 100.0)), "{:?}", d.a);
-    assert!(near(d.b, vectorcraft_geom::Point::new(150.0, 40.0)), "{:?}", d.b);
+    assert!(near(d.a, vansoncraft_geom::Point::new(200.0, 100.0)), "{:?}", d.a);
+    assert!(near(d.b, vansoncraft_geom::Point::new(150.0, 40.0)), "{:?}", d.b);
 }
 
 /// Opening a closed path that a dimension measures leaves the dimension where it was, no longer
@@ -906,7 +906,7 @@ fn a_dimension_whose_art_is_opened_stays_where_it_was() {
     let id = clicks(&mut s, &[(100.0, 100.0), (200.0, 150.0), (120.0, 90.0)]);
     let before = recipe(&s, id);
     let label = text(&s, id);
-    let a = |p: vectorcraft_geom::Point| json!({"x":p.x,"y":p.y});
+    let a = |p: vansoncraft_geom::Point| json!({"x":p.x,"y":p.y});
     let open: Vec<Value> = anchors(&s, rect).into_iter().map(a).collect();
     run(&mut s, "path.setAnchors", json!({"id":rect,"subpaths":[{"anchors":open,"closed":false}]}));
     let d = recipe(&s, id);
@@ -945,14 +945,14 @@ fn free_points_survive_a_native_file() {
     let rect = run(&mut s, "shape.rectangle", json!({"x":100,"y":100,"width":100,"height":100}))["id"].as_u64().unwrap();
     let id = clicks(&mut s, &[(200.0, 150.0), (330.0, 260.0), (260.0, 330.0)]);
     let before = recipe(&s, id);
-    let doc = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let doc = vansoncraft_format::load(&vansoncraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
     let mut reopened = Session::new();
     reopened.add_document(doc, None);
     assert_eq!(recipe(&reopened, id).source, before.source);
     run(&mut reopened, "select.set", json!({"ids":[rect]}));
     run(&mut reopened, "object.move", json!({"dx":40,"dy":-30}));
     let d = recipe(&reopened, id);
-    let v = vectorcraft_geom::Vec2::new(40.0, -30.0);
+    let v = vansoncraft_geom::Vec2::new(40.0, -30.0);
     assert!(near(d.a, before.a + v) && near(d.b, before.b + v), "{before:?} → {d:?}");
 }
 
@@ -963,7 +963,7 @@ fn a_dimension_that_cannot_be_drawn_again_keeps_its_art() {
     let mut s = session();
     let rect = run(&mut s, "shape.rectangle", json!({"x":100,"y":100,"width":100,"height":100}))["id"].as_u64().unwrap();
     let id = clicks(&mut s, &[(100.0, 100.0), (200.0, 100.0), (150.0, 80.0)]);
-    let saved = vectorcraft_format::save(&s.doc().unwrap().doc, false);
+    let saved = vansoncraft_format::save(&s.doc().unwrap().doc, false);
     let mut v: Value = serde_json::from_slice(&saved).unwrap();
     fn bad_precision(v: &mut Value) {
         match v {
@@ -979,7 +979,7 @@ fn a_dimension_that_cannot_be_drawn_again_keeps_its_art() {
     }
     bad_precision(&mut v);
     let mut reopened = Session::new();
-    reopened.add_document(vectorcraft_format::load(&serde_json::to_vec(&v).unwrap()).unwrap(), None);
+    reopened.add_document(vansoncraft_format::load(&serde_json::to_vec(&v).unwrap()).unwrap(), None);
     let art = reopened.doc().unwrap().doc.node(NodeId(id)).unwrap().children().unwrap().clone();
     run(&mut reopened, "select.set", json!({"ids":[rect]}));
     run(&mut reopened, "edit.clear", json!({}));
@@ -1077,7 +1077,7 @@ fn an_expanded_dimension_stays_plain_art() {
     assert_eq!(text(&s, other), "20.00 in", "the live dimension stays, no longer linked");
     assert!(recipe(&s, other).source.is_none());
     // Saved and opened again, it is still plain art.
-    let doc = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let doc = vansoncraft_format::load(&vansoncraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
     let mut reopened = Session::new();
     reopened.add_document(doc, None);
     stays_plain_art(&mut reopened, id);
@@ -1314,7 +1314,7 @@ fn a_dimension_selected_with_art_that_has_nothing_to_expand_changes_nothing() {
         let info = run(&mut s, "object.expand.info", json!({}));
         assert_eq!(info["appearance"], json!(false), "grouped: {grouped}: Object › Expand… is not dimmed for the dimension's label");
         assert_eq!(info["stroke"], json!(false), "grouped: {grouped}: {info}");
-        assert!(!vectorcraft_engine::cmd::expand::has_appearance(&s), "grouped: {grouped}: the menus read this");
+        assert!(!vansoncraft_engine::cmd::expand::has_appearance(&s), "grouped: {grouped}: the menus read this");
         for (command, p) in [
             ("object.expand", json!({})),
             ("object.expand", json!({"object":false,"fill":false})),
@@ -1552,9 +1552,9 @@ fn dimension_options_are_persistent_and_invalid_updates_report_errors() {
     s.set_tool_option_cmd(&json!({"tool":"dimension","values":{"style":{"scale":"10:1","units":"mm","precision":3},"mode":"radial"}})).unwrap();
     assert_eq!(s.tool_options_of("dimension")["style"]["scale"], "10:1");
     assert!(s.set_tool_option_cmd(&json!({"tool":"dimension","values":{"style":{"scale":"1:0"}}})).is_err());
-    let o: vectorcraft_doc::dimension::DimensionOptions = serde_json::from_value(s.tool_options_of("dimension")["style"].clone()).unwrap();
+    let o: vansoncraft_doc::dimension::DimensionOptions = serde_json::from_value(s.tool_options_of("dimension")["style"].clone()).unwrap();
     assert_eq!(o.label(72.0, false).unwrap(), "2.540 mm");
-    let picas: vectorcraft_doc::dimension::DimensionOptions = serde_json::from_value(json!({"units":"pc","precision":1})).unwrap();
+    let picas: vansoncraft_doc::dimension::DimensionOptions = serde_json::from_value(json!({"units":"pc","precision":1})).unwrap();
     assert_eq!(picas.label(72.0, false).unwrap(), "6.0 pc");
     let prefs = serde_json::to_value(&s.prefs).unwrap();
     let mut fresh = Session::new();
@@ -1634,7 +1634,7 @@ fn unknown_dimension_options_are_refused_by_commands_but_a_newer_file_still_open
     assert!(bad.unwrap_err().to_string().contains("Unknown dimension option color"));
     assert!(s.set_tool_option_cmd(&json!({"tool":"dimension","values":{"style":{"precison":2}}})).is_err());
     let id = dim(&mut s, line);
-    let saved = vectorcraft_format::save(&s.doc().unwrap().doc, false);
+    let saved = vansoncraft_format::save(&s.doc().unwrap().doc, false);
     let mut v: Value = serde_json::from_slice(&saved).unwrap();
     // A later version's dimension carries fields this one doesn't know.
     fn add_unknown(v: &mut Value) {
@@ -1653,7 +1653,7 @@ fn unknown_dimension_options_are_refused_by_commands_but_a_newer_file_still_open
         }
     }
     add_unknown(&mut v);
-    let doc = vectorcraft_format::load(&serde_json::to_vec(&v).unwrap()).unwrap();
+    let doc = vansoncraft_format::load(&serde_json::to_vec(&v).unwrap()).unwrap();
     assert!(doc.node(NodeId(id)).unwrap().extras().dimension.is_some());
 }
 
@@ -1661,7 +1661,7 @@ fn unknown_dimension_options_are_refused_by_commands_but_a_newer_file_still_open
 /// second click will pick (#2432), not the raw pointer.
 #[test]
 fn shift_shows_the_constrained_line_while_picking_the_second_point() {
-    use vectorcraft_engine::tools::Overlay;
+    use vansoncraft_engine::tools::Overlay;
     let mut s = session();
     s.select_tool("dimension", ViewInfo::default()).unwrap();
     ev(&mut s, PointerKind::Down, 300.0, 300.0);
@@ -1693,7 +1693,7 @@ fn clicking_near_a_line_snaps_the_measured_point_onto_it() {
 /// snap before the click, and the dimension stays linked to the anchors (#2516).
 #[test]
 fn both_points_snap_onto_anchors_with_a_visible_indicator() {
-    use vectorcraft_engine::tools::Overlay;
+    use vansoncraft_engine::tools::Overlay;
     let mut s = session();
     let line = edge(&mut s);
     s.select_tool("dimension", ViewInfo::default()).unwrap();
@@ -1725,7 +1725,7 @@ fn both_points_snap_onto_anchors_with_a_visible_indicator() {
 /// the construction guide through the first. The dimension measures between the snapped points.
 #[test]
 fn linear_picks_show_and_snap_to_smart_guides() {
-    use vectorcraft_engine::tools::Overlay;
+    use vansoncraft_engine::tools::Overlay;
     let mut s = session();
     run(&mut s, "shape.rectangle", json!({"x":300,"y":200,"width":80,"height":60}));
     run(&mut s, "select.none", json!({}));
@@ -1754,7 +1754,7 @@ fn linear_picks_show_and_snap_to_smart_guides() {
 
 /// The page content streams of exported PDF `v`, inflated.
 fn pdf_content(v: &Value) -> String {
-    let bytes = vectorcraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap();
+    let bytes = vansoncraft_format::base64_decode(v["dataBase64"].as_str().unwrap()).unwrap();
     let mut out = String::new();
     let mut rest = &bytes[..];
     while let Some(at) = rest.windows(7).position(|w| w == b"stream\n" || w == b"stream\r") {
@@ -1788,7 +1788,7 @@ fn dimension_colours_follow_the_document_colour_model() {
         v
     };
     let black = colours(&s, id);
-    assert!(!black.is_empty() && black.iter().all(|c| *c == vectorcraft_color::Color::cmyk(0.0, 0.0, 0.0, 1.0)), "{black:?}");
+    assert!(!black.is_empty() && black.iter().all(|c| *c == vansoncraft_color::Color::cmyk(0.0, 0.0, 0.0, 1.0)), "{black:?}");
     let pdf = pdf_content(&run(&mut s, "document.exportPdf", json!({"preset":"PDF/X-4:2010"})));
     // PDF/X-4 paints in the output intent's CMYK space: `/c0 CS 0 0 0 1 SCN` strokes, `scn` fills.
     let operands = |op: &str| pdf.match_indices(op).map(|(i, _)| pdf[i.saturating_sub(7)..i].to_string()).collect::<Vec<_>>();
@@ -1797,25 +1797,25 @@ fn dimension_colours_follow_the_document_colour_model() {
     assert!(strokes.iter().chain(&fills).all(|v| v == "0 0 0 1"), "K-only colours: {strokes:?} {fills:?}");
     run(&mut s, "dimension.update", json!({"ids":[id],"options":{"lineColor":[255,0,0]}}));
     let red = colours(&s, id);
-    assert!(red.iter().any(|c| matches!(c, vectorcraft_color::Color::Cmyk { m, y, .. } if *m > 0.5 && *y > 0.5)), "{red:?}");
-    assert!(red.iter().all(|c| matches!(c, vectorcraft_color::Color::Cmyk { .. })), "{red:?}");
+    assert!(red.iter().any(|c| matches!(c, vansoncraft_color::Color::Cmyk { m, y, .. } if *m > 0.5 && *y > 0.5)), "{red:?}");
+    assert!(red.iter().all(|c| matches!(c, vansoncraft_color::Color::Cmyk { .. })), "{red:?}");
     // RGB documents are unchanged.
     let mut s = session();
     let line = edge(&mut s);
     let id = dim(&mut s, line);
-    assert!(colours(&s, id).iter().all(|c| *c == vectorcraft_color::Color::rgb8(0, 0, 0)));
+    assert!(colours(&s, id).iter().all(|c| *c == vansoncraft_color::Color::rgb8(0, 0, 0)));
     // Document Color Mode redraws dimensions in the new mode: K-only black in CMYK, RGB black back
     // in RGB (not a profile conversion of the old art).
-    let k = vectorcraft_color::Color::cmyk(0.0, 0.0, 0.0, 1.0);
+    let k = vansoncraft_color::Color::cmyk(0.0, 0.0, 0.0, 1.0);
     run(&mut s, "file.documentColorMode", json!({"mode":"cmyk"}));
     let after = colours(&s, id);
     assert!(!after.is_empty() && after.iter().all(|c| *c == k), "{after:?}");
     run(&mut s, "file.documentColorMode", json!({"mode":"rgb"}));
-    assert!(colours(&s, id).iter().all(|c| *c == vectorcraft_color::Color::rgb8(0, 0, 0)), "{:?}", colours(&s, id));
+    assert!(colours(&s, id).iter().all(|c| *c == vansoncraft_color::Color::rgb8(0, 0, 0)), "{:?}", colours(&s, id));
     // A CMYK file saved with RGB dimension art (before dimensions followed the colour mode) opens
     // with its dimensions redrawn in CMYK.
     let mut old = (*s.doc().unwrap().doc).clone();
-    old.color_mode = vectorcraft_doc::ColorMode::Cmyk;
+    old.color_mode = vansoncraft_doc::ColorMode::Cmyk;
     s.add_document(old, None);
     let opened = colours(&s, id);
     assert!(!opened.is_empty() && opened.iter().all(|c| *c == k), "{opened:?}");
@@ -1824,20 +1824,20 @@ fn dimension_colours_follow_the_document_colour_model() {
     let label = {
         let mut found = None;
         old.node(NodeId(id)).unwrap().walk(&mut |n| {
-            if matches!(n.kind, vectorcraft_doc::NodeKind::Text(_)) {
+            if matches!(n.kind, vansoncraft_doc::NodeKind::Text(_)) {
                 found = Some(n.id);
             }
         });
         found.expect("a dimension label")
     };
-    if let Some(vectorcraft_doc::NodeKind::Text(t)) = old.node_mut(label).map(|n| &mut n.kind) {
+    if let Some(vansoncraft_doc::NodeKind::Text(t)) = old.node_mut(label).map(|n| &mut n.kind) {
         for r in &mut t.runs {
-            r.style.fill = vectorcraft_color::Paint::solid(vectorcraft_color::Color::rgb8(0, 0, 0));
+            r.style.fill = vansoncraft_color::Paint::solid(vansoncraft_color::Color::rgb8(0, 0, 0));
         }
     }
     s.add_document(old, None);
     let runs = |s: &Session| match &s.doc().unwrap().doc.node(label).unwrap().kind {
-        vectorcraft_doc::NodeKind::Text(t) => t.runs.iter().filter_map(|r| r.style.fill.color()).collect::<Vec<_>>(),
+        vansoncraft_doc::NodeKind::Text(t) => t.runs.iter().filter_map(|r| r.style.fill.color()).collect::<Vec<_>>(),
         _ => Vec::new(),
     };
     assert!(!runs(&s).is_empty() && runs(&s).iter().all(|c| *c == k), "{:?}", runs(&s));

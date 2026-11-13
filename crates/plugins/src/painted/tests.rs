@@ -1,6 +1,6 @@
 use serde_json::json;
-use vectorcraft_color::{Color, Paint, Swatch};
-use vectorcraft_doc::{Appearance, AppearanceItem, Document, FillLayer, StrokeLayer};
+use vansoncraft_color::{Color, Paint, Swatch};
+use vansoncraft_doc::{Appearance, AppearanceItem, Document, FillLayer, StrokeLayer};
 
 use super::*;
 

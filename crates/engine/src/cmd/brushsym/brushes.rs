@@ -143,7 +143,7 @@ fn set_stroke_brush(items: &mut [AppearanceItem], from: &str, to: Option<&str>) 
 /// Whether a stroke in `n` (its opacity masks included) paints with brush `name`.
 fn paints_with(n: &Node, name: &str) -> bool {
     let mut hit = false;
-    vectorcraft_doc::swatches::walk_with_masks(n, &mut |m| {
+    vansoncraft_doc::swatches::walk_with_masks(n, &mut |m| {
         hit |= m.appearance.items.iter().any(|i| matches!(i, AppearanceItem::Stroke(st) if st.brush.as_deref() == Some(name)));
     });
     hit
@@ -167,7 +167,7 @@ fn set_brush_in(n: &mut Node, from: &str, to: Option<&str>) {
 
 /// Returns the art a brush is made of ([`Brush::art`]) for editing.
 fn brush_art_mut(b: &mut Brush) -> Vec<&mut Node> {
-    use vectorcraft_brush::BrushKind;
+    use vansoncraft_brush::BrushKind;
     match &mut b.kind {
         BrushKind::Scatter(s) => vec![&mut s.art],
         BrushKind::Art(a) => vec![&mut a.art],
@@ -251,7 +251,7 @@ pub(super) fn brush_new(s: &mut Session, p: &Value) -> Result<Value> {
 
 /// Whether art `n` has width for a brush to be made of, with symbol instances measured by their
 /// symbols' art in `symbols`.
-fn has_width(n: &Node, symbols: &vectorcraft_doc::SymbolBoxes) -> bool {
+fn has_width(n: &Node, symbols: &vansoncraft_doc::SymbolBoxes) -> bool {
     n.geometric_bounds_with(symbols).is_some_and(|b| b.width() > 1e-6)
 }
 
@@ -364,7 +364,7 @@ fn stroke_brushes(items: &[AppearanceItem], out: &mut Vec<String>) {
 /// Adds the names of the brushes the strokes in `n` (its opacity masks included) paint with to
 /// `out`.
 fn art_brushes(n: &Node, out: &mut Vec<String>) {
-    vectorcraft_doc::swatches::walk_with_masks(n, &mut |m| stroke_brushes(&m.appearance.items, out));
+    vansoncraft_doc::swatches::walk_with_masks(n, &mut |m| stroke_brushes(&m.appearance.items, out));
 }
 
 /// The brushes no stroke paints with. Strokes in the art (opacity masks included), symbols, graph
@@ -507,7 +507,7 @@ fn no_art(name: &str) -> String {
 }
 
 /// Tile `i` of `p` ([`TILE_NAMES`] order): its art and its repeat frame, when it has art.
-fn tile(p: &brush::PatternBrush, i: usize) -> Option<(&Node, Option<vectorcraft_geom::Rect>)> {
+fn tile(p: &brush::PatternBrush, i: usize) -> Option<(&Node, Option<vansoncraft_geom::Rect>)> {
     match i {
         0 => Some((&p.side, p.side_frame)),
         1 => p.outer_corner.as_ref().map(|n| (n, p.outer_corner_frame)),
@@ -519,7 +519,7 @@ fn tile(p: &brush::PatternBrush, i: usize) -> Option<(&Node, Option<vectorcraft_
 
 /// Gives tile `i` of `p` ([`TILE_NAMES`] order) the art `art` and the repeat frame `frame`. The tile
 /// no longer comes from a pattern swatch, and a corner draws its own art.
-fn set_tile(p: &mut brush::PatternBrush, i: usize, art: Node, frame: Option<vectorcraft_geom::Rect>) {
+fn set_tile(p: &mut brush::PatternBrush, i: usize, art: Node, frame: Option<vansoncraft_geom::Rect>) {
     match i {
         0 => (p.side, p.side_frame, p.side_swatch) = (art, frame, None),
         1 => (p.outer_corner, p.outer_corner_frame, p.outer_corner_swatch, p.outer_source) = (Some(art), frame, None, None),
@@ -534,7 +534,7 @@ fn set_tile(p: &mut brush::PatternBrush, i: usize, art: Node, frame: Option<vect
 /// ([`TILE_NAMES`]), with an unpainted rectangle at the back of a tile that has a repeat frame
 /// marking that frame. `None` for a brush that is not made of art. Symbol instances in the art are
 /// measured by their symbols' art in `symbols`.
-fn placed_art(b: &Brush, symbols: &vectorcraft_doc::SymbolBoxes) -> Option<Node> {
+fn placed_art(b: &Brush, symbols: &vansoncraft_doc::SymbolBoxes) -> Option<Node> {
     match &b.kind {
         BrushKind::Scatter(sc) => Some(sc.art.clone()),
         BrushKind::Art(a) => Some(a.art.clone()),
@@ -547,8 +547,8 @@ fn placed_art(b: &Brush, symbols: &vectorcraft_doc::SymbolBoxes) -> Option<Node>
                 if let Some(f) = frame {
                     let marker = Node::path(
                         NodeId(0),
-                        vectorcraft_geom::shapes::rectangle(f),
-                        vectorcraft_doc::Appearance::basic(Paint::None, Paint::None, 1.0),
+                        vansoncraft_geom::shapes::rectangle(f),
+                        vansoncraft_doc::Appearance::basic(Paint::None, Paint::None, 1.0),
                     );
                     children.push(Arc::new(marker));
                 }
@@ -557,7 +557,7 @@ fn placed_art(b: &Brush, symbols: &vectorcraft_doc::SymbolBoxes) -> Option<Node>
                 g.name = Some((*tile_name).to_string());
                 let Some(r) = g.geometric_bounds_with(symbols) else { continue };
                 // Each tile sits right of the one before it, centered on the line y = 0.
-                g.transform(vectorcraft_geom::Affine::translate((x - r.x0, -r.center().y)), false);
+                g.transform(vansoncraft_geom::Affine::translate((x - r.x0, -r.center().y)), false);
                 x += r.width() + TILE_GAP;
                 tiles.push(Arc::new(g));
             }
@@ -580,7 +580,7 @@ pub(super) fn brush_place_art(s: &mut Session, p: &Value) -> Result<Value> {
     let symbols = d.symbol_boxes();
     let mut art = placed_art(&b, &symbols).ok_or_else(|| bad(C, no_art(&name)))?;
     if let Some(r) = art.geometric_bounds_with(&symbols) {
-        art.transform(vectorcraft_geom::Affine::translate(at - r.center()), false);
+        art.transform(vansoncraft_geom::Affine::translate(at - r.center()), false);
     }
     let parent = s.doc()?.target_parent()?;
     let id = s.edit("Place Brush Art", |d, sel| {
@@ -596,7 +596,7 @@ pub(super) fn brush_place_art(s: &mut Session, p: &Value) -> Result<Value> {
 /// The repeat frame an unpainted rectangle at the back of a tile group marks ([`placed_art`]): the
 /// rectangle's bounds, when `n` is a path of one closed subpath through the four corners of its
 /// bounds, without curves, whose fills and strokes paint nothing and that has no other appearance.
-fn frame_marker(n: &Node) -> Option<vectorcraft_geom::Rect> {
+fn frame_marker(n: &Node) -> Option<vansoncraft_geom::Rect> {
     let NodeKind::Path { path, guide: false, clipping: false, .. } = &n.kind else { return None };
     let unpainted = n.appearance.effects.is_empty()
         && n.appearance.items.iter().all(|i| match i {
@@ -617,14 +617,14 @@ fn frame_marker(n: &Node) -> Option<vectorcraft_geom::Rect> {
 /// rectangle at its back marks the tile's frame, [`frame_marker`], and is left out of the art; a
 /// group left with one member gives that member), and so is each member of a group whose members
 /// are all such groups; any other art is the side tile.
-fn tiles_of(art: Node) -> Vec<(usize, Node, Option<vectorcraft_geom::Rect>)> {
+fn tiles_of(art: Node) -> Vec<(usize, Node, Option<vansoncraft_geom::Rect>)> {
     let named = |c: &Node| matches!(c.kind, NodeKind::Group { clip: false, .. }) && c.name.as_deref().is_some_and(|n| TILE_NAMES.contains(&n));
     let tiles = match &art.kind {
         _ if named(&art) => vec![Arc::new(art)],
         NodeKind::Group { children, clip: false } if !children.is_empty() && children.iter().all(|c| named(c)) => children.clone(),
         _ => return vec![(0, art, None)],
     };
-    let mut out: Vec<(usize, Node, Option<vectorcraft_geom::Rect>)> = vec![];
+    let mut out: Vec<(usize, Node, Option<vansoncraft_geom::Rect>)> = vec![];
     for t in tiles {
         let Some(i) = t.name.as_deref().and_then(|n| TILE_NAMES.iter().position(|x| *x == n)) else { continue };
         let mut g = (*t).clone();

@@ -2,8 +2,8 @@
 //! With type selected it edits the characters' stroke (weight, cap, join, miter limit, dashes).
 
 use serde_json::{Value, json};
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::{
+use vansoncraft_color::{Color, Paint};
+use vansoncraft_doc::{
     ArrowAlign, Arrowhead, CharStyle, Dash, LineCap, LineJoin, Node, NodeKind, SavedProfile, Scaling, StrokeAlign, StrokeLayer, Unit, WidthProfile,
 };
 
@@ -202,17 +202,17 @@ impl StrokeChange {
 }
 
 /// Does a Stroke panel edit find nothing selected (and no `ids`)? It then sets up new art.
-fn no_targets(ids: &[vectorcraft_doc::NodeId], p: &Value) -> bool {
+fn no_targets(ids: &[vansoncraft_doc::NodeId], p: &Value) -> bool {
     ids.is_empty() && p.get("ids").is_none() && p.get("id").is_none()
 }
 
 /// The objects `stroke.set` edits with no `item`: a selected group or layer with a stroke row of
 /// its own edits that row, as the Stroke panel does with the group targeted (#6739); the other
 /// targets reach their painted leaves, as before.
-fn own_stroke_or_leaves(s: &Session, p: &Value) -> Result<Vec<vectorcraft_doc::NodeId>> {
+fn own_stroke_or_leaves(s: &Session, p: &Value) -> Result<Vec<vansoncraft_doc::NodeId>> {
     let picked = super::targets(s, p)?;
     let d = &s.doc()?.doc;
-    let own = |id: &vectorcraft_doc::NodeId| {
+    let own = |id: &vansoncraft_doc::NodeId| {
         d.node(*id).is_some_and(|n| {
             matches!(n.kind, NodeKind::Group { .. } | NodeKind::Layer { .. }) && !n.is_compound_shape() && n.appearance.stroke().is_some()
         })

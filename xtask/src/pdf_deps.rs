@@ -18,7 +18,7 @@ const PACKAGES: &[(&str, &str, &str)] = &[
 
 /// The resolved source of a craft-libs package at `rev`.
 fn source(rev: &str) -> String {
-    format!("git+https://github.com/storytold/craft-libs?rev={rev}#{rev}")
+    format!("git+https://github.com/storytold/craft-libs?rev={rev}#{rev}") // brand-ok: where the pinned library comes from
 }
 
 pub fn run(root: &Path) -> Result<(), String> {

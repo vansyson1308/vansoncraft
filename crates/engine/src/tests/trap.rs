@@ -1,9 +1,9 @@
 //! Tests for Pathfinder panel › Trap (`object.pathfinder.trap`).
 
 use serde_json::{Value, json};
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::{Node, NodeKind};
-use vectorcraft_geom::Rect;
+use vansoncraft_color::{Color, Paint};
+use vansoncraft_doc::{Node, NodeKind};
+use vansoncraft_geom::Rect;
 
 use crate::*;
 
@@ -104,8 +104,8 @@ fn no_adjoining_edges_is_a_clear_error_that_changes_nothing() {
     s.edit("apart", |d, _| {
         if let Some(n) = d.node_mut(b) {
             n.kind = NodeKind::Path {
-                path: vectorcraft_geom::shapes::rectangle(Rect::new(200.0, 0.0, 250.0, 40.0)),
-                rule: vectorcraft_geom::FillRule::NonZero,
+                path: vansoncraft_geom::shapes::rectangle(Rect::new(200.0, 0.0, 250.0, 40.0)),
+                rule: vansoncraft_geom::FillRule::NonZero,
                 live: None,
                 clipping: false,
                 guide: false,

@@ -11,7 +11,7 @@ pub(super) struct Gen<'a> {
     pub(super) d: &'a mut Document,
     pub(super) out: Vec<Arc<Node>>,
     /// The labels' kept character styles and paragraph attributes.
-    pub(super) styles: &'a vectorcraft_doc::LabelStyles,
+    pub(super) styles: &'a vansoncraft_doc::LabelStyles,
     /// What the column designs may still add.
     pub(super) columns: Allowance,
 }
@@ -25,7 +25,7 @@ pub(crate) enum Role {
 }
 
 /// The character style labels of `role` are set in: the kept one, else 9 pt black.
-pub(super) fn label_style(styles: &vectorcraft_doc::LabelStyles, role: Role) -> CharStyle {
+pub(super) fn label_style(styles: &vansoncraft_doc::LabelStyles, role: Role) -> CharStyle {
     let kept = match role {
         Role::Value => &styles.values,
         Role::Category => &styles.categories,
@@ -47,7 +47,7 @@ pub(super) fn label_style(styles: &vectorcraft_doc::LabelStyles, role: Role) -> 
 
 /// The paragraph attributes labels of `role` are set with: the kept ones, else the defaults. The caller sets the
 /// alignment.
-pub(super) fn label_para(styles: &vectorcraft_doc::LabelStyles, role: Role) -> vectorcraft_doc::ParaStyle {
+pub(super) fn label_para(styles: &vansoncraft_doc::LabelStyles, role: Role) -> vansoncraft_doc::ParaStyle {
     let mut para = kept_para(styles, role).cloned().unwrap_or_default();
     // A file's attributes within the limits the Paragraph controls keep to (they are copied onto every label).
     para.keep_spacing_in_range();
@@ -55,7 +55,7 @@ pub(super) fn label_para(styles: &vectorcraft_doc::LabelStyles, role: Role) -> v
 }
 
 /// The paragraph attributes labels of `role` keep, if any.
-fn kept_para(styles: &vectorcraft_doc::LabelStyles, role: Role) -> Option<&vectorcraft_doc::ParaStyle> {
+fn kept_para(styles: &vansoncraft_doc::LabelStyles, role: Role) -> Option<&vansoncraft_doc::ParaStyle> {
     match role {
         Role::Value => styles.values_para.as_ref(),
         Role::Category => styles.categories_para.as_ref(),
@@ -64,7 +64,7 @@ fn kept_para(styles: &vectorcraft_doc::LabelStyles, role: Role) -> Option<&vecto
 }
 
 /// The anti-aliasing method labels of `role` are drawn with: the kept one, else Sharp.
-pub(super) fn label_anti_alias(styles: &vectorcraft_doc::LabelStyles, role: Role) -> vectorcraft_doc::text::TypeAntiAlias {
+pub(super) fn label_anti_alias(styles: &vansoncraft_doc::LabelStyles, role: Role) -> vansoncraft_doc::text::TypeAntiAlias {
     let kept = match role {
         Role::Value => styles.values_anti_alias,
         Role::Category => styles.categories_anti_alias,
@@ -74,7 +74,7 @@ pub(super) fn label_anti_alias(styles: &vectorcraft_doc::LabelStyles, role: Role
 }
 
 /// How big labels of `role` are set: a kept style's size, else 9 pt. The labels' spacing follows it.
-pub(super) fn label_size(styles: &vectorcraft_doc::LabelStyles, role: Role) -> f64 {
+pub(super) fn label_size(styles: &vansoncraft_doc::LabelStyles, role: Role) -> f64 {
     label_style(styles, role).size
 }
 
@@ -132,7 +132,7 @@ impl Gen<'_> {
     /// Filled Lines a band FILLED_LINE_WIDTH wide filled with it and outlined in black.
     pub(super) fn data_line(&mut self, g: &GraphSpec, s: usize, pd: PathData, filled: bool) -> Arc<Node> {
         let band = if filled {
-            vectorcraft_pathops::outline_stroke(&pd, FILLED_LINE_WIDTH, vectorcraft_pathops::Cap::Butt, vectorcraft_pathops::Join::Miter, 4.0)
+            vansoncraft_pathops::outline_stroke(&pd, FILLED_LINE_WIDTH, vansoncraft_pathops::Cap::Butt, vansoncraft_pathops::Join::Miter, 4.0)
         } else {
             PathData::default()
         };
@@ -212,7 +212,7 @@ pub(super) fn shadow_of(d: &mut Document, n: &Node) -> Arc<Node> {
 
 /// The bounds of legend label `s` set from the origin with paragraph attributes `para` and the document's System
 /// Layout setting `system_layout`, as [`Gen::text`] sets it, without adding it to a document.
-fn legend_label_bounds(styles: &vectorcraft_doc::LabelStyles, s: &str, para: vectorcraft_doc::ParaStyle, system_layout: bool) -> Option<Rect> {
+fn legend_label_bounds(styles: &vansoncraft_doc::LabelStyles, s: &str, para: vansoncraft_doc::ParaStyle, system_layout: bool) -> Option<Rect> {
     let style = label_style(styles, Role::Legend);
     let mut t = TextObject::point(Point::ZERO, &s.replace('|', "\n"), style);
     t.para = para;
@@ -224,24 +224,24 @@ fn legend_label_bounds(styles: &vectorcraft_doc::LabelStyles, s: &str, para: vec
 
 /// How far label `s` reaches right of where it starts (its widest line and any indent), after the legend moves it right
 /// by [`label_shift`], without adding it to a document.
-pub(super) fn label_width(styles: &vectorcraft_doc::LabelStyles, s: &str, system_layout: bool) -> f64 {
+pub(super) fn label_width(styles: &vansoncraft_doc::LabelStyles, s: &str, system_layout: bool) -> f64 {
     legend_label_bounds(styles, s, label_para(styles, Role::Legend), system_layout)
         .map_or(0.0, |b| (b.x1 + label_shift(styles, s, system_layout).0).max(0.0))
 }
 
 /// The bounds of legend label `s` set with its kept paragraph attributes and with the defaults, when it has kept ones.
-fn kept_and_default_bounds(styles: &vectorcraft_doc::LabelStyles, s: &str, system_layout: bool) -> Option<(Rect, Rect)> {
+fn kept_and_default_bounds(styles: &vansoncraft_doc::LabelStyles, s: &str, system_layout: bool) -> Option<(Rect, Rect)> {
     styles.legend_para.as_ref()?;
     Some((
         legend_label_bounds(styles, s, label_para(styles, Role::Legend), system_layout)?,
-        legend_label_bounds(styles, s, vectorcraft_doc::ParaStyle::default(), system_layout)?,
+        legend_label_bounds(styles, s, vansoncraft_doc::ParaStyle::default(), system_layout)?,
     ))
 }
 
 /// How much further left and further up legend label `s` reaches with its kept paragraph attributes than with the
 /// defaults (a negative indent or negative spacing), so the legend moves it right and down by that much and it stays
 /// clear of its swatch and of the entries before it.
-pub(super) fn label_shift(styles: &vectorcraft_doc::LabelStyles, s: &str, system_layout: bool) -> (f64, f64) {
+pub(super) fn label_shift(styles: &vansoncraft_doc::LabelStyles, s: &str, system_layout: bool) -> (f64, f64) {
     kept_and_default_bounds(styles, s, system_layout)
         .map_or((0.0, 0.0), |(kept, default)| ((default.x0 - kept.x0).max(0.0), (default.y0 - kept.y0).max(0.0)))
 }
@@ -249,7 +249,7 @@ pub(super) fn label_shift(styles: &vectorcraft_doc::LabelStyles, s: &str, system
 /// How much further down legend label `s` reaches with its kept paragraph attributes than with the defaults (more
 /// leading, or space before or after), after the legend moves it down by [`label_shift`], so the legend makes room
 /// for it.
-pub(super) fn label_extra_height(styles: &vectorcraft_doc::LabelStyles, s: &str, system_layout: bool) -> f64 {
+pub(super) fn label_extra_height(styles: &vansoncraft_doc::LabelStyles, s: &str, system_layout: bool) -> f64 {
     kept_and_default_bounds(styles, s, system_layout).map_or(0.0, |(kept, default)| (kept.y1 + (default.y0 - kept.y0).max(0.0) - default.y1).max(0.0))
 }
 

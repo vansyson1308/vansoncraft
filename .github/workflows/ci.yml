@@ -1,7 +1,8 @@
 name: CI
 
-# Quality gates for every push to main and every pull request (`cargo xtask ci`), through the
-# suite's shared gate workflow in craft-common-actions.
+# Quality gates for every push to main and every pull request: `cargo xtask ci` (fmt, clippy with
+# the no-panic lints, tests, doctests, assets, brands, layers, wasm…) on GitHub's runners. The
+# workflow is self-contained: no shared workflow from another repository decides what runs.
 on:
   push:
     branches: [main]
@@ -18,13 +19,55 @@ concurrency:
 
 jobs:
   gate:
-    # Tracks @main so suite-wide CI fixes reach every app without a PR in each repository.
-    uses: storytold/craft-common-actions/.github/workflows/gate.yml@main
-    with:
-      # Same craft-fonts commit as release.yml.
-      craft-fonts-ref: b076417b5880bd4154bd22f00695b1d28c6bea83
-      timeout-minutes: 90
-      packages: >-
-        pkg-config libxkbcommon-dev libwayland-dev libx11-dev libxcb1-dev libxcursor-dev
-        libxrandr-dev libxi-dev libfontconfig1-dev libfreetype-dev mesa-vulkan-drivers
-        libgl1-mesa-dev
+    name: cargo xtask ci
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    env:
+      # Smaller build directories: no debug info, no incremental data (the runner's disk is finite).
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_TERM_COLOR: always
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+      - name: System packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends pkg-config libxkbcommon-dev libwayland-dev \
+            libx11-dev libxcb1-dev libxcursor-dev libxrandr-dev libxi-dev libfontconfig1-dev \
+            libfreetype-dev mesa-vulkan-drivers libgl1-mesa-dev
+      - name: Install Rust
+        uses: step-security/dtolnay-rust-toolchain@8dd607977d06adf4ed49b190381e74c17a9dd25f # v1.0.0
+        with:
+          toolchain: stable
+          targets: wasm32-unknown-unknown
+          components: rustfmt, clippy
+      - name: cargo xtask ci
+        run: cargo xtask ci
+
+  windows:
+    # The Windows build is checked on request (Actions › CI › Run workflow), not on every push.
+    if: github.event_name == 'workflow_dispatch'
+    name: Windows build and core tests
+    runs-on: windows-latest
+    timeout-minutes: 120
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Rust
+        uses: step-security/dtolnay-rust-toolchain@8dd607977d06adf4ed49b190381e74c17a9dd25f # v1.0.0
+        with:
+          toolchain: stable
+      - name: Build the app and the CLI
+        run: cargo build --locked -p vansoncraft -p vansoncraft-cli
+      - name: Native format, MCP and CLI tests
+        run: cargo test --locked -p vansoncraft-format -p vansoncraft-mcp -p vansoncraft-cli

@@ -2,10 +2,10 @@
 //! driven through `Session::execute`.
 
 use serde_json::{Value, json};
-use vectorcraft_color::BlendMode;
-use vectorcraft_doc::live::{self, EnvelopeKind, EnvelopeOptions, PreserveShape};
-use vectorcraft_doc::{Knockout, Node, NodeKind, OpacityMask};
-use vectorcraft_geom::Rect;
+use vansoncraft_color::BlendMode;
+use vansoncraft_doc::live::{self, EnvelopeKind, EnvelopeOptions, PreserveShape};
+use vansoncraft_doc::{Knockout, Node, NodeKind, OpacityMask};
+use vansoncraft_geom::Rect;
 
 use crate::*;
 
@@ -104,7 +104,7 @@ fn reset_with_warp_and_mesh_switch_the_kind_and_keep_the_content() {
     assert!(s.execute("object.envelope.resetWithWarp", &json!({"style": "nope"})).is_err());
     // Back to a mesh that keeps the arch's shape: the top middle point is where the warp put it.
     s.execute("object.envelope.resetWithWarp", &json!({"style": "arch", "bend": 50, "horizontal": true})).unwrap();
-    let top = live::EnvelopeMap::of(&node(&s, e)).unwrap().surface_mesh(2, 2, vectorcraft_color::Color::BLACK);
+    let top = live::EnvelopeMap::of(&node(&s, e)).unwrap().surface_mesh(2, 2, vansoncraft_color::Color::BLACK);
     s.execute("object.envelope.resetWithMesh", &json!({"rows": 2, "cols": 2})).unwrap();
     let EnvelopeKind::Mesh { rows: 2, cols: 2, points, .. } = kind(&s, e) else { panic!("{:?}", kind(&s, e)) };
     assert!(points[1].distance(top.points[1].p) < 1e-9 && points[1].y < 99.0, "{:?}", points[1]);
@@ -129,8 +129,8 @@ fn reset_with_warp_and_mesh_switch_the_kind_and_keep_the_content() {
 #[test]
 fn new_warp_envelopes_take_the_net_and_saved_ones_keep_their_map() {
     // The surface point a quarter of the way along the top edge.
-    let quarter = |s: &Session, e| live::EnvelopeMap::of(&node(s, e)).unwrap().surface_mesh(4, 4, vectorcraft_color::Color::BLACK).points[1].p;
-    let at = |x, y| vectorcraft_geom::Point::new(x, y);
+    let quarter = |s: &Session, e| live::EnvelopeMap::of(&node(s, e)).unwrap().surface_mesh(4, 4, vansoncraft_color::Color::BLACK).points[1].p;
+    let at = |x, y| vansoncraft_geom::Point::new(x, y);
     let mut s = session();
     let (_, e) = enveloped(&mut s, "object.envelope.makeWithWarp", json!({"style": "flag", "bend": 40}));
     assert!(matches!(kind(&s, e), EnvelopeKind::Warp { version: live::WARP_NET, .. }), "{:?}", kind(&s, e));
@@ -173,7 +173,7 @@ fn release_gives_back_the_warp_shape_as_a_mesh_and_keeps_the_transparency() {
     let mut s = session();
     let (a, e) = enveloped(&mut s, "object.envelope.makeWithWarp", json!({"style": "arc", "bend": 50}));
     s.execute("transparency.set", &json!({"opacity": 40, "blend": "multiply"})).unwrap();
-    let mask = Node::path(NodeId(0), vectorcraft_geom::shapes::rectangle(Rect::new(0.0, 0.0, 50.0, 50.0)), Default::default());
+    let mask = Node::path(NodeId(0), vansoncraft_geom::shapes::rectangle(Rect::new(0.0, 0.0, 50.0, 50.0)), Default::default());
     s.edit("mask", |d, _| {
         d.node_mut(e).unwrap().extras_mut().mask = Some(Box::new(OpacityMask::new(mask, true)));
         Ok(())
@@ -213,7 +213,7 @@ fn expand_keeps_name_transparency_knockout_and_mask() {
     let mut s = session();
     let (_, e) = enveloped(&mut s, "object.envelope.makeWithWarp", json!({"style": "bulge", "bend": 40}));
     s.execute("transparency.set", &json!({"opacity": 70, "isolate": true, "knockout": "on"})).unwrap();
-    let mask = Node::path(NodeId(0), vectorcraft_geom::shapes::rectangle(Rect::new(0.0, 0.0, 50.0, 50.0)), Default::default());
+    let mask = Node::path(NodeId(0), vansoncraft_geom::shapes::rectangle(Rect::new(0.0, 0.0, 50.0, 50.0)), Default::default());
     s.edit("name and mask", |d, _| {
         let n = d.node_mut(e).unwrap();
         n.name = Some("Banner".into());
@@ -251,7 +251,7 @@ fn envelope_options_round_trip_natively_and_old_files_load() {
     let (_, e) = enveloped(&mut s, "object.envelope.makeWithWarp", json!({}));
     s.execute("object.envelope.options", &json!({"preserveShape": "transparency", "distortPatternFills": true})).unwrap();
     let d = &s.doc().unwrap().doc;
-    let back = vectorcraft_format::load(&vectorcraft_format::save(d, false)).unwrap();
+    let back = vansoncraft_format::load(&vansoncraft_format::save(d, false)).unwrap();
     assert_eq!(back.node(e), d.node(e));
     // An envelope saved before the options existed loads with its old behaviour.
     let mut old = serde_json::to_value(node(&s, e)).unwrap();
@@ -281,7 +281,7 @@ fn envelope_options_keep_the_margins_of_an_opened_file() {
     s.execute("object.envelope.options", &json!({"antiAlias": false, "fidelity": 75})).unwrap();
     assert_eq!(options(&s, e).0.bounds_margin, margin);
     let d = &s.doc().unwrap().doc;
-    let back = vectorcraft_format::load(&vectorcraft_format::save(d, false)).unwrap();
+    let back = vansoncraft_format::load(&vansoncraft_format::save(d, false)).unwrap();
     assert_eq!(back.node(e), d.node(e));
     assert_eq!(s.execute("object.envelope.info", &json!({})).unwrap()["boundsMargin"], json!(margin));
     s.execute("object.envelope.options", &json!({"distortAppearance": false})).unwrap();
@@ -377,7 +377,7 @@ fn edit_contents_keeps_the_margins_of_a_scaled_envelope_until_a_stroke_changes()
     assert_eq!(options(&s, e).0.bounds_margin, margin);
     // So does saving natively in Edit Contents, reopening and leaving.
     s.execute("object.envelope.editContents", &json!({"editing": true})).unwrap();
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = vansoncraft_format::load(&vansoncraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
     assert_eq!(back.node(e), s.doc().unwrap().doc.node(e));
     assert!(back.node(e).unwrap().extras().envelope_edit_margin.is_some());
     s.execute("object.envelope.editContents", &json!({"editing": false})).unwrap();
@@ -402,14 +402,14 @@ fn enveloped_type_exports_distorted_in_every_format() {
     // The export's bytes without its dates and file ID (EPS and PDF date their files to the second).
     let export = |s: &mut Session, format: &str| -> Vec<u8> {
         let data = s.execute("document.export", &json!({"format": format})).unwrap()["dataBase64"].as_str().unwrap().to_string();
-        undated(&vectorcraft_format::base64_decode(&data).unwrap())
+        undated(&vansoncraft_format::base64_decode(&data).unwrap())
     };
     // Two PDFs dated a second apart, with the options and editing data that document.export
     // passes the writer, differ only in lines that `undated` drops.
     let d = &s.doc().unwrap().doc;
     let pdf = |at: i64| {
         let o = cmd::fileio::pdf::options("document.export", d, &json!({})).unwrap();
-        undated(&export_pdf(d, &vectorcraft_pdf::PdfOptions { created: Some(at), native: Some(vectorcraft_format::save(d, false)), ..o }).unwrap())
+        undated(&export_pdf(d, &vansoncraft_pdf::PdfOptions { created: Some(at), native: Some(vansoncraft_format::save(d, false)), ..o }).unwrap())
     };
     assert_eq!(pdf(0), pdf(1), "a PDF dated a second later differs only in its dates and file ID");
     for format in ["svg", "pdf", "eps", "emf", "dxf"] {
@@ -430,8 +430,8 @@ fn enveloped_type_keeps_each_runs_colour_on_the_canvas() {
     let t = id_of(&s.execute("text.create", &json!({"x": 100, "y": 200, "text": "MMMMMMMM", "size": 60})).unwrap());
     s.edit("red half", |d, _| {
         if let NodeKind::Text(tx) = &mut d.node_mut(t).unwrap().kind {
-            vectorcraft_text::edit::style_range(&mut tx.runs, 0, 4, |st| {
-                st.fill = vectorcraft_color::Paint::solid(vectorcraft_color::Color::rgb(1.0, 0.0, 0.0))
+            vansoncraft_text::edit::style_range(&mut tx.runs, 0, 4, |st| {
+                st.fill = vansoncraft_color::Paint::solid(vansoncraft_color::Color::rgb(1.0, 0.0, 0.0))
             });
         }
         Ok(())
@@ -440,7 +440,7 @@ fn enveloped_type_keeps_each_runs_colour_on_the_canvas() {
     sel(&mut s, &[t]);
     s.execute("object.envelope.makeWithWarp", &json!({"style": "flag", "bend": 0})).unwrap();
     let b = node(&s, t).geometric_bounds().unwrap();
-    let img = vectorcraft_render::Renderer::new().render_region(&s.doc().unwrap().doc, Rect::new(0.0, 0.0, 800.0, 400.0), 1.0, true);
+    let img = vansoncraft_render::Renderer::new().render_region(&s.doc().unwrap().doc, Rect::new(0.0, 0.0, 800.0, 400.0), 1.0, true);
     // Inked pixels of each half of the line: red at the start, black at the end.
     let (mut red, mut black) = (0, 0);
     for y in (b.y0 as u32)..(b.y1 as u32) {
@@ -468,11 +468,11 @@ fn warped_type_in_a_symbol_reopens_unchanged() {
     s.execute("text.create", &json!({"x": 30, "y": 160, "text": "STUDIO", "size": 72, "color": "#E3AB49"})).unwrap();
     s.execute("object.envelope.makeWithWarp", &json!({"style": "wave", "bend": 18})).unwrap();
     s.execute("symbol.new", &json!({"name": "Master"})).unwrap();
-    let render = |s: &Session| vectorcraft_render::Renderer::new().render(&s.doc().unwrap().doc, 400, 300, Affine::IDENTITY, &Default::default());
+    let render = |s: &Session| vansoncraft_render::Renderer::new().render(&s.doc().unwrap().doc, 400, 300, Affine::IDENTITY, &Default::default());
     let before = render(&s);
-    let dir = std::env::temp_dir().join(format!("vectorcraft-1738-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("vansoncraft-1738-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
-    let path = dir.join("warped.vectorcraft");
+    let path = dir.join("warped.vansoncraft");
     s.execute("document.save", &json!({"path": path})).unwrap();
     let mut o = Session::new();
     o.execute("document.open", &json!({"path": path})).unwrap();
@@ -494,7 +494,7 @@ fn warped_type_in_a_symbol_reopens_unchanged() {
 /// The glyph outline bounds of type `id` in document space.
 fn ink_of(s: &Session, id: NodeId) -> Rect {
     match node(s, id).kind {
-        NodeKind::Text(t) => t.xf.transform_rect_bbox(vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &t).ink_bounds().unwrap()),
+        NodeKind::Text(t) => t.xf.transform_rect_bbox(vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &t).ink_bounds().unwrap()),
         k => panic!("{k:?}"),
     }
 }
@@ -550,7 +550,7 @@ fn a_scaled_envelope_of_shrunk_type_maps_from_its_new_glyphs() {
     let t = id_of(&s.execute("text.create", &json!({"x": 100, "y": 100, "text": "Type", "size": 2, "area": {"width": 3, "height": 3}})).unwrap());
     s.edit("shrink", |d, _| {
         if let NodeKind::Text(tx) = &mut d.node_mut(t).unwrap().kind {
-            tx.area.fit = vectorcraft_doc::AreaFit::ShrinkText { min_percent: 10.0 };
+            tx.area.fit = vansoncraft_doc::AreaFit::ShrinkText { min_percent: 10.0 };
         }
         Ok(())
     })
@@ -564,7 +564,7 @@ fn a_scaled_envelope_of_shrunk_type_maps_from_its_new_glyphs() {
         },
         k => panic!("{k:?}"),
     };
-    let ink = |tx: &vectorcraft_doc::TextObject| vectorcraft_text::layout(vectorcraft_text::FontDb::global(), tx).ink_bounds().unwrap();
+    let ink = |tx: &vansoncraft_doc::TextObject| vansoncraft_text::layout(vansoncraft_text::FontDb::global(), tx).ink_bounds().unwrap();
     let before = text(&s);
     assert_box(src_of(&s, e), before.xf.transform_rect_bbox(ink(&before)), "before scaling");
     s.execute("object.scale", &json!({"sx": 150, "sy": 150, "origin": [100, 100]})).unwrap();
@@ -583,7 +583,7 @@ fn a_rotated_envelope_of_shrunk_type_maps_from_the_glyphs_on_the_page() {
     let t = id_of(&s.execute("text.create", &json!({"x": 100, "y": 100, "text": "Type", "size": 2, "area": {"width": 3, "height": 3}})).unwrap());
     s.edit("shrink", |d, _| {
         if let NodeKind::Text(tx) = &mut d.node_mut(t).unwrap().kind {
-            tx.area.fit = vectorcraft_doc::AreaFit::ShrinkText { min_percent: 10.0 };
+            tx.area.fit = vansoncraft_doc::AreaFit::ShrinkText { min_percent: 10.0 };
         }
         Ok(())
     })
@@ -600,7 +600,7 @@ fn a_rotated_envelope_of_shrunk_type_maps_from_the_glyphs_on_the_page() {
         k => panic!("{k:?}"),
     };
     assert!(frame != Affine::IDENTITY, "a rotated envelope has a frame");
-    let ink = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &tx).ink_bounds().unwrap();
+    let ink = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &tx).ink_bounds().unwrap();
     assert_box(src_of(&s, e), (frame.inverse() * tx.xf).transform_rect_bbox(ink), "in the frame");
 }
 
@@ -617,7 +617,7 @@ fn an_envelope_maps_underlined_type_from_its_glyphs_and_bars() {
     let src = src_of(&s, e);
     assert!(src.y1 > glyphs.y1 + 1.0, "the underline below the glyphs {glyphs:?} is in the box {src:?}");
     assert_box(node(&s, e).geometric_bounds().unwrap(), src, "flat warp's bounds");
-    let drawn = vectorcraft_render::effects::expanded_live_group(Some(&s.doc().unwrap().doc), &node(&s, e)).geometric_bounds().unwrap();
+    let drawn = vansoncraft_render::effects::expanded_live_group(Some(&s.doc().unwrap().doc), &node(&s, e)).geometric_bounds().unwrap();
     let off = [drawn.x0 - src.x0, drawn.y0 - src.y0, drawn.x1 - src.x1, drawn.y1 - src.y1].iter().fold(0.0f64, |m, v| m.max(v.abs()));
     assert!(off < 0.05, "the drawn art {drawn:?} fills the box {src:?}");
 }
@@ -650,11 +650,11 @@ fn a_saved_envelope_of_type_reopens_mapped_from_its_glyphs() {
     let ink = ink_of(&s, t);
     sel(&mut s, &[t]);
     let e = id_of(&s.execute("object.envelope.makeWithWarp", &json!({"style": "flag", "bend": 40})).unwrap());
-    let render = |s: &Session| vectorcraft_render::Renderer::new().render(&s.doc().unwrap().doc, 600, 400, Affine::IDENTITY, &Default::default());
+    let render = |s: &Session| vansoncraft_render::Renderer::new().render(&s.doc().unwrap().doc, 600, 400, Affine::IDENTITY, &Default::default());
     let before = render(&s);
-    let dir = std::env::temp_dir().join(format!("vectorcraft-envelope-ink-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("vansoncraft-envelope-ink-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
-    let path = dir.join("type.vectorcraft");
+    let path = dir.join("type.vansoncraft");
     s.execute("document.save", &json!({"path": path})).unwrap();
     let mut o = Session::new();
     o.execute("document.open", &json!({"path": path})).unwrap();
@@ -666,7 +666,7 @@ fn a_saved_envelope_of_type_reopens_mapped_from_its_glyphs() {
 }
 
 /// The type of envelope `e`'s first content object.
-fn content_text(s: &Session, e: NodeId) -> vectorcraft_doc::TextObject {
+fn content_text(s: &Session, e: NodeId) -> vansoncraft_doc::TextObject {
     match node(s, e).kind {
         NodeKind::Envelope { content, .. } => match &content[0].kind {
             NodeKind::Text(tx) => (**tx).clone(),
@@ -677,8 +677,8 @@ fn content_text(s: &Session, e: NodeId) -> vectorcraft_doc::TextObject {
 }
 
 /// The box of `tx`'s glyph outlines with text space mapped by `m`, each outline mapped point by point.
-fn outlines_in(tx: &vectorcraft_doc::TextObject, m: Affine) -> Rect {
-    let path = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), tx).to_bezpath();
+fn outlines_in(tx: &vansoncraft_doc::TextObject, m: Affine) -> Rect {
+    let path = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), tx).to_bezpath();
     kurbo::Shape::bounding_box(&(m * path))
 }
 
@@ -694,7 +694,7 @@ fn an_envelope_of_rotated_type_maps_from_its_rotated_outlines() {
     let e = id_of(&s.execute("object.envelope.makeWithWarp", &json!({"style": "arc", "bend": 0})).unwrap());
     let tx = content_text(&s, e);
     let outlines = outlines_in(&tx, tx.xf);
-    let ink = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &tx).ink_bounds().unwrap();
+    let ink = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &tx).ink_bounds().unwrap();
     let glyph_box = tx.xf.transform_rect_bbox(ink);
     assert!(glyph_box.width() - outlines.width() > 1.0 || glyph_box.height() - outlines.height() > 1.0, "{glyph_box:?} vs {outlines:?}");
     assert_box(src_of(&s, e), outlines, "rotated type");
@@ -714,7 +714,7 @@ fn an_envelope_of_rotated_type_maps_from_its_rotated_outlines() {
 /// horizon), the point counts where it is, as the renderer draws it.
 #[test]
 fn an_envelope_of_type_in_perspective_maps_from_its_projected_outlines() {
-    use vectorcraft_geom::Homography;
+    use vansoncraft_geom::Homography;
     // Every point of the type is past this one's horizon.
     let horizon = Homography([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0]]);
     for (h, crosses) in [(Homography([[1.0, 0.3, 0.0], [0.1, 1.0, 0.0], [0.0015, 0.0008, 1.0]]), false), (horizon, true)] {
@@ -722,16 +722,16 @@ fn an_envelope_of_type_in_perspective_maps_from_its_projected_outlines() {
         let t = id_of(&s.execute("text.create", &json!({"x": 100, "y": 200, "text": "Perspective", "size": 60})).unwrap());
         s.edit("perspective", |d, _| {
             let n = d.node_mut(t).unwrap();
-            n.extras_mut().perspective = Some(Box::new(vectorcraft_doc::PerspectiveAttachment {
+            n.extras_mut().perspective = Some(Box::new(vansoncraft_doc::PerspectiveAttachment {
                 projection: Some(h.to_array()),
-                ..vectorcraft_doc::PerspectiveAttachment::new("left", 0.0)
+                ..vansoncraft_doc::PerspectiveAttachment::new("left", 0.0)
             }));
             Ok(())
         })
         .unwrap();
         assert!(node(&s, t).projection().is_some());
         let NodeKind::Text(tx) = node(&s, t).kind else { panic!("type") };
-        let path = tx.xf * vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &tx).to_bezpath();
+        let path = tx.xf * vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &tx).to_bezpath();
         let (mut drawn, mut unmapped): (Option<Rect>, usize) = (None, 0);
         kurbo::flatten(&path, 0.001, |el| {
             if let kurbo::PathEl::MoveTo(p) | kurbo::PathEl::LineTo(p) = el {
@@ -745,7 +745,7 @@ fn an_envelope_of_type_in_perspective_maps_from_its_projected_outlines() {
         let drawn = drawn.unwrap();
         assert_eq!(unmapped > 0, crosses, "{unmapped} points past the horizon");
         if !crosses {
-            let ink = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &tx).ink_bounds().unwrap();
+            let ink = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &tx).ink_bounds().unwrap();
             let boxed = h.map_rect_bbox(tx.xf.transform_rect_bbox(ink)).unwrap();
             assert!(boxed.width() - drawn.width() > 1.0 || boxed.height() - drawn.height() > 1.0, "{boxed:?} vs {drawn:?}");
         }
@@ -778,9 +778,9 @@ fn an_envelope_maps_struck_through_type_from_its_glyphs_and_bars() {
     let plain = ink_of(&s, t);
     s.execute("text.setFormat", &json!({"ids": [t.0], "strikethrough": true})).unwrap();
     let NodeKind::Text(tx) = node(&s, t).kind else { panic!("type") };
-    let db = vectorcraft_text::FontDb::global();
-    let laid = vectorcraft_text::layout(db, &tx);
-    let bars = vectorcraft_text::decorations(&laid, db, &tx);
+    let db = vansoncraft_text::FontDb::global();
+    let laid = vansoncraft_text::layout(db, &tx);
+    let bars = vansoncraft_text::decorations(&laid, db, &tx);
     assert!(!bars.is_empty(), "struck-through type has a bar");
     let bar = tx.xf.transform_rect_bbox(kurbo::Shape::bounding_box(&bars[0].1));
     assert!(bar.x1 > plain.x1 + 1.0, "the bar {bar:?} reaches past the glyphs {plain:?}");
@@ -822,7 +822,7 @@ fn type_in_layers_and_clip_groups_is_measured_by_its_glyphs() {
 /// that of the strokes past the projected laid-out box.
 #[test]
 fn stroked_type_maps_from_its_glyphs_grown_by_its_strokes() {
-    let h = vectorcraft_geom::Homography([[1.0, 0.3, 0.0], [0.1, 1.0, 0.0], [0.0015, 0.0008, 1.0]]);
+    let h = vansoncraft_geom::Homography([[1.0, 0.3, 0.0], [0.1, 1.0, 0.0], [0.0015, 0.0008, 1.0]]);
     for perspective in [false, true] {
         let mut s = session();
         let t = id_of(&s.execute("text.create", &json!({"x": 100, "y": 200, "text": "Stroke", "size": 60})).unwrap());
@@ -831,9 +831,9 @@ fn stroked_type_maps_from_its_glyphs_grown_by_its_strokes() {
         s.execute("stroke.set", &json!({"weight": 6})).unwrap();
         if perspective {
             s.edit("perspective", |d, _| {
-                d.node_mut(t).unwrap().extras_mut().perspective = Some(Box::new(vectorcraft_doc::PerspectiveAttachment {
+                d.node_mut(t).unwrap().extras_mut().perspective = Some(Box::new(vansoncraft_doc::PerspectiveAttachment {
                     projection: Some(h.to_array()),
-                    ..vectorcraft_doc::PerspectiveAttachment::new("left", 0.0)
+                    ..vansoncraft_doc::PerspectiveAttachment::new("left", 0.0)
                 }));
                 Ok(())
             })
@@ -846,7 +846,7 @@ fn stroked_type_maps_from_its_glyphs_grown_by_its_strokes() {
         let NodeKind::Text(tx) = &n.kind else { panic!("type") };
         // The glyph outlines as drawn.
         let ink = if perspective {
-            let path = tx.xf * vectorcraft_text::layout(vectorcraft_text::FontDb::global(), tx).to_bezpath();
+            let path = tx.xf * vansoncraft_text::layout(vansoncraft_text::FontDb::global(), tx).to_bezpath();
             let mut drawn: Option<Rect> = None;
             kurbo::flatten(&path, 0.001, |el| {
                 if let kurbo::PathEl::MoveTo(p) | kurbo::PathEl::LineTo(p) = el {
@@ -934,7 +934,7 @@ fn an_envelope_maps_type_with_an_inline_graphic_from_its_glyphs_and_the_graphic(
     let t = id_of(&s.execute("text.create", &json!({"x": 100, "y": 200, "text": "xx", "size": 40})).unwrap());
     s.execute("text.insertInline", &json!({"id": t.0, "at": 1, "symbol": "Dot"})).unwrap();
     let NodeKind::Text(tx) = node(&s, t).kind else { panic!("type") };
-    let laid = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &tx);
+    let laid = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &tx);
     let [inline] = laid.inlines.as_slice() else { panic!("one inline graphic: {}", laid.inlines.len()) };
     let graphic = tx.xf.transform_rect_bbox(inline.bounds);
     let glyphs = outlines_in(&tx, tx.xf);

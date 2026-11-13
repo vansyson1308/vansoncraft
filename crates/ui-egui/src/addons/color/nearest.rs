@@ -6,10 +6,10 @@
 
 use egui::Ui;
 use serde_json::{Value, json};
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_engine::cmd::swatchlib::DOCUMENT_SWATCHES;
+use vansoncraft_color::{Color, Paint};
+use vansoncraft_engine::cmd::swatchlib::DOCUMENT_SWATCHES;
 
-use crate::VectorcraftApp;
+use crate::VansoncraftApp;
 use crate::dialogs::{DialogSpec, form};
 use crate::panels::swatches;
 use crate::state::Dialog;
@@ -47,7 +47,7 @@ fn chip_label(ui: &mut Ui, hex: &str, text: &str, color: egui::Color32) {
     ui.label(egui::RichText::new(text).color(color));
 }
 
-fn body(app: &mut VectorcraftApp, ui: &mut Ui, d: &mut Dialog) -> bool {
+fn body(app: &mut VansoncraftApp, ui: &mut Ui, d: &mut Dialog) -> bool {
     let key = d.str("library");
     widgets::label_row(ui, tl!("Library:"), LABEL_W, |ui| {
         if let Some(k) = widgets::combo(ui, "nearest-library", &swatches::library_label(app, &key), 220.0, |ui| swatches::library_list(app, ui, &key))
@@ -93,7 +93,7 @@ fn body(app: &mut VectorcraftApp, ui: &mut Ui, d: &mut Dialog) -> bool {
 }
 
 /// Apply: give each colour its nearest swatch and close.
-fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
+fn confirm(app: &mut VansoncraftApp, d: &Dialog) -> Result<Value, String> {
     app.ui.dialog = None;
     app.run(COMMAND, form::params(d))
 }
@@ -101,15 +101,15 @@ fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
 #[cfg(test)]
 mod tests {
     use serde_json::json;
-    use vectorcraft_color::Paint;
-    use vectorcraft_engine::Session;
+    use vansoncraft_color::Paint;
+    use vansoncraft_engine::Session;
 
     use crate::tests_labels::painted_text;
-    use crate::{VectorcraftApp, menus};
+    use crate::{VansoncraftApp, menus};
 
     #[test]
     fn find_nearest_swatch_lists_the_matches_and_applies_the_nearest() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.run("file.new", json!({"width": 200, "height": 200})).unwrap();
         app.run("swatch.new", json!({"name": "Brand", "color": "#ff8000", "global": true})).unwrap();
         app.run("shape.rectangle", json!({"x": 10, "y": 10, "width": 40, "height": 40})).unwrap();

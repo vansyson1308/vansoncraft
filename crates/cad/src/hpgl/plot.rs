@@ -6,8 +6,8 @@
 use std::collections::HashMap;
 
 use kurbo::{Affine, BezPath, PathEl, Point, Shape as _, Vec2};
-use vectorcraft_doc::{LineCap, LineJoin};
-use vectorcraft_geom::FillRule;
+use vansoncraft_doc::{LineCap, LineJoin};
+use vansoncraft_geom::FillRule;
 
 use super::lex::{ETX, Lexer, Pe, PeItem};
 
@@ -1321,7 +1321,7 @@ impl Plot {
         if self.unknown > 0 {
             let n = self.unknown;
             self.warnings.push(format!(
-                "{n} instruction{} of kinds VectorCraft doesn't read {} skipped",
+                "{n} instruction{} of kinds VansonCraft doesn't read {} skipped",
                 if n == 1 { "" } else { "s" },
                 if n == 1 { "was" } else { "were" }
             ));

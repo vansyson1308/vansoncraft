@@ -1,4 +1,4 @@
-use vectorcraft_geom::{BezPath, FillRule, PathData, Point, Rect, Shape};
+use vansoncraft_geom::{BezPath, FillRule, PathData, Point, Rect, Shape};
 
 use super::*;
 use crate::{Extrude, Inflate, Light, Lights, Revolve, View};

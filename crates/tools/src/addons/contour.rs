@@ -11,8 +11,8 @@
 //! distance continues from there. Shift rounds the distance to whole points.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{Node, NodeKind};
-use vectorcraft_geom::{BezPath, FillRule, Point, hit};
+use vansoncraft_doc::{Node, NodeKind};
+use vansoncraft_geom::{BezPath, FillRule, Point, hit};
 
 use crate::{Action, Cursor, Mods, Overlay, PointerEvent, PointerKind, Tool, ToolContext, ToolKey};
 

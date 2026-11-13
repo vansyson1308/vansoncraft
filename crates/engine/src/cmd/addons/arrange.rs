@@ -15,10 +15,10 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use serde_json::{Value, json};
-use vectorcraft_color::recolor::Rng;
-use vectorcraft_doc::{Node, NodeId, OrientedBox};
-use vectorcraft_geom::{Affine, Point, Rect};
-use vectorcraft_render::effects;
+use vansoncraft_color::recolor::Rng;
+use vansoncraft_doc::{Node, NodeId, OrientedBox};
+use vansoncraft_geom::{Affine, Point, Rect};
+use vansoncraft_render::effects;
 
 use super::super::edit::selected_roots;
 use super::super::menucmds::whole_or;

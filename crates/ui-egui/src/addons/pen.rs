@@ -5,9 +5,9 @@
 
 use egui::Ui;
 use serde_json::{Value, json};
-use vectorcraft_tools::addons::smart_pen;
+use vansoncraft_tools::addons::smart_pen;
 
-use crate::VectorcraftApp;
+use crate::VansoncraftApp;
 use crate::menus::Item;
 use crate::panels::empty_state;
 use crate::widgets::{self, dim_label};
@@ -35,7 +35,7 @@ fn edits() -> [(&'static str, &'static str, Value); 5] {
     ]
 }
 
-pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn show(app: &mut VansoncraftApp, ui: &mut Ui) {
     let Some(st) = app.session.active() else {
         empty_state(ui, "spline-pointer", tl!("No document"), tl!("Open a document to draw with the Smart Pen."));
         return;

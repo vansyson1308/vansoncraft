@@ -6,19 +6,19 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use serde_json::json;
-use vectorcraft_doc::NodeKind;
-use vectorcraft_engine::Session;
-use vectorcraft_engine::cmd::clipboard::{PNG, TEXT};
+use vansoncraft_doc::NodeKind;
+use vansoncraft_engine::Session;
+use vansoncraft_engine::cmd::clipboard::{PNG, TEXT};
 
 use crate::tests_sysclip::{app, app_with_busy_worker, copy_elsewhere, copy_rect, count, frame, pasted, run, written};
-use crate::{Services, VectorcraftApp, background};
+use crate::{Services, VansoncraftApp, background};
 
-fn guides(app: &VectorcraftApp) -> usize {
+fn guides(app: &VansoncraftApp) -> usize {
     app.session.active().unwrap().doc.ruler_guides().len()
 }
 
 /// Add a vertical guide at `pos`, select only it and copy it.
-fn copy_guide(app: &mut VectorcraftApp, pos: f64) {
+fn copy_guide(app: &mut VansoncraftApp, pos: f64) {
     run(app, "guide.add", json!({"vertical": true, "pos": pos}));
     let last = guides(app) - 1;
     run(app, "select.none", json!({}));
@@ -36,7 +36,7 @@ fn a_guides_only_copy_pastes_the_guides_not_what_another_app_copied_before() {
     assert_eq!(guides(&app), 2, "the copied guide was pasted");
     assert_eq!(count(&app), 0, "and not the other app's text");
     let st = app.session.active().unwrap();
-    assert_eq!(vectorcraft_engine::cmd::guide_indexes(&st.doc, &st.selection.guides), [1]);
+    assert_eq!(vansoncraft_engine::cmd::guide_indexes(&st.doc, &st.selection.guides), [1]);
     // A second Paste takes the guides again.
     run(&mut app, "edit.paste", json!({}));
     assert_eq!((guides(&app), count(&app)), (3, 0));
@@ -89,7 +89,7 @@ fn on_the_web_a_guides_only_copy_empties_the_clipboard_text() {
     let browser = Rc::new(RefCell::new(r#"<svg xmlns="http://www.w3.org/2000/svg"><rect width="9" height="9"/></svg>"#.to_string()));
     let read = browser.clone();
     let services = Services { clipboard_read: Some(Box::new(move || Some(read.borrow().clone()))), ..Default::default() };
-    let mut app = VectorcraftApp::new(Session::new(), services);
+    let mut app = VansoncraftApp::new(Session::new(), services);
     run(&mut app, "file.new", json!({"width": 400, "height": 300}));
     copy_guide(&mut app, 120.0);
     let out = frame(&mut app, vec![]);

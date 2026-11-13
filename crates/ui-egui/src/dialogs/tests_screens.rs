@@ -7,9 +7,9 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use serde_json::{Value, json};
-use vectorcraft_engine::Session;
-use vectorcraft_engine::cmd::fileio;
-use vectorcraft_tools::{Mods, PointerEvent, PointerKind};
+use vansoncraft_engine::Session;
+use vansoncraft_engine::cmd::fileio;
+use vansoncraft_tools::{Mods, PointerEvent, PointerKind};
 
 use super::tests_export::{frame, kind, set};
 use super::*;
@@ -21,7 +21,7 @@ type Log = Rc<RefCell<Vec<(String, Vec<u8>)>>>;
 
 /// An app with `artboards` 60×40 pt artboards and an ellipse on the first; `web` gives it a
 /// download service (recorded in the log) instead of a file manager (whose reveals are recorded).
-fn app(artboards: usize, web: bool) -> (VectorcraftApp, Log) {
+fn app(artboards: usize, web: bool) -> (VansoncraftApp, Log) {
     let log = Log::default();
     let l = log.clone();
     let mut services = Services::default();
@@ -37,17 +37,17 @@ fn app(artboards: usize, web: bool) -> (VectorcraftApp, Log) {
         }));
         services.pick_folder = Some(Box::new(|| None));
     }
-    let mut app = VectorcraftApp::new(Session::new(), services);
+    let mut app = VansoncraftApp::new(Session::new(), services);
     app.run("file.new", json!({"width": 60, "height": 40, "artboards": artboards})).unwrap();
     app.run("shape.ellipse", json!({"x": 5, "y": 4, "width": 30, "height": 20})).unwrap();
     (app, log)
 }
 
-fn field(app: &VectorcraftApp, k: &str) -> Value {
+fn field(app: &VansoncraftApp, k: &str) -> Value {
     app.ui.dialog.as_ref().expect("a dialog is open").fields.get(k).cloned().unwrap_or(Value::Null)
 }
 
-fn open(app: &mut VectorcraftApp) {
+fn open(app: &mut VansoncraftApp) {
     app.run("file.exportForScreens", json!({})).unwrap();
     assert_eq!(kind(app), Some(export_for_screens::KIND));
 }
@@ -112,7 +112,7 @@ fn opens_with_the_artboards_the_artboard_tool_selected_and_exports_only_them() {
     app.run("tool.select", json!({"tool": "artboard"})).unwrap();
     let boards: Vec<_> = app.session.active().unwrap().doc.artboards.iter().map(|a| a.rect).collect();
     let view = app.view_info();
-    let click = |app: &mut VectorcraftApp, i: usize, shift: bool| {
+    let click = |app: &mut VansoncraftApp, i: usize, shift: bool| {
         let mods = Mods { shift, ..Default::default() };
         for kind in [PointerKind::Down, PointerKind::Up] {
             crate::canvas::dispatch(app, &PointerEvent { kind, pos: boards[i].center(), mods, backquote: false, pressure: 1.0, pen: None }, view);
@@ -149,7 +149,7 @@ fn opens_with_the_rows_selected_in_the_artboards_panel_else_on_the_saved_choice(
     app.run("tool.select", json!({"tool": "artboard"})).unwrap();
     let ctx = egui::Context::default();
     let screen = Some(egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(240.0, 400.0)));
-    let panel = |app: &mut VectorcraftApp, time: f64, events: Vec<egui::Event>| {
+    let panel = |app: &mut VansoncraftApp, time: f64, events: Vec<egui::Event>| {
         let raw = egui::RawInput { events, time: Some(time), screen_rect: screen, ..Default::default() };
         let mut out = ctx.run_ui(raw, |ui| crate::panels::artboards::show(app, ui));
         out.textures_delta.clear();
@@ -222,7 +222,7 @@ fn exports_into_the_folder_and_shows_it() {
 
 /// [`app`] on the desktop with Background Export's thread-safe writer, which records the files it
 /// is given once `gate` opens.
-fn app_with_worker(artboards: usize, gate: &Gate) -> (VectorcraftApp, Log, Files) {
+fn app_with_worker(artboards: usize, gate: &Gate) -> (VansoncraftApp, Log, Files) {
     let (mut app, log) = app(artboards, false);
     let (files, g) = (Files::default(), gate.clone());
     let recorded = files.clone();
@@ -234,7 +234,7 @@ fn app_with_worker(artboards: usize, gate: &Gate) -> (VectorcraftApp, Log, Files
     (app, log, files)
 }
 
-fn background_export(app: &mut VectorcraftApp, on: bool) {
+fn background_export(app: &mut VansoncraftApp, on: bool) {
     app.session.execute("prefs.set", &json!({"values": {"backgroundExport": on}})).unwrap();
 }
 
@@ -261,7 +261,7 @@ fn the_files_are_written_in_the_background_as_at_once() {
         let (mut app, log, files) = app_with_worker(2, &gate);
         app.run("artboard.setProps", json!({"index": 0, "name": "Icon"})).unwrap();
         app.run("artboard.setProps", json!({"index": 1, "name": "icon"})).unwrap();
-        let export = |app: &mut VectorcraftApp| {
+        let export = |app: &mut VansoncraftApp| {
             if zip {
                 let p = json!({"folder": folder, "zip": true, "folders": "rows", "name": "<name>", "formats": rows, "openLocation": true});
                 return app.run("file.exportForScreens", p);
@@ -460,7 +460,7 @@ fn the_web_downloads_one_zip_or_the_file() {
         let log = log.borrow();
         let [(name, zip)] = log.as_slice() else { panic!("one download: {:?}", log.iter().map(|(n, _)| n).collect::<Vec<_>>()) };
         assert_eq!(name, "Untitled-1.zip");
-        assert_eq!(&vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap(), zip);
+        assert_eq!(&vansoncraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap(), zip);
     }
     assert_eq!(r["files"], json!(["1x/Artboard-1.png", "2x/Artboard-1@2x.jpg", "1x/Artboard-2.png", "2x/Artboard-2@2x.jpg"]));
     // One file downloads as itself, with the format's settings.
@@ -509,7 +509,7 @@ fn the_status_bar_says_when_an_image_could_not_be_decoded() {
     image::RgbaImage::from_pixel(64, 32, image::Rgba([200, 30, 30, 255]))
         .write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)
         .unwrap();
-    let place = |app: &mut VectorcraftApp| vectorcraft_testkit::fixtures::place_cut_png(&mut app.session, &png, json!({"at": [10, 10]}));
+    let place = |app: &mut VansoncraftApp| vansoncraft_testkit::fixtures::place_cut_png(&mut app.session, &png, json!({"at": [10, 10]}));
     let rows = json!([{"format": "png", "scale": "1x", "suffix": ""}, {"format": "jpg", "scale": "2x", "suffix": "@2x"}]);
     let dir = temp_folder("undecoded");
     let folder = dir.to_string_lossy().replace('\\', "/");
@@ -546,7 +546,7 @@ fn an_export_into_a_folder_keeps_every_note_for_the_hover() {
     let folder = dir.to_string_lossy().replace('\\', "/");
     let rows = json!([{"format": "png", "scale": "1x", "suffix": ""}]);
     let (mut app, _) = app(1, false);
-    vectorcraft_testkit::fixtures::place_cut_png(&mut app.session, &png, json!({"at": [10, 10]}));
+    vansoncraft_testkit::fixtures::place_cut_png(&mut app.session, &png, json!({"at": [10, 10]}));
     app.run("text.create", json!({"x": 5, "y": 20, "text": "Ab", "font": "Nonexistent Sans Probe"})).unwrap();
     let r = app.run("file.exportForScreens", json!({"folder": folder, "formats": rows})).unwrap();
     let notes = crate::io::notes_of(&r);
@@ -599,7 +599,7 @@ impl ScreensFrame {
         Self { ctx, time: 0.0 }
     }
 
-    fn frame(&mut self, app: &mut VectorcraftApp, events: Vec<egui::Event>) -> egui::FullOutput {
+    fn frame(&mut self, app: &mut VansoncraftApp, events: Vec<egui::Event>) -> egui::FullOutput {
         self.time += 0.1;
         let input = egui::RawInput {
             events,
@@ -612,12 +612,12 @@ impl ScreensFrame {
         out
     }
 
-    fn settle(&mut self, app: &mut VectorcraftApp) -> egui::FullOutput {
+    fn settle(&mut self, app: &mut VansoncraftApp) -> egui::FullOutput {
         self.frame(app, vec![]);
         self.frame(app, vec![])
     }
 
-    fn asset_panel(&mut self, app: &mut VectorcraftApp, events: Vec<egui::Event>) -> egui::FullOutput {
+    fn asset_panel(&mut self, app: &mut VansoncraftApp, events: Vec<egui::Event>) -> egui::FullOutput {
         self.time += 0.1;
         let input = egui::RawInput {
             events,
@@ -630,7 +630,7 @@ impl ScreensFrame {
         out
     }
 
-    fn click(&mut self, app: &mut VectorcraftApp, at: egui::Pos2) -> egui::FullOutput {
+    fn click(&mut self, app: &mut VansoncraftApp, at: egui::Pos2) -> egui::FullOutput {
         let button = |pressed| egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
         self.frame(app, vec![egui::Event::PointerMoved(at)]);
         self.frame(app, vec![button(true)]);
@@ -638,12 +638,12 @@ impl ScreensFrame {
         self.settle(app)
     }
 
-    fn click_label(&mut self, app: &mut VectorcraftApp, label: &str) -> egui::FullOutput {
+    fn click_label(&mut self, app: &mut VansoncraftApp, label: &str) -> egui::FullOutput {
         let out = self.settle(app);
         self.click(app, screen_text_at(&out, label))
     }
 
-    fn choose(&mut self, app: &mut VectorcraftApp, current: &str, next: &str) {
+    fn choose(&mut self, app: &mut VansoncraftApp, current: &str, next: &str) {
         let out = self.click_label(app, current);
         self.click(app, screen_text_at(&out, next));
     }
@@ -712,7 +712,7 @@ fn saved_tiff_alias_gear(alias: &str, asset_panel: bool) {
         open(&mut app);
     }
     let mut h = ScreensFrame::new();
-    let draw = |h: &mut ScreensFrame, app: &mut VectorcraftApp, events| {
+    let draw = |h: &mut ScreensFrame, app: &mut VansoncraftApp, events| {
         if asset_panel { h.asset_panel(app, events) } else { h.frame(app, events) }
     };
     draw(&mut h, &mut app, vec![]);
@@ -924,7 +924,7 @@ fn sub_folders_and_single_file_pdfs() {
         {"format": "png", "scale": "2x", "suffix": "@2x"},
         {"format": "pdf", "scale": "1x", "suffix": ""}
     ]);
-    let files = |app: &mut VectorcraftApp, extra: &[(&str, Value)]| -> Vec<String> {
+    let files = |app: &mut VansoncraftApp, extra: &[(&str, Value)]| -> Vec<String> {
         open(app);
         let base = [("folder", json!(folder)), ("select", json!("range")), ("range", json!("1-2")), ("formats", rows.clone())];
         for (k, v) in base.into_iter().chain(extra.iter().cloned()) {
@@ -1025,7 +1025,7 @@ fn saved_keys_no_longer_read_are_left_out_of_the_dialog_s_export() {
     let Value::Object(saved) = stale.clone() else { panic!("an object") };
     std::sync::Arc::make_mut(&mut app.session.active_mut().unwrap().doc).export_settings = saved;
     let folder = temp_folder("stale");
-    let check = |app: &VectorcraftApp| {
+    let check = |app: &VansoncraftApp| {
         let p = export_for_screens::params(app, app.ui.dialog.as_ref().unwrap()).unwrap();
         app.session.check_params("document.exportForScreens", &p).unwrap_or_else(|e| panic!("{e}: {p}"));
         p
@@ -1080,7 +1080,7 @@ fn an_applied_preset_keeps_its_item_folders() {
 fn a_preset_with_empty_folders_exports_into_the_folder() {
     let (mut app, _) = app(2, false);
     open(&mut app);
-    let apply = |app: &mut VectorcraftApp, settings: Value| {
+    let apply = |app: &mut VansoncraftApp, settings: Value| {
         export_for_screens::apply_preset(app.ui.dialog.as_mut().unwrap(), &json!({"name": "Empty", "settings": settings}));
     };
     for settings in [json!({"folders": ""}), json!({"folders": "", "subfolders": true})] {
@@ -1116,11 +1116,11 @@ fn export_preset_and_import_preset_go_through_files() {
         write: Some(Box::new(|p: &str, b: &[u8]| std::fs::write(p, b).map_err(|e| e.to_string()))),
         ..Default::default()
     };
-    let mut app = VectorcraftApp::new(Session::new(), services);
+    let mut app = VansoncraftApp::new(Session::new(), services);
     app.run("file.new", json!({"width": 60, "height": 40})).unwrap();
     app.run("document.exportPresets.save", json!({"name": "Pack", "settings": {"formats": [{"format": "svg"}], "folders": "format"}})).unwrap();
     open(&mut app);
-    let names = |app: &VectorcraftApp| -> Vec<String> {
+    let names = |app: &VansoncraftApp| -> Vec<String> {
         field(app, "__exportPresets").as_array().unwrap().iter().filter_map(|p| p["name"].as_str().map(str::to_string)).collect()
     };
     assert_eq!(export_for_screens::export_preset(&mut app, "Pack").unwrap(), file);
@@ -1179,7 +1179,7 @@ fn setting_the_export_preset_field_applies_the_preset() {
     let (mut app, _) = app(1, false);
     let ctx = egui::Context::default();
     open(&mut app);
-    let set_preset = |app: &mut VectorcraftApp, name: &str| {
+    let set_preset = |app: &mut VansoncraftApp, name: &str| {
         let (req, _rx) = ControlRequest::new("ui.dialog.set", json!({"field": "exportPreset", "value": name}));
         let Outcome::Done(r) = crate::control::handle(app, &ctx, &req) else { panic!("not done") };
         r
@@ -1218,7 +1218,7 @@ fn preset_files_ask_off_the_ui_thread() {
     use export_for_screens::PresetPick;
     let mut services = Services { dialogs_are_sheets: true, ..Default::default() };
     let (shown, written) = crate::tests_picks::off_the_ui_thread(&mut services);
-    let mut app = VectorcraftApp::new(Session::new(), services);
+    let mut app = VansoncraftApp::new(Session::new(), services);
     app.run("file.new", json!({"width": 60, "height": 40})).unwrap();
     app.run("document.exportPresets.save", json!({"name": "Pack", "settings": {"formats": [{"format": "svg"}]}})).unwrap();
     let dir = temp_folder("preset-sheets");
@@ -1226,8 +1226,8 @@ fn preset_files_ask_off_the_ui_thread() {
     let file = dir.join("pack.vcexportpresets");
     std::fs::write(&file, app.run("document.exportPresets.export", json!({"names": ["Pack"]})).unwrap()["data"].as_str().unwrap()).unwrap();
     let file = file.to_string_lossy().to_string();
-    let names = |app: &VectorcraftApp| app.session.prefs.screen_export_presets.iter().map(|p| p.name.clone()).collect::<Vec<_>>();
-    let poll = |app: &mut VectorcraftApp| crate::picks::poll(app, &egui::Context::default());
+    let names = |app: &VansoncraftApp| app.session.prefs.screen_export_presets.iter().map(|p| p.name.clone()).collect::<Vec<_>>();
+    let poll = |app: &mut VansoncraftApp| crate::picks::poll(app, &egui::Context::default());
     let ctx = egui::Context::default();
     let doc = app.session.active().unwrap().uid;
     asset_export::preset(&mut app, &ctx, doc, PresetPick::Export("Pack".into()));
@@ -1269,7 +1269,7 @@ fn the_dialog_builds_the_preset_list_again_only_when_the_presets_change() {
     let (mut app, _) = app(1, false);
     open(&mut app);
     frame(&mut app);
-    let mark = |app: &mut VectorcraftApp| app.ui.dialog.as_mut().unwrap().fields.get_mut("__exportPresets").unwrap()[0]["mark"] = json!(true);
+    let mark = |app: &mut VansoncraftApp| app.ui.dialog.as_mut().unwrap().fields.get_mut("__exportPresets").unwrap()[0]["mark"] = json!(true);
     mark(&mut app);
     frame(&mut app);
     frame(&mut app);

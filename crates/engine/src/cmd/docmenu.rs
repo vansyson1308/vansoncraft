@@ -6,8 +6,8 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use std::sync::Arc;
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{CharStyle, Guide, Node, NodeId, NodeKind, SavedSelection, TextKind};
-use vectorcraft_geom::Vec2;
+use vansoncraft_doc::{CharStyle, Guide, Node, NodeId, NodeKind, SavedSelection, TextKind};
+use vansoncraft_geom::Vec2;
 
 use super::edit::selected_roots;
 use super::pathops::Beside;
@@ -111,13 +111,13 @@ pub fn specs() -> Vec<CommandSpec> {
             "{} objects whose topmost stroke has a bristle brush (type bristle in brush.list), whatever the brush is named → {count}",
             has_doc,
             |s, _| {
-                let brushes = vectorcraft_brush::library(&s.doc()?.doc);
+                let brushes = vansoncraft_brush::library(&s.doc()?.doc);
                 by_kind(s, |n| {
                     n.appearance
                         .stroke()
                         .and_then(|st| st.brush.as_deref())
                         .and_then(|name| brushes.iter().find(|b| b.name == name))
-                        .is_some_and(|b| matches!(b.kind, vectorcraft_brush::BrushKind::Bristle(_)))
+                        .is_some_and(|b| matches!(b.kind, vansoncraft_brush::BrushKind::Bristle(_)))
                 })
             }
         ),
@@ -650,7 +650,7 @@ fn make_guides(s: &mut Session, _: &Value) -> Result<Value> {
     Ok(json!({ "count": n }))
 }
 
-fn guide_paths(d: &vectorcraft_doc::Document) -> Vec<NodeId> {
+fn guide_paths(d: &vansoncraft_doc::Document) -> Vec<NodeId> {
     let mut v = vec![];
     d.walk(|n| {
         if matches!(n.kind, NodeKind::Path { guide: true, .. }) {
@@ -727,8 +727,8 @@ fn release_guides(s: &mut Session, p: &Value) -> Result<Value> {
         let mut made = Vec::with_capacity(lines.len());
         for &(_, parent, a, b) in &lines {
             let id = d.alloc_id();
-            let look = vectorcraft_doc::Appearance::basic(vectorcraft_color::Paint::None, vectorcraft_color::Paint::None, 0.0);
-            d.insert(parent, usize::MAX, Node::path(id, vectorcraft_geom::shapes::line(a, b), look))?;
+            let look = vansoncraft_doc::Appearance::basic(vansoncraft_color::Paint::None, vansoncraft_color::Paint::None, 0.0);
+            d.insert(parent, usize::MAX, Node::path(id, vansoncraft_geom::shapes::line(a, b), look))?;
             made.push(id);
         }
         d.retain_guides(sel, |g| !lines.iter().any(|l| Some(l.0) == g.id));
@@ -789,13 +789,13 @@ fn guide_add(s: &mut Session, p: &Value) -> Result<Value> {
 
 /// The ids of the active document's ruler guides by index: the order of `guide.list` (ascending
 /// id).
-pub(crate) fn guide_ids(d: &vectorcraft_doc::Document) -> Vec<NodeId> {
+pub(crate) fn guide_ids(d: &vansoncraft_doc::Document) -> Vec<NodeId> {
     d.ruler_guides().into_iter().filter_map(|g| g.id).collect()
 }
 
 /// The `guide.list` indexes of ruler guides `ids`, in the order of `ids` (an id that is not a ruler
 /// guide is left out).
-pub fn guide_indexes(d: &vectorcraft_doc::Document, ids: &[NodeId]) -> Vec<usize> {
+pub fn guide_indexes(d: &vansoncraft_doc::Document, ids: &[NodeId]) -> Vec<usize> {
     let all = guide_ids(d);
     ids.iter().filter_map(|id| all.binary_search(id).ok()).collect()
 }
@@ -935,7 +935,7 @@ pub(crate) fn guide_move(s: &mut Session, p: &Value) -> Result<Value> {
             s,
             if copy { "Copy Guide" } else { "Move Guide" },
             ids,
-            vectorcraft_geom::Affine::translate((dx, dy)),
+            vansoncraft_geom::Affine::translate((dx, dy)),
             p,
             true,
         );

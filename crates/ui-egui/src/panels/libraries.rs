@@ -27,12 +27,12 @@ use std::collections::HashMap;
 
 use egui::{Rect, Sense, Stroke, StrokeKind, Ui, vec2};
 use serde_json::{Value, json};
-use vectorcraft_color::Paint;
-use vectorcraft_engine::cmd::library::{ItemKind, LIBRARY_EXT, LIBRARY_EXTS, Library, LibraryGraphic};
+use vansoncraft_color::Paint;
+use vansoncraft_engine::cmd::library::{ItemKind, LIBRARY_EXT, LIBRARY_EXTS, Library, LibraryGraphic};
 
 use crate::theme::Tokens;
 use crate::widgets::{self, PanelDrag, menu_item, menu_item_name};
-use crate::{VectorcraftApp, icons};
+use crate::{VansoncraftApp, icons};
 
 /// The size of a graphic's tile.
 const TILE: f32 = 56.0;
@@ -53,14 +53,14 @@ const MIN_LIST: f32 = 140.0;
 const EDGE: f32 = 28.0;
 
 /// The current library: its id and a copy of it (the panel menu acts on it after reading).
-fn current(app: &VectorcraftApp) -> Option<(String, Library)> {
+fn current(app: &VansoncraftApp) -> Option<(String, Library)> {
     let libs = &app.session.libraries;
     let id = libs.current()?;
     Some((id.to_string(), libs.get(id)?.clone()))
 }
 
 /// Report a failure in the status bar (a file dialog closed or still open says nothing).
-fn report<T>(app: &mut VectorcraftApp, r: Result<T, String>) {
+fn report<T>(app: &mut VansoncraftApp, r: Result<T, String>) {
     if let Err(e) = r
         && e != "cancelled"
     {
@@ -69,13 +69,13 @@ fn report<T>(app: &mut VectorcraftApp, r: Result<T, String>) {
 }
 
 /// Run `cmd`, reporting a failure in the status bar.
-fn run(app: &mut VectorcraftApp, cmd: &str, p: Value) {
+fn run(app: &mut VansoncraftApp, cmd: &str, p: Value) {
     let r = app.run(cmd, p);
     report(app, r);
 }
 
 /// The name dialog for a new library, or for renaming the current one.
-fn ask_name(app: &mut VectorcraftApp, rename: Option<&str>) {
+fn ask_name(app: &mut VansoncraftApp, rename: Option<&str>) {
     let (cmd, label, name) = match rename {
         Some(n) => ("library.rename", "Rename Library", n.to_string()),
         None => ("library.create", "Create New Library", "My Library".to_string()),
@@ -85,7 +85,7 @@ fn ask_name(app: &mut VectorcraftApp, rename: Option<&str>) {
 
 /// The name dialog for a new group of `library` (`items`: `[{kind, item}]` moved into it), or for
 /// renaming group `rename`.
-fn ask_group_name(app: &mut VectorcraftApp, library: &str, rename: Option<&str>, items: Value) {
+fn ask_group_name(app: &mut VansoncraftApp, library: &str, rename: Option<&str>, items: Value) {
     let (cmd, label, name, fixed) = match rename {
         Some(g) => ("library.renameGroup", "Rename Library Group", g, json!({ "library": library, "group": g })),
         None => ("library.createGroup", "New Library Group", "Group", json!({ "library": library, "items": items })),
@@ -172,7 +172,7 @@ impl Items<'_> {
     }
 }
 
-pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn show(app: &mut VansoncraftApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let fill_active = app.session.fill_active;
     let has_doc = app.session.active().is_some();
@@ -793,7 +793,7 @@ fn thumbnail(ctx: &egui::Context, library: &str, item: &str, png: &str, px: u32)
         return t;
     }
     let tex =
-        vectorcraft_format::base64_decode(png).and_then(|png| image::load_from_memory_with_format(&png, image::ImageFormat::Png).ok()).map(|img| {
+        vansoncraft_format::base64_decode(png).and_then(|png| image::load_from_memory_with_format(&png, image::ImageFormat::Png).ok()).map(|img| {
             let img = if img.width().max(img.height()) > px { img.resize(px, px, image::imageops::FilterType::Triangle) } else { img };
             let rgba = img.to_rgba8();
             let image = egui::ColorImage::from_rgba_unmultiplied([rgba.width() as usize, rgba.height() as usize], rgba.as_raw());
@@ -810,14 +810,14 @@ fn thumbnail(ctx: &egui::Context, library: &str, item: &str, png: &str, px: u32)
 }
 
 /// Graphic `item` of `library`'s thumbnail in `r` (the chip a dragged graphic shows at the pointer).
-pub(crate) fn chip(app: &VectorcraftApp, ui: &Ui, r: Rect, library: &str, item: &str) {
+pub(crate) fn chip(app: &VansoncraftApp, ui: &Ui, r: Rect, library: &str, item: &str) {
     if let Some(g) = app.session.libraries.get(library).and_then(|l| l.graphics.iter().find(|g| g.id == item)) {
         tile(ui, r, library, g);
     }
 }
 
 /// Import a library file (`library.import`'s params), saying so in the status bar.
-pub(crate) fn import(app: &mut VectorcraftApp, p: Value) -> Result<Value, String> {
+pub(crate) fn import(app: &mut VansoncraftApp, p: Value) -> Result<Value, String> {
     let r = app.run("library.import", p)?;
     let name = r["name"].as_str().unwrap_or_default().to_string();
     app.status(format!("Imported library {name}"));
@@ -826,7 +826,7 @@ pub(crate) fn import(app: &mut VectorcraftApp, p: Value) -> Result<Value, String
 
 /// Import Library…: a picked `.vclibrary` file becomes a new library (on the web the picked file
 /// arrives later through [`crate::io::open_bytes`]).
-fn import_picked(app: &mut VectorcraftApp) {
+fn import_picked(app: &mut VansoncraftApp) {
     if crate::picks::open_async(app) {
         return;
     }
@@ -838,15 +838,15 @@ fn import_picked(app: &mut VectorcraftApp) {
 }
 
 /// Export Library…: library `id` written to a picked file named after it (the web downloads it).
-fn export_picked(app: &mut VectorcraftApp, id: &str, name: &str) {
-    let file = format!("{}.{LIBRARY_EXT}", vectorcraft_engine::cmd::library::file_stem_for(name));
+fn export_picked(app: &mut VansoncraftApp, id: &str, name: &str) {
+    let file = format!("{}.{LIBRARY_EXT}", vansoncraft_engine::cmd::library::file_stem_for(name));
     let r = crate::io::save_command_output_named(app, "library.export", &file, json!({ "library": id }));
     report(app, r);
 }
 
 /// The panel's ≡ menu: Create New Library, Rename Library…, Delete Library, New Group…, Import
 /// Library…, Export Library….
-pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn menu(app: &mut VansoncraftApp, ui: &mut Ui) {
     let cur = current(app);
     if menu_item(ui, "Create New Library…", true, false) {
         ask_name(app, None);

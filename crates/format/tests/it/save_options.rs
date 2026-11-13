@@ -5,17 +5,17 @@
 use std::sync::Arc;
 
 use serde_json::Value;
-use vectorcraft_doc::color::{Color, Paint};
-use vectorcraft_doc::links::LinkInfo;
-use vectorcraft_doc::{
+use vansoncraft_doc::color::{Color, Paint};
+use vansoncraft_doc::links::LinkInfo;
+use vansoncraft_doc::{
     Appearance, BlendSpec, Document, EnvelopeKind, ImageBlob, ImageObject, LiveShape, MAX_COORD, Node, NodeKind, OpacityMask, Symbol,
 };
-use vectorcraft_format::{
+use vansoncraft_format::{
     ICC_MIME, MAX_PRECISION, PRETTY_MAX_BYTES, PRETTY_MAX_OBJECTS, SaveOptions, load, load_file, pdf_content, save_file, save_with,
 };
-use vectorcraft_geom::path::{Anchor, PathData, SubPath};
-use vectorcraft_geom::{Affine, Point};
-use vectorcraft_testkit::fixtures::DocBuilder;
+use vansoncraft_geom::path::{Anchor, PathData, SubPath};
+use vansoncraft_geom::{Affine, Point};
+use vansoncraft_testkit::fixtures::DocBuilder;
 
 fn json_of(bytes: &[u8]) -> Value {
     serde_json::from_slice(bytes).unwrap()

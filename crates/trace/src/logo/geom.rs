@@ -3,7 +3,7 @@
 use kurbo::Vec2;
 use std::collections::HashMap;
 use std::hash::{BuildHasherDefault, Hasher};
-use vectorcraft_geom::Point;
+use vansoncraft_geom::Point;
 
 /// One cubic Bézier segment: start, two handles, end.
 pub(crate) type Cubic = [Point; 4];

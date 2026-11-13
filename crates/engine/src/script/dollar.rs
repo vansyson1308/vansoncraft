@@ -9,9 +9,9 @@
 //! localization off and a timer at zero, and what a script changes ends with its run. `$.setenv`
 //! never changes the process's environment.
 //!
-//! These are VectorCraft's own values and rules: `$.appEncoding` is always UTF-8; `$.build` and
-//! `$.version` give VectorCraft's version, `$.engineName` is the name `#targetengine` gave, or
-//! `VectorCraft` without one, and `$.buildDate` is `null`; `$.flags` takes only 512, which turns
+//! These are VansonCraft's own values and rules: `$.appEncoding` is always UTF-8; `$.build` and
+//! `$.version` give VansonCraft's version, `$.engineName` is the name `#targetengine` gave, or
+//! `VansonCraft` without one, and `$.buildDate` is `null`; `$.flags` takes only 512, which turns
 //! localization on; `$.level` and `$.memCache` are 0 and `$.screens` is empty; `$.os` names the system without its version; `$.strict` is whether the
 //! realm reads scripts as strict mode code; `$.bp` and `$.colorPicker` throw, since scripts have no
 //! debugger and cannot show a dialog; `$.gc` does nothing, since the interpreter collects its own
@@ -24,7 +24,7 @@ use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::time::Duration;
 
-use vectorcraft_js::{Data, HostError, HostItem, Localization, ScriptItem};
+use vansoncraft_js::{Data, HostError, HostItem, Localization, ScriptItem};
 
 use super::{Link, current, function};
 
@@ -103,7 +103,7 @@ fn script_locale(text: &str) -> Option<String> {
     }
 }
 
-/// The languages whose numbers are written with a decimal comma (VectorCraft's own list).
+/// The languages whose numbers are written with a decimal comma (VansonCraft's own list).
 const DECIMAL_COMMA: &[&str] = &[
     "bg", "ca", "cs", "da", "de", "el", "es", "et", "fi", "fr", "hr", "hu", "id", "it", "lt", "lv", "nb", "nl", "no", "pl", "pt", "ro", "ru", "sk",
     "sl", "sr", "sv", "tr", "uk", "vi",
@@ -295,7 +295,7 @@ pub(super) fn members(link: &Link, info: RunInfo, localization: &Rc<Localization
             Ok(Data::Undefined)
         })
     };
-    let about = text(format!("VectorCraft script engine {version}"));
+    let about = text(format!("VansonCraft script engine {version}"));
 
     vec![
         ("about".into(), HostItem::Function(function(move |_| Ok(about.clone())))),
@@ -305,7 +305,7 @@ pub(super) fn members(link: &Link, info: RunInfo, localization: &Rc<Localization
         ("buildDate".into(), value(Data::Null)),
         ("colorPicker".into(), fail("$.colorPicker: scripts cannot show a dialog yet")),
         ("decimalPoint".into(), decimal),
-        ("engineName".into(), value(text(info.engine.unwrap_or_else(|| "VectorCraft".into())))),
+        ("engineName".into(), value(text(info.engine.unwrap_or_else(|| "VansonCraft".into())))),
         ("error".into(), HostItem::Script(ScriptItem::LastError)),
         ("flags".into(), flags),
         ("gc".into(), HostItem::Function(function(|_| Ok(Data::Undefined)))),

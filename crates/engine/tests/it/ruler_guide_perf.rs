@@ -1,24 +1,24 @@
 //! Timings of a document with 10,000 ruler guides and 100,000 objects: save, load, open, the guide
 //! list, hovering and dragging with the Selection tool, an edit that does not touch guides and one
 //! that does. Ignored by default; it prints its timings and sets no bound on them:
-//! `cargo test -p vectorcraft-engine --test it ruler_guide_perf -- --ignored --nocapture`.
+//! `cargo test -p vansoncraft-engine --test it ruler_guide_perf -- --ignored --nocapture`.
 
 use std::time::{Duration, Instant};
 
 use serde_json::{Value, json};
-use vectorcraft_color::Color;
-use vectorcraft_doc::Document;
-use vectorcraft_engine::{Session, ViewInfo};
-use vectorcraft_geom::Rect;
-use vectorcraft_testkit::fixtures::DocBuilder;
-use vectorcraft_tools::{PointerEvent, PointerKind};
+use vansoncraft_color::Color;
+use vansoncraft_doc::Document;
+use vansoncraft_engine::{Session, ViewInfo};
+use vansoncraft_geom::Rect;
+use vansoncraft_testkit::fixtures::DocBuilder;
+use vansoncraft_tools::{PointerEvent, PointerKind};
 
 const GUIDES: usize = 10_000;
 const LAYERS: usize = 4;
 const GROUPS_PER_LAYER: usize = 250;
 const RECTS_PER_GROUP: usize = 100;
 
-/// The `.vectorcraft` file of the document: 100,000 rectangles in groups of 100 on four layers,
+/// The `.vansoncraft` file of the document: 100,000 rectangles in groups of 100 on four layers,
 /// and the ruler guides in its saved list, spread over the layers.
 fn file() -> Vec<u8> {
     let mut b = DocBuilder::new(2000.0, 2000.0);
@@ -38,7 +38,7 @@ fn file() -> Vec<u8> {
         }
     }
     let d: Document = b.build();
-    let mut v: Value = serde_json::from_slice(&vectorcraft_format::save(&d, false)).unwrap();
+    let mut v: Value = serde_json::from_slice(&vansoncraft_format::save(&d, false)).unwrap();
     v["document"]["guides"] =
         (0..GUIDES).map(|i| json!({"vertical": i % 2 == 0, "pos": (i / 2) as f64 * 0.37 + 0.1, "layer": layers[i % LAYERS]})).collect();
     serde_json::to_vec(&v).unwrap()
@@ -70,14 +70,14 @@ fn pointer(s: &mut Session, kind: PointerKind, x: f64, y: f64) {
 fn ruler_guide_perf() {
     let bytes = file();
     eprintln!("ruler_guide_perf: file of {} bytes", bytes.len());
-    report("load (format::load), median of 5", median(5, || drop(vectorcraft_format::load(&bytes).unwrap())));
-    let doc = vectorcraft_format::load(&bytes).unwrap();
-    report("save (format::save), median of 5", median(5, || drop(vectorcraft_format::save(&doc, false))));
+    report("load (format::load), median of 5", median(5, || drop(vansoncraft_format::load(&bytes).unwrap())));
+    let doc = vansoncraft_format::load(&bytes).unwrap();
+    report("save (format::save), median of 5", median(5, || drop(vansoncraft_format::save(&doc, false))));
 
     let mut s = Session::new();
-    let data = vectorcraft_format::base64_encode(&bytes);
+    let data = vansoncraft_format::base64_encode(&bytes);
     let start = Instant::now();
-    s.execute("document.open", &json!({"name": "perf.vectorcraft", "dataBase64": data})).unwrap();
+    s.execute("document.open", &json!({"name": "perf.vansoncraft", "dataBase64": data})).unwrap();
     report("document.open", start.elapsed());
     let listed = s.execute("guide.list", &json!({})).unwrap().as_array().map_or(0, Vec::len);
     assert_eq!(listed, GUIDES);

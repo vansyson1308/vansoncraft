@@ -5,9 +5,9 @@
 
 use std::fmt::Write;
 
-use vectorcraft_color::{Color, Gradient};
-use vectorcraft_doc::{LAYER_COLORS, LayerColor, LineCap, LineJoin, StrokeLayer};
-use vectorcraft_geom::{Affine, Anchor, AnchorKind, PathData, Point, SubPath};
+use vansoncraft_color::{Color, Gradient};
+use vansoncraft_doc::{LAYER_COLORS, LayerColor, LineCap, LineJoin, StrokeLayer};
+use vansoncraft_geom::{Affine, Anchor, AnchorKind, PathData, Point, SubPath};
 
 use crate::ps;
 

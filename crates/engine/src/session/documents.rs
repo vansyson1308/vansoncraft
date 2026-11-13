@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use vectorcraft_doc::{Node, TextObject};
+use vansoncraft_doc::{Node, TextObject};
 
 use super::{
     Arc, Clipboard, Color, CommandInfo, DocState, Document, DrawMode, EngineError, GradientPaint, Journal, NodeKind, PaintDefaults, Prefs, Result,
@@ -14,39 +14,40 @@ impl Session {
     /// Vector Halftone's dots are sampled, for exports.
     pub fn new() -> Self {
         // Placed documents are read by the native format's loader.
-        vectorcraft_doc::placed_document::set_loader(cmd::place::document::read_document);
-        vectorcraft_doc::placed_document::set_file_reader(cmd::place::document::read_file_again);
-        vectorcraft_doc::placed_document::set_read_check(|path| file_access::check_read(path).is_ok());
+        vansoncraft_doc::placed_document::set_loader(cmd::place::document::read_document);
+        vansoncraft_doc::placed_document::set_file_reader(cmd::place::document::read_file_again);
+        vansoncraft_doc::placed_document::set_read_check(|path| file_access::check_read(path).is_ok());
         // The background workers of placed documents read files in the scope that asked.
-        vectorcraft_render::placed_document::set_scope_capture(|| {
+        vansoncraft_render::placed_document::set_scope_capture(|| {
             let scope = file_access::ScopeHandle::capture();
             Box::new(move |f: &mut dyn FnMut()| scope.run(f))
         });
         // Clicks find an image's own fills and strokes where their effects draw them.
-        vectorcraft_doc::hit::set_image_paint(vectorcraft_render::effects::image_paint);
+        vansoncraft_doc::hit::set_image_paint(vansoncraft_render::effects::image_paint);
         // Clicks find a blend's steps and an envelope's distorted art where the canvas draws them,
         // evaluated again when the fonts or the plug-ins change.
-        vectorcraft_doc::hit::set_live_art(vectorcraft_render::effects::expand_live, || {
-            vectorcraft_text::FontDb::global().generation().rotate_left(32) ^ vectorcraft_render::effects::plugin_revision()
+        vansoncraft_doc::hit::set_live_art(vansoncraft_render::effects::expand_live, || {
+            vansoncraft_text::FontDb::global().generation().rotate_left(32) ^ vansoncraft_render::effects::plugin_revision()
         });
         // Envelopes map type from the bounds of its glyph outlines, underlines and strikethroughs.
-        vectorcraft_text::register_envelope_ink();
+        vansoncraft_text::register_envelope_ink();
         // Exports bake Vector Halftone into the dots the renderer samples.
-        vectorcraft_render::effects::addons::halftone::set_art(vectorcraft_render::addons::halftone::art);
+        vansoncraft_render::effects::addons::halftone::set_art(vansoncraft_render::addons::halftone::art);
         // OpenType SVG glyphs are drawn as the SVG importer reads their documents.
-        vectorcraft_text::set_svg_glyph_reader(vectorcraft_svg::glyph_art);
+        vansoncraft_text::set_svg_glyph_reader(vansoncraft_svg::glyph_art);
         Self {
             docs: vec![],
             active: None,
             prefs: Prefs::default(),
             caps_lock: false,
+            unique_ids: false,
             paint: PaintDefaults::default(),
             fill_active: true,
             clipboard: Clipboard::default(),
             journal: Journal::default(),
             history_budget: crate::default_history_budget(),
             histories_seen: None,
-            tool: vectorcraft_tools::create("selection"),
+            tool: vansoncraft_tools::create("selection"),
             lender: None,
             held_input: Default::default(),
             input_count: 0,
@@ -136,7 +137,7 @@ impl Session {
             keyboard_text: false,
             script_key: None,
             script_engines: crate::script::EnginesKey::new(),
-            script_stop: vectorcraft_js::Interrupt::new(),
+            script_stop: vansoncraft_js::Interrupt::new(),
             script_report: None,
             script_console: Default::default(),
             script_runs: 0,

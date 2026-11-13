@@ -6,10 +6,10 @@
 //! document (`addon.pathtools.inspect` gives agents the same readouts).
 
 use serde_json::{Value, json};
-use vectorcraft_doc::hit::{HitOptions, hit_test};
-use vectorcraft_doc::{NodeId, Unit};
-use vectorcraft_geom::{Point, Vec2};
-use vectorcraft_pathops::addons::pathtools::{Inspection, inspect};
+use vansoncraft_doc::hit::{HitOptions, hit_test};
+use vansoncraft_doc::{NodeId, Unit};
+use vansoncraft_geom::{Point, Vec2};
+use vansoncraft_pathops::addons::pathtools::{Inspection, inspect};
 
 use crate::guides::DrawSnap;
 use crate::xform::measure;
@@ -132,7 +132,7 @@ impl Tool for MeasureInspectTool {
                 cx.doc.node(*id).and_then(|n| n.path_data()).and_then(|p| p.subpaths.get(i.subpath)).filter(|sp| i.segment < sp.segment_count())
             {
                 let c = sp.segment(i.segment);
-                let mut bp = vectorcraft_geom::BezPath::new();
+                let mut bp = vansoncraft_geom::BezPath::new();
                 bp.move_to(c.p0);
                 bp.curve_to(c.p1, c.p2, c.p3);
                 out.push(Overlay::Path { path: bp, color: ORANGE, width: 2.0, dashed: false });
@@ -165,8 +165,8 @@ impl Tool for MeasureInspectTool {
 mod tests {
     use super::*;
     use crate::testutil::*;
-    use vectorcraft_doc::{CharStyle, Document, Node, NodeKind, Selection, TextObject};
-    use vectorcraft_text::{FontDb, layout as layout_text};
+    use vansoncraft_doc::{CharStyle, Document, Node, NodeKind, Selection, TextObject};
+    use vansoncraft_text::{FontDb, layout as layout_text};
 
     #[test]
     fn a_drag_measures_and_hovering_a_path_reads_it() {

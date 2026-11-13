@@ -1,4 +1,4 @@
-//! Document → PDF (krilla). Mirrors the tree walk of `vectorcraft-render`.
+//! Document → PDF (krilla). Mirrors the tree walk of `vansoncraft-render`.
 
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
@@ -16,12 +16,12 @@ use krilla::page::PageSettings;
 use krilla::paint::{Fill, LinearGradient, RadialGradient, SpreadMethod, Stop, Stroke, StrokeDash, SweepGradient};
 use krilla::text::{Glyph, GlyphId, KrillaGlyph};
 use kurbo::{PathEl, Shape, Vec2};
-use vectorcraft_color::{BlendMode, Color, GradientKind, Paint};
-use vectorcraft_doc::{AppearanceItem, Document, LineCap, LineJoin, Node, NodeKind, StrokeAlign, StrokeLayer, SymbolBoxes, TextObject};
-use vectorcraft_effects::stroke::{self, WrittenShape};
-use vectorcraft_geom::{Affine, BezPath, FillRule, Rect};
-use vectorcraft_text::embed::Embedding;
-use vectorcraft_text::{ListMarker, TextLayout};
+use vansoncraft_color::{BlendMode, Color, GradientKind, Paint};
+use vansoncraft_doc::{AppearanceItem, Document, LineCap, LineJoin, Node, NodeKind, StrokeAlign, StrokeLayer, SymbolBoxes, TextObject};
+use vansoncraft_effects::stroke::{self, WrittenShape};
+use vansoncraft_geom::{Affine, BezPath, FillRule, Rect};
+use vansoncraft_text::embed::Embedding;
+use vansoncraft_text::{ListMarker, TextLayout};
 
 use crate::forms::Mark;
 use crate::lab_spot::{find, rfind};
@@ -61,11 +61,11 @@ pub(crate) struct Exporter<'a> {
     /// `Some` while opacity mask art is written: whether an image in it was left out.
     image_left_out: Option<bool>,
     /// The brush library, parsed when the first brushed stroke is written.
-    brushes: Option<Vec<vectorcraft_brush::Brush>>,
+    brushes: Option<Vec<vansoncraft_brush::Brush>>,
     /// Whether the group being written is a knockout group (what its neutral children inherit).
     knockout: bool,
     /// Spot colours written with a Lab alternate ([`crate::lab_spot`]): colorant name, Lab values.
-    lab_spots: Vec<(String, vectorcraft_color::cms::Lab)>,
+    lab_spots: Vec<(String, vansoncraft_color::cms::Lab)>,
     /// Images may ask viewers to smooth them (not in PDF/A).
     interpolate: bool,
     /// Conic gradients may be written as sweep shadings, whose PostScript calculator functions
@@ -79,7 +79,7 @@ pub(crate) struct Exporter<'a> {
     /// Layers whose Print option is off are written too.
     pub non_printing: bool,
     /// How colours are separated into CMYK (the colour settings' intent unless print sets one).
-    pub intent: vectorcraft_color::cms::Intent,
+    pub intent: vansoncraft_color::cms::Intent,
     /// Whether a layer shows transparency (found out on the first page that asks).
     transparent: Option<bool>,
     /// How colours are written (the Output settings; print writes them as they are).
@@ -119,9 +119,9 @@ pub(crate) struct Exporter<'a> {
     /// ([`leaving_out_undecodable`]).
     pub left_out: HashSet<String>,
     /// Objects the symbol instances written held, together
-    /// ([`vectorcraft_doc::MAX_SYMBOL_NODES`]).
+    /// ([`vansoncraft_doc::MAX_SYMBOL_NODES`]).
     symbol_nodes: u64,
-    /// The most [`Self::symbol_nodes`] may reach: [`vectorcraft_doc::MAX_SYMBOL_NODES`], or less
+    /// The most [`Self::symbol_nodes`] may reach: [`vansoncraft_doc::MAX_SYMBOL_NODES`], or less
     /// while one of the copies on a sheet is drawn ([`Writer::page`]).
     pub(crate) symbol_limit: u64,
 }
@@ -154,7 +154,7 @@ mod tests {
     #[test]
     fn a_16_bit_png_at_8_bits_keeps_its_color_type_and_icc_profile() {
         use image::{ImageDecoder, ImageEncoder};
-        let icc = vectorcraft_color::cms::icc_bytes(vectorcraft_color::cms::GRAY).unwrap().to_vec();
+        let icc = vansoncraft_color::cms::icc_bytes(vansoncraft_color::cms::GRAY).unwrap().to_vec();
         let gray = image::DynamicImage::ImageLuma16(image::ImageBuffer::from_fn(4, 2, |x, y| image::Luma([x as u16 * 20000 + y as u16])));
         let mut png = vec![];
         let mut encoder = image::codecs::png::PngEncoder::new(&mut png);

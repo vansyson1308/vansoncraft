@@ -9,9 +9,9 @@ mod tests;
 mod text;
 
 use serde_json::{Map, Value, json};
-use vectorcraft_doc::{Document, Node, NodeId, NodeKind};
-use vectorcraft_geom::{PathData, SubPath};
-use vectorcraft_pathops::addons as po;
+use vansoncraft_doc::{Document, Node, NodeId, NodeKind};
+use vansoncraft_geom::{PathData, SubPath};
+use vansoncraft_pathops::addons as po;
 
 use self::checks::{Kind, MAX_OBJECTS, Outcome, Scope, set_path};
 use super::super::edit::selected_roots;

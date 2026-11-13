@@ -5,8 +5,8 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use serde_json::{Value, json};
-use vectorcraft_engine::Session;
-use vectorcraft_plugins::wat as tpl;
+use vansoncraft_engine::Session;
+use vansoncraft_plugins::wat as tpl;
 
 /// The command imports and the strings the plug-ins pass: the ids "select.all" (0x2000, 10 bytes),
 /// "object.move" (0x2010, 11), "no.such.cmd" (0x2020, 11), "effect.apply" (0x2030, 12) and
@@ -43,7 +43,7 @@ fn install(s: &mut Session, id: &str, permissions: &str, allowlist: &str, first:
         format!(r#"{{"id":"{id}","name":"Test {id}","kind":"filter","api":2,"permissions":{permissions},"commandAllowlist":{allowlist}}}"#);
     let wasm = wat::parse_str(tpl::with_imports(&manifest, CALLS, first, output)).unwrap();
     let grant: Value = serde_json::from_str(permissions).unwrap();
-    let data = vectorcraft_format::base64_encode(&wasm);
+    let data = vansoncraft_format::base64_encode(&wasm);
     s.execute("plugin.install", &json!({"dataBase64": data, "grant": grant, "replace": true})).map_err(|e| e.to_string())
 }
 
@@ -190,7 +190,7 @@ fn install_calls(s: &mut Session, id: &str, allowlist: &str, calls: &[(&str, &st
         r#"{{"id":"{id}","name":"Test {id}","kind":"filter","api":2,"permissions":["doc.read","doc.write","commands"],"commandAllowlist":{allowlist}}}"#
     );
     let wasm = wat::parse_str(tpl::with_imports(&manifest, &imports, &first, EMPTY)).unwrap();
-    let data = vectorcraft_format::base64_encode(&wasm);
+    let data = vansoncraft_format::base64_encode(&wasm);
     let grant = json!(["doc.read", "doc.write", "commands"]);
     run(s, "plugin.install", json!({"dataBase64": data, "grant": grant, "replace": true}));
 }

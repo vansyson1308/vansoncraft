@@ -15,9 +15,9 @@
 use std::sync::Arc;
 
 use kurbo::{Affine, BezPath, ParamCurve, ParamCurveArclen};
-use vectorcraft_color::Paint;
-use vectorcraft_doc::{Burasagari, CharStyle, Justify, NodeKind, ParaStyle, TabAlign, TabStop, TextKind, TextObject, TextRun};
-use vectorcraft_geom::AnchorKind;
+use vansoncraft_color::Paint;
+use vansoncraft_doc::{Burasagari, CharStyle, Justify, NodeKind, ParaStyle, TabAlign, TabStop, TextKind, TextObject, TextRun};
+use vansoncraft_geom::AnchorKind;
 
 use super::super::super::predefined_cmap::{self, CMapCodes, composite_font};
 use super::super::obj::V;
@@ -41,7 +41,7 @@ const MAX_TAB_POSITION: f64 = 100_000.0;
 /// it take the default stops, with a warning.
 const MAX_STORY_TABS: usize = 1 << 20;
 /// The warning when [`MAX_STORY_TABS`] leaves tab stops out.
-const TABS_LEFT_OUT: &str = "tab stops past VectorCraft's limits were left out";
+const TABS_LEFT_OUT: &str = "tab stops past VansonCraft's limits were left out";
 /// Most values read before one operator in a re-encoding section.
 const MAX_ENCODING_VALUES: usize = 1024;
 /// Most text paths read in one text object (its linked areas); the frames of others are left out,
@@ -52,7 +52,7 @@ const MAX_TEXT_PATHS: usize = 4096;
 /// warning.
 const MAX_THREAD_WORK: usize = MAX_CHARS;
 /// The warning when [`MAX_TEXT_PATHS`] or [`MAX_THREAD_WORK`] leaves frames of linked areas out.
-const LINKED_AREAS_LEFT_OUT: &str = "linked type areas past VectorCraft's limits were left out";
+const LINKED_AREAS_LEFT_OUT: &str = "linked type areas past VansonCraft's limits were left out";
 /// The warning when type set in a mask rendering mode can't be a clipping path: type in linked
 /// areas (several frames), in wraparound text or in a compound path doesn't clip.
 const MASK_NOT_CLIPPED: &str = "type used as a mask in linked areas, wraparound text or a compound path doesn't clip";
@@ -120,7 +120,7 @@ pub(super) struct LegacyText {
     /// Characters were set in a mask rendering mode (`Tr` 4 to 7): the text object is a clipping
     /// path (§5.7).
     clips: bool,
-    /// `TV` at its first character: VectorCraft keeps one writing direction for each text object.
+    /// `TV` at its first character: VansonCraft keeps one writing direction for each text object.
     vertical: bool,
     /// A later character was set in the other direction.
     direction_changed: bool,
@@ -597,7 +597,7 @@ impl Reader<'_> {
                 }
             }
             // `bindrepeat Tg` (§15.3.4): 1 and 3 turn binding punctuation on, and 0 and 2 turn it
-            // off. VectorCraft's own mapping opens it on as Burasagari's Force setting and off as no
+            // off. VansonCraft's own mapping opens it on as Burasagari's Force setting and off as no
             // Burasagari. The repeat character (2 and 3) is not kept.
             "Tg" => {
                 let burasagari = match n0 {

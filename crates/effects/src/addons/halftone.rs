@@ -16,11 +16,11 @@ use std::collections::BTreeMap;
 use std::sync::{Arc, OnceLock};
 
 use serde_json::{Value, json};
-use vectorcraft_doc::color::{BlendMode, Color, Paint};
-use vectorcraft_doc::{Appearance, Document, Node, NodeId};
-use vectorcraft_geom::hit::fill_contains;
-use vectorcraft_geom::{Affine, BezPath, FillRule, PathData, Point, Rect, shapes};
-use vectorcraft_pathops::{self as po, BoolOp};
+use vansoncraft_doc::color::{BlendMode, Color, Paint};
+use vansoncraft_doc::{Appearance, Document, Node, NodeId};
+use vansoncraft_geom::hit::fill_contains;
+use vansoncraft_geom::{Affine, BezPath, FillRule, PathData, Point, Rect, shapes};
+use vansoncraft_pathops::{self as po, BoolOp};
 
 use crate::catalog::{EffectInfo, Lengths};
 use crate::util::{flag, num, text};
@@ -398,7 +398,7 @@ pub fn halftone_art(d: &Document, n: &Node) -> Option<Node> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use vectorcraft_doc::Effect;
+    use vansoncraft_doc::Effect;
 
     /// A black square's samples: `side` points of black from (10, 10), white around it.
     fn black_square(side: f64, h: &Halftone) -> (Samples, Rect) {

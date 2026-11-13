@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="400" height="520" viewBox="0 0 400 520">
+  <title>A — diagonal rise</title>
+  <g id="Composition_A___diagonal_rise" data-name="Composition A — diagonal rise">
+    <g id="Setting_A" data-name="Setting A">
+      <rect id="Ground_A" data-name="Ground A" x="0" y="0" width="400" height="520" fill="#8c8a74"/>
+      <g id="Background_texture_A" data-name="Background texture A" data-study="hatch" data-version="1" data-spacing="7" data-angle="62" data-cross="none" data-jitter="0" data-seed="1" data-inset="0" data-minLength="0" data-weight="0.6" data-color="#7d7a66" data-source="3">
+        <line id="Hatch_line" data-name="Hatch line" x1="0" y1="7.455" x2="3.964" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-2" data-name="Hatch line" x1="0" y1="22.366" x2="11.892" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-3" data-name="Hatch line" x1="0" y1="37.276" x2="19.82" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-4" data-name="Hatch line" x1="0" y1="52.186" x2="27.748" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-5" data-name="Hatch line" x1="0" y1="67.097" x2="35.676" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-6" data-name="Hatch line" x1="0" y1="82.007" x2="43.604" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-7" data-name="Hatch line" x1="0" y1="96.917" x2="51.532" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-8" data-name="Hatch line" x1="0" y1="111.828" x2="59.46" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-9" data-name="Hatch line" x1="0" y1="126.738" x2="67.388" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-10" data-name="Hatch line" x1="0" y1="141.649" x2="75.316" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-11" data-name="Hatch line" x1="0" y1="156.559" x2="83.244" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-12" data-name="Hatch line" x1="0" y1="171.469" x2="91.172" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-13" data-name="Hatch line" x1="0" y1="186.38" x2="99.1" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-14" data-name="Hatch line" x1="0" y1="201.29" x2="107.028" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-15" data-name="Hatch line" x1="0" y1="216.201" x2="114.956" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-16" data-name="Hatch line" x1="0" y1="231.111" x2="122.884" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-17" data-name="Hatch line" x1="0" y1="246.021" x2="130.812" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-18" data-name="Hatch line" x1="0" y1="260.932" x2="138.74" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-19" data-name="Hatch line" x1="0" y1="275.842" x2="146.668" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-20" data-name="Hatch line" x1="0" y1="290.752" x2="154.596" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-21" data-name="Hatch line" x1="0" y1="305.663" x2="162.524" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-22" data-name="Hatch line" x1="0" y1="320.573" x2="170.452" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-23" data-name="Hatch line" x1="0" y1="335.484" x2="178.38" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-24" data-name="Hatch line" x1="0" y1="350.394" x2="186.308" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-25" data-name="Hatch line" x1="0" y1="365.304" x2="194.236" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-26" data-name="Hatch line" x1="0" y1="380.215" x2="202.164" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-27" data-name="Hatch line" x1="0" y1="395.125" x2="210.092" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-28" data-name="Hatch line" x1="0" y1="410.035" x2="218.02" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-29" data-name="Hatch line" x1="0" y1="424.946" x2="225.948" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-30" data-name="Hatch line" x1="0" y1="439.856" x2="233.876" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-31" data-name="Hatch line" x1="0" y1="454.767" x2="241.804" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-32" data-name="Hatch line" x1="0" y1="469.677" x2="249.732" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-33" data-name="Hatch line" x1="0" y1="484.587" x2="257.66" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-34" data-name="Hatch line" x1="0" y1="499.498" x2="265.588" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-35" data-name="Hatch line" x1="0" y1="514.408" x2="273.516" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-36" data-name="Hatch line" x1="4.955" y1="520" x2="281.444" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-37" data-name="Hatch line" x1="12.883" y1="520" x2="289.372" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-38" data-name="Hatch line" x1="20.811" y1="520" x2="297.3" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-39" data-name="Hatch line" x1="28.739" y1="520" x2="305.228" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-40" data-name="Hatch line" x1="36.667" y1="520" x2="313.156" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-41" data-name="Hatch line" x1="44.595" y1="520" x2="321.084" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-42" data-name="Hatch line" x1="52.523" y1="520" x2="329.012" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-43" data-name="Hatch line" x1="60.451" y1="520" x2="336.94" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-44" data-name="Hatch line" x1="68.379" y1="520" x2="344.868" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-45" data-name="Hatch line" x1="76.307" y1="520" x2="352.796" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-46" data-name="Hatch line" x1="84.235" y1="520" x2="360.724" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-47" data-name="Hatch line" x1="92.163" y1="520" x2="368.652" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-48" data-name="Hatch line" x1="100.091" y1="520" x2="376.58" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-49" data-name="Hatch line" x1="108.019" y1="520" x2="384.508" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-50" data-name="Hatch line" x1="115.947" y1="520" x2="392.436" y2="0" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-51" data-name="Hatch line" x1="123.875" y1="520" x2="400" y2="0.684" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-52" data-name="Hatch line" x1="131.803" y1="520" x2="400" y2="15.594" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-53" data-name="Hatch line" x1="139.731" y1="520" x2="400" y2="30.504" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-54" data-name="Hatch line" x1="147.659" y1="520" x2="400" y2="45.415" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-55" data-name="Hatch line" x1="155.587" y1="520" x2="400" y2="60.325" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-56" data-name="Hatch line" x1="163.515" y1="520" x2="400" y2="75.236" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-57" data-name="Hatch line" x1="171.443" y1="520" x2="400" y2="90.146" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-58" data-name="Hatch line" x1="179.371" y1="520" x2="400" y2="105.056" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-59" data-name="Hatch line" x1="187.299" y1="520" x2="400" y2="119.967" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-60" data-name="Hatch line" x1="195.227" y1="520" x2="400" y2="134.877" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-61" data-name="Hatch line" x1="203.155" y1="520" x2="400" y2="149.787" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-62" data-name="Hatch line" x1="211.083" y1="520" x2="400" y2="164.698" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-63" data-name="Hatch line" x1="219.01" y1="520" x2="400" y2="179.608" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-64" data-name="Hatch line" x1="226.938" y1="520" x2="400" y2="194.519" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-65" data-name="Hatch line" x1="234.866" y1="520" x2="400" y2="209.429" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-66" data-name="Hatch line" x1="242.794" y1="520" x2="400" y2="224.339" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-67" data-name="Hatch line" x1="250.722" y1="520" x2="400" y2="239.25" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-68" data-name="Hatch line" x1="258.65" y1="520" x2="400" y2="254.16" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-69" data-name="Hatch line" x1="266.578" y1="520" x2="400" y2="269.071" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-70" data-name="Hatch line" x1="274.506" y1="520" x2="400" y2="283.981" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-71" data-name="Hatch line" x1="282.434" y1="520" x2="400" y2="298.891" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-72" data-name="Hatch line" x1="290.362" y1="520" x2="400" y2="313.802" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-73" data-name="Hatch line" x1="298.29" y1="520" x2="400" y2="328.712" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-74" data-name="Hatch line" x1="306.218" y1="520" x2="400" y2="343.622" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-75" data-name="Hatch line" x1="314.146" y1="520" x2="400" y2="358.533" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-76" data-name="Hatch line" x1="322.074" y1="520" x2="400" y2="373.443" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-77" data-name="Hatch line" x1="330.002" y1="520" x2="400" y2="388.354" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-78" data-name="Hatch line" x1="337.93" y1="520" x2="400" y2="403.264" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-79" data-name="Hatch line" x1="345.858" y1="520" x2="400" y2="418.174" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-80" data-name="Hatch line" x1="353.786" y1="520" x2="400" y2="433.085" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-81" data-name="Hatch line" x1="361.714" y1="520" x2="400" y2="447.995" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-82" data-name="Hatch line" x1="369.642" y1="520" x2="400" y2="462.905" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-83" data-name="Hatch line" x1="377.57" y1="520" x2="400" y2="477.816" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-84" data-name="Hatch line" x1="385.498" y1="520" x2="400" y2="492.726" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+        <line id="Hatch_line-85" data-name="Hatch line" x1="393.426" y1="520" x2="400" y2="507.637" fill="none" stroke="#7d7a66" stroke-width="0.6" stroke-miterlimit="10"/>
+      </g>
+      <rect id="Table_A" data-name="Table A" x="0" y="430" width="400" height="90" fill="#6f6b5a"/>
+      <path id="Cast_shadow_A" data-name="Cast shadow A" d="M105 470 C140 484 246.2 486 263.9 476 C234.4 468 175 467 175 470 Z" fill="#3c3a30"/>
+    </g>
+    <g id="Vase_A" data-name="Vase A">
+      <path id="Vase_body_A" data-name="Vase body A" d="M117 300 C117 330.6 78.64 351 81 398.6 C83.36 439.4 98 461.5 105 470 L175 470 C182 461.5 199 439.4 201.36 398.6 C203.72 351 163 330.6 163 300 Z" fill="#2e3b39"/>
+      <path id="Vase_highlight_A" data-name="Vase highlight A" d="M104.6 364.6 C95.16 385 96.34 415.6 106.96 436 C103.42 412.2 103.42 385 104.6 364.6 Z" fill="#c9d2c8"/>
+      <ellipse id="Vase_rim_A" data-name="Vase rim A" cx="140" cy="300" rx="29.9" ry="7.82" fill="#55625e"/>
+      <ellipse id="Vase_mouth_A" data-name="Vase mouth A" cx="140" cy="300" rx="21.53" ry="4.38" fill="#1f2826"/>
+    </g>
+    <g id="Stems_and_leaves_A" data-name="Stems and leaves A">
+      <g id="Stem_A1" data-name="Stem A1">
+        <path d="M123.558 303.288 C122.021 302.355 120.541 301.327 119.135 300.207 C117.743 299.097 116.422 297.898 115.182 296.621 C114.355 295.767 113.578 294.892 112.826 293.97 C112.073 293.047 111.358 292.093 110.686 291.109 C107.22 286.038 104.887 280.249 103.728 274.224 C103.434 272.692 103.411 272.378 103.221 270.938 C103.201 270.787 103.177 270.637 103.162 270.486 C103.015 268.999 102.941 268.216 102.895 266.721 C102.801 263.605 103.015 260.478 103.545 257.405 C104.246 253.349 105.5 249.381 107.346 245.698 L108.654 246.302 C106.438 251.565 105.417 257.312 105.435 263.012 C105.441 264.795 105.549 266.579 105.757 268.35 C105.912 269.669 105.92 269.667 106.072 270.532 C106.15 270.976 106.218 271.422 106.306 271.864 C106.543 273.059 106.789 274.114 107.116 275.288 C108.036 278.594 109.336 281.797 111.014 284.791 C111.825 286.238 112.723 287.637 113.704 288.974 C114.347 289.85 115.027 290.698 115.74 291.519 C116.45 292.335 117.178 293.107 117.953 293.861 C119.108 294.986 120.333 296.039 121.618 297.013 C122.915 297.995 124.275 298.895 125.682 299.712 Z" fill="#2c3627"/>
+      </g>
+      <g id="Stem_A2" data-name="Stem A2">
+        <path d="M128.24 300.07 C129.303 298.959 130.322 297.832 131.32 296.662 C132.374 295.427 133.376 294.179 134.361 292.886 C135.952 290.799 137.456 288.648 138.882 286.445 C140.438 284.043 141.902 281.582 143.283 279.076 C144.77 276.378 146.161 273.628 147.465 270.837 C149.301 266.908 150.963 262.897 152.459 258.826 C153.294 256.551 153.863 254.87 154.612 252.567 C154.768 252.088 154.909 251.605 155.058 251.124 C155.232 250.562 155.414 250.001 155.581 249.437 C155.887 248.4 156.19 247.361 156.478 246.319 C157.581 242.341 158.53 238.32 159.299 234.264 C159.984 230.652 160.525 227.01 160.874 223.35 C161.101 220.972 161.245 218.586 161.28 216.198 C161.291 215.474 161.281 214.751 161.281 214.027 L162.719 213.973 C162.954 218.024 162.858 222.089 162.54 226.132 C162.316 228.982 161.983 231.822 161.558 234.648 C161.251 236.682 160.9 238.697 160.502 240.716 C160.087 242.825 159.626 244.916 159.118 247.005 C158.858 248.075 158.582 249.14 158.303 250.205 C158.15 250.785 157.981 251.361 157.821 251.938 C157.683 252.432 157.553 252.928 157.408 253.42 C156.711 255.791 156.182 257.514 155.393 259.858 C153.98 264.058 152.391 268.2 150.616 272.26 C148.167 277.861 145.368 283.315 142.147 288.513 C140.711 290.831 139.19 293.095 137.574 295.291 C136.567 296.661 135.538 297.985 134.455 299.294 C133.422 300.543 132.366 301.745 131.26 302.93 Z" fill="#2c3627"/>
+      </g>
+      <g id="Stem_A3" data-name="Stem A3">
+        <path d="M133.729 299.761 C135.434 298.65 137.097 297.514 138.752 296.331 C140.478 295.096 142.147 293.845 143.82 292.538 C146.475 290.464 149.066 288.308 151.593 286.08 C157.204 281.134 162.517 275.853 167.561 270.331 C174.197 263.067 180.38 255.393 186.146 247.423 C188.734 243.844 191.237 240.204 193.656 236.508 C195.484 233.714 196.627 231.883 198.378 229.042 C198.642 228.614 198.895 228.181 199.153 227.751 C199.646 226.931 200.146 226.116 200.631 225.292 C201.366 224.043 202.094 222.792 202.812 221.534 C204.909 217.857 206.925 214.134 208.851 210.365 C210.68 206.788 212.427 203.17 214.083 199.51 C215.628 196.098 217.091 192.649 218.46 189.162 C219.714 185.97 220.887 182.745 221.962 179.488 C223.228 175.652 224.355 171.77 225.298 167.841 L226.702 168.159 C225.851 172.153 224.81 176.105 223.625 180.014 C222.62 183.33 221.514 186.615 220.324 189.869 C219.025 193.421 217.628 196.936 216.145 200.415 C214.556 204.146 212.87 207.836 211.097 211.484 C209.23 215.329 207.267 219.127 205.217 222.877 C204.515 224.16 203.801 225.437 203.081 226.71 C202.606 227.551 202.115 228.383 201.631 229.219 C201.377 229.658 201.128 230.1 200.869 230.536 C200.11 231.814 199.351 233.092 198.577 234.361 C197.018 236.917 195.441 239.415 193.802 241.921 C188.991 249.279 183.84 256.418 178.339 263.276 C175.739 266.517 173.059 269.693 170.296 272.797 C168.539 274.772 166.766 276.697 164.939 278.608 C162.333 281.334 159.657 283.992 156.903 286.569 C153.498 289.755 149.977 292.817 146.329 295.721 C144.624 297.079 142.919 298.38 141.158 299.663 C139.463 300.897 137.759 302.082 136.011 303.239 Z" fill="#2c3627"/>
+      </g>
+      <g id="Stem_A4" data-name="Stem A4">
+        <path d="M138.735 299.849 C143.338 296.339 147.826 292.687 152.219 288.92 C155.876 285.784 159.467 282.572 162.999 279.297 C166.847 275.728 170.626 272.085 174.343 268.379 C176.98 265.751 179.58 263.099 182.156 260.411 C189.19 253.07 196.013 245.527 202.642 237.819 C209.814 229.478 216.767 220.949 223.504 212.254 C226.288 208.66 228.78 205.372 231.494 201.726 C232.504 200.37 233.498 199.002 234.5 197.64 C236.333 195.15 236.406 195.06 239.127 191.248 C241.567 187.828 243.998 184.353 246.372 180.887 C251.975 172.707 257.389 164.397 262.565 155.941 C266.257 149.91 269.826 143.803 273.232 137.607 C276.818 131.085 280.222 124.461 283.344 117.704 L284.656 118.296 C281.64 125.142 278.336 131.859 274.844 138.474 C271.528 144.756 268.045 150.949 264.434 157.064 C259.371 165.638 254.058 174.063 248.544 182.353 C246.207 185.867 243.813 189.387 241.404 192.852 C238.8 196.597 238.627 196.831 236.835 199.327 C235.844 200.707 234.861 202.092 233.862 203.466 C231.177 207.161 228.714 210.489 225.956 214.132 C219.283 222.947 212.388 231.595 205.264 240.051 C198.672 247.877 191.878 255.533 184.863 262.984 C182.292 265.715 179.694 268.411 177.059 271.081 C173.34 274.851 169.555 278.557 165.699 282.187 C162.153 285.525 158.546 288.797 154.87 291.991 C152.588 293.973 150.302 295.907 147.964 297.823 C145.746 299.642 143.536 301.4 141.265 303.151 Z" fill="#2c3627"/>
+      </g>
+      <g id="Stem_A5" data-name="Stem A5">
+        <path d="M143.096 301.065 C143.418 299.616 143.784 298.194 144.201 296.77 C144.634 295.286 145.111 293.836 145.637 292.382 C146.474 290.068 147.42 287.795 148.457 285.564 C149.571 283.166 150.79 280.819 152.096 278.521 C153.012 276.911 153.963 275.336 154.961 273.776 C156.528 271.326 158.189 268.936 159.934 266.61 C161.725 264.223 163.603 261.902 165.561 259.65 C166.213 258.899 166.878 258.159 167.545 257.422 C167.88 257.052 168.226 256.693 168.566 256.329 C168.901 255.971 169.23 255.607 169.57 255.255 C170.251 254.549 170.935 253.846 171.631 253.154 C173.65 251.146 175.741 249.21 177.903 247.358 C180.547 245.093 183.299 242.952 186.164 240.975 C189.195 238.884 192.358 236.976 195.669 235.36 L196.331 236.64 C193.176 238.375 190.179 240.386 187.314 242.564 C183.876 245.175 180.62 248.028 177.53 251.04 C176.184 252.351 174.876 253.687 173.592 255.058 C172.936 255.758 172.29 256.468 171.648 257.18 C171.327 257.535 171.017 257.901 170.701 258.261 C170.381 258.627 170.054 258.989 169.739 259.36 C168.37 260.972 167.343 262.219 166.044 263.888 C163.697 266.904 161.488 270.028 159.438 273.253 C157.978 275.551 156.599 277.899 155.314 280.298 C154.113 282.539 152.996 284.824 151.976 287.153 C151.034 289.302 150.178 291.489 149.422 293.711 C148.95 295.097 148.524 296.475 148.137 297.886 C147.769 299.229 147.447 300.571 147.164 301.935 Z" fill="#2c3627"/>
+      </g>
+      <g id="Bud_stem_A1" data-name="Bud stem A1">
+        <path d="M149.355 300.53 C158.109 292.486 166.555 284.11 174.78 275.527 C182.982 266.968 190.968 258.2 198.782 249.285 C205.886 241.179 212.849 232.948 219.687 224.616 C229.009 213.257 238.102 201.711 246.978 190.001 C253.914 180.852 260.716 171.602 267.377 162.251 C273.717 153.351 279.93 144.359 285.99 135.266 C291.491 127.012 296.866 118.674 302.073 110.231 C304.39 106.475 306.666 102.706 308.907 98.904 C311.859 93.896 314.736 88.844 317.516 83.739 L318.484 84.261 C315.727 89.394 312.871 94.473 309.941 99.509 C307.717 103.331 305.457 107.119 303.157 110.896 C297.989 119.381 292.652 127.762 287.189 136.06 C281.171 145.2 275 154.24 268.7 163.188 C262.082 172.59 255.321 181.892 248.427 191.093 C239.601 202.872 230.557 214.489 221.284 225.919 C214.478 234.307 207.546 242.594 200.471 250.758 C192.684 259.743 184.725 268.58 176.546 277.211 C168.332 285.879 159.895 294.34 151.145 302.47 Z" fill="#2c3627"/>
+      </g>
+      <path id="Bud_A1" data-name="Bud A1" d="M312.29 81.338 C314.391 76.833 318.65 74.373 321.804 75.843 C324.957 77.314 325.81 82.158 323.71 86.662 C321.609 91.167 317.35 93.627 314.196 92.157 C311.043 90.686 310.19 85.842 312.29 81.338 Z" fill="#e9cfc4"/>
+      <g id="Bud_stem_A2" data-name="Bud stem A2">
+        <path d="M154.586 302.554 C153.069 301.396 151.601 300.217 150.141 298.987 C148.605 297.692 147.124 296.38 145.649 295.016 C143.276 292.823 140.98 290.549 138.752 288.209 C136.33 285.664 133.989 283.044 131.722 280.36 C130.118 278.462 128.552 276.536 127.02 274.578 C122.055 268.234 117.45 261.611 113.182 254.78 C110.987 251.268 108.882 247.701 106.868 244.083 C104.908 240.564 103.035 236.995 101.255 233.381 C99.571 229.961 97.971 226.498 96.466 222.995 C95.077 219.761 93.77 216.491 92.562 213.184 C91.823 211.163 91.123 209.129 90.465 207.079 C89.309 203.472 88.29 199.82 87.464 196.123 L88.536 195.877 C89.399 199.53 90.452 203.135 91.641 206.694 C92.318 208.72 93.037 210.729 93.794 212.726 C95.033 215.994 96.37 219.224 97.788 222.418 C99.324 225.879 100.955 229.298 102.669 232.674 C104.48 236.242 106.382 239.763 108.371 243.235 C110.414 246.802 112.546 250.317 114.766 253.776 C119.079 260.495 123.722 267.004 128.718 273.232 C130.256 275.15 131.828 277.035 133.437 278.894 C135.706 281.515 138.048 284.072 140.469 286.555 C142.688 288.831 144.974 291.041 147.335 293.17 C148.798 294.491 150.265 295.759 151.787 297.01 C153.228 298.196 154.677 299.331 156.174 300.446 Z" fill="#2c3627"/>
+      </g>
+      <path id="Bud_A2" data-name="Bud A2" d="M82.925 193.633 C84.792 189.629 88.578 187.442 91.381 188.75 C94.184 190.057 94.943 194.362 93.075 198.367 C91.208 202.371 87.422 204.558 84.619 203.25 C81.816 201.943 81.057 197.638 82.925 193.633 Z" fill="#e9cfc4"/>
+      <path id="Leaf_A1" data-name="Leaf A1" d="M136 300 C127.44 267.46 92.21 251.3 66 252 C79.15 270.35 111.27 291.04 136 300 Z" fill="#36432f"/>
+      <path id="Leaf_A2" data-name="Leaf A2" d="M146 300 C174.85 313.4 209.4 298.58 226 280 C204.3 278.21 168.54 288.18 146 300 Z" fill="#36432f"/>
+      <path id="Leaf_A3" data-name="Leaf A3" d="M134 302 C140.21 269.44 122.15 229.53 104 210 C106.18 234.74 120.44 275.89 134 302 Z" fill="#36432f"/>
+    </g>
+    <g id="Vase_lip_A__front_" data-name="Vase lip A (front)">
+      <path id="Vase_lip_A" data-name="Vase lip A" d="M110.1 300 C110.1 304.32 123.49 307.82 140 307.82 C156.51 307.82 169.9 304.32 169.9 300 L161.53 300 C161.53 302.42 151.89 304.38 140 304.38 C128.11 304.38 118.47 302.42 118.47 300 Z" fill="#55625e"/>
+    </g>
+    <g id="Flower_A1" data-name="Flower A1">
+      <path id="Flower_A1_petal_1" data-name="Flower A1 petal 1" d="M105.02 246.43 C90.58 238.25 74.36 241.89 70.73 251.37 C81.92 258.51 99.24 257.3 105.02 246.43 Z" fill="#efe6d2"/>
+      <path id="Flower_A1_petal_2" data-name="Flower A1 petal 2" d="M105.8 244.13 C105.41 231.66 92.13 221.93 80.47 222.63 C79.63 232.86 91.09 244.19 105.8 244.13 Z" fill="#efe6d2"/>
+      <path id="Flower_A1_petal_3" data-name="Flower A1 petal 3" d="M108.5 243.87 C120.74 240.46 122.19 227.97 114.22 219.32 C105.69 222.04 101.83 233.66 108.5 243.87 Z" fill="#efe6d2"/>
+      <path id="Flower_A1_petal_4" data-name="Flower A1 petal 4" d="M110.92 245.75 C123.99 253.23 139.99 250.75 144.48 242.84 C133.84 234.8 116.93 234.96 110.92 245.75 Z" fill="#efe6d2"/>
+      <path id="Flower_A1_petal_5" data-name="Flower A1 petal 5" d="M110.25 248.2 C109.73 261.25 123.41 272.91 136.1 273.51 C136.28 263.98 124.49 251.02 110.25 248.2 Z" fill="#efe6d2"/>
+      <path id="Flower_A1_petal_6" data-name="Flower A1 petal 6" d="M108.01 248.5 C98.22 254.94 99.52 269.23 108.12 277.2 C115.26 272.41 116.25 258.58 108.01 248.5 Z" fill="#efe6d2"/>
+      <ellipse id="Flower_A1_centre" data-name="Flower A1 centre" cx="108" cy="246" rx="10.4" ry="7.8" fill="#b8892f"/>
+    </g>
+    <g id="Flower_A2" data-name="Flower A2">
+      <path id="Flower_A2_petal_1" data-name="Flower A2 petal 1" d="M162.35 216.5 C152.48 226.98 155.87 240.77 166.39 245.23 C176.4 236.96 176.02 222.61 162.35 216.5 Z" fill="#e9cfc4"/>
+      <path id="Flower_A2_petal_2" data-name="Flower A2 petal 2" d="M159.12 215.05 C145.87 209.5 130.15 216.58 126.05 227.17 C136.48 232.87 153.13 228.16 159.12 215.05 Z" fill="#e9cfc4"/>
+      <path id="Flower_A2_petal_3" data-name="Flower A2 petal 3" d="M160.31 212.18 C165.14 198.27 154.28 189.04 140.85 191.27 C134.06 203.95 141.97 215.36 160.31 212.18 Z" fill="#e9cfc4"/>
+      <path id="Flower_A2_petal_4" data-name="Flower A2 petal 4" d="M163.98 211.8 C178.81 209.73 188.92 196.68 186.77 186.51 C175.75 188.03 163.72 199.81 163.98 211.8 Z" fill="#e9cfc4"/>
+      <path id="Flower_A2_petal_5" data-name="Flower A2 petal 5" d="M164.6 214.38 C170.24 226.33 185.25 227.13 194.47 218.79 C190.51 209.18 176.27 205.77 164.6 214.38 Z" fill="#e9cfc4"/>
+      <ellipse id="Flower_A2_centre" data-name="Flower A2 centre" cx="162" cy="214" rx="9.88" ry="8.4" fill="#b8892f"/>
+    </g>
+    <g id="Flower_A3__focus_" data-name="Flower A3 (focus)">
+      <path id="Flower_A3_petal_1" data-name="Flower A3 petal 1" d="M228.36 164.68 C251.11 162.42 262.5 142.58 255.49 126.45 C239.91 128.89 225.23 146.74 228.36 164.68 Z" fill="#fbf7ef"/>
+      <path id="Flower_A3_petal_2" data-name="Flower A3 petal 2" d="M230.35 167.54 C247.43 179.99 271.58 175.65 280.36 162.3 C266.98 148.89 242.16 149.34 230.35 167.54 Z" fill="#fbf7ef"/>
+      <path id="Flower_A3_petal_3" data-name="Flower A3 petal 3" d="M228.62 170.48 C225.88 188.87 242.07 201.54 258.72 198.99 C263.28 183.16 250.18 167.81 228.62 170.48 Z" fill="#fbf7ef"/>
+      <path id="Flower_A3_petal_4" data-name="Flower A3 petal 4" d="M225.69 171.35 C209.89 180.99 210.02 200.04 222.13 209.87 C238.16 203.22 242.12 184.63 225.69 171.35 Z" fill="#fbf7ef"/>
+      <path id="Flower_A3_petal_5" data-name="Flower A3 petal 5" d="M222.67 169.42 C204.87 162.38 186.95 171.88 184.32 185.78 C197.2 190.44 216.62 183.64 222.67 169.42 Z" fill="#fbf7ef"/>
+      <path id="Flower_A3_petal_6" data-name="Flower A3 petal 6" d="M221.83 166.85 C211.34 150.81 187.45 145.9 173.93 153.63 C181.22 167.14 204.2 175.15 221.83 166.85 Z" fill="#fbf7ef"/>
+      <path id="Flower_A3_petal_7" data-name="Flower A3 petal 7" d="M224.79 164.68 C236.71 149.23 227.88 131.11 210.91 126.54 C202.64 137.83 207.78 156.93 224.79 164.68 Z" fill="#fbf7ef"/>
+      <ellipse id="Flower_A3_centre" data-name="Flower A3 centre" cx="226" cy="168" rx="13.52" ry="12.17" fill="#4a2f0e"/>
+    </g>
+    <g id="Flower_A4" data-name="Flower A4">
+      <path id="Flower_A4_petal_1" data-name="Flower A4 petal 1" d="M282.15 115.94 C280.73 104.03 269.68 93.08 260.82 92.26 C261.77 101.18 271.67 113.32 282.15 115.94 Z" fill="#e9cfc4"/>
+      <path id="Flower_A4_petal_2" data-name="Flower A4 petal 2" d="M284.77 115.87 C295.4 114.26 298.71 101.58 293.63 91.4 C283.65 91.14 278.15 102.29 284.77 115.87 Z" fill="#e9cfc4"/>
+      <path id="Flower_A4_petal_3" data-name="Flower A4 petal 3" d="M286.12 117.88 C297.1 128.34 308.51 126.26 310.46 116.46 C301.69 106.91 289.27 106.16 286.12 117.88 Z" fill="#e9cfc4"/>
+      <path id="Flower_A4_petal_4" data-name="Flower A4 petal 4" d="M286.08 120.3 C288.28 133.04 300.59 145.32 309.99 146.7 C308.44 137.18 297.27 123.72 286.08 120.3 Z" fill="#e9cfc4"/>
+      <path id="Flower_A4_petal_5" data-name="Flower A4 petal 5" d="M283.4 120 C273.26 121.55 270.94 133.48 276.54 143.03 C283.58 141.58 287.75 130.84 283.4 120 Z" fill="#e9cfc4"/>
+      <path id="Flower_A4_petal_6" data-name="Flower A4 petal 6" d="M281.83 118.2 C271.13 109.98 259.33 112.25 256.84 120.53 C265.28 127.96 277.93 127.98 281.83 118.2 Z" fill="#e9cfc4"/>
+      <ellipse id="Flower_A4_centre" data-name="Flower A4 centre" cx="284" cy="118" rx="9.36" ry="6.55" fill="#b8892f"/>
+    </g>
+    <g id="Flower_A5" data-name="Flower A5">
+      <path id="Flower_A5_petal_1" data-name="Flower A5 petal 1" d="M195 237.58 C186.3 236.25 181.33 246 183.46 255.77 C190.64 257.69 196.97 249.65 195 237.58 Z" fill="#efe6d2"/>
+      <path id="Flower_A5_petal_2" data-name="Flower A5 petal 2" d="M194.55 234.7 C191.72 224.21 183.32 217.68 177.9 219.76 C179.44 229.18 187.28 237.39 194.55 234.7 Z" fill="#efe6d2"/>
+      <path id="Flower_A5_petal_3" data-name="Flower A5 petal 3" d="M196.07 233.97 C202.06 229.72 201.72 218 196.87 210.68 C191.27 213.3 190.08 224.34 196.07 233.97 Z" fill="#efe6d2"/>
+      <path id="Flower_A5_petal_4" data-name="Flower A5 petal 4" d="M197.51 236.11 C204.37 246.47 212.65 245.81 214.91 237.36 C209.38 227.08 200.61 225.01 197.51 236.11 Z" fill="#efe6d2"/>
+      <path id="Flower_A5_petal_5" data-name="Flower A5 petal 5" d="M196.97 238.09 C195.75 247.72 201.78 259.18 208.12 262.18 C208.7 255.23 203.69 243.2 196.97 238.09 Z" fill="#efe6d2"/>
+      <ellipse id="Flower_A5_centre" data-name="Flower A5 centre" cx="196" cy="236" rx="7.8" ry="5.07" fill="#b8892f"/>
+    </g>
+  </g>
+  <g id="Composition_B___low_spread" data-name="Composition B — low spread">
+  </g>
+  <g id="Composition_C___tall_S-curve" data-name="Composition C — tall S-curve">
+  </g>
+</svg>

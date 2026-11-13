@@ -1,7 +1,7 @@
 //! Polylines cut by a region: each segment is split where it crosses the region's edges, and the
 //! pieces whose middle lies inside are kept, joined where they meet.
 
-use vectorcraft_geom::{FillRule, Point, Rect};
+use vansoncraft_geom::{FillRule, Point, Rect};
 
 /// A clipping region: closed rings (each closes implicitly) and the rule that decides inside.
 pub(super) struct Region {

@@ -9,9 +9,9 @@
 //! the stroke with what the pen recorded on it (`StrokeLayer::pressure`, `tilt`, `bearing` and
 //! `rotation`): the sweep is sampled densely and each sample takes the nib for the pen there.
 
-use vectorcraft_color::Paint;
-use vectorcraft_doc::{Node, StrokeLayer};
-use vectorcraft_geom::{BezPath, PathData, Point, SubPath, Vec2};
+use vansoncraft_color::Paint;
+use vansoncraft_doc::{Node, StrokeLayer};
+use vansoncraft_geom::{BezPath, PathData, Point, SubPath, Vec2};
 
 use crate::track::{Rng, Track, normal, seed_of, tracks};
 use crate::{Bristle, BristleShape, Calligraphic, PenAt, Variation, filled, tolerance};

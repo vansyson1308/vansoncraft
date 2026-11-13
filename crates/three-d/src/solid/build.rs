@@ -1,4 +1,4 @@
-use vectorcraft_geom::kurbo::ParamCurveDeriv;
+use vansoncraft_geom::kurbo::ParamCurveDeriv;
 
 use super::outline::{self, Along, Budget, CURVE_TOLERANCE};
 use super::rings::{

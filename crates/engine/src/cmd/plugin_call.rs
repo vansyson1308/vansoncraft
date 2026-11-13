@@ -1,4 +1,4 @@
-//! Commands a filter plug-in calls with `vc_call` ([`vectorcraft_plugins::host`]): which commands a
+//! Commands a filter plug-in calls with `vc_call` ([`vansoncraft_plugins::host`]): which commands a
 //! plug-in may never call ([`denied`]), the call itself ([`call`]), and the run around the calls
 //! ([`transaction`]).
 //!
@@ -24,7 +24,7 @@ mod reviewed;
 use std::sync::Arc;
 
 use serde_json::Value;
-use vectorcraft_plugins::host::{CALL_COMMAND_FAILED, CALL_DENIED_COMMAND, CALL_DISABLED, CALL_UNKNOWN_COMMAND, CallFailure};
+use vansoncraft_plugins::host::{CALL_COMMAND_FAILED, CALL_DENIED_COMMAND, CALL_DISABLED, CALL_UNKNOWN_COMMAND, CallFailure};
 
 use super::CommandSpec;
 use crate::{EngineError, Result, Session};
@@ -208,7 +208,7 @@ fn denied_by_rule(spec: &CommandSpec) -> Option<&'static str> {
 
 /// The ids `m`'s `commandAllowlist` names that no command has (a later version may add them; a
 /// call of one fails), and those a plug-in may never call ([`denied`]).
-pub(crate) fn check_allowlist(m: &vectorcraft_plugins::Manifest) -> (Vec<&str>, Vec<&str>) {
+pub(crate) fn check_allowlist(m: &vansoncraft_plugins::Manifest) -> (Vec<&str>, Vec<&str>) {
     let (mut unknown, mut refused) = (Vec::new(), Vec::new());
     for id in &m.command_allowlist {
         match super::find_command(id) {
@@ -269,7 +269,7 @@ fn names_plugin(v: &Value) -> bool {
 /// `named`.
 fn names_plugin_in(v: &Value, named: bool) -> bool {
     match v {
-        Value::String(s) => named && s.starts_with(vectorcraft_plugins::PREFIX),
+        Value::String(s) => named && s.starts_with(vansoncraft_plugins::PREFIX),
         Value::Array(a) => a.iter().any(|x| names_plugin_in(x, named)),
         Value::Object(o) => o.iter().any(|(k, x)| names_plugin_in(x, PLUGIN_KEYS.contains(&k.as_str()))),
         _ => false,
@@ -410,7 +410,7 @@ struct Saved {
     paint: crate::PaintDefaults,
     fill_active: bool,
     draw_mode: crate::DrawMode,
-    draw_inside: Option<vectorcraft_doc::NodeId>,
+    draw_inside: Option<vansoncraft_doc::NodeId>,
     clipboard: crate::Clipboard,
     untitled_counter: u32,
     explicit_undo_group: Option<Option<String>>,
@@ -419,13 +419,13 @@ struct Saved {
     gradient_stop: Option<(usize, super::gradient::StopOwner)>,
     freeform_point: Option<(usize, super::gradient::StopOwner)>,
     active_appearance_item: Option<super::appearance::ActiveItem>,
-    eyedropper_sample: Option<Arc<vectorcraft_doc::Node>>,
-    last_solid: vectorcraft_color::Color,
-    last_gradient: vectorcraft_color::GradientPaint,
-    recent_colors: Vec<vectorcraft_color::Color>,
+    eyedropper_sample: Option<Arc<vansoncraft_doc::Node>>,
+    last_solid: vansoncraft_color::Color,
+    last_gradient: vansoncraft_color::GradientPaint,
+    recent_colors: Vec<vansoncraft_color::Color>,
     recent_urls: Vec<String>,
     global_edit_options: super::globaledit::Options,
-    envelope_defaults: Option<(vectorcraft_doc::live::EnvelopeOptions, f64)>,
+    envelope_defaults: Option<(vansoncraft_doc::live::EnvelopeOptions, f64)>,
 }
 
 impl Saved {
@@ -601,7 +601,7 @@ mod tests {
     fn a_confined_call_reads_no_file() {
         use serde_json::json;
         let file = std::env::temp_dir().join(format!("vc-plugin-call-texture-{}.png", std::process::id()));
-        let png = vectorcraft_trace::Raster::from_fn(8, 8, |x, y| if (x + y) % 2 == 0 { [0, 0, 0, 255] } else { [255, 255, 255, 255] }).encode_png();
+        let png = vansoncraft_trace::Raster::from_fn(8, 8, |x, y| if (x + y) % 2 == 0 { [0, 0, 0, 255] } else { [255, 255, 255, 255] }).encode_png();
         std::fs::write(&file, png).unwrap();
         let mut s = Session::new();
         s.execute("file.new", &json!({"width": 200, "height": 200})).unwrap();

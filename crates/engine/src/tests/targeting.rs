@@ -2,8 +2,8 @@
 //! appearances between objects (`appearance.transfer`).
 
 use serde_json::{Value, json};
-use vectorcraft_color::{BlendMode, Paint};
-use vectorcraft_doc::Node;
+use vansoncraft_color::{BlendMode, Paint};
+use vansoncraft_doc::Node;
 
 use crate::*;
 

@@ -1,7 +1,7 @@
 //! The folders automation may read and write (#832).
 //!
-//! `vectorcraft-cli mcp --automation-read-root <dir> --automation-write-root <dir>`, and
-//! `vectorcraft --control <port>` with the same flags, confine the files an agent's commands
+//! `vansoncraft-cli mcp --automation-read-root <dir> --automation-write-root <dir>`, and
+//! `vansoncraft --control <port>` with the same flags, confine the files an agent's commands
 //! reach; each flag may be given more than once (#3546). [`AutomationRoots`] holds the folders of
 //! each kind. While they are in force, every path a command reads goes through [`check_read`] and
 //! every path it writes through [`check_write`]:
@@ -15,9 +15,9 @@
 //! - Read and write access are separate: a root given alone grants only its own kind of access.
 //!
 //! Roots are in force on a thread inside [`confine`], and in the whole process after
-//! [`confine_process`] (`vectorcraft-cli mcp`, the desktop app with a control port), except inside
+//! [`confine_process`] (`vansoncraft-cli mcp`, the desktop app with a control port), except inside
 //! [`unconfined`]: what the person at the keyboard does, and the app's own folders (preferences,
-//! Data Recovery, the library folders, VectorCraft's Fonts folder), which no agent names. Without
+//! Data Recovery, the library folders, VansonCraft's Fonts folder), which no agent names. Without
 //! roots nothing is checked.
 //!
 //! A path is checked, then opened: a process that can change the folders in between (swapping in
@@ -351,7 +351,7 @@ fn windows_name_refusal(path: &str) -> Option<&'static str> {
 }
 
 /// The folders a running script's own files are read from: the files its `#include` lines name and
-/// the files it passes to `$.evalFile` (`Scope::Script`'s reads). VectorCraft's own rules: a script
+/// the files it passes to `$.evalFile` (`Scope::Script`'s reads). VansonCraft's own rules: a script
 /// run from a file may read inside that file's folder and the folders below it, and a script given as
 /// text may read none. A path is refused when it has a `..` component, a Windows device name or
 /// stream, or names a computer on the network, or when it leads (through its links, junctions

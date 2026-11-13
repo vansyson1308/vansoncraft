@@ -11,11 +11,11 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use vectorcraft_doc::hit::{HitOptions, hit_test};
-use vectorcraft_doc::{Document, Node, NodeId, NodeKind, OrientedBox, Selection};
-use vectorcraft_geom::kurbo::{ParamCurveDeriv, ParamCurveNearest};
-use vectorcraft_geom::{Affine, BezPath, Line, ParamCurve, PathSeg, Point, Rect, Shape, SubPath, Vec2, constrain_angle_from};
-use vectorcraft_text::{FontDb, layout as layout_text};
+use vansoncraft_doc::hit::{HitOptions, hit_test};
+use vansoncraft_doc::{Document, Node, NodeId, NodeKind, OrientedBox, Selection};
+use vansoncraft_geom::kurbo::{ParamCurveDeriv, ParamCurveNearest};
+use vansoncraft_geom::{Affine, BezPath, Line, ParamCurve, PathSeg, Point, Rect, Shape, SubPath, Vec2, constrain_angle_from};
+use vansoncraft_text::{FontDb, layout as layout_text};
 
 use crate::bbox::Handle;
 use crate::{GlyphSnap, Overlay, ScreenFrame, ToolContext};
@@ -63,7 +63,7 @@ struct Ruler {
     vertical: bool,
     pos: f64,
     /// Where it runs along its line: an artboard guide across its artboard (see
-    /// [`vectorcraft_doc::Document::guide_span`]), else (None) the whole canvas.
+    /// [`vansoncraft_doc::Document::guide_span`]), else (None) the whole canvas.
     span: Option<(f64, f64)>,
 }
 

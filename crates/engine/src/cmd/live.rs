@@ -2,19 +2,19 @@
 //! (Object → Create Gradient Mesh, Mesh tool edits).
 //!
 //! The objects are live document nodes (`NodeKind::Blend`, `NodeKind::Envelope`,
-//! `NodeKind::Mesh`); evaluation lives in `vectorcraft_doc::live` and the renderer. **Expand**
-//! replaces a live object by its evaluated geometry (`vectorcraft_render::expand_live`).
+//! `NodeKind::Mesh`); evaluation lives in `vansoncraft_doc::live` and the renderer. **Expand**
+//! replaces a live object by its evaluated geometry (`vansoncraft_render::expand_live`).
 
 use std::sync::Arc;
 
 use serde_json::{Value, json};
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::live::{
+use vansoncraft_color::{Color, Paint};
+use vansoncraft_doc::live::{
     self, BlendDefaults, BlendEase, BlendEaseType, BlendOrientation, BlendSpacing, BlendSpec, EnvelopeKind, EnvelopeMap, EnvelopeOptions,
     GradientMesh, MeshAppearance, PreserveShape, Spine,
 };
-use vectorcraft_doc::{Appearance, Document, Node, NodeId, NodeKind, Selection};
-use vectorcraft_geom::{Affine, Anchor, PathData, Point, Vec2};
+use vansoncraft_doc::{Appearance, Document, Node, NodeId, NodeKind, Selection};
+use vansoncraft_geom::{Affine, Anchor, PathData, Point, Vec2};
 
 use super::edit::selected_roots;
 use super::expand::gradient_sampler;

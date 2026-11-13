@@ -174,8 +174,8 @@ pub enum ParamSpec {
 
 /// A color parameter's value: a color object, or a hex string (display sRGB, converted into the
 /// active working RGB space as the color picker's choices are), its components clamped into range.
-pub fn color_value(v: &Value) -> Option<vectorcraft_color::Color> {
-    use vectorcraft_color::{Color, cms};
+pub fn color_value(v: &Value) -> Option<vansoncraft_color::Color> {
+    use vansoncraft_color::{Color, cms};
     let c = match v {
         Value::String(s) => match Color::from_hex(s)? {
             Color::Rgb { r, g, b } => {
@@ -343,7 +343,7 @@ pub struct Manifest {
     /// The menu commands it adds, in menu order (a filter or a live effect only).
     #[serde(default, deserialize_with = "ordered_commands", skip_serializing_if = "Vec::is_empty")]
     pub commands: Vec<Command>,
-    /// The VectorCraft commands a run may call with `vc_call` (exact command ids, such as
+    /// The VansonCraft commands a run may call with `vc_call` (exact command ids, such as
     /// `object.transform`): only a filter with the usual budget whose `permissions` list `commands`
     /// lists any ([`Manifest::validate`]).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -1346,7 +1346,7 @@ mod tests {
     /// color that shows as that hex, read when used, while the manifest keeps the default as written.
     #[test]
     fn hex_colors_follow_the_working_rgb_space() {
-        const CHILD: &str = "VECTORCRAFT_TEST_PLUGIN_COLOR_PROFILE";
+        const CHILD: &str = "VANSONCRAFT_TEST_PLUGIN_COLOR_PROFILE";
         if std::env::var_os(CHILD).is_none() {
             // Color settings are process-wide: exercise this profile in a separate test process.
             let output = std::process::Command::new(std::env::current_exe().unwrap())
@@ -1362,7 +1362,7 @@ mod tests {
             );
             return;
         }
-        use vectorcraft_color::{Color, cms};
+        use vansoncraft_color::{Color, cms};
         let m =
             Manifest::parse(br##"{"id":"org.example.grid","name":"Grid","kind":"filter","params":{"line":{"type":"color","default":"#3a7bd5"}}}"##)
                 .unwrap();

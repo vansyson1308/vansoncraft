@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use serde_json::{Value, json};
-use vectorcraft_doc::Document;
+use vansoncraft_doc::Document;
 
 use super::super::{Result, Session, bad, str_param};
 use crate::{DocState, EngineError};

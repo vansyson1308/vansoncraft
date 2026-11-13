@@ -3,9 +3,9 @@
 //! Escape, or an edit made outside the tool, dropping the first pick.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::live::{BlendOrientation, BlendSpacing, BlendSpec};
-use vectorcraft_doc::{Node, NodeKind};
-use vectorcraft_tools::{Mods, PointerEvent, PointerKind, ToolKey};
+use vansoncraft_doc::live::{BlendOrientation, BlendSpacing, BlendSpec};
+use vansoncraft_doc::{Node, NodeKind};
+use vansoncraft_tools::{Mods, PointerEvent, PointerKind, ToolKey};
 
 use crate::*;
 
@@ -87,7 +87,7 @@ fn start_points_pair_the_clicked_anchors() {
     let (keys, sp) = spec(&s, g);
     assert_eq!(keys, vec![a, b], "keys in paint order");
     assert_eq!(sp.starts, vec![Some(0), Some(2)], "each start stays with its object");
-    let steps = vectorcraft_doc::live::expand_live(&node(&s, g));
+    let steps = vansoncraft_doc::live::expand_live(&node(&s, g));
     let mid = steps[1].geometric_bounds().unwrap();
     assert!(mid.height() < 1e-6, "the middle step collapses where opposite corners meet: {mid:?}");
     assert!(s.execute("object.blend.make", &json!({"ids": [a.0, b.0], "starts": "x"})).is_err());
@@ -116,7 +116,7 @@ fn a_blend_and_an_object_make_one_blend_with_more_keys() {
     assert_eq!(sp.spacing, BlendSpacing::Steps(3), "the blend's options are kept");
     assert_eq!(n.name.as_deref(), Some("Ribbon"));
     assert!(s.doc().unwrap().doc.node(g).is_none());
-    assert_eq!(vectorcraft_doc::live::expand_live(&n).len(), 3 + 2 * 3);
+    assert_eq!(vansoncraft_doc::live::expand_live(&n).len(), 3 + 2 * 3);
 }
 
 /// Choosing the Blend tool again (its button, W, `tool.select`) finishes the blend: the first
@@ -335,7 +335,7 @@ fn start_points_round_trip_and_old_blends_load() {
     let (a, b) = (rect(&mut s, 0.0, 0.0, 10.0), rect(&mut s, 100.0, 0.0, 10.0));
     s.execute("object.blend.make", &json!({"ids": [a.0, b.0], "starts": [null, 3]})).unwrap();
     let d = &s.doc().unwrap().doc;
-    let back = vectorcraft_format::load(&vectorcraft_format::save(d, false)).unwrap();
+    let back = vansoncraft_format::load(&vansoncraft_format::save(d, false)).unwrap();
     assert_eq!(&back.layers, &d.layers);
     // A blend saved before start points has none.
     let old: BlendSpec = serde_json::from_value(json!({"spacing": {"steps": 4}, "orientation": "alignToPage"})).unwrap();
@@ -366,7 +366,7 @@ fn easing_is_set_validated_saved_and_old_blends_are_even() {
         assert_eq!(s.doc().unwrap().history.undo.len(), depth);
     }
     let d = &s.doc().unwrap().doc;
-    let back = vectorcraft_format::load(&vectorcraft_format::save(d, false)).unwrap();
+    let back = vansoncraft_format::load(&vansoncraft_format::save(d, false)).unwrap();
     assert_eq!(&back.layers, &d.layers);
     s.execute("object.blend.options", &json!({"ramp": 0})).unwrap();
     let zero = spec(&s, g).1;
@@ -384,15 +384,15 @@ fn a_document_with_bad_blend_easing_numbers_opens_clamped_while_commands_refuse(
     let (a, b) = (rect(&mut s, 0.0, 0.0, 10.0), rect(&mut s, 100.0, 0.0, 10.0));
     sel(&mut s, &[a, b]);
     let g = id_of(&s.execute("object.blend.make", &json!({"steps": 3, "easingType": "easeOut", "ramp": 40, "colorShift": -50})).unwrap());
-    let text = String::from_utf8(vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
-    let blend_of = |doc: &vectorcraft_doc::Document| match doc.node(g).unwrap().kind.clone() {
+    let text = String::from_utf8(vansoncraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let blend_of = |doc: &vansoncraft_doc::Document| match doc.node(g).unwrap().kind.clone() {
         NodeKind::Blend { spec, .. } => *spec,
         _ => panic!("not a blend"),
     };
     for (ramp, shift, want) in [("12.5", "-9000.0", (1.0, -100.0)), ("-3.0", "250.0", (0.0, 100.0)), ("null", "\"NaN\"", (0.0, 0.0))] {
         let t = text.replacen("\"ramp\":0.4", &format!("\"ramp\":{ramp}"), 1).replacen("\"colorShift\":-50.0", &format!("\"colorShift\":{shift}"), 1);
         assert!(t != text && t.contains("\"ramp\":") && t.contains(shift), "the saved blend carries ramp and colorShift");
-        let doc = vectorcraft_format::load(t.as_bytes()).expect("one bad blend number must not fail the document");
+        let doc = vansoncraft_format::load(t.as_bytes()).expect("one bad blend number must not fail the document");
         let spec = blend_of(&doc);
         assert_eq!((spec.ease.ramp, spec.color_shift), want, "{ramp} / {shift}");
     }
@@ -469,14 +469,14 @@ fn create_spine_sets_whether_new_blends_get_a_spine() {
     assert!(spec(&s, none).1.no_spine);
     // The setting survives a round trip through the preferences file; Auto is not written.
     let back: Prefs = serde_json::from_value(s.prefs.to_json()).unwrap();
-    assert_eq!(back.blend_options.unwrap().create_spine, vectorcraft_doc::live::BlendSpineMode::Always);
+    assert_eq!(back.blend_options.unwrap().create_spine, vansoncraft_doc::live::BlendSpineMode::Always);
     assert_eq!(s.prefs.to_json()["blendOptions"]["createSpine"], json!("always"));
     create_spine(&mut s, json!({"mode": "auto"}));
     assert!(s.prefs.to_json()["blendOptions"].get("createSpine").is_none());
     let mut odd = s.prefs.to_json();
     odd["blendOptions"]["createSpine"] = json!("sometimes");
     let unknown: Prefs = serde_json::from_value(odd).unwrap();
-    assert_eq!(unknown.blend_options.unwrap().create_spine, vectorcraft_doc::live::BlendSpineMode::Auto, "an unknown value reads as Auto");
+    assert_eq!(unknown.blend_options.unwrap().create_spine, vansoncraft_doc::live::BlendSpineMode::Auto, "an unknown value reads as Auto");
 }
 
 #[test]
@@ -557,19 +557,19 @@ fn a_blend_without_a_spine_draws_its_steps_where_one_with_a_spine_does() {
     for orientation in ["page", "path"] {
         let spined = make(&mut s, 0.0, json!({"orientation": orientation}));
         let bare = make(&mut s, 0.0, json!({"orientation": orientation, "createSpine": "never"}));
-        let boxes = |g: NodeId| -> Vec<_> { vectorcraft_doc::live::expand_live(&node(&s, g)).iter().map(|n| n.geometric_bounds()).collect() };
+        let boxes = |g: NodeId| -> Vec<_> { vansoncraft_doc::live::expand_live(&node(&s, g)).iter().map(|n| n.geometric_bounds()).collect() };
         assert_eq!(boxes(bare), boxes(spined), "{orientation}");
         assert!(boxes(bare).len() >= 3, "the three steps at least");
     }
     // Easing stored on a blend without a spine (a hand-edited file) leaves its steps evenly spaced.
     let bare = make(&mut s, 300.0, json!({"orientation": "path", "createSpine": "never"}));
-    let even = vectorcraft_doc::live::expand_live(&node(&s, bare));
+    let even = vansoncraft_doc::live::expand_live(&node(&s, bare));
     let mut eased = node(&s, bare);
     if let NodeKind::Blend { spec, .. } = &mut eased.kind {
-        spec.ease = vectorcraft_doc::live::BlendEase { kind: vectorcraft_doc::live::BlendEaseType::In, ramp: 1.0 };
+        spec.ease = vansoncraft_doc::live::BlendEase { kind: vansoncraft_doc::live::BlendEaseType::In, ramp: 1.0 };
     }
     let boxes = |v: &[Node]| -> Vec<_> { v.iter().map(|n| n.geometric_bounds()).collect() };
-    assert_eq!(boxes(&vectorcraft_doc::live::expand_live(&eased)), boxes(&even));
+    assert_eq!(boxes(&vansoncraft_doc::live::expand_live(&eased)), boxes(&even));
 }
 
 #[test]
@@ -578,7 +578,7 @@ fn whether_a_blend_has_a_spine_is_saved_and_old_blends_have_one() {
     let bare = make(&mut s, 0.0, json!({"createSpine": "never"}));
     let spined = make(&mut s, 50.0, json!({}));
     let d = &s.doc().unwrap().doc;
-    let back = vectorcraft_format::load(&vectorcraft_format::save(d, false)).unwrap();
+    let back = vansoncraft_format::load(&vansoncraft_format::save(d, false)).unwrap();
     assert_eq!(&back.layers, &d.layers);
     let saved = |g: NodeId| match &back.node(g).unwrap().kind {
         NodeKind::Blend { spec, .. } => spec.no_spine,

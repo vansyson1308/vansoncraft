@@ -86,6 +86,9 @@ pub mod shortcutset;
 pub(crate) mod slices;
 pub mod spelling;
 mod stroke;
+// Drawing studies after Harold Speed (docs/speed/): value, balance, line and proportion studies,
+// block-in and hatching.
+pub(crate) mod study;
 mod style;
 pub mod stylelib;
 mod svgfilter;
@@ -109,9 +112,9 @@ mod xform;
 
 use serde::Serialize;
 use serde_json::Value;
-use vectorcraft_color::Color;
-use vectorcraft_doc::NodeId;
-use vectorcraft_geom::{Affine, Point};
+use vansoncraft_color::Color;
+use vansoncraft_doc::NodeId;
+use vansoncraft_geom::{Affine, Point};
 
 use crate::{EngineError, Result, Session};
 
@@ -134,7 +137,7 @@ pub struct CommandSpec {
     pub journal: bool,
     /// The parameters' schema: [`Session::execute`] checks the params against it before the
     /// command runs, and `params` is the text it writes ([`crate::schemas`]).
-    pub schema: Option<&'static vectorcraft_apischema::ParamSchema>,
+    pub schema: Option<&'static vansoncraft_apischema::ParamSchema>,
 }
 
 /// Serializable command metadata.
@@ -170,7 +173,7 @@ pub(crate) fn input_schema(schema: &Value) -> Value {
 impl CommandSpec {
     pub fn info(&self, s: &Session) -> CommandInfo {
         let e = (self.enabled)(s);
-        let schema = self.schema.map(vectorcraft_apischema::ParamSchema::to_json);
+        let schema = self.schema.map(vansoncraft_apischema::ParamSchema::to_json);
         CommandInfo {
             id: self.id,
             label: self.label,
@@ -203,8 +206,8 @@ pub fn has_selected_path(s: &Session) -> std::result::Result<(), String> {
     has_selection(s)?;
     let st = s.active().ok_or("no document open")?;
     // Stops at the first path: menus ask this every frame, and a selected group can hold many.
-    fn holds_path(n: &vectorcraft_doc::Node) -> bool {
-        matches!(n.kind, vectorcraft_doc::NodeKind::Path { guide: false, .. }) || n.children().is_some_and(|c| c.iter().any(|c| holds_path(c)))
+    fn holds_path(n: &vansoncraft_doc::Node) -> bool {
+        matches!(n.kind, vansoncraft_doc::NodeKind::Path { guide: false, .. }) || n.children().is_some_and(|c| c.iter().any(|c| holds_path(c)))
     }
     if st.selection.objects.iter().filter_map(|id| st.doc.node(*id)).any(holds_path) { Ok(()) } else { Err("select a path".into()) }
 }
@@ -228,7 +231,7 @@ pub fn has_multi(s: &Session) -> std::result::Result<(), String> {
 /// The isolated group, layer or object in isolation mode. Pattern editing mode, opacity mask
 /// editing and symbol editing mode isolate their own layer, which does not count here; an object
 /// isolated inside them counts.
-pub(crate) fn ordinary_isolation(st: &crate::DocState) -> Option<vectorcraft_doc::NodeId> {
+pub(crate) fn ordinary_isolation(st: &crate::DocState) -> Option<vansoncraft_doc::NodeId> {
     st.isolation.filter(|l| {
         !st.doc.pattern_edit.as_ref().is_some_and(|e| e.layer == *l)
             && !st.doc.mask_edit.as_ref().is_some_and(|e| e.layer == *l)
@@ -243,7 +246,7 @@ pub fn has_selected_member(s: &Session) -> std::result::Result<(), String> {
     if st.selection.objects.iter().any(|id| inside_isolation(&st.doc, root, *id)) { Ok(()) } else { Err("nothing selected".into()) }
 }
 /// Whether `id` lies inside the isolated object `root` (the root itself does not).
-pub(crate) fn inside_isolation(d: &vectorcraft_doc::Document, root: vectorcraft_doc::NodeId, id: vectorcraft_doc::NodeId) -> bool {
+pub(crate) fn inside_isolation(d: &vansoncraft_doc::Document, root: vansoncraft_doc::NodeId, id: vansoncraft_doc::NodeId) -> bool {
     id != root && d.ancestry(id).is_some_and(|a| a.contains(&root))
 }
 pub fn can_undo(s: &Session) -> std::result::Result<(), String> {
@@ -386,6 +389,7 @@ pub fn command_specs() -> &'static [CommandSpec] {
         v.extend(actionset::specs());
         v.extend(importmatches::specs());
         v.extend(addons::specs());
+        v.extend(study::specs());
         // Last, so the reference it writes ends with its own section.
         v.extend(apiref::specs());
         v
@@ -595,7 +599,7 @@ pub fn color_value(v: &Value) -> Option<Color> {
     match v {
         Value::String(s) if hex_with_alpha(s) => None,
         // A hex, or a colour key ("cmyk 0 100 100 0", as Recolor Artwork lists colours).
-        Value::String(s) => Color::from_hex(s).or_else(|| vectorcraft_color::recolor::ColorKey::parse(s).map(|k| k.color())),
+        Value::String(s) => Color::from_hex(s).or_else(|| vansoncraft_color::recolor::ColorKey::parse(s).map(|k| k.color())),
         Value::Array(a) if a.len() >= 3 => Some(Color::rgb(a[0].as_f64()? as f32, a[1].as_f64()? as f32, a[2].as_f64()? as f32)),
         Value::Object(o) => {
             if let (Some(c), Some(m), Some(y), Some(k)) = (o.get("c"), o.get("m"), o.get("y"), o.get("k")) {
@@ -706,9 +710,9 @@ pub(crate) fn ok() -> Result<Value> {
 /// and compound paths and compound shapes own their members' appearance, so a member stands for
 /// its compound path (#3692) or compound shape, which is listed once.
 pub(crate) fn leaf_targets(s: &Session, ids: &[NodeId]) -> Result<Vec<NodeId>> {
-    use vectorcraft_doc::NodeKind;
+    use vansoncraft_doc::NodeKind;
     let d = &s.doc()?.doc;
-    let owns = |n: &vectorcraft_doc::Node| matches!(n.kind, NodeKind::Compound { .. }) || n.is_compound_shape();
+    let owns = |n: &vansoncraft_doc::Node| matches!(n.kind, NodeKind::Compound { .. }) || n.is_compound_shape();
     let compound = |id: NodeId| d.parent_of(id).filter(|p| d.node(*p).is_some_and(owns));
     let mut out = vec![];
     for id in ids {
@@ -772,7 +776,7 @@ pub(crate) use edit::{settle_interaction, typing_in_progress};
 pub(crate) use object::bounds_rewrite;
 pub(crate) use object::{keep_aligned_in, refresh_pixel_aligned};
 pub use plugin_call::{Location, key_location, location_in, location_keys};
-pub(crate) use vectorcraft_doc::range::parse_range;
+pub(crate) use vansoncraft_doc::range::parse_range;
 
 /// A date param in Unix seconds that defaults to the clock: `None` when absent (now, see
 /// [`clock_date`]), `Some(None)` for null (no date), else `Some(Some(seconds))`.
@@ -788,7 +792,7 @@ pub(crate) fn date_param(p: &Value, key: &str, cmd: &str) -> Result<Option<Optio
 /// no clock). It joins the running command's journal entry as `key`, so a replay of the journal
 /// gives the same date whenever it runs (an action leaves it out: [`crate::Session::journal_for_action`]).
 pub(crate) fn clock_date(s: &mut Session, key: &str, given: Option<Option<i64>>) -> Option<i64> {
-    let t = given.unwrap_or_else(vectorcraft_doc::metadata::output_time);
+    let t = given.unwrap_or_else(vansoncraft_doc::metadata::output_time);
     s.note_journal(key, serde_json::json!(t));
     t
 }

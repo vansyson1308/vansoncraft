@@ -3,13 +3,13 @@
 use std::sync::Arc;
 
 use serde_json::Value;
-use vectorcraft_doc::color::{BlendMode, Paint};
-use vectorcraft_doc::{Appearance, AppearanceItem, Document, Effect, Node, NodeId, NodeKind, OpacityMask, StrokeLayer};
-use vectorcraft_geom::{FillRule, PathData, Rect};
-use vectorcraft_three_d::{Bevel, BevelShape, Extrude, Facet, Inflate, Mesh, View};
+use vansoncraft_doc::color::{BlendMode, Paint};
+use vansoncraft_doc::{Appearance, AppearanceItem, Document, Effect, Node, NodeId, NodeKind, OpacityMask, StrokeLayer};
+use vansoncraft_geom::{FillRule, PathData, Rect};
+use vansoncraft_three_d::{Bevel, BevelShape, Extrude, Facet, Inflate, Mesh, View};
 
 #[cfg(test)]
-use vectorcraft_doc::color::Color;
+use vansoncraft_doc::color::Color;
 
 use crate::util::{flag, num, text};
 use crate::{GeomContext, apply_geometry_with, is_geometry};
@@ -110,8 +110,8 @@ pub fn view_options(p: &Value) -> View {
         rotation_y: num(p, "rotationY", ROTATION_PRESETS[6].1[1]),
         rotation_z: num(p, "rotationZ", ROTATION_PRESETS[6].1[2]),
         perspective: num(p, "perspectiveAngle", 0.0),
-        light_rotation: num(p, "lightRotation", vectorcraft_three_d::DEFAULT_LIGHT.0),
-        light_height: num(p, "lightHeight", vectorcraft_three_d::DEFAULT_LIGHT.1),
+        light_rotation: num(p, "lightRotation", vansoncraft_three_d::DEFAULT_LIGHT.0),
+        light_height: num(p, "lightHeight", vansoncraft_three_d::DEFAULT_LIGHT.1),
         light_behind: flag(p, "lightBehind", false),
         light_color: crate::lighting::light_color(p),
         lights: crate::lighting::lights(p),
@@ -191,10 +191,10 @@ pub(crate) fn solid_paints(n: &Node) -> Vec<AppearanceItem> {
 fn facets(id: &str, path: &PathData, rule: FillRule, bounds: Rect, p: &Value) -> Result<Vec<Facet>, String> {
     let view = view_options(p);
     match id {
-        EXTRUDE => vectorcraft_three_d::extrude(path, rule, bounds, extrude_options(p), view),
-        CLASSIC_EXTRUDE => vectorcraft_three_d::extrude(path, rule, bounds, classic_extrude_options(p), view),
-        INFLATE => vectorcraft_three_d::inflate(path, rule, bounds, inflate_options(p), view),
-        _ => vectorcraft_three_d::plane(path, rule, bounds, view),
+        EXTRUDE => vansoncraft_three_d::extrude(path, rule, bounds, extrude_options(p), view),
+        CLASSIC_EXTRUDE => vansoncraft_three_d::extrude(path, rule, bounds, classic_extrude_options(p), view),
+        INFLATE => vansoncraft_three_d::inflate(path, rule, bounds, inflate_options(p), view),
+        _ => vansoncraft_three_d::plane(path, rule, bounds, view),
     }
 }
 
@@ -495,7 +495,7 @@ fn surface(n: &Node, facets: Vec<Facet>, paint: &Paint, opacity: f32, blend: Ble
                     let AppearanceItem::Fill(fill) = &item else { return vec![item] };
                     let mut edge = StrokeLayer::new(fill.paint.clone(), seam);
                     if colored {
-                        edge.join = vectorcraft_doc::LineJoin::Round;
+                        edge.join = vansoncraft_doc::LineJoin::Round;
                     }
                     edge.opacity = fill.opacity;
                     vec![item, AppearanceItem::Stroke(edge)]
@@ -509,8 +509,8 @@ fn surface(n: &Node, facets: Vec<Facet>, paint: &Paint, opacity: f32, blend: Ble
     group.blend = blend;
     if let Some(mask) = mask {
         let bounds = group.visual_bounds().unwrap_or(Rect::ZERO).inflate(1.0, 1.0);
-        let coverage = Node::path(n.id, vectorcraft_geom::shapes::rectangle(bounds), Appearance::basic(mask, Paint::None, 0.0));
-        group.extras_mut().mask = Some(Box::new(vectorcraft_doc::OpacityMask::new(coverage, true)));
+        let coverage = Node::path(n.id, vansoncraft_geom::shapes::rectangle(bounds), Appearance::basic(mask, Paint::None, 0.0));
+        group.extras_mut().mask = Some(Box::new(vansoncraft_doc::OpacityMask::new(coverage, true)));
     }
     group
 }
@@ -733,7 +733,7 @@ fn cast_shadow<'a>(id: &str, p: &Value, shapes: &'a [Profile]) -> Result<Option<
     }
     let (Some(settings), Some(b)) = (shadow::options(p), union_bounds(shapes)) else { return Ok(None) };
     let view = view_options(p);
-    let mut caster = vectorcraft_three_d::ShadowCaster::new();
+    let mut caster = vansoncraft_three_d::ShadowCaster::new();
     // The faces each solid of visible art added, with its member's scopes and its ink (opacity
     // and blending mode), in order. A fully transparent fill or stroke (or member) casts nothing
     // and does not place the plane.
@@ -773,7 +773,7 @@ fn cast_shadow<'a>(id: &str, p: &Value, shapes: &'a [Profile]) -> Result<Option<
             // all the solids together, the shadow is refused.
             let faces = match faces {
                 Ok(faces) => faces,
-                Err(e) if matches!(item, AppearanceItem::Stroke(_)) && e != vectorcraft_three_d::TOO_COMPLEX_SHADOW => continue,
+                Err(e) if matches!(item, AppearanceItem::Stroke(_)) && e != vansoncraft_three_d::TOO_COMPLEX_SHADOW => continue,
                 Err(e) => return Err(e),
             };
             cast.push((*scopes, ink, faces));
@@ -784,7 +784,7 @@ fn cast_shadow<'a>(id: &str, p: &Value, shapes: &'a [Profile]) -> Result<Option<
 
 /// The faces a shadow is cast from, its settings, and the faces of each solid of visible art with
 /// its member's scopes and ink ([`cast_shadow`]).
-type Cast<'a> = (vectorcraft_three_d::ShadowCaster, vectorcraft_three_d::Shadow, Vec<shadow::Cast<'a>>);
+type Cast<'a> = (vansoncraft_three_d::ShadowCaster, vansoncraft_three_d::Shadow, Vec<shadow::Cast<'a>>);
 
 /// [`art_for`] without the shadow: the solids' surfaces.
 fn surfaces_for(n: &Node, fx: &Effect, shapes: &[Profile]) -> Option<Vec<Arc<Node>>> {
@@ -817,7 +817,7 @@ fn surfaces_for(n: &Node, fx: &Effect, shapes: &[Profile]) -> Option<Vec<Arc<Nod
     let built = if fx.id == INFLATE {
         // One eye for every puff, as far away as the highest needs.
         let shapes: Vec<(&PathData, FillRule)> = parts.iter().map(|(_, _, area, rule, _, _)| (area, *rule)).collect();
-        vectorcraft_three_d::inflate_together(&shapes, bounds, inflate_options(&p), view_options(&p))
+        vansoncraft_three_d::inflate_together(&shapes, bounds, inflate_options(&p), view_options(&p))
     } else {
         parts.iter().map(|(_, _, area, rule, _, _)| facets(&fx.id, area, *rule, bounds, &p)).collect()
     };
@@ -1086,7 +1086,7 @@ fn meshes_for(fx: &Effect, shapes: &[Profile], total: &mut usize, limit: usize) 
             for item in &s.items {
                 let (paint, opacity, _) = paint_of(item, s.opacity);
                 let (area, rule) = region(&s.path, s.rule, item);
-                keep(&mut out, vectorcraft_three_d::plane_mesh(&area, rule, b, view)?, mesh_color(&paint, opacity))?;
+                keep(&mut out, vansoncraft_three_d::plane_mesh(&area, rule, b, view)?, mesh_color(&paint, opacity))?;
             }
         }
         return Ok(out);
@@ -1096,14 +1096,14 @@ fn meshes_for(fx: &Effect, shapes: &[Profile], total: &mut usize, limit: usize) 
     // solid and its mesh are built as the loop reaches them.
     let mut inflated = (fx.id == INFLATE).then(|| {
         let shapes: Vec<(&PathData, FillRule)> = parts.iter().map(|(_, _, area, rule, _, _)| (area, *rule)).collect();
-        vectorcraft_three_d::inflate_meshes(&shapes, bounds, inflate_options(&p), view)
+        vansoncraft_three_d::inflate_meshes(&shapes, bounds, inflate_options(&p), view)
     });
     let extrude = extrude_options(&p);
     for (item, member, area, rule, _, _) in &parts {
         let item: &AppearanceItem = item;
         let mesh = match inflated.as_mut() {
             Some(built) => built.next().unwrap_or_else(|| Ok(Mesh::default())),
-            None => vectorcraft_three_d::extrude_mesh(area, *rule, bounds, extrude, view),
+            None => vansoncraft_three_d::extrude_mesh(area, *rule, bounds, extrude, view),
         };
         match mesh {
             Ok(mesh) => {

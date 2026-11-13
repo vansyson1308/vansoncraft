@@ -3,8 +3,8 @@
 //! the character after it (`kerningBefore`), as one undo step, and the character moves.
 
 use serde_json::json;
-use vectorcraft_doc::{CharStyle, NodeId, NodeKind, TextObject};
-use vectorcraft_tools::{Mods, PointerEvent, PointerKind, ToolKey};
+use vansoncraft_doc::{CharStyle, NodeId, NodeKind, TextObject};
+use vansoncraft_tools::{Mods, PointerEvent, PointerKind, ToolKey};
 
 use crate::*;
 
@@ -24,12 +24,12 @@ fn obj(s: &Session, id: NodeId) -> TextObject {
 }
 
 fn style_at(s: &Session, id: NodeId, byte: usize) -> CharStyle {
-    vectorcraft_text::edit::style_at(&obj(s, id).runs, byte + 1)
+    vansoncraft_text::edit::style_at(&obj(s, id).runs, byte + 1)
 }
 
 /// Where glyph `byte` is drawn along its line, in text space.
 fn drawn_x(s: &Session, id: NodeId, byte: usize) -> f64 {
-    let l = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &obj(s, id));
+    let l = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &obj(s, id));
     l.glyphs.iter().find(|g| g.byte == byte).unwrap().xf.as_coeffs()[4]
 }
 

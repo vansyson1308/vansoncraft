@@ -19,10 +19,10 @@
 use std::sync::Arc;
 
 use serde_json::Value;
-use vectorcraft_doc::color::{BlendMode, Color, Paint};
-use vectorcraft_doc::{Appearance, AppearanceItem, Document, Node, NodeId, NodeKind, ShapeMode, StrokeLayer};
-use vectorcraft_geom::{FillRule, PathData, Rect};
-use vectorcraft_pathops::{self as po, PathfinderOp};
+use vansoncraft_doc::color::{BlendMode, Color, Paint};
+use vansoncraft_doc::{Appearance, AppearanceItem, Document, Node, NodeId, NodeKind, ShapeMode, StrokeLayer};
+use vansoncraft_geom::{FillRule, PathData, Rect};
+use vansoncraft_pathops::{self as po, PathfinderOp};
 
 use crate::reshape::SymbolNodes;
 
@@ -236,7 +236,7 @@ fn reshaped_art(doc: Option<&Document>, n: &Node, hook: Option<OutlineHook>, nod
             Some(art)
         }
         NodeKind::Image(_) | NodeKind::SymbolInstance { .. } => None,
-        _ if crate::needs_outline(n) && (vectorcraft_doc::live::is_live(n) || !fx.is_empty()) => {
+        _ if crate::needs_outline(n) && (vansoncraft_doc::live::is_live(n) || !fx.is_empty()) => {
             crate::reshape::as_art_with(None, doc, n, None, outline, nodes)
         }
         _ => None,
@@ -249,7 +249,7 @@ fn reshaped_art(doc: Option<&Document>, n: &Node, hook: Option<OutlineHook>, nod
 fn reshaped(src: &Node, n: &Node, doc: Option<&Document>) -> Node {
     let mut m = src.clone();
     if let Some((path, rule)) = geometry(src) {
-        let bounds = vectorcraft_geom::Shape::bounding_box(&path.to_bezpath());
+        let bounds = vansoncraft_geom::Shape::bounding_box(&path.to_bezpath());
         let (g, carry) =
             crate::apply_geometry_carrying(&n.appearance.effects, &path, bounds, &crate::GeomContext { doc, ..crate::GeomContext::of(n) });
         m.kind = NodeKind::Path { path: g, rule, live: None, clipping: false, guide: false };
@@ -670,7 +670,7 @@ pub fn member_shapes(doc: Option<&Document>, n: &Node) -> Vec<(PathData, FillRul
                 }
             }
             NodeKind::Group { .. } | NodeKind::Layer { .. } => members(doc, n, out),
-            _ if vectorcraft_doc::live::is_live(n) => members(doc, &crate::reshape::outlined_members(doc, n), out),
+            _ if vansoncraft_doc::live::is_live(n) => members(doc, &crate::reshape::outlined_members(doc, n), out),
             _ => {}
         }
     }

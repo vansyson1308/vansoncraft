@@ -16,7 +16,7 @@ pub fn merged_params(id: &str, params: &Value) -> Value {
     let mut out = match catalog_index().get(id).map(|e| &e.defaults) {
         Some(Value::Object(m)) => m.clone(),
         Some(_) => Map::new(),
-        None => vectorcraft_plugins::effect::installed(id).map(|p| p.manifest().defaults()).unwrap_or_default(),
+        None => vansoncraft_plugins::effect::installed(id).map(|p| p.manifest().defaults()).unwrap_or_default(),
     };
     // Upgraded before the defaults are under it: a default angle is no angle given.
     if let Value::Object(p) = upgrade_params(id, params) {
@@ -56,7 +56,7 @@ fn upgrade_light(id: &str, m: &mut Map<String, Value>) {
         return;
     }
     let degrees = |v: Option<Value>, default: f64| v.and_then(|v| v.as_f64()).unwrap_or(default);
-    let (rotation, height, behind) = vectorcraft_three_d::light_from_azimuth_elevation(degrees(azimuth, -45.0), degrees(elevation, 45.0));
+    let (rotation, height, behind) = vansoncraft_three_d::light_from_azimuth_elevation(degrees(azimuth, -45.0), degrees(elevation, 45.0));
     m.insert("lightRotation".into(), json!(rotation));
     m.insert("lightHeight".into(), json!(height));
     m.insert("lightBehind".into(), json!(behind));
@@ -68,7 +68,7 @@ fn upgrade_perspective(id: &str, m: &mut Map<String, Value>) {
     }
     let Some(strength) = m.remove("perspective") else { return };
     if !m.contains_key("perspectiveAngle") {
-        let angle = vectorcraft_three_d::perspective_from_strength(strength.as_f64().unwrap_or(0.0) / 100.0);
+        let angle = vansoncraft_three_d::perspective_from_strength(strength.as_f64().unwrap_or(0.0) / 100.0);
         m.insert("perspectiveAngle".into(), json!(angle));
     }
 }
@@ -104,7 +104,7 @@ fn upgrade_scribble(id: &str, m: &mut Map<String, Value>) {
 /// A new effect record with default parameters (overridden by `params`).
 pub fn new_effect(id: &str, params: &Value) -> Option<Effect> {
     if !catalog_index().contains_key(id) {
-        vectorcraft_plugins::effect::installed(id)?;
+        vansoncraft_plugins::effect::installed(id)?;
     }
     let mut params = merged_params(id, params);
     // A new Warp takes its style's Bézier net unless a map is given; the catalog's defaults carry
@@ -156,7 +156,7 @@ pub fn is_geometry(id: &str) -> bool {
         && id != CROP_MARKS
         && id != crate::addons::halftone::HALFTONE
         && !is_three_d(id)
-        && (catalog_index().contains_key(id) || vectorcraft_plugins::effect::plugin_id(id).is_some())
+        && (catalog_index().contains_key(id) || vansoncraft_plugins::effect::plugin_id(id).is_some())
 }
 
 /// Any visible geometry effect in the list?
@@ -167,7 +167,7 @@ pub fn has_geometry(effects: &[Effect]) -> bool {
 /// Does `n` have a visible plug-in effect, its own or a fill's or stroke's? Such an effect draws
 /// what the plug-in installed under its id draws ([`plugin_revision`]).
 pub fn has_plugin_effect(n: &Node) -> bool {
-    let plugin = |e: &Effect| e.visible && vectorcraft_plugins::effect::plugin_id(&e.id).is_some();
+    let plugin = |e: &Effect| e.visible && vansoncraft_plugins::effect::plugin_id(&e.id).is_some();
     n.appearance.effects.iter().any(plugin) || n.appearance.items.iter().any(|i| i.effects().iter().any(plugin))
 }
 
@@ -175,17 +175,17 @@ pub fn has_plugin_effect(n: &Node) -> bool {
 /// plug-in paints the pieces it returns? What such an effect draws also depends on the document's
 /// swatches and patterns, which its pieces may name.
 pub fn has_painted_plugin_effect(n: &Node) -> bool {
-    let painted = |e: &Effect| e.visible && vectorcraft_plugins::effect::plugin_id(&e.id).is_some_and(vectorcraft_plugins::effect::paints_output);
+    let painted = |e: &Effect| e.visible && vansoncraft_plugins::effect::plugin_id(&e.id).is_some_and(vansoncraft_plugins::effect::paints_output);
     n.appearance.effects.iter().any(painted) || n.appearance.items.iter().any(|i| i.effects().iter().any(painted))
 }
 
 /// Is a live-effect plug-in that paints the pieces it returns installed?
 pub fn any_plugin_paints_output() -> bool {
-    vectorcraft_plugins::registry::list().iter().any(|p| vectorcraft_plugins::effect::paints_output(&p.manifest().id))
+    vansoncraft_plugins::registry::list().iter().any(|p| vansoncraft_plugins::effect::paints_output(&p.manifest().id))
 }
 
 /// Changes whenever a plug-in is installed or removed (the registry's revision), and when deferred
-/// live-effect plug-in stages give results ([`vectorcraft_plugins::deferred::revision`]).
+/// live-effect plug-in stages give results ([`vansoncraft_plugins::deferred::revision`]).
 pub fn plugin_revision() -> u64 {
-    vectorcraft_plugins::registry::revision() ^ vectorcraft_plugins::deferred::revision().rotate_left(32)
+    vansoncraft_plugins::registry::revision() ^ vansoncraft_plugins::deferred::revision().rotate_left(32)
 }

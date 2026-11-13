@@ -1,7 +1,7 @@
 //! Paint conversion (solid, gradients, patterns) and image decoding.
 
-use vectorcraft_color::{GradientKind, Paint};
-use vectorcraft_geom::{Rect, Vec2};
+use vansoncraft_color::{GradientKind, Paint};
+use vansoncraft_geom::{Rect, Vec2};
 use vello_cpu::RenderContext;
 use vello_cpu::peniko::{self, ColorStop};
 
@@ -25,7 +25,7 @@ pub(crate) fn set_paint(ctx: &mut RenderContext, p: &Paint, bounds: Rect, f: &Fr
             let geom = if spread { g.resolve(bounds).period(g.gradient.kind, g.gradient.repeat_count()) } else { g.resolve(bounds) };
             let extend = match g.gradient.spread {
                 _ if !spread => peniko::Extend::Pad,
-                vectorcraft_color::GradientSpread::Reflect => peniko::Extend::Reflect,
+                vansoncraft_color::GradientSpread::Reflect => peniko::Extend::Reflect,
                 _ => peniko::Extend::Repeat,
             };
             let adjusted = f.ink.gradient(&g.gradient);
@@ -551,8 +551,8 @@ pub(crate) fn fill_rule(r: FillRule) -> peniko::Fill {
     }
 }
 
-pub(crate) fn blend_mode(b: vectorcraft_color::BlendMode) -> BlendMode {
-    use vectorcraft_color::BlendMode as B;
+pub(crate) fn blend_mode(b: vansoncraft_color::BlendMode) -> BlendMode {
+    use vansoncraft_color::BlendMode as B;
     let mix = match b {
         B::Normal => Mix::Normal,
         B::Darken => Mix::Darken,

@@ -155,6 +155,9 @@ fn legacy_profile_name_resolves() {
     let (old, _) = LEGACY_NAMES[0];
     assert_eq!(canonical_name(old), WIDE_GAMUT_RGB);
     assert_eq!(canonical_name(SRGB), SRGB);
+    // The generic CMYK profile's name before the project took the name VansonCraft.
+    assert_eq!(canonical_name("VectorCraft Generic CMYK (SWOP-like)"), GENERIC_CMYK);
+    assert!(profile("VectorCraft Generic CMYK (SWOP-like)").is_some_and(|p| p.name == GENERIC_CMYK));
     assert_eq!(profile(old).map(|p| (p.name, p.kind, p.builtin)), Some((WIDE_GAMUT_RGB.to_string(), ProfileKind::Rgb, true)));
     assert!(profile("Nope").is_none());
     assert!(profiles().iter().all(|p| p.name != old), "only the current name is listed");

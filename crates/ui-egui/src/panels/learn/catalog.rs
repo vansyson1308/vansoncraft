@@ -1,10 +1,10 @@
-//! The Learn panel's tutorials, VectorCraft's own short lessons, grouped by skill. The text is
+//! The Learn panel's tutorials, VansonCraft's own short lessons, grouped by skill. The text is
 //! English data: the panel shows it as written in every interface language.
 
 /// One step of a tutorial: what to do, and the tool it chooses or the command it runs, if any.
 pub struct Step {
     pub text: &'static str,
-    /// A tool id ([`vectorcraft_tools::catalog::tool_info`]) the step names.
+    /// A tool id ([`vansoncraft_tools::catalog::tool_info`]) the step names.
     pub tool: Option<&'static str>,
     /// A command id the step names.
     pub command: Option<&'static str>,
@@ -43,7 +43,7 @@ const fn command(text: &'static str, id: &'static str) -> Step {
 pub const SKILLS: &[Skill] = &[
     Skill {
         id: "essentials",
-        title: "Best of VectorCraft",
+        title: "Best of VansonCraft",
         tutorials: &[
             Tutorial {
                 id: "draw-and-color",

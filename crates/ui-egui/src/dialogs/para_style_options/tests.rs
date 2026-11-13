@@ -1,29 +1,29 @@
 use super::*;
-use vectorcraft_engine::Session;
-use vectorcraft_engine::doc::{Composer, Justify, NodeId, NodeKind, ParaStyle};
+use vansoncraft_engine::Session;
+use vansoncraft_engine::doc::{Composer, Justify, NodeId, NodeKind, ParaStyle};
 
-fn app() -> VectorcraftApp {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+fn app() -> VansoncraftApp {
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 300, "height": 200})).unwrap();
     app
 }
 
-fn frame(app: &mut VectorcraftApp) {
+fn frame(app: &mut VansoncraftApp) {
     let ctx = egui::Context::default();
     crate::theme::install_fonts(&ctx);
     let mut out = ctx.run_ui(Default::default(), |ui| super::super::show(app, ui.ctx()));
     out.textures_delta.clear();
 }
 
-fn set(app: &mut VectorcraftApp, key: &str, value: Value) {
+fn set(app: &mut VansoncraftApp, key: &str, value: Value) {
     app.ui.dialog.as_mut().expect("a dialog is open").fields.insert(key.into(), value);
 }
 
-fn def(app: &VectorcraftApp, name: &str) -> Map<String, Value> {
+fn def(app: &VansoncraftApp, name: &str) -> Map<String, Value> {
     app.session.doc().unwrap().doc.para_styles.iter().find(|d| d.name == name).map(|d| d.attrs.clone()).unwrap_or_default()
 }
 
-fn paras(app: &VectorcraftApp, id: u64) -> Vec<ParaStyle> {
+fn paras(app: &VansoncraftApp, id: u64) -> Vec<ParaStyle> {
     match &app.session.doc().unwrap().doc.node(NodeId(id)).unwrap().kind {
         NodeKind::Text(t) => t.paragraph_styles(),
         _ => panic!("not text"),
@@ -287,7 +287,7 @@ fn korean_line_break_anywhere_is_set_by_the_east_asian_section() {
 }
 
 /// The rows of the `tabs` field of the open dialog.
-fn tab_rows(app: &VectorcraftApp) -> Vec<Value> {
+fn tab_rows(app: &VansoncraftApp) -> Vec<Value> {
     app.ui.dialog.as_ref().unwrap().fields["tabs"].as_array().cloned().unwrap_or_default()
 }
 
@@ -359,7 +359,7 @@ fn a_repeated_tab_position_keeps_the_stop_edited_last() {
     app.run("ui.paraStyleOptions", json!({"name": "Body"})).unwrap();
     let rows = json!([{"position": "36", "align": "right"}, {"position": "0.5 in", "align": "center"}, {"position": "10", "align": "left"}]);
     set(&mut app, "tabs", rows);
-    let kept = |app: &VectorcraftApp| edited_attrs(app.ui.dialog.as_ref().unwrap()).unwrap()["tabs"].clone();
+    let kept = |app: &VansoncraftApp| edited_attrs(app.ui.dialog.as_ref().unwrap()).unwrap()["tabs"].clone();
     assert_eq!(kept(&app), json!([{"position": 10.0, "align": "left", "alignOn": "."}, {"position": 36.0, "align": "right", "alignOn": "."}]));
     set(&mut app, "__tabEdited", json!(1));
     assert_eq!(kept(&app)[1]["align"], json!("center"));
@@ -489,7 +489,7 @@ fn tabs_preview_cancel_and_ok_update_the_paragraphs_in_one_undo_step() {
     let before = app.session.doc().unwrap().doc.clone();
     let undo = app.session.doc().unwrap().history.undo.len();
     let new_stops = json!([{"position": "20", "align": "right", "leader": "."}, {"position": "80", "align": "decimal", "alignOn": ","}]);
-    let positions = |app: &VectorcraftApp| paras(app, id).iter().map(|p| p.tabs.iter().map(|t| t.position).collect::<Vec<_>>()).collect::<Vec<_>>();
+    let positions = |app: &VansoncraftApp| paras(app, id).iter().map(|p| p.tabs.iter().map(|t| t.position).collect::<Vec<_>>()).collect::<Vec<_>>();
     app.run("ui.paraStyleOptions", json!({"name": "Body"})).unwrap();
     set(&mut app, "section", json!("tabs"));
     set(&mut app, "tabs", new_stops.clone());
@@ -508,8 +508,8 @@ fn tabs_preview_cancel_and_ok_update_the_paragraphs_in_one_undo_step() {
     let p = paras(&app, id);
     assert_eq!((p[0].tabs[0].leader.as_str(), p[0].tabs[1].align_on), (".", ','));
     let changed = app.session.doc().unwrap().doc.clone();
-    let saved = vectorcraft_format::load(&vectorcraft_format::save(&changed, false)).unwrap();
-    let def_of = |d: &vectorcraft_doc::Document| d.para_styles.iter().find(|s| s.name == "Body").map(|s| s.attrs.clone());
+    let saved = vansoncraft_format::load(&vansoncraft_format::save(&changed, false)).unwrap();
+    let def_of = |d: &vansoncraft_doc::Document| d.para_styles.iter().find(|s| s.name == "Body").map(|s| s.attrs.clone());
     assert_eq!(def_of(&saved), def_of(&changed));
     app.run("edit.undo", json!({})).unwrap();
     assert_eq!(app.session.doc().unwrap().doc, before);

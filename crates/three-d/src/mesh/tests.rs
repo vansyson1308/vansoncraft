@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use vectorcraft_geom::{BezPath, FillRule, PathData, Rect};
+use vansoncraft_geom::{BezPath, FillRule, PathData, Rect};
 
 use super::*;
 use crate::{Bevel, Edge};

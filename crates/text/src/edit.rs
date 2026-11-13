@@ -4,8 +4,8 @@
 
 use std::ops::Range;
 
-use vectorcraft_doc::text::INLINE_CHAR;
-use vectorcraft_doc::{CharStyle, TextRun};
+use vansoncraft_doc::text::INLINE_CHAR;
+use vansoncraft_doc::{CharStyle, TextRun};
 
 /// Is `s` exactly one object replacement character (an inline graphic run's text)?
 pub fn is_inline_text(s: &str) -> bool {
@@ -222,8 +222,8 @@ pub fn starts_line(s: &str, i: usize) -> bool {
 
 /// The character whose kerning the Type tool's caret at byte `i` of `s` sets (the Kerning field,
 /// Alt+arrows, Reset Tracking and Kerning), and whether that kerning is the space before it
-/// ([`vectorcraft_doc::CharStyle::kerning_before`]) or after it
-/// ([`vectorcraft_doc::CharStyle::kerning`]). Inside a line it is the space after the character
+/// ([`vansoncraft_doc::CharStyle::kerning_before`]) or after it
+/// ([`vansoncraft_doc::CharStyle::kerning`]). Inside a line it is the space after the character
 /// before the caret. At the start of a line ([`starts_line`]) no character on the line comes before
 /// the caret, so it is the space before the character after it (#5111). None at the start of an
 /// empty line, where no character follows either.

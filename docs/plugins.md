@@ -1,6 +1,6 @@
 # Plug-ins: the WebAssembly plug-in API (ABI v1)
 
-VectorCraft does not host native plug-ins built for other illustration apps: that needs unsafe FFI into
+VansonCraft does not host native plug-ins built for other illustration apps: that needs unsafe FFI into
 arbitrary machine code and cannot work in the browser build. Instead, plug-ins are **WebAssembly modules** run in a
 sandbox. One `.wasm` file works on macOS, Windows, Linux and the web. The design follows PhotoCraft's plug-in API (same
 sandbox, same manifest and parameter schema), extended for vector documents.
@@ -30,7 +30,7 @@ in `crates/engine/src/cmd/plugin.rs`).
 | `plugin.list` | `{}` | `{"plugins": [{id, name, version, kind, author, description, params, paramsSchema, effect?, format?, extensions?, budget?, commands?, commandAllowlist?, size, source, api, paintOutput?, permissions, hash, cacheBytes}], "folder": report}` (`api` is the manifest's [plug-in API level](#permissions); `budget: "heavy"` for a [heavy filter](#heavy-filters); `commands` lists its [commands](#commands); `commandAllowlist` lists the commands it may [call](#command-calls); `paintOutput: true` marks a [painted live effect](#painted-live-effects); `permissions` lists what it [may do](#permissions), `hash` is the module's SHA-256; `cacheBytes` is the size of its [cache](#settings-and-cache)) |
 | `plugin.info` | `{"id"}` | One plug-in: the `plugin.list` entry plus `manifest`, `defaults` and `lastError` (a live effect's last failure). |
 | `plugin.run` | `{"id", "params"?: {…}, "ids"?: [...]}` (plug-in params may also be top-level keys) | Runs an object filter on the selection (or `ids`; an `ids` that is not a list of object ids is an error). One undo step; the result is selected, except the objects it locked or made guides. |
-| `plugin.install` | `{"path": "/x/y.wasm"}` (desktop) or `{"dataBase64": "…", "name"?}`, `"replace"?: bool`, `"allowHeavy": bool = false`, `"grant"?: [permission]`, `"hash"?: "sha256 hex"` | Validates and installs a module; returns its `plugin.list` entry. The desktop app and `vectorcraft-cli` keep it in the `Plug-ins` folder next to the preferences, so it is installed again after a restart (#2541). A module with other bytes than the plug-in installed with its id, or, with none installed, one whose id has [settings and a cache](#settings-and-cache) in the `Plug-ins` folder, installs only with `replace: true`, once the user agreed; it takes that plug-in's place and gets its settings and cache. The same module installs again without `replace`, and `replace: false` refuses a module whose id is installed. A [heavy filter](#heavy-filters) installs only with `allowHeavy: true`. A plug-in whose manifest lists [permissions](#permissions) installs only when `grant` lists every one of them, unless a grant is already recorded for a module with the same SHA-256. A request's `grant` and `allowHeavy` are refused except in a session started with `vectorcraft-cli --allow-plugin-grants`. With `hash`, a module whose SHA-256 differs is refused. A module whose `commandAllowlist` lists a command no plug-in may call is refused; ids no command has are listed as `unknownCommands` ([command calls](#command-calls)). |
+| `plugin.install` | `{"path": "/x/y.wasm"}` (desktop) or `{"dataBase64": "…", "name"?}`, `"replace"?: bool`, `"allowHeavy": bool = false`, `"grant"?: [permission]`, `"hash"?: "sha256 hex"` | Validates and installs a module; returns its `plugin.list` entry. The desktop app and `vansoncraft-cli` keep it in the `Plug-ins` folder next to the preferences, so it is installed again after a restart (#2541). A module with other bytes than the plug-in installed with its id, or, with none installed, one whose id has [settings and a cache](#settings-and-cache) in the `Plug-ins` folder, installs only with `replace: true`, once the user agreed; it takes that plug-in's place and gets its settings and cache. The same module installs again without `replace`, and `replace: false` refuses a module whose id is installed. A [heavy filter](#heavy-filters) installs only with `allowHeavy: true`. A plug-in whose manifest lists [permissions](#permissions) installs only when `grant` lists every one of them, unless a grant is already recorded for a module with the same SHA-256. A request's `grant` and `allowHeavy` are refused except in a session started with `vansoncraft-cli --allow-plugin-grants`. With `hash`, a module whose SHA-256 differs is refused. A module whose `commandAllowlist` lists a command no plug-in may call is refused; ids no command has are listed as `unknownCommands` ([command calls](#command-calls)). |
 | `plugin.inspect` | as `plugin.install`: `{"path"}` or `{"dataBase64", "name"?}` | Validates a module without installing it; returns the `plugin.list` entry it would have, plus `needsApproval` (true when installing it needs a person's approval), `needsReplace` (true when `plugin.install` needs `replace: true`), and the `commandAllowlist` ids no command has (`unknownCommands`) and those no plug-in may call (`refusedCommands`). |
 | `plugin.remove` | `{"id"}` | Uninstalls, and deletes it from the `Plug-ins` folder with its [settings and cache](#settings-and-cache). |
 | `plugin.clearCache` | `{"id"?}` | Deletes every entry in the [cache](#settings-and-cache) of plug-in `id`, or of every installed plug-in; settings stay. Returns `{"cleared": [id], "bytesFreed"}`. |
@@ -52,7 +52,7 @@ also one a built-in format reads (an importer that lists `svg` opens an `.svg` o
 built-in format reports that format's error, and the file is not handed to an importer. The importer's objects become a
 new document whose artboard is their bounds (at least 1 pt wide and high, and within ±4,000,000 pt); the document keeps
 no path, so Save asks for a name. File › Place reads only the built-in formats, and a file only an importer reads opens
-as a new document when it is dropped on the canvas. These rules are VectorCraft's own.
+as a new document when it is dropped on the canvas. These rules are VansonCraft's own.
 
 In the app, installed filters appear under **Object › Plug-ins**, next to **Install Plug-in…** and **Reload
 Plug-ins**; live effects under **Effect › Plug-ins** and in the Appearance panel's effect menu. A plug-in with
@@ -117,7 +117,7 @@ the object is drawn as if the effect weren't there, and the record is kept for w
 ## The sandbox
 
 The host is [`wasmi`](https://github.com/wasmi-labs/wasmi), a pure-Rust WebAssembly interpreter (MIT OR Apache-2.0). It
-builds for `wasm32-unknown-unknown` too, so plug-ins also run in the web build. Limits (`vectorcraft_plugins::Limits`,
+builds for `wasm32-unknown-unknown` too, so plug-ins also run in the web build. Limits (`vansoncraft_plugins::Limits`,
 defaults):
 
 | Limit | Default | On violation |
@@ -128,7 +128,7 @@ defaults):
 | Output | 64 MiB of JSON | `Limit("output size")` |
 | Instructions (fuel) | 50 M per call + 4,000 per input byte for `vc_run`; a [heavy filter](#heavy-filters) 1 G + 4,000 per byte; an export or import 10 G + 4,000 per byte | `Limit("instruction budget")` |
 | Wall clock | 60 s per filter run, 5 s per live-effect run, 300 s per heavy filter run, export or import (checked every 20 M instructions; the web build reads the page's `performance.now()`) | `Limit("time budget")` |
-| Import input | 128 MiB of the file (`vectorcraft_plugins::import::MAX_INPUT_BYTES`) | the file doesn't open; a larger file named by `path` is not read past that |
+| Import input | 128 MiB of the file (`vansoncraft_plugins::import::MAX_INPUT_BYTES`) | the file doesn't open; a larger file named by `path` is not read past that |
 | Call depth | 1,024 frames | trap |
 | Module shape | wasmi's strict limits (≤ 10,000 functions, 1 memory, …) | rejected |
 
@@ -139,7 +139,7 @@ open it runs in is cancelled, and nothing opens then.
 ### Live effects while a document opens
 
 While the app draws a document on screen, the live-effect runs of its first view share a 2,000 ms budget
-(`vectorcraft_plugins::deferred::OPENING_BUDGET_MS`, VectorCraft's own value), measured from the first run. Each run
+(`vansoncraft_plugins::deferred::OPENING_BUDGET_MS`, VansonCraft's own value), measured from the first run. Each run
 takes the lesser of its 5 s limit and what is left of the budget; once the budget is spent no run starts, and a result
 that comes back after it is not used. A stage left out this way, or one that times out, traps, returns output the host
 refuses or has no plug-in, draws its input art unchanged and is deferred. The status bar then says how many stages
@@ -155,12 +155,12 @@ Some filters do heavy but legitimate work, such as routing a plotter's pen, pack
 simulation, which a minute and 50 M instructions don't cover. Such a filter declares `"budget": "heavy"` in its
 manifest (only a filter may: a live effect runs whenever the document is drawn, an exporter has an export's budget and
 an importer an import's). Each of its runs gets 1 G instructions (20 times a light run's) plus the 4,000 per input byte,
-and 300 s (`vectorcraft_plugins::{HEAVY_FUEL, HEAVY_WALL_TIME_MS}`). Its output can't add to the budget: the host learns
+and 300 s (`vansoncraft_plugins::{HEAVY_FUEL, HEAVY_WALL_TIME_MS}`). Its output can't add to the budget: the host learns
 how much there is only once the run has ended.
 
 - **Installing asks first.** Install Plug-in… and File › Open show what the filter asks for, and install it once the
   user clicks OK (see [Permissions](#permissions) for who can). `plugin.install` refuses it without `allowHeavy: true`,
-  and refuses `allowHeavy` from a request except in a session started with `vectorcraft-cli --allow-plugin-grants`
+  and refuses `allowHeavy` from a request except in a session started with `vansoncraft-cli --allow-plugin-grants`
   (`plugin.inspect` shows the budget beforehand). A filter kept in the `Plug-ins` folder was agreed to and is installed
   again at startup. The Additional Plug-ins Folder skips heavy filters with a note in its report, since loading a folder
   asks nobody.
@@ -177,7 +177,7 @@ how much there is only once the run has ended.
 
 A manifest may list what the plug-in may do in `permissions`. `doc.read`, `doc.write` and `state` follow the
 capability model proposed for PhotoCraft plug-ins
-([storytold/photocraft#662](https://github.com/storytold/photocraft/issues/662)); the other names are VectorCraft's own:
+([storytold/photocraft#662](https://github.com/storytold/photocraft/issues/662)); the other names are VansonCraft's own:
 
 | Permission | Kinds | What it allows |
 |---|---|---|
@@ -195,7 +195,7 @@ capability model proposed for PhotoCraft plug-ins
 - A manifest without `permissions` gets the ones its kind implies, as plug-ins did before the key existed: a filter
   `doc.read`, `doc.write` and `state`; an effect `doc.read` and `effect.render`, and also `doc.write` and `state`
   when it declares [commands](#commands); an exporter `doc.read` and `export.write`; an importer `import.read`. Such a
-  plug-in installs without a prompt. This rule is VectorCraft's own. A filter whose list is empty may do none of
+  plug-in installs without a prompt. This rule is VansonCraft's own. A filter whose list is empty may do none of
   these, and also installs without a prompt.
 - An effect, an exporter or an importer that lists permissions lists all of its implied ones (`doc.read` and
   `effect.render`; `doc.read` and `export.write`; `import.read`). An effect with commands may add `doc.write` and
@@ -210,7 +210,7 @@ capability model proposed for PhotoCraft plug-ins
   and are cut to 64 characters. Only a person can press its OK: `ui.dialog.confirm`, MCP's `answer_dialog` and injected
   input (`ui.key`, `ui.click`) are refused and the dialog stays open. Enter confirms it only when OK has the keyboard
   focus. `ui.dialog.set` can't change what it installs. OK stays disabled until the question has been on screen in the
-  focused window for half a second (VectorCraft's own value, from the delay the security guidance at
+  focused window for half a second (VansonCraft's own value, from the delay the security guidance at
   https://chromium.googlesource.com/chromium/src/+/refs/heads/main/docs/security/security-considerations-for-browser-ui.md
   gives for dialog boxes), so a click, Enter or Space, or a press begun before then, installs nothing. The half second
   starts over for every new question, even one that reads the same, and when the window gets the focus back. Cancel
@@ -223,10 +223,10 @@ capability model proposed for PhotoCraft plug-ins
   closes it. To install the plug-in, the person chooses Object › Plug-ins › Install Plug-in… and picks the file, or
   opens it with File › Open or drops it on the window: the module is inspected again and the new question waits its
   half second. A request's `replace: true` does not skip asking about taking another module's place. A module that
-  needs no approval still installs at once from any request. This is VectorCraft's own rule.
+  needs no approval still installs at once from any request. This is VansonCraft's own rule.
 - `plugin.install` refuses the module, naming the permissions it needs, unless this module already has a recorded grant
   (`plugin.inspect`'s `needsApproval` tells it beforehand). A request's `grant` is refused too: `plugin.install` takes
-  it only with the approval the dialog gives. A `vectorcraft-cli mcp` or `run` started with `--allow-plugin-grants`
+  it only with the approval the dialog gives. A `vansoncraft-cli mcp` or `run` started with `--allow-plugin-grants`
   takes `grant` and `allowHeavy` from any request; only the person starting the process can set that flag, and it
   doesn't apply to a running app. `mcp` refuses the flag together with `--automation-read-root` or
   `--automation-write-root`: a server confined to folders has no plug-in store, so it reads no `grants.json`, and a
@@ -234,14 +234,14 @@ capability model proposed for PhotoCraft plug-ins
   mode and the CLI install a module that lists permissions only when its hash is recorded in the shared `grants.json`.
   A person's approval in the desktop app records it, and so does a `grant` accepted under `--allow-plugin-grants`. A
   recorded grant counts as approved in later sessions without the flag and in the desktop app. With
-  `VECTORCRAFT_NO_PREFS` set there is no store, and a `grant` accepted under the flag lasts for that session only.
+  `VANSONCRAFT_NO_PREFS` set there is no store, and a `grant` accepted under the flag lasts for that session only.
   With `--allow-plugin-grants`, pass `hash` set to the `plugin.inspect` entry's `hash` so that the module installed is
   the one the user saw.
 - The approval protects against plug-ins and automation clients (MCP, scripts and CLI requests): none of them can
-  approve a module's permissions. VectorCraft's own code records a grant only after that approval and when it loads
+  approve a module's permissions. VansonCraft's own code records a grant only after that approval and when it loads
   `grants.json`, and installs a module that lists permissions only under a grant recorded for this very module,
   also when it loads the Additional Plug-ins Folder. The approval does not protect against native code linked into
-  VectorCraft or against another program running as the same user, which can change the files in the `Plug-ins`
+  VansonCraft or against another program running as the same user, which can change the files in the `Plug-ins`
   folder. `grants.json` is not signed, so such a program can add a grant to it. `--allow-plugin-grants` is a choice
   the person starting a headless session makes.
 - **Replacing asks first.** When the file is another module than the plug-in installed with its id, or, with none
@@ -271,14 +271,14 @@ capability model proposed for PhotoCraft plug-ins
   the grant stops counting. The grant also stops counting when the folder held no module for that id. A
   `grants.json` larger than 1 MiB, or one that is not a JSON list, grants nothing: the new module stays in the folder,
   and `plugin.remove` removes the plug-in. A `grants.json` that can't be opened or read counts as a grant that can't be
-  removed. When VectorCraft loads the `Plug-ins` folder, it forgets any grant for an id whose stored module lists no
+  removed. When VansonCraft loads the `Plug-ins` folder, it forgets any grant for an id whose stored module lists no
   permissions. When it can't remove that grant from `grants.json`, or can't read the file, the grant stops counting,
   including for the next load, which tries the removal again. A grant that stops counting in either of these cases
   does not count for any session in the same process that uses the same `Plug-ins` folder, by any path to it, until
   `grants.json` can be written for that plug-in, as when the plug-in is granted again. Another process on the same
-  folder, for example `vectorcraft-cli` beside the app, still reads `grants.json` as it is written. A grant for the
+  folder, for example `vansoncraft-cli` beside the app, still reads `grants.json` as it is written. A grant for the
   same id kept in another `Plug-ins` folder counts. In Safe Mode, and for a stored module that the user disabled,
-  VectorCraft does not read the module, and `grants.json` keeps the grant for its id. The Additional Plug-ins Folder
+  VansonCraft does not read the module, and `grants.json` keeps the grant for its id. The Additional Plug-ins Folder
   and `plugin.reload` do not change the `Plug-ins` folder: when they leave a module that lists no permissions under an
   id, the process forgets its own grant for that id, and a grant kept in `grants.json` stays with the stored module it
   covers. An entry of `grants.json` that this version can't use (a permission it doesn't know, an invalid id) is
@@ -366,7 +366,7 @@ still returns `1`. `vc_progress`, `vc_cancelled` and `vc_log` need `progress`; t
   change of `done` is passed on. After 2,000 reports in a run, one change in 1,000 is passed on, and so is the first
   report after the total becomes known or unknown. A live effect's progress is not shown, since it is drawn as part of
   something else.
-- Log lines go to the app's log (target `vectorcraft_plugins`) as `<plug-in id>: <text>`, with control and
+- Log lines go to the app's log (target `vansoncraft_plugins`) as `<plug-in id>: <text>`, with control and
   bidirectional characters escaped. The whole text must be UTF-8. A line shows its first 1,024 bytes, as at most 1,024
   characters with the escapes, and ends with `…` when it is cut. A run writes at most 200 lines and 32 KiB of shown
   text, and the host reads at most 1 MiB of log text in a run; past any of these, one "log truncated" line is written
@@ -404,12 +404,12 @@ the run waits for it. A live effect runs while the art draws, so keep the entrie
 
 - A key is 1 to 64 characters from `A-Z`, `a-z`, `0-9`, `_` and `-`, and is not a Windows device name (`CON`, `PRN`,
   `AUX`, `NUL`, `COM0` to `COM9`, `LPT0` to `LPT9`, in any case). Keys differ in case: `tile` and `Tile` are two.
-- These caps are VectorCraft's own values: at most 256 settings of at most 64 KiB each, in a settings file of at most
+- These caps are VansonCraft's own values: at most 256 settings of at most 64 KiB each, in a settings file of at most
   1 MiB; cache entries of at most 64 MiB each, at most 4,096 entries and 512 MiB per plug-in. The cache has no
   automatic eviction: a write past a cap fails with `-4`, and the plug-in or the user clears entries. A cache write
   also fails with `-4` when the `cache` folder holds more than 8,192 items; clearing the cache removes every file in
   it.
-- The desktop app and `vectorcraft-cli` keep them in a folder named from the id under `storage/` in the `Plug-ins`
+- The desktop app and `vansoncraft-cli` keep them in a folder named from the id under `storage/` in the `Plug-ins`
   folder (ids that differ only in case get two folders): `settings.json` and a `cache` folder with one file per entry,
   named by the host. A settings file that is too large or doesn't parse is moved to `settings.unreadable.json`,
   replacing an earlier one there, and the settings start empty. A link in that folder is refused (`-5`). Writes go to a
@@ -419,7 +419,7 @@ the run waits for it. A live effect runs while the art draws, so keep the entrie
   (`plugin.install` with `replace: true`, after the user agreed) keeps the storage; `plugin.remove` deletes it, and a
   run of the plug-in still going gets `-5` from every storage call after that. `plugin.remove` first renames the folder,
   adding `.removed` to its name (or `.removing` while a `.removed` folder holds settings an earlier removal kept). When
-  that fails, `plugin.remove` fails and the plug-in stays installed with its storage as it was. Before VectorCraft
+  that fails, `plugin.remove` fails and the plug-in stays installed with its storage as it was. Before VansonCraft
   deletes a renamed folder, it writes an empty file beside it with `.delete` added to the folder's name, and removes
   that file once the folder is gone. When that file can't be written, the folder is not deleted and is treated like any
   renamed folder without a `.delete` file (see below). Files that can't be deleted stay in the renamed folder with the
@@ -462,7 +462,7 @@ the module's start function, in a run that isn't a filter's run on a document, o
   the view, runs a script, an action or a plug-in (a `plugin.*` command, or arguments naming one, such as an
   `effect.apply` of `plugin.<id>`), opens, closes or switches documents, or undoes or redoes, whatever its manifest
   lists. The same goes for a command that changes a tool's options, keeps a drag's state or adds font names for the
-  whole app, and for a command VectorCraft adds later until it has been checked for plug-in calls. Installing a
+  whole app, and for a command VansonCraft adds later until it has been checked for plug-in calls. Installing a
   manifest that lists such a command is refused, and the error names it; `plugin.inspect` lists them as
   `refusedCommands`.
 - A call whose arguments hold a file or folder key (`path`, `paths`, `file`, `files`, `folder`, `folders`, `dir`,
@@ -474,7 +474,7 @@ the module's start function, in a run that isn't a filter's run on a document, o
   `doc.read`).
 - Without `doc.read`, every call of a listed id fails with `-6`, since a command's result describes the document.
   Without `doc.write`, a call that changes the document fails with `-6`.
-- These limits are VectorCraft's own values: at most 1,000 calls a run, 8 MiB of arguments or result a call and 64 MiB
+- These limits are VansonCraft's own values: at most 1,000 calls a run, 8 MiB of arguments or result a call and 64 MiB
   of arguments and results a run. Each call costs 10,000 instructions of the run's budget, plus one for every 64 bytes
   of its arguments and its result, and the run checks Cancel and its time budget before and after each call.
 - A filter that calls commands runs on the app's main thread, so it can't ask for a heavy budget: a manifest with
@@ -575,7 +575,7 @@ objects). A live effect gets one object: its geometry (`type`, `path`, `fillRule
 draw as wide as a stroke or use a fill's colour to decide its shape, but it changes only the geometry, unless it
 declares `paintOutput` ([painted live effects](#painted-live-effects)).
 
-An **exporter** gets something else: the native `.vectorcraft` document JSON without indentation, optional preview/PDF
+An **exporter** gets something else: the native `.vansoncraft` document JSON without indentation, optional preview/PDF
 renditions or save-preference metadata (the format is documented in
 [`crates/format/src/lib.rs`](../crates/format/src/lib.rs)). That is every layer, object, appearance and effect record,
 artboard, swatch and symbol, so an exporter reads whatever the document holds; it checks `version`, since a later host
@@ -605,7 +605,7 @@ An **importer** gets the bytes of the file being opened, as they are (not JSON),
 ```
 
 - `type`: `"path"` or `"compound"` (a compound path: `path` holds its members' subpaths, painted as one).
-- `path`: VectorCraft's own path form. Each subpath is a run of anchors; `p` is the anchor, `in` / `out` its handles
+- `path`: VansonCraft's own path form. Each subpath is a run of anchors; `p` is the anchor, `in` / `out` its handles
   (absent: no handle), `kind` `"Smooth"` when the handles stay collinear. Coordinates are points, y down.
 - `fills`, `strokes`: the object's fills and strokes in paint order (bottom first); `null` is no paint. A stroke has its
   `paint`, `width` in points, `join` (`"miter"`, `"round"` or `"bevel"`), `cap` (`"butt"`, `"round"` or `"square"`)
@@ -817,7 +817,7 @@ crates/plugins/example/build.sh      # cargo build --release --target wasm32-unk
 The script also refreshes `crates/plugins/tests/fixtures/desaturate.wasm`, the test fixture built from that source.
 The crate is not a workspace member. Any language that targets core WebAssembly works (C, Zig, AssemblyScript,
 WAT…), as long as the module imports nothing but the host imports: in Rust, `std` on `wasm32-unknown-unknown` is fine as
-long as it never touches WASI. `vectorcraft_plugins::wat::module` is the skeleton of a plug-in in WebAssembly text,
+long as it never touches WASI. `vansoncraft_plugins::wat::module` is the skeleton of a plug-in in WebAssembly text,
 which the tests build their plug-ins from; `wat::echo_exporter` is an exporter whose file is its input or its parameters
 (with a base64 encoder written out in WebAssembly text), which the tests read back what the host hands a plug-in with,
 and `wat::when_given` a plug-in whose output depends on whether its input or parameters hold a given text, which shows

@@ -1,13 +1,13 @@
 //! MCP prompts (`prompts/list`, `prompts/get`) and `completion/complete`.
 //!
-//! A prompt is a reusable VectorCraft workflow: `prompts/get` hands the model one templated user
+//! A prompt is a reusable VansonCraft workflow: `prompts/get` hands the model one templated user
 //! message, so a client can offer "make a poster" the way it offers a slash command. Every prompt's
 //! arguments double as completion sources, and the resource templates in [`crate::resources`] share
 //! the same [`Live`] catalogues, so `completion/complete` can suggest real command ids, effect ids,
 //! swatch names and export formats instead of a fixed list that goes stale.
 
 use serde_json::{Value, json};
-use vectorcraft_engine::cmd::fileio::FORMATS;
+use vansoncraft_engine::cmd::fileio::FORMATS;
 
 use crate::backend::Backend;
 
@@ -29,6 +29,8 @@ pub enum Live {
     Swatches,
     /// Layer and object ids in the active document (`document.inspect`).
     Objects,
+    /// The drawing-method topics (`vansoncraft://method/{topic}`), compiled in.
+    MethodTopics,
 }
 
 /// Where one prompt argument's suggestions come from.
@@ -59,6 +61,7 @@ pub(crate) fn live_values(b: &mut dyn Backend, live: Live) -> Vec<String> {
         Live::Commands => b.call("engine.commands", json!({})).map(|v| ids_in(&v, None)).unwrap_or_default(),
         Live::Swatches => names(b, "swatch.list", Some("swatches")),
         Live::Objects => object_ids(b),
+        Live::MethodTopics => crate::resources::METHOD_TOPICS.iter().map(|(t, _)| (*t).to_string()).collect(),
     }
 }
 
@@ -79,7 +82,7 @@ fn ids_in(reply: &Value, key: Option<&str>) -> Vec<String> {
     items.iter().take(MAX_VALUES * 8).filter_map(|i| i.get("id").or_else(|| i.get("name"))).filter_map(Value::as_str).map(str::to_string).collect()
 }
 
-/// Ids of every layer and object in the active document, for `vectorcraft://object/{id}`.
+/// Ids of every layer and object in the active document, for `vansoncraft://object/{id}`.
 fn object_ids(b: &mut dyn Backend) -> Vec<String> {
     let mut out = Vec::new();
     let Ok(v) = b.call("document.inspect", json!({})) else { return out };
@@ -156,7 +159,7 @@ pub static PROMPTS: &[PromptDef] = &[
             },
         ],
         text: "\
-Design a poster in VectorCraft.
+Design a poster in VansonCraft.
 
 Brief: {brief}
 Palette: {palette}
@@ -208,7 +211,7 @@ rasterise unless the brief asks for it.",
             },
         ],
         text: "\
-Draw a set of {count} icons of {subject} in VectorCraft, {detail}.
+Draw a set of {count} icons of {subject} in VansonCraft, {detail}.
 
 Coordinates are points in document space (y down, origin at the first artboard's
 top-left).
@@ -251,7 +254,7 @@ Return the ids of the icons in a grid, and leave them as separate objects on one
             },
         ],
         text: "\
-Recolour the current selection in VectorCraft with {palette}, using the `{method}` recolour method.
+Recolour the current selection in VansonCraft with {palette}, using the `{method}` recolour method.
 
 Method:
 1. inspect_document to see what is selected and what colours it actually uses.
@@ -289,7 +292,7 @@ One undo step covers the whole change; gradients and linked swatches stay linked
             },
         ],
         text: "\
-Trace the image at {path} in VectorCraft with the \"{preset}\" preset, then style the result
+Trace the image at {path} in VansonCraft with the \"{preset}\" preset, then style the result
 with the {effect} effect.
 
 Method:
@@ -350,7 +353,7 @@ The trace is real geometry: every traced shape stays selectable and editable.",
             },
         ],
         text: "\
-Export the document in VectorCraft to {formats}, into {directory}, at {scale} pixels per
+Export the document in VansonCraft to {formats}, into {directory}, at {scale} pixels per
 point for the raster formats.
 
 Method:
@@ -395,7 +398,7 @@ and text stays text unless you pass outlineText.",
             },
         ],
         text: "\
-Check spelling in VectorCraft for {scope}, then {action}.
+Check spelling in VansonCraft for {scope}, then {action}.
 
 Method:
 1. inspect_document to see the selection and type objects.
@@ -428,7 +431,7 @@ Desktop-only Auto Spell Check is edit.autoSpellCheck (ui: true); use --connect f
             },
         ],
         text: "\
-Set up {kind} variables in VectorCraft from {source}.
+Set up {kind} variables in VansonCraft from {source}.
 
 Method:
 1. inspect_document and variable.list (or the Variables panel commands) to see what exists.
@@ -458,7 +461,7 @@ Method:
             ]),
         }],
         text: "\
-Perform this Path Tools task in VectorCraft: {task}.
+Perform this Path Tools task in VansonCraft: {task}.
 
 Method:
 1. command_list with filter \"addon.pathtools\" for the command ids (extend, close, addPoints,
@@ -468,6 +471,153 @@ Method:
    they are not command ids.
 3. inspect_document the selection, run the command or effect, then screenshot.
 4. Expand Appearance (effect.expandAppearance) only when the brief needs baked geometry.",
+    },
+    PromptDef {
+        name: "speed-drawing",
+        title: "Draw by Speed's method",
+        description: "Build a drawing from a brief in Harold Speed's order of work: intent, small plan, block-in, three value masses, lines, looking and correcting, structure check, save and export. Editable vector parts, checked with the study commands.",
+        arguments: &[
+            PromptArg {
+                name: "brief",
+                description: "What to draw and the impression it must give",
+                required: true,
+                default: "",
+                values: Values::Fixed(NONE),
+            },
+            PromptArg {
+                name: "study",
+                description: "Line study, mass study, or both together",
+                required: false,
+                default: "a full drawing: masses in three values, with lines where they help",
+                values: Values::Fixed(&[
+                    "a full drawing: masses in three values, with lines where they help",
+                    "a line study: strokes only, weight varied for accents",
+                    "a mass study: filled shapes in three to five values, no outlines",
+                ]),
+            },
+        ],
+        text: "\
+Draw this in VansonCraft by Harold Speed's method: {brief}
+
+Kind of study: {study}
+
+Read vansoncraft://method/procedure first, and the topic you need (line, mass, rhythm, balance,
+proportion) when you reach it. Coordinates are points, y down, origin at the artboard's top-left;
+Bezier handles are absolute points.
+
+Method:
+1. Intent: say in one sentence the subject, the single impression it must give, and the study kind.
+   Is there a reference? With one, study its masses; without one, construct with lines.
+2. Block in: a few large shapes for the main masses, each a named path or group on a named layer
+   (layer.new), so every part the user may want to change stays separate.
+3. Masses: a few large, simple masses in three values first (light, half tone, dark). Check with
+   render_preview mode values and run_command study.values; its numbers describe the plan, they are
+   not targets.
+4. Lines: main swings first, curves with anchors at extremes and inflections; study.lines describes
+   them. Vary stroke weight with width profiles at accents.
+5. Look: render_preview, then render_preview with a region on details, and with flip both to see
+   it upside down and fresh. If a step made it worse, undo to the last right state.
+6. Detail last, inside the masses, never breaking the value groups.
+7. Structure: doc_inspect depth 2: named parts, no raster stand-ins. save_file, then export SVG
+   and PNG, and say where they are.
+
+Report what you did, the value-group shares and the files. The numbers describe; your eye and the
+brief decide.",
+    },
+    PromptDef {
+        name: "composition-variants",
+        title: "Compare compositions",
+        description: "Lay out several compositions of one subject on separate, named artboards, varying placement, main direction and empty space on purpose, compared with study.balance and study.values; every part stays editable.",
+        arguments: &[
+            PromptArg { name: "subject", description: "What the compositions show", required: true, default: "", values: Values::Fixed(NONE) },
+            PromptArg { name: "count", description: "How many compositions", required: false, default: "3", values: Values::Fixed(&["2", "3", "4"]) },
+            PromptArg {
+                name: "vary",
+                description: "What the compositions differ in",
+                required: false,
+                default: "the placement of the main mass, the direction of the main line, and how much space is left empty",
+                values: Values::Fixed(&[
+                    "the placement of the main mass, the direction of the main line, and how much space is left empty",
+                    "symmetry and repose against a dynamic diagonal",
+                    "one dominant dark mass against scattered smaller ones",
+                ]),
+            },
+        ],
+        text: "\
+Make {count} compositions of {subject} in VansonCraft, varying {vary}.
+
+Read vansoncraft://method/balance and vansoncraft://method/rhythm.
+
+Method:
+1. One artboard per composition (artboard.new, named A, B, C ... with a short description); keep
+   them the same size, side by side.
+2. In each, block in the same elements as a few large shapes, grouped and named per element
+   (one group per flower, per object), so the chosen one can be developed.
+3. Make the differences deliberate: name for each what changed and why (its recipe).
+4. Check each with render_preview artboard N, render_preview mode values, and run_command
+   study.balance and study.values with artboard N. Avoid equal divisions unless stillness is the aim.
+5. Report a short table: composition, recipe, value shares, balance offset, and what each does
+   well. Let the user choose; do not pick a winner by the numbers.",
+    },
+    PromptDef {
+        name: "revise-locally",
+        title: "Revise one part",
+        description: "Change one named part of an existing drawing without disturbing the rest: find it, change only it, and prove the rest is unchanged by comparing doc_inspect before and after.",
+        arguments: &[
+            PromptArg { name: "request", description: "The change, in the user's words", required: true, default: "", values: Values::Fixed(NONE) },
+            PromptArg {
+                name: "target",
+                description: "Which part (a name or ids), if known",
+                required: false,
+                default: "find it with doc_inspect and document.find by name",
+                values: Values::Fixed(NONE),
+            },
+        ],
+        text: "\
+Revise this in the open VansonCraft drawing: {request}
+
+Target: {target}
+
+Method:
+1. doc_inspect (depth 2) and note the uid, the backend, and the ids and bounds of everything.
+2. Find the target by name (run_command document.find with name) or by id. Names can repeat across
+   artboards and compositions: scope the search with within (the artboard's [x, y, width, height])
+   and confirm it is the right one with render_preview region on its bounds.
+3. Change only the target, passing explicit ids, and expect_document with the uid, to every
+   command_run and command_batch. Keep it vector: never flatten or rasterise to make the change.
+4. doc_inspect again and compare: every object outside the target must have the same id, bounds,
+   fill and stroke as before. Say so, or say what else changed and why.
+5. render_preview the whole artboard and mode values: the change must not break the value groups
+   unless the request asked for it. save_file when the user wants to keep it.",
+    },
+    PromptDef {
+        name: "memory-exercise",
+        title: "Draw from memory",
+        description: "Speed's visual-memory exercise as a practice workflow the agent runs for a person: a reference on a template layer, hidden while the person draws from memory, then shown and compared with study.compare on request. No scoring of the person.",
+        arguments: &[PromptArg {
+            name: "reference",
+            description: "The reference to study: an image path to place, or an object already in the document",
+            required: true,
+            default: "",
+            values: Values::Fixed(NONE),
+        }],
+        text: "\
+Run a visual-memory exercise in VansonCraft with this reference: {reference}
+
+Read vansoncraft://method/memory.
+
+Method:
+1. Put the reference on a template layer named Reference (file.place with template true for an
+   image), and look at it with render_preview showTemplates true: the main lines, their
+   proportions, their placing, as a flat shape.
+2. Hide it (layer.setProps visible false) and make a new layer for the person to draw on from
+   memory. Hiding a layer does not take the reference out of your own context: if you draw it
+   yourself, say that you have seen it.
+3. When the person asks, show it again and compare: render_preview showTemplates true, and for a
+   shape reference run_command study.compare with a (the drawing), b (the reference shape) and image
+   true, which returns a difference map.
+4. Say plainly what was kept and what was missed. This is practice; it measures silhouettes, not a
+   person's memory.",
     },
 ];
 
@@ -705,7 +855,7 @@ mod tests {
         for params in [
             json!({"ref": {"type": "ref/prompt", "name": "nope"}, "argument": {"name": "x", "value": ""}}),
             json!({"ref": {"type": "ref/prompt", "name": "poster"}, "argument": {"name": "nope", "value": ""}}),
-            json!({"ref": {"type": "ref/resource", "uri": "vectorcraft://nope/{id}"}, "argument": {"name": "id", "value": ""}}),
+            json!({"ref": {"type": "ref/resource", "uri": "vansoncraft://nope/{id}"}, "argument": {"name": "id", "value": ""}}),
             json!({"ref": {"type": "ref/other"}, "argument": {"name": "x", "value": ""}}),
             json!({}),
         ] {

@@ -7,7 +7,7 @@
 //! refuse them), and `#target` and `#strict off` are accepted. The same lines are read in a file
 //! `$.evalFile` runs.
 //!
-//! VectorCraft's own rules:
+//! VansonCraft's own rules:
 //!
 //! - A line counts only at the start of a line (blanks before it), outside strings and comments, as
 //!   the lexer reads it, and each file must be a whole script on its own.
@@ -41,7 +41,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use vectorcraft_js::{DirectiveName, Options};
+use vansoncraft_js::{DirectiveName, Options};
 
 use crate::file_access::{ScriptRead, ScriptScope};
 
@@ -454,7 +454,7 @@ impl Files {
         }
         let fail = |kind, message: String, line, column| Failure { kind, message, index, file: shown.clone(), line, column };
         let options = Options { preprocessor_lines: true, max_source_units: MAX_TOTAL_BYTES, ..Options::default() };
-        let program = vectorcraft_js::parse_utf16(&units, &options).map_err(|e| fail(FailKind::Syntax, e.message, e.line, e.column))?;
+        let program = vansoncraft_js::parse_utf16(&units, &options).map_err(|e| fail(FailKind::Syntax, e.message, e.line, e.column))?;
         let mut cursor = 0usize;
         for d in &program.directives {
             let (start, end) = (d.span.start as usize, d.span.end as usize);

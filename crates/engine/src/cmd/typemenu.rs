@@ -3,8 +3,8 @@
 //! and the text commands of the Edit menu (Find and Replace, Find Next, Paste without Formatting).
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{AreaFit, CharStyle, Document, Justify, LockedArtboards, Node, NodeId, NodeKind, Quotes, TextKind, TextObject, TextRun};
-use vectorcraft_geom::{Affine, Rect, shapes};
+use vansoncraft_doc::{AreaFit, CharStyle, Document, Justify, LockedArtboards, Node, NodeId, NodeKind, Quotes, TextKind, TextObject, TextRun};
+use vansoncraft_geom::{Affine, Rect, shapes};
 
 use super::object::choice;
 use super::typecmd::{area_text, block_gaps, needed_room, refresh_bounds};
@@ -328,7 +328,7 @@ fn to_area(s: &mut Session, p: &Value) -> Result<Value> {
             if !matches!(t.kind, TextKind::Point) {
                 continue;
             }
-            let lay = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t);
+            let lay = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), t);
             // The frame is worked out in line space, where the lines are; vertical type turns it
             // into text space with the lines.
             let text_bounds = if lay.bounds.area() > 0.0 { lay.bounds } else { t.estimate_bounds() };
@@ -377,19 +377,19 @@ fn slack_sides(justify: Justify, rtl: bool, slack: f64) -> (f64, f64) {
 /// more than the widest line's width, the frame is as wide as that line and placed so that the
 /// line keeps its aligned point. None when no line has a
 /// width (empty text, or only spaces and breaks), which Block leaves at its size.
-fn point_to_block(t: &TextObject, wrap: &[vectorcraft_doc::WrapShape]) -> Option<TextObject> {
-    let db = vectorcraft_text::FontDb::global();
+fn point_to_block(t: &TextObject, wrap: &[vansoncraft_doc::WrapShape]) -> Option<TextObject> {
+    let db = vansoncraft_text::FontDb::global();
     // Options point type kept from a frame it had before (columns, inset, alignment, first
     // baseline) do not carry over to the new frame.
     let mut t = t.clone();
     let (word_gap, line_gap) = (t.area.word_gap, t.area.line_gap);
-    t.area = vectorcraft_doc::AreaOptions { word_gap, line_gap, ..Default::default() };
+    t.area = vansoncraft_doc::AreaOptions { word_gap, line_gap, ..Default::default() };
     t.wrap = wrap.to_vec();
     let t = &t;
     // The room is measured as Block sets the lines in a frame, with the word gap.
     let as_block = TextObject { dynamic_text: true, kind: TextKind::Area { frame: shapes::rectangle(Rect::new(0.0, 0.0, 1.0, 1.0)) }, ..t.clone() };
     let (room, widest, para_index) = needed_room(&as_block)?;
-    let lay = vectorcraft_text::layout(db, t);
+    let lay = vansoncraft_text::layout(db, t);
     let first = lay.lines.first()?;
     let line = lay.lines.iter().find(|l| l.start == widest)?;
     // Across, the widest line as it is aligned, with its paragraph's indents, which the frame holds.
@@ -433,14 +433,14 @@ fn point_to_block(t: &TextObject, wrap: &[vectorcraft_doc::WrapShape]) -> Option
     if !wrap.is_empty() {
         refresh_bounds(&mut probe);
     }
-    let laid = vectorcraft_text::layout(db, &probe);
+    let laid = vansoncraft_text::layout(db, &probe);
     if laid.overflow {
         return Some(out);
     }
     let mut grown = start;
     for l in &laid.lines {
         for y in [l.baseline - l.ascent, l.baseline + l.descent] {
-            grown = grown.union_pt(laid.line_xf * vectorcraft_geom::Point::new(l.x0, y));
+            grown = grown.union_pt(laid.line_xf * vansoncraft_geom::Point::new(l.x0, y));
         }
     }
     // Only the depth grows (for vertical type, the columns run on to the left), with a hundredth
@@ -483,7 +483,7 @@ fn to_point(s: &mut Session, p: &Value) -> Result<Value> {
             let fb = frame.bounds().unwrap_or_default();
             // Point type is in no thread: its first paragraph starts in it.
             t.first_para_continues = false;
-            let lay = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t);
+            let lay = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), t);
             // The lines are in line space; the frame's bounds are taken there too.
             let fb = lay.line_xf.inverse().transform_rect_bbox(fb);
             let plain = t.plain_text();
@@ -534,7 +534,7 @@ fn to_point(s: &mut Session, p: &Value) -> Result<Value> {
             t.kind = TextKind::Point;
             // The origin is in the area type's line space; point type's line space puts its own
             // origin there (vertical point type turns its lines about a different point).
-            let point_xf = if lay.vertical { vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t).line_xf } else { Affine::IDENTITY };
+            let point_xf = if lay.vertical { vansoncraft_text::layout(vansoncraft_text::FontDb::global(), t).line_xf } else { Affine::IDENTITY };
             t.xf *= lay.line_xf * Affine::translate((ox, baseline)) * point_xf.inverse();
             refresh_bounds(t);
         }
@@ -580,7 +580,7 @@ fn has_closed_path_type(s: &Session) -> std::result::Result<(), String> {
 fn centered_brackets(t: &TextObject, bottom: bool) -> Option<(f64, Option<f64>)> {
     let TextKind::OnPath { path, end, .. } = &t.kind else { return None };
     let (from, to) = t.kind.path_span()?;
-    let arc = vectorcraft_geom::ArcPath::new(path);
+    let arc = vansoncraft_geom::ArcPath::new(path);
     if arc.is_empty() {
         return None;
     }
@@ -677,7 +677,7 @@ fn path_center(s: &mut Session, p: &Value, bottom: bool) -> Result<Value> {
 const PATH_OPTIONS: [&str; 6] = ["start", "end", "flip", "effect", "alignToPath", "spacing"];
 
 /// Type on a path's text, if `n` is type on a path.
-fn path_text(n: Option<&vectorcraft_doc::Node>) -> Option<&TextObject> {
+fn path_text(n: Option<&vansoncraft_doc::Node>) -> Option<&TextObject> {
     match n.map(|n| &n.kind) {
         Some(NodeKind::Text(t)) if matches!(t.kind, TextKind::OnPath { .. }) => Some(t),
         _ => None,
@@ -726,11 +726,11 @@ fn path_options(s: &mut Session, p: &Value) -> Result<Value> {
     let end = p.get("end").map(|_| fraction("end")).transpose()?;
     let flip = switch_or(p, "flip", false, C)?;
     let effect = match text_param(p, "effect", C)? {
-        Some(e) => Some(vectorcraft_doc::PathEffect::parse(e).ok_or_else(|| bad(C, format!("unknown effect `{e}`")))?),
+        Some(e) => Some(vansoncraft_doc::PathEffect::parse(e).ok_or_else(|| bad(C, format!("unknown effect `{e}`")))?),
         None => None,
     };
     let align = match text_param(p, "alignToPath", C)? {
-        Some(a) => Some(vectorcraft_doc::PathAlign::parse(a).ok_or_else(|| bad(C, format!("unknown alignToPath `{a}`")))?),
+        Some(a) => Some(vansoncraft_doc::PathAlign::parse(a).ok_or_else(|| bad(C, format!("unknown alignToPath `{a}`")))?),
         None => None,
     };
     let spacing = match p.get("spacing") {
@@ -908,7 +908,7 @@ fn dynamic_text(s: &mut Session, p: &Value) -> Result<Value> {
             }
             // The new area type takes the Text Wrap shapes above it; one that has any is fitted
             // again around them, with the depth that holds every line.
-            for id in vectorcraft_doc::text::resolve_wrap(None, d) {
+            for id in vansoncraft_doc::text::resolve_wrap(None, d) {
                 let Some(NodeKind::Text(t)) = d.node_mut(id).map(|n| &mut n.kind) else { continue };
                 let block = converted.iter().find(|(c, _)| *c == id).and_then(|(_, src)| point_to_block(src, &t.wrap));
                 match block {
@@ -921,7 +921,7 @@ fn dynamic_text(s: &mut Session, p: &Value) -> Result<Value> {
     }
     let d = &s.doc()?.doc;
     let fit =
-        ids.first().and_then(|id| path_text(d.node(*id))).map_or(1.0, |t| vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t).fit_scale);
+        ids.first().and_then(|id| path_text(d.node(*id))).map_or(1.0, |t| vansoncraft_text::layout(vansoncraft_text::FontDb::global(), t).fit_scale);
     let mut reply = json!({"on": on, "ids": ids.iter().map(|i| i.0).collect::<Vec<_>>(), "fitScale": fit});
     if let Some(t) = ids.iter().find_map(|id| area_text(d.node(*id))) {
         let (w, l) = t.area.block_gaps();
@@ -932,15 +932,15 @@ fn dynamic_text(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 /// Turn Dynamic Text off on `t`, keeping the sizes its layout draws it at: every run's size,
-/// leading and baseline shifts take the fit factor ([`vectorcraft_text::scaled`]). False when it
+/// leading and baseline shifts take the fit factor ([`vansoncraft_text::scaled`]). False when it
 /// was already off.
 pub(crate) fn bake_dynamic_text(t: &mut TextObject) -> bool {
     if !t.dynamic_text {
         return false;
     }
-    let f = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t).fit_scale;
+    let f = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), t).fit_scale;
     if f.is_finite() && f != 1.0 {
-        *t = vectorcraft_text::scaled(t, f);
+        *t = vansoncraft_text::scaled(t, f);
     }
     t.dynamic_text = false;
     refresh_bounds(t);
@@ -980,7 +980,7 @@ fn has_preset_type(s: &Session) -> std::result::Result<(), String> {
 /// the start bracket the text starts at. Circle: a circle `w` across, run clockwise from its
 /// bottom; Arch and Bow: a 120° arc of a circle whose chord is `w`, bulging up or down, run from
 /// left to right.
-fn preset_path(preset: &str, c: vectorcraft_geom::Point, w: f64) -> (vectorcraft_geom::PathData, f64) {
+fn preset_path(preset: &str, c: vansoncraft_geom::Point, w: f64) -> (vansoncraft_geom::PathData, f64) {
     let h = w / 2.0;
     if preset == "circle" {
         // `shapes::ellipse` runs clockwise on screen from its left: its bottom is 3/4 of the way.
@@ -1012,7 +1012,7 @@ fn preset_path(preset: &str, c: vectorcraft_geom::Point, w: f64) -> (vectorcraft
 /// path's bounds on the page, centered on them, so the same preset again gives the same path.
 /// When the object's transform can't be undone, or undoing it gives a path that isn't finite, the
 /// shape is made in the text's own space.
-fn with_preset(t: &TextObject, preset: &str, align: vectorcraft_doc::PathAlign, flip: bool) -> TextObject {
+fn with_preset(t: &TextObject, preset: &str, align: vansoncraft_doc::PathAlign, flip: bool) -> TextObject {
     let invertible = t.xf.is_finite() && t.xf.determinant() != 0.0 && t.xf.inverse().is_finite();
     // The transform the shape was made upright through, with the shape.
     let ((path, start, w), xf) = invertible
@@ -1020,7 +1020,7 @@ fn with_preset(t: &TextObject, preset: &str, align: vectorcraft_doc::PathAlign, 
         .flatten()
         .or_else(|| preset_shape(t, preset, Affine::IDENTITY).map(|s| (s, Affine::IDENTITY)))
         .unwrap_or_else(|| {
-            let (path, start) = preset_path(preset, vectorcraft_geom::Point::ZERO, 48.0);
+            let (path, start) = preset_path(preset, vansoncraft_geom::Point::ZERO, 48.0);
             ((path, start, 48.0), Affine::IDENTITY)
         });
     let mut out = t.clone();
@@ -1045,21 +1045,21 @@ fn with_preset(t: &TextObject, preset: &str, align: vectorcraft_doc::PathAlign, 
 /// The path of `preset` for `t` made upright through transform `xf` (see [`with_preset`]), in the
 /// text's space, with its start bracket and its width on the page; None when the path isn't
 /// finite.
-fn preset_shape(t: &TextObject, preset: &str, xf: Affine) -> Option<(vectorcraft_geom::PathData, f64, f64)> {
+fn preset_shape(t: &TextObject, preset: &str, xf: Affine) -> Option<(vansoncraft_geom::PathData, f64, f64)> {
     // How long `(x, y)` in the text's space is on the page.
-    let on_page = |x: f64, y: f64| (xf * vectorcraft_geom::Point::new(x, y) - xf * vectorcraft_geom::Point::ZERO).hypot();
+    let on_page = |x: f64, y: f64| (xf * vansoncraft_geom::Point::new(x, y) - xf * vansoncraft_geom::Point::ZERO).hypot();
     // The center on the page, and the width measured (0 when nothing can be measured).
     let (c, longer) = match &t.kind {
         TextKind::OnPath { path, .. } => path
             .transformed(xf)
             .bounds()
             .filter(|b| b.is_finite())
-            .map_or((xf * vectorcraft_geom::Point::ZERO, 0.0), |b| (b.center(), b.width().max(b.height()))),
+            .map_or((xf * vansoncraft_geom::Point::ZERO, 0.0), |b| (b.center(), b.width().max(b.height()))),
         _ => {
-            let lay = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t).bounds;
+            let lay = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), t).bounds;
             match Some(lay).filter(|b| b.area() > 0.0 && b.is_finite()) {
                 Some(b) => (xf * b.center(), on_page(b.width(), 0.0).max(on_page(0.0, b.height()))),
-                None => (xf * Some(t.estimate_bounds()).filter(|b| b.is_finite()).map_or(vectorcraft_geom::Point::ZERO, |b| b.center()), 0.0),
+                None => (xf * Some(t.estimate_bounds()).filter(|b| b.is_finite()).map_or(vansoncraft_geom::Point::ZERO, |b| b.center()), 0.0),
             }
         }
     };
@@ -1080,8 +1080,8 @@ fn preset_shape(t: &TextObject, preset: &str, xf: Affine) -> Option<(vectorcraft
 
 /// Whether paths `a` and `b` have the same subpaths, closed alike, with every anchor and handle
 /// within `eps` of each other.
-fn same_path(a: &vectorcraft_geom::PathData, b: &vectorcraft_geom::PathData, eps: f64) -> bool {
-    let near = |p: vectorcraft_geom::Point, q: vectorcraft_geom::Point| (p - q).hypot() <= eps;
+fn same_path(a: &vansoncraft_geom::PathData, b: &vansoncraft_geom::PathData, eps: f64) -> bool {
+    let near = |p: vansoncraft_geom::Point, q: vansoncraft_geom::Point| (p - q).hypot() <= eps;
     a.subpaths.len() == b.subpaths.len()
         && a.subpaths.iter().zip(&b.subpaths).all(|(s, t)| {
             s.closed == t.closed
@@ -1097,9 +1097,9 @@ fn dynamic_text_preset(s: &mut Session, p: &Value) -> Result<Value> {
     let key = "preset";
     let preset = choice(p, C, key, &PRESETS)?.ok_or_else(|| bad(C, format!("`{key}` must be one of {}", PRESETS.join(", "))))?;
     let align = match choice(p, C, "position", &["above", "center", "below"])? {
-        Some("center") => vectorcraft_doc::PathAlign::Center,
-        Some("below") => vectorcraft_doc::PathAlign::Ascender,
-        _ => vectorcraft_doc::PathAlign::Descender,
+        Some("center") => vansoncraft_doc::PathAlign::Center,
+        Some("below") => vansoncraft_doc::PathAlign::Ascender,
+        _ => vansoncraft_doc::PathAlign::Descender,
     };
     let flip = switch_or(p, "flip", false, C)?;
     let (ids, changed) = {
@@ -1133,13 +1133,13 @@ fn dynamic_text_preset(s: &mut Session, p: &Value) -> Result<Value> {
     }
     let d = &s.doc()?.doc;
     let fit =
-        ids.first().and_then(|id| path_text(d.node(*id))).map_or(1.0, |t| vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t).fit_scale);
+        ids.first().and_then(|id| path_text(d.node(*id))).map_or(1.0, |t| vansoncraft_text::layout(vansoncraft_text::FontDb::global(), t).fit_scale);
     Ok(json!({"ids": ids.iter().map(|i| i.0).collect::<Vec<_>>(), "fitScale": fit}))
 }
 
 // ---------- placeholder / insert ----------
 
-/// VectorCraft's own placeholder copy (not the classical Latin text).
+/// VansonCraft's own placeholder copy (not the classical Latin text).
 pub(crate) const PLACEHOLDER: &str = "Sample copy flows here while the layout takes shape. Swap these words for real text once the \
 design is settled. Every line is only a stand-in that shows size, rhythm and colour. Headlines, captions and body text all \
 start as rough drafts like this one. Keep going until the frame is full and the page feels balanced.";
@@ -1456,7 +1456,7 @@ fn find_next(s: &mut Session, p: &Value) -> Result<Value> {
 
 // ---------- Paste without Formatting ----------
 
-fn strip_formatting(n: &mut vectorcraft_doc::Node) {
+fn strip_formatting(n: &mut vansoncraft_doc::Node) {
     if let NodeKind::Text(t) = &mut n.kind {
         let text = t.plain_text();
         t.runs = vec![TextRun { text, style: CharStyle::default(), inline: None }];

@@ -6,13 +6,13 @@ use std::sync::Arc;
 
 use kurbo::{CubicBez, ParamCurve, ParamCurveNearest};
 use serde_json::{Value, json};
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::{AngleProfile, Appearance, Document, Node, NodeId, NodeKind, PressureProfile, Selection};
-use vectorcraft_geom::hit::fill_contains;
-use vectorcraft_geom::{Anchor, AnchorKind, BezPath, FillRule, PathData, Point, Rect, SubPath, Vec2};
-use vectorcraft_pathops as po;
-use vectorcraft_pathops::{BoolOp, Cap, Join, SimplifyOptions};
-use vectorcraft_tools::draw2::{eraser_area, eraser_tip};
+use vansoncraft_color::{Color, Paint};
+use vansoncraft_doc::{AngleProfile, Appearance, Document, Node, NodeId, NodeKind, PressureProfile, Selection};
+use vansoncraft_geom::hit::fill_contains;
+use vansoncraft_geom::{Anchor, AnchorKind, BezPath, FillRule, PathData, Point, Rect, SubPath, Vec2};
+use vansoncraft_pathops as po;
+use vansoncraft_pathops::{BoolOp, Cap, Join, SimplifyOptions};
+use vansoncraft_tools::draw2::{eraser_area, eraser_tip};
 
 use super::create::{add_look, insert_look};
 use super::newart::NewArt;

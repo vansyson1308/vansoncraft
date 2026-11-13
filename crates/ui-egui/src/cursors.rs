@@ -11,7 +11,7 @@ pub mod native_request;
 
 use egui::epaint::{Mesh, TessellationOptions, Tessellator, Vertex};
 use egui::{Color32, CustomCursorImage, Painter, Pos2, Shape, Stroke, Vec2, pos2, vec2};
-use vectorcraft_tools::Cursor;
+use vansoncraft_tools::Cursor;
 
 const INK: Color32 = Color32::BLACK;
 const HALO: Color32 = Color32::WHITE;

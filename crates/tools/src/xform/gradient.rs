@@ -35,11 +35,11 @@
 //! On a freeform gradient the tool edits its points instead (see `freeform`).
 
 use serde_json::{Value, json};
-use vectorcraft_color::gradient::{duplicate_stop, insert_stop, midpoint_from_pos, midpoint_pos, move_stop, remove_stop, set_midpoint};
-use vectorcraft_color::{Gradient, GradientGeom, GradientKind, GradientStop};
-use vectorcraft_doc::NodeId;
-use vectorcraft_doc::hit::hit_test;
-use vectorcraft_geom::{Affine, Point, Shape, Vec2, constrain_angle_from};
+use vansoncraft_color::gradient::{duplicate_stop, insert_stop, midpoint_from_pos, midpoint_pos, move_stop, remove_stop, set_midpoint};
+use vansoncraft_color::{Gradient, GradientGeom, GradientKind, GradientStop};
+use vansoncraft_doc::NodeId;
+use vansoncraft_doc::hit::hit_test;
+use vansoncraft_geom::{Affine, Point, Shape, Vec2, constrain_angle_from};
 
 use super::freeform::{self, Annotator as FreeformAnnotator};
 use super::paint_owner;
@@ -271,12 +271,12 @@ fn annotator_overlays(cx: &ToolContext, a: &Annotator) -> Vec<Overlay> {
             // A diamond's extent is its square, a corner at the end of the vector.
             super::polygon(&[m * Point::new(1.0, 0.0), m * Point::new(0.0, 1.0), m * Point::new(-1.0, 0.0), m * Point::new(0.0, -1.0)], true)
         } else {
-            vectorcraft_geom::kurbo::Ellipse::from_affine(m).to_path(cx.tol(0.25))
+            vansoncraft_geom::kurbo::Ellipse::from_affine(m).to_path(cx.tol(0.25))
         };
         o.push(Overlay::Path { path: path.clone(), color: LIGHT, width: 1.0, dashed: false });
         o.push(Overlay::Path { path, color: BAR, width: 1.0, dashed: true });
         o.push(Overlay::Handle { p: a.aspect_point(), color: BAR });
-        let ring = vectorcraft_geom::kurbo::Circle::new(s, cx.tol(CENTRE)).to_path(cx.tol(0.25));
+        let ring = vansoncraft_geom::kurbo::Circle::new(s, cx.tol(CENTRE)).to_path(cx.tol(0.25));
         o.push(Overlay::Path { path: ring, color: BAR, width: 1.5, dashed: false });
     }
     o.extend([

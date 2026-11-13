@@ -26,9 +26,12 @@ pub(super) fn fonts(s: &mut String, fonts: &[(String, bool)]) {
 
 /// The prolog's procedure set, as `%%DocumentSuppliedResources` names it: a file that has it is
 /// read from its program when its layers are asked for ([`crate::import_with`]).
-pub(crate) const PROCSET: &str = "VectorCraft_Legacy 1 0";
+pub(crate) const PROCSET: &str = "VansonCraft_Legacy 1 0";
+/// The same procedure set as files saved before the project took the name VansonCraft name it: such
+/// a file is read as this writer's own too.
+pub(crate) const FORMER_PROCSET: &str = "VectorCraft_Legacy 1 0"; // brand-ok: the name files saved before the rename carry
 
-/// The prolog: a procedure set of this writer's own (`VectorCraft_Legacy 1 0`), in a dictionary
+/// The prolog: a procedure set of this writer's own (`VansonCraft_Legacy 1 0`), in a dictionary
 /// (`VCLegacy`) the setup begins and the trailer ends (§1.2: the prolog holds definitions only,
 /// the setup activates them, the trailer deactivates them). It gives each operator the script
 /// uses its meaning in PostScript, so that the file prints and previews as a PostScript program,
@@ -39,7 +42,7 @@ pub(crate) const PROCSET: &str = "VectorCraft_Legacy 1 0";
 /// that follow `XI` (an image mask's 0 bits in the fill color). Gradients fill with the colour set before them (the writer sets the first
 /// stop's), and type marks nothing: apps that read the format draw both. The page trailer's
 /// `annotatepage` (§3, Script Setup: `gsave annotatepage grestore showpage`) marks nothing.
-pub(super) const PROLOG: &str = "%%BeginResource: procset VectorCraft_Legacy 1 0
+pub(super) const PROLOG: &str = "%%BeginResource: procset VansonCraft_Legacy 1 0
 /VCLegacy 96 dict def
 VCLegacy begin
 /bd {bind def} bind def

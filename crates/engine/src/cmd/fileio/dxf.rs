@@ -6,9 +6,9 @@ use std::sync::Arc;
 
 use serde::Deserialize;
 use serde_json::{Value, json};
-use vectorcraft_cad::{ColorDepth, DxfOptions, DxfPreset, DxfVersion, Preserve, RasterFormat};
-use vectorcraft_doc::{Document, Unit};
-use vectorcraft_geom::Rect;
+use vansoncraft_cad::{ColorDepth, DxfOptions, DxfPreset, DxfVersion, Preserve, RasterFormat};
+use vansoncraft_doc::{Document, Unit};
+use vansoncraft_geom::Rect;
 
 use super::super::{CommandSpec, Result, Session, bad, cmd, has_doc};
 use super::{ArtboardPick, Encoded, FormatOption};
@@ -98,7 +98,7 @@ pub struct Unsupported {
     pub hint: &'static str,
 }
 
-/// Formats people ask for that VectorCraft doesn't read or write. Append-only.
+/// Formats people ask for that VansonCraft doesn't read or write. Append-only.
 pub const UNSUPPORTED: &[Unsupported] = &[
     Unsupported {
         id: "dwg",
@@ -174,8 +174,8 @@ fn parse(p: &Value) -> Result<(DxfOptions, ArtboardPick)> {
     // The options a preset sets are the defaults of those `p` leaves out.
     let d = choice("dxfPreset", q.dxf_preset, DxfPreset::from_id, DxfPreset::Custom, "custom or cnc")?.options();
     let scale = q.scale.unwrap_or(d.scale);
-    if !(scale.is_finite() && vectorcraft_cad::SCALE_RANGE.contains(&scale)) {
-        return Err(bad(C, format!("DXF scale must be a positive number up to {}, not {scale}", vectorcraft_cad::SCALE_RANGE.end())));
+    if !(scale.is_finite() && vansoncraft_cad::SCALE_RANGE.contains(&scale)) {
+        return Err(bad(C, format!("DXF scale must be a positive number up to {}, not {scale}", vansoncraft_cad::SCALE_RANGE.end())));
     }
     let opts = DxfOptions {
         version: choice(
@@ -234,7 +234,7 @@ pub(super) fn encode(doc: &Document, p: &Value, use_artboards: Option<bool>) -> 
     };
     let mut enc = Encoded::default();
     for (board, region, crop) in drawings {
-        let out = vectorcraft_cad::export(doc, &DxfOptions { region, crop, ..opts.clone() }).map_err(|e| bad(C, e))?;
+        let out = vansoncraft_cad::export(doc, &DxfOptions { region, crop, ..opts.clone() }).map_err(|e| bad(C, e))?;
         enc.files.push((board, out.bytes));
         for w in out.warnings {
             if !enc.warnings.contains(&w) {
@@ -243,7 +243,7 @@ pub(super) fn encode(doc: &Document, p: &Value, use_artboards: Option<bool>) -> 
         }
         for img in out.images {
             if !enc.linked.iter().any(|l| l.name == img.name) {
-                enc.linked.push(vectorcraft_svg::LinkedImage { name: img.name, bytes: Arc::new(img.bytes) });
+                enc.linked.push(vansoncraft_svg::LinkedImage { name: img.name, bytes: Arc::new(img.bytes) });
             }
         }
     }

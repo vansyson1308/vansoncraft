@@ -122,7 +122,7 @@ fn item_bounds(doc: &Document, n: &Node, item: &AppearanceItem) -> Option<Rect> 
         || effects::has_revolve(n)
         || effects::has_solid(n)
         || effects::has_painted_effects(n)
-        || (stroke && vectorcraft_brush::has_brush(n))
+        || (stroke && vansoncraft_brush::has_brush(n))
     {
         return None;
     }
@@ -133,7 +133,7 @@ fn item_bounds(doc: &Document, n: &Node, item: &AppearanceItem) -> Option<Rect> 
         let o = if let AppearanceItem::Stroke(s) = item { s.reach() } else { 0.0 };
         return (!ig.elements().is_empty()).then(|| ig.bounding_box().inflate(o, o));
     }
-    let one = vectorcraft_doc::Appearance { items: vec![item.clone()], ..Default::default() };
+    let one = vansoncraft_doc::Appearance { items: vec![item.clone()], ..Default::default() };
     (!g.elements().is_empty()).then(|| one.stroked_bounds(g.bounding_box(), || g.clone()))
 }
 
@@ -148,11 +148,11 @@ fn spread(symbols: &SymbolBoxes, fx: &[Effect], b: Rect) -> Rect {
 /// its brushed strokes (a symbol's brushed art as far as [`crate::brush_fx::pad`] reaches).
 fn art_bounds(symbols: &SymbolBoxes, n: &Node) -> Option<Rect> {
     let b = shape_bounds(symbols, n);
-    let brushed = vectorcraft_brush::has_brush(n)
-        .then(|| vectorcraft_brush::expand(symbols.document(), n))
+    let brushed = vansoncraft_brush::has_brush(n)
+        .then(|| vansoncraft_brush::expand(symbols.document(), n))
         .flatten()
         .and_then(|art| art.visual_bounds_with(symbols));
-    let b = vectorcraft_geom::union_opt(b, brushed)?;
+    let b = vansoncraft_geom::union_opt(b, brushed)?;
     let pad = if matches!(n.kind, NodeKind::SymbolInstance { .. }) { crate::brush_fx::pad(symbols, n) } else { 0.0 };
     Some(b.inflate(pad, pad))
 }
@@ -163,7 +163,7 @@ fn shape_bounds(symbols: &SymbolBoxes, n: &Node) -> Option<Rect> {
     // nothing).
     let union = |g: &Node| {
         let members = g.children()?.get(usize::from(g.extras().shaper.is_some())..).unwrap_or_default();
-        members.iter().filter(|c| c.visible).fold(None, |acc, c| vectorcraft_geom::union_opt(acc, painted_reach(symbols, c)))
+        members.iter().filter(|c| c.visible).fold(None, |acc, c| vansoncraft_geom::union_opt(acc, painted_reach(symbols, c)))
     };
     match &n.kind {
         _ if effects::has_container_appearance(n) => {
@@ -187,7 +187,7 @@ fn shape_bounds(symbols: &SymbolBoxes, n: &Node) -> Option<Rect> {
             for item in n.appearance.items.iter().filter(|i| paints(i) && effects::has_geometry(item_effects(i))) {
                 let ig = apply(item_effects(item), &g, &ctx.item(item));
                 let o = if let AppearanceItem::Stroke(s) = item { s.reach() } else { 0.0 };
-                r = vectorcraft_geom::union_opt(r, (!ig.elements().is_empty()).then(|| ig.bounding_box().inflate(o, o)));
+                r = vansoncraft_geom::union_opt(r, (!ig.elements().is_empty()).then(|| ig.bounding_box().inflate(o, o)));
             }
             r
         }
@@ -203,7 +203,7 @@ fn shape_bounds(symbols: &SymbolBoxes, n: &Node) -> Option<Rect> {
             let reshaped = effects::reshape(Some(symbols.document()), n, symbol.as_deref());
             let b = match &reshaped {
                 Some(r) if matches!(n.kind, NodeKind::Text(_)) || (matches!(n.kind, NodeKind::Image(_)) && !r.clips()) => {
-                    r.children().into_iter().flatten().fold(None, |acc, c| vectorcraft_geom::union_opt(acc, painted_reach(symbols, c)))
+                    r.children().into_iter().flatten().fold(None, |acc, c| vansoncraft_geom::union_opt(acc, painted_reach(symbols, c)))
                 }
                 Some(r) => r.visual_bounds_with(symbols),
                 None => None,
@@ -304,7 +304,7 @@ pub(crate) fn drawn_outlines(doc: &Document, symbols: &SymbolBoxes, n: &Node, le
         }
         NodeKind::Mesh(m) => push_outline(Some(m.lines().to_bezpath()), left, out),
         NodeKind::SymbolInstance { .. } => {
-            push_outline(n.geometric_bounds_with(symbols).map(|b| vectorcraft_geom::shapes::rectangle(b).to_bezpath()), left, out)
+            push_outline(n.geometric_bounds_with(symbols).map(|b| vansoncraft_geom::shapes::rectangle(b).to_bezpath()), left, out)
         }
         _ => push_outline(drawn_outline(doc, n).map(|(path, _)| path), left, out),
     }
@@ -386,12 +386,12 @@ fn cull_bounds_in(symbols: &SymbolBoxes, n: &Node, after_reshape: bool) -> Optio
             let b = if art.clips() {
                 art.visual_bounds_with(symbols)
             } else {
-                art.children()?.iter().fold(None, |acc, c| vectorcraft_geom::union_opt(acc, inner(c)))
+                art.children()?.iter().fold(None, |acc, c| vansoncraft_geom::union_opt(acc, inner(c)))
             }?;
             Some(with_own_raster_reach(symbols, n, b))
         }
         NodeKind::Layer { children, clip: false, .. } | NodeKind::Group { children, clip: false } => {
-            children.iter().fold(None, |acc, c| vectorcraft_geom::union_opt(acc, inner(c)))
+            children.iter().fold(None, |acc, c| vansoncraft_geom::union_opt(acc, inner(c)))
         }
         _ if has_fx(n) => visual_bounds(symbols, n),
         // The reshaped art (a symbol instance's reshaped art is made from its symbol's art; type's
@@ -406,7 +406,7 @@ fn cull_bounds_in(symbols: &SymbolBoxes, n: &Node, after_reshape: bool) -> Optio
             let reshaped = effects::reshape(Some(symbols.document()), n, symbol.as_deref());
             let b = match &reshaped {
                 Some(r) if matches!(n.kind, NodeKind::Text(_)) || (matches!(n.kind, NodeKind::Image(_)) && !r.clips()) => {
-                    r.children().into_iter().flatten().fold(None, |acc, c| vectorcraft_geom::union_opt(acc, inner(c)))
+                    r.children().into_iter().flatten().fold(None, |acc, c| vansoncraft_geom::union_opt(acc, inner(c)))
                 }
                 Some(r) => r.visual_bounds_with(symbols),
                 None => None,
@@ -428,7 +428,7 @@ fn cull_bounds_in(symbols: &SymbolBoxes, n: &Node, after_reshape: bool) -> Optio
         _ => {
             let b = n.visual_bounds_with(symbols)?;
             let b = match &n.kind {
-                NodeKind::Text(t) => vectorcraft_geom::union_opt(Some(b), glyphs_box(t, n.appearance.outset())).unwrap_or(b),
+                NodeKind::Text(t) => vansoncraft_geom::union_opt(Some(b), glyphs_box(t, n.appearance.outset())).unwrap_or(b),
                 _ => b,
             };
             let a = live_content_reach(symbols, n);
@@ -459,15 +459,15 @@ pub(crate) fn three_d_art_bounds(symbols: &SymbolBoxes, art: &Node) -> Option<Re
     fn pieces(symbols: &SymbolBoxes, n: &Node) -> Option<Rect> {
         match &n.kind {
             NodeKind::Group { children, clip: false } if !has_object_fx(n) => {
-                children.iter().filter(|c| c.visible).fold(None, |acc, c| vectorcraft_geom::union_opt(acc, pieces(symbols, c)))
+                children.iter().filter(|c| c.visible).fold(None, |acc, c| vansoncraft_geom::union_opt(acc, pieces(symbols, c)))
             }
             // The art its brushed strokes draw, not the room culling leaves for it.
             _ => {
-                let brushed = vectorcraft_brush::has_brush(n)
-                    .then(|| vectorcraft_brush::expand(symbols.document(), n))
+                let brushed = vansoncraft_brush::has_brush(n)
+                    .then(|| vansoncraft_brush::expand(symbols.document(), n))
                     .flatten()
                     .and_then(|art| art.visual_bounds_with(symbols));
-                vectorcraft_geom::union_opt(cull_bounds(symbols, n), brushed)
+                vansoncraft_geom::union_opt(cull_bounds(symbols, n), brushed)
             }
         }
     }
@@ -488,7 +488,7 @@ pub(crate) fn with_own_raster_reach(symbols: &SymbolBoxes, n: &Node, b: Rect) ->
 fn own_box(symbols: &SymbolBoxes, n: &Node) -> Option<Rect> {
     let b = n.visual_bounds_with(symbols)?;
     Some(match &n.kind {
-        NodeKind::Text(t) => vectorcraft_geom::union_opt(Some(b), glyphs_box(t, n.appearance.outset())).unwrap_or(b),
+        NodeKind::Text(t) => vansoncraft_geom::union_opt(Some(b), glyphs_box(t, n.appearance.outset())).unwrap_or(b),
         _ => b,
     })
 }
@@ -497,8 +497,8 @@ fn own_box(symbols: &SymbolBoxes, n: &Node) -> Option<Rect> {
 /// characters' strokes, miter spikes included, and by `outset`: on a path they stand above it and
 /// run past its ends, in an area they can hang past its frame, where its own box
 /// ([`Node::visual_bounds_with`]) doesn't.
-fn glyphs_box(t: &vectorcraft_doc::TextObject, outset: f64) -> Option<Rect> {
-    let b = t.cached_bounds.unwrap_or_else(|| vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t).bounds);
+fn glyphs_box(t: &vansoncraft_doc::TextObject, outset: f64) -> Option<Rect> {
+    let b = t.cached_bounds.unwrap_or_else(|| vansoncraft_text::layout(vansoncraft_text::FontDb::global(), t).bounds);
     let o = outset.max(t.char_stroke_reach());
     (b.width() > 0.0 || b.height() > 0.0).then(|| t.xf.transform_rect_bbox(b).inflate(o, o))
 }
@@ -509,7 +509,7 @@ fn glyphs_box(t: &vectorcraft_doc::TextObject, outset: f64) -> Option<Rect> {
 /// a path's own effects paint past it ([`path_effects_reach`]), on the farthest side. 0 for any
 /// other kind of object.
 fn live_content_reach(symbols: &SymbolBoxes, n: &Node) -> f64 {
-    if !vectorcraft_doc::live::is_live(n) {
+    if !vansoncraft_doc::live::is_live(n) {
         return 0.0;
     }
     let mut reach = 0.0f64;
@@ -566,7 +566,7 @@ fn reshaped_art_effects_reach(symbols: &SymbolBoxes, n: &Node, r: &Node) -> f64 
     if !symbols.has_effects(symbol) {
         return 0.0;
     }
-    let art = r.children().into_iter().flatten().fold(None, |acc, c| vectorcraft_geom::union_opt(acc, cull_bounds_in(symbols, c, false)));
+    let art = r.children().into_iter().flatten().fold(None, |acc, c| vansoncraft_geom::union_opt(acc, cull_bounds_in(symbols, c, false)));
     match (art, r.visual_bounds_with(symbols)) {
         (Some(c), Some(v)) => [v.x0 - c.x0, v.y0 - c.y0, c.x1 - v.x1, c.y1 - v.y1].into_iter().fold(0.0, f64::max),
         _ => 0.0,

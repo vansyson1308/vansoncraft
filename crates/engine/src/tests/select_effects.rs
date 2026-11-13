@@ -3,9 +3,9 @@
 //! effect, or nothing.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::NodeId;
-use vectorcraft_geom::{Point, Rect};
-use vectorcraft_tools::{Cursor, Mods, PointerEvent, PointerKind};
+use vansoncraft_doc::NodeId;
+use vansoncraft_geom::{Point, Rect};
+use vansoncraft_tools::{Cursor, Mods, PointerEvent, PointerKind};
 
 use crate::*;
 
@@ -38,8 +38,8 @@ fn shadow(s: &mut Session, id: NodeId, dx: f64) {
 
 fn pixel(s: &Session, x: u32, y: u32) -> [u8; 4] {
     let doc = s.doc().unwrap().doc.clone();
-    let opts = vectorcraft_render::RenderOptions { background: Some([255, 255, 255, 255]), ..Default::default() };
-    vectorcraft_render::Renderer::new().render(&doc, 200, 200, vectorcraft_geom::Affine::IDENTITY, &opts).pixel(x, y)
+    let opts = vansoncraft_render::RenderOptions { background: Some([255, 255, 255, 255]), ..Default::default() };
+    vansoncraft_render::Renderer::new().render(&doc, 200, 200, vansoncraft_geom::Affine::IDENTITY, &opts).pixel(x, y)
 }
 
 fn press(s: &mut Session, tool: &str, from: (f64, f64), to: (f64, f64), mods: Mods) -> Vec<NodeId> {
@@ -120,8 +120,8 @@ fn a_click_on_an_outer_glow_or_a_gaussian_blur_outside_the_path_selects_what_is_
 /// The first point of `area` (x0, y0, x1, y1) that the canvas paints, scanning rows.
 fn painted_in(s: &Session, (x0, y0, x1, y1): (u32, u32, u32, u32)) -> Option<(f64, f64)> {
     let doc = s.doc().unwrap().doc.clone();
-    let opts = vectorcraft_render::RenderOptions { background: Some([255, 255, 255, 255]), ..Default::default() };
-    let img = vectorcraft_render::Renderer::new().render(&doc, 200, 200, vectorcraft_geom::Affine::IDENTITY, &opts);
+    let opts = vansoncraft_render::RenderOptions { background: Some([255, 255, 255, 255]), ..Default::default() };
+    let img = vansoncraft_render::Renderer::new().render(&doc, 200, 200, vansoncraft_geom::Affine::IDENTITY, &opts);
     (y0..y1)
         .flat_map(|y| (x0..x1).map(move |x| (x, y)))
         .find(|&(x, y)| img.pixel(x, y) != WHITE)
@@ -171,7 +171,7 @@ fn a_click_on_the_drop_shadow_of_an_image_outside_its_frame_does_not_select_it()
     image::RgbaImage::from_pixel(30, 30, image::Rgba([255, 0, 0, 255]))
         .write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)
         .unwrap();
-    let r = run(&mut s, "file.place", json!({"name": "red.png", "dataBase64": vectorcraft_format::base64_encode(&png), "at": [65, 65]}));
+    let r = run(&mut s, "file.place", json!({"name": "red.png", "dataBase64": vansoncraft_format::base64_encode(&png), "at": [65, 65]}));
     let im = NodeId(r["ids"][0].as_u64().unwrap());
     // The frame lies from x 50 to 80 and the shadow from 90 to 120.
     shadow(&mut s, im, 40.0);
@@ -236,13 +236,13 @@ fn a_marquee_that_touches_only_a_drop_shadow_does_not_select_its_object() {
 }
 
 /// The selection after a drag with `tool` from `from` to `to`.
-fn marquee(s: &mut Session, tool: &str, from: (f64, f64), to: (f64, f64)) -> vectorcraft_doc::Selection {
+fn marquee(s: &mut Session, tool: &str, from: (f64, f64), to: (f64, f64)) -> vansoncraft_doc::Selection {
     press(s, tool, from, to, Mods::default());
     s.doc().unwrap().selection.clone()
 }
 
 /// The point of anchor `(si, ai)` of path `id`.
-fn anchor_point(s: &Session, id: NodeId, (si, ai): vectorcraft_doc::AnchorRef) -> Point {
+fn anchor_point(s: &Session, id: NodeId, (si, ai): vansoncraft_doc::AnchorRef) -> Point {
     let path = s.doc().unwrap().doc.node(id).and_then(|n| n.path_data()).unwrap();
     path.anchors().find(|(s, i, _)| (*s, *i) == (si, ai)).map(|(.., a)| a.p).unwrap()
 }
@@ -257,7 +257,7 @@ fn picked_points(s: &Session, id: NodeId) -> Vec<Point> {
 fn anchor_marks(s: &mut Session) -> Vec<Point> {
     s.overlays(ViewInfo::default())
         .into_iter()
-        .filter_map(|o| if let vectorcraft_tools::Overlay::Anchor { p, .. } = o { Some(p) } else { None })
+        .filter_map(|o| if let vansoncraft_tools::Overlay::Anchor { p, .. } = o { Some(p) } else { None })
         .collect()
 }
 
@@ -371,7 +371,7 @@ fn a_group_selection_marquee_leaves_out_a_drop_shadow() {
     s.select_tool("groupSelection", v).unwrap();
     s.pointer(&PointerEvent::new(PointerKind::Down, 95.0, 10.0), v).unwrap();
     s.pointer(&PointerEvent::new(PointerKind::Drag, 130.0, 50.0), v).unwrap();
-    s.tool_key(vectorcraft_tools::ToolKey::Letter('e'), Mods::default(), v).unwrap();
+    s.tool_key(vansoncraft_tools::ToolKey::Letter('e'), Mods::default(), v).unwrap();
     s.pointer(&PointerEvent::new(PointerKind::Drag, 165.0, 90.0), v).unwrap();
     s.pointer(&PointerEvent::new(PointerKind::Up, 165.0, 90.0), v).unwrap();
     let sel = s.doc().unwrap().selection.clone();

@@ -2,14 +2,14 @@
 //! trip visually (render comparison with a perceptual tolerance).
 
 use proptest::prelude::*;
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::Appearance;
-use vectorcraft_geom::{PathData, Rect, shapes};
-use vectorcraft_svg::{ExportOptions, ObjectIds, Styling, export, import};
-use vectorcraft_testkit::fixtures::{self, DocBuilder, art_nodes};
-use vectorcraft_testkit::invariants::check_document;
-use vectorcraft_testkit::raster::{assert_similar, render_artboard};
-use vectorcraft_testkit::strategies::{arb_closed_shape, arb_ops, arb_path_data};
+use vansoncraft_color::{Color, Paint};
+use vansoncraft_doc::Appearance;
+use vansoncraft_geom::{PathData, Rect, shapes};
+use vansoncraft_svg::{ExportOptions, ObjectIds, Styling, export, import};
+use vansoncraft_testkit::fixtures::{self, DocBuilder, art_nodes};
+use vansoncraft_testkit::invariants::check_document;
+use vansoncraft_testkit::raster::{assert_similar, render_artboard};
+use vansoncraft_testkit::strategies::{arb_closed_shape, arb_ops, arb_path_data};
 
 fn all_options() -> Vec<ExportOptions> {
     let mut v = vec![];
@@ -115,8 +115,8 @@ proptest! {
 
 #[test]
 fn filled_ellipse_on_the_artboard_edge_survives_visually() {
-    use vectorcraft_geom::Point;
-    use vectorcraft_geom::path::{Anchor, AnchorKind, SubPath};
+    use vansoncraft_geom::Point;
+    use vansoncraft_geom::path::{Anchor, AnchorKind, SubPath};
     let a = |p: (f64, f64), i: (f64, f64), o: (f64, f64)| Anchor {
         p: Point::new(p.0, p.1),
         h_in: Point::new(i.0, i.1),

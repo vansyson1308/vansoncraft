@@ -7,7 +7,7 @@ use std::cmp::Ordering;
 
 use egui::RichText;
 
-use crate::VectorcraftApp;
+use crate::VansoncraftApp;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Contributor {
@@ -225,7 +225,12 @@ impl Default for View {
 }
 
 /// About ▸ Contributors: a name toggle, a sort, and the list as a grab bag or a table.
-pub fn contributors_ui(app: &mut VectorcraftApp, ui: &mut egui::Ui) {
+pub fn contributors_ui(app: &mut VansoncraftApp, ui: &mut egui::Ui) {
+    people_ui(app, ui, CONTRIBUTORS);
+}
+
+/// The Contributors panel for `all`: the compiled list in the app, other rows in tests.
+fn people_ui(app: &mut VansoncraftApp, ui: &mut egui::Ui, all: &[Contributor]) {
     let id = egui::Id::unique("credits_view");
     let mut v = ui.data_mut(|d| d.get_temp::<View>(id)).unwrap_or_default();
     ui.horizontal_wrapped(|ui| {
@@ -258,7 +263,7 @@ pub fn contributors_ui(app: &mut VectorcraftApp, ui: &mut egui::Ui) {
             v.table = true;
         }
     });
-    let list = sorted(CONTRIBUTORS, v.names, v.key, v.ascending);
+    let list = sorted(all, v.names, v.key, v.ascending);
     let (people, commits) = (group(list.len() as u64), group(TOTAL_COMMITS));
     let counts = crate::i18n::fmt(tl!("{people} contributors · {commits} commits"), &[("people", &people), ("commits", &commits)]);
     ui.label(RichText::new(counts).small().weak());
@@ -289,7 +294,7 @@ pub fn contributors_ui(app: &mut VectorcraftApp, ui: &mut egui::Ui) {
     ui.data_mut(|d| d.insert_temp(id, v));
 }
 
-fn link(app: &mut VectorcraftApp, ui: &mut egui::Ui, c: &Contributor, names: NameMode) -> egui::Response {
+fn link(app: &mut VansoncraftApp, ui: &mut egui::Ui, c: &Contributor, names: NameMode) -> egui::Response {
     let url = format!("https://github.com/{}", c.login);
     let r = ui.add(egui::Link::new(c.name(names))).on_hover_text(c.summary());
     if r.clicked() {
@@ -399,7 +404,7 @@ fn header_text(k: SortKey) -> RichText {
 
 /// The contributors as a table whose header row, the sort buttons, stays above the rows as they
 /// scroll (#4944).
-fn table(app: &mut VectorcraftApp, ui: &mut egui::Ui, list: &[&Contributor], v: &mut View) {
+fn table(app: &mut VansoncraftApp, ui: &mut egui::Ui, list: &[&Contributor], v: &mut View) {
     let h = row_height(ui);
     let rows: Vec<[String; 9]> = list.iter().map(|c| cells(c)).collect();
     let widths: Vec<f32> = SortKey::ALL
@@ -579,12 +584,18 @@ mod tests {
     /// under it.
     #[test]
     fn the_table_header_stays_above_scrolling_rows() {
-        let first = sorted(CONTRIBUTORS, NameMode::Username, SortKey::FirstCommit, true).first().map(|c| c.name(NameMode::Username)).unwrap();
-        assert!(CONTRIBUTORS.len() > 30, "enough rows to scroll");
+        // Rows of its own: the compiled list may be too short to scroll.
+        const LOGINS: [&str; 40] = [
+            "p00", "p01", "p02", "p03", "p04", "p05", "p06", "p07", "p08", "p09", "p10", "p11", "p12", "p13", "p14", "p15", "p16", "p17", "p18",
+            "p19", "p20", "p21", "p22", "p23", "p24", "p25", "p26", "p27", "p28", "p29", "p30", "p31", "p32", "p33", "p34", "p35", "p36", "p37",
+            "p38", "p39",
+        ];
+        let all: Vec<Contributor> = LOGINS.iter().map(|l| c(l, None, None, 10, 1, "2026-01-01T00:00:00Z")).collect();
+        let first = sorted(&all, NameMode::Username, SortKey::FirstCommit, true).first().map(|c| c.name(NameMode::Username)).unwrap();
         let ctx = egui::Context::default();
         crate::theme::install_fonts(&ctx);
         ctx.data_mut(|d| d.insert_temp(egui::Id::unique("credits_view"), View { table: true, ..View::default() }));
-        let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(vansoncraft_engine::Session::new(), Default::default());
         let mut time = 0.0;
         // Where the frame painted `text`, if it did.
         let mut frame = |events: Vec<egui::Event>, find: &[&str]| {
@@ -592,7 +603,7 @@ mod tests {
             let input = egui::RawInput { events, time: Some(time), ..Default::default() };
             let mut out = ctx.run_ui(input, |ui| {
                 ui.set_width(660.0);
-                contributors_ui(&mut app, ui);
+                people_ui(&mut app, ui, &all);
             });
             out.textures_delta.clear();
             let at = |text: &str| {

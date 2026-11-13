@@ -2,7 +2,7 @@
 //! applies such a file.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::Unit;
+use vansoncraft_doc::Unit;
 
 use crate::cmd::prefscmds::{PREF_GROUPS, PREF_SPECS, PREFS_FORMAT};
 use crate::*;
@@ -72,6 +72,14 @@ fn exported_preferences_import_unchanged() {
     assert_eq!(t.doc().unwrap().history.undo.len(), undo, "no undo step");
     assert_eq!(t.prefs.fonts_folder, "", "folders are not carried over");
 
+    // A file exported before the project took the name VansonCraft names its format
+    // `vectorcraft-preferences`: it imports the same.
+    let old = text.replacen("\"vansoncraft-preferences\"", "\"vectorcraft-preferences\"", 1);
+    assert_ne!(old, text);
+    let mut v = Session::new();
+    assert_eq!(v.execute("prefs.import", &json!({"data": old})).unwrap()["imported"], json!(prefs.len()));
+    assert_eq!(in_file(&v), in_file(&s));
+
     // Through a file, too.
     let path = std::env::temp_dir().join(format!("vc-prefs-{}.json", std::process::id())).to_string_lossy().to_string();
     assert_eq!(s.execute("prefs.export", &json!({"path": path})).unwrap()["path"], json!(path));
@@ -87,7 +95,7 @@ fn a_hand_written_file_sets_what_it_names_and_leaves_the_rest() {
     let mut s = Session::new();
     s.execute("prefs.set", &json!({"key": "historyStates", "value": 77})).unwrap();
     let text = r##"{
-        "format": "vectorcraft-preferences",
+        "format": "vansoncraft-preferences",
         "version": 1,
         "prefs": {"uiAccent": "Violet", "keyboardIncrement": "3 pt", "guideColor": "#ABCDEF", "pathfinder": {}}
     }"##;
@@ -109,10 +117,10 @@ fn a_bad_preferences_file_is_refused_and_nothing_changes() {
         (json!({"data": "[]"}), "not a preferences file: no JSON object"),
         (json!({"data": "{\"version\": 1, \"prefs\": {}}"}), "no `format`"),
         (json!({"data": "{\"format\": \"vcprintpresets\", \"version\": 1, \"prefs\": {}}"}), "(format `vcprintpresets`)"),
-        (json!({"data": "{\"format\": \"vectorcraft-preferences\", \"prefs\": {\"uiAccent\": \"blue\"}}"}), "no `version`"),
-        (json!({"data": "{\"format\": \"vectorcraft-preferences\", \"version\": 0, \"prefs\": {\"uiAccent\": \"blue\"}}"}), "no `version`"),
-        (json!({"data": file(json!({"uiAccent": "blue"})).replace("\"version\":1", "\"version\":2")}), "newer version of VectorCraft (version 2)"),
-        (json!({"data": "{\"format\": \"vectorcraft-preferences\", \"version\": 1}"}), "no `prefs`"),
+        (json!({"data": "{\"format\": \"vansoncraft-preferences\", \"prefs\": {\"uiAccent\": \"blue\"}}"}), "no `version`"),
+        (json!({"data": "{\"format\": \"vansoncraft-preferences\", \"version\": 0, \"prefs\": {\"uiAccent\": \"blue\"}}"}), "no `version`"),
+        (json!({"data": file(json!({"uiAccent": "blue"})).replace("\"version\":1", "\"version\":2")}), "newer version of VansonCraft (version 2)"),
+        (json!({"data": "{\"format\": \"vansoncraft-preferences\", \"version\": 1}"}), "no `prefs`"),
         (json!({"data": file(json!({}))}), "holds no preferences"),
         (json!({"data": file(json!({"uiAccent": "blue", "noSuchPreference": 1}))}), "unknown preference `noSuchPreference`"),
         (json!({"data": file(json!({"uiAccent": "blue", "showToolTips": 3}))}), "`showToolTips` must be true or false"),

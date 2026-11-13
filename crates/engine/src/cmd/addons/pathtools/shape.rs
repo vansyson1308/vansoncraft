@@ -1,13 +1,13 @@
 //! The Parametric Shape Tool's commands (`addon.pathtools.shape.*`): draw a parametric shape, change
 //! one's numbers, and turn plain rectangles, ellipses and regular polygons into them. A parametric
 //! shape is an ordinary path whose numbers sit in one entry of its object data
-//! (`vectorcraft_tools::addons::parametric_shape`), which SVG export leaves out.
+//! (`vansoncraft_tools::addons::parametric_shape`), which SVG export leaves out.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{Node, NodeKind};
-use vectorcraft_geom::{FillRule, PathData, Point};
-use vectorcraft_pathops::addons::pathtools::shapes::{ParametricShape, ShapeKind, recognise};
-use vectorcraft_tools::addons::parametric_shape::{CREATE, EDIT, KEY, apply, read, stored, to_json};
+use vansoncraft_doc::{Node, NodeKind};
+use vansoncraft_geom::{FillRule, PathData, Point};
+use vansoncraft_pathops::addons::pathtools::shapes::{ParametricShape, ShapeKind, recognise};
+use vansoncraft_tools::addons::parametric_shape::{CREATE, EDIT, KEY, apply, read, stored, to_json};
 
 use super::super::super::{CommandSpec, bad, checked_id, checked_ids_or_selection, cmd, has_doc, has_selection};
 use crate::{EngineError, Result, Session};

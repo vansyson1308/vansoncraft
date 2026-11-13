@@ -1,0 +1,175 @@
+{
+ "recipes": {
+  "A": {
+   "title": "A — diagonal rise",
+   "seed": 11,
+   "why": "vase low left, flowers climbing to the upper right: a dynamic diagonal, the lower right left empty"
+  },
+  "B": {
+   "title": "B — low spread",
+   "seed": 23,
+   "why": "a wide low bowl right of centre, flowers spread in a level arch: repose, with the upper left left open"
+  },
+  "C": {
+   "title": "C — tall S-curve",
+   "seed": 37,
+   "why": "a tall narrow vase, flowers in an S-curve rising out of it and one drooping over the rim: rhythm of curves"
+  }
+ },
+ "compositions": {
+  "A": {
+   "steps": 80,
+   "groups": {
+    "Setting A": 6,
+    "Vase A": 11,
+    "Stems and leaves A": 24,
+    "Vase lip A (front)": 26,
+    "Flower A1": 34,
+    "Flower A2": 41,
+    "Flower A3 (focus)": 50,
+    "Flower A4": 58,
+    "Flower A5": 65
+   },
+   "values": [
+    {
+     "name": "dark",
+     "share": 0.101,
+     "meanL": 23.992,
+     "masses": 3,
+     "largestShare": 0.8
+    },
+    {
+     "name": "middle",
+     "share": 0.851,
+     "meanL": 54.511,
+     "masses": 1,
+     "largestShare": 0.995
+    },
+    {
+     "name": "light",
+     "share": 0.048,
+     "meanL": 89.235,
+     "masses": 5,
+     "largestShare": 0.503
+    }
+   ],
+   "contrast": 65.243,
+   "balance": {
+    "offset": {
+     "x": -0.017,
+     "y": 0.07
+    },
+    "quadrants": {
+     "bottomLeft": 0.31,
+     "bottomRight": 0.254,
+     "topLeft": 0.22,
+     "topRight": 0.216
+    }
+   }
+  },
+  "B": {
+   "steps": 79,
+   "groups": {
+    "Setting B": 70,
+    "Vase B": 75,
+    "Stems and leaves B": 87,
+    "Vase lip B (front)": 89,
+    "Flower B1": 97,
+    "Flower B2": 104,
+    "Flower B3 (focus)": 113,
+    "Flower B4": 121,
+    "Flower B5": 128
+   },
+   "values": [
+    {
+     "name": "dark",
+     "share": 0.095,
+     "meanL": 23.806,
+     "masses": 2,
+     "largestShare": 0.976
+    },
+    {
+     "name": "middle",
+     "share": 0.856,
+     "meanL": 55.015,
+     "masses": 2,
+     "largestShare": 0.984
+    },
+    {
+     "name": "light",
+     "share": 0.05,
+     "meanL": 88.872,
+     "masses": 4,
+     "largestShare": 0.64
+    }
+   ],
+   "contrast": 65.066,
+   "balance": {
+    "offset": {
+     "x": 0.006,
+     "y": 0.067
+    },
+    "quadrants": {
+     "bottomLeft": 0.265,
+     "bottomRight": 0.296,
+     "topLeft": 0.225,
+     "topRight": 0.213
+    }
+   }
+  },
+  "C": {
+   "steps": 78,
+   "groups": {
+    "Setting C": 133,
+    "Vase C": 138,
+    "Stems and leaves C": 150,
+    "Vase lip C (front)": 152,
+    "Flower C1": 159,
+    "Flower C2 (focus)": 168,
+    "Flower C3": 176,
+    "Flower C4": 183,
+    "Flower C5": 190
+   },
+   "values": [
+    {
+     "name": "dark",
+     "share": 0.085,
+     "meanL": 23.916,
+     "masses": 2,
+     "largestShare": 0.808
+    },
+    {
+     "name": "middle",
+     "share": 0.877,
+     "meanL": 55.625,
+     "masses": 2,
+     "largestShare": 0.993
+    },
+    {
+     "name": "light",
+     "share": 0.038,
+     "meanL": 89.532,
+     "masses": 5,
+     "largestShare": 0.388
+    }
+   ],
+   "contrast": 65.617,
+   "balance": {
+    "offset": {
+     "x": -0.002,
+     "y": 0.06
+    },
+    "quadrants": {
+     "bottomLeft": 0.277,
+     "bottomRight": 0.274,
+     "topLeft": 0.227,
+     "topRight": 0.222
+    }
+   }
+  }
+ },
+ "mcp": {
+  "tool_calls": 33,
+  "bytes_from_server": 417100
+ }
+}

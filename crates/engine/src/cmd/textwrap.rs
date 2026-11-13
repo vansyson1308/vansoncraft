@@ -5,7 +5,7 @@
 //! `TextObject::wrap` (text space); the layout engine subtracts them from each line's span.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{Document, NodeId, NodeKind, TextWrap};
+use vansoncraft_doc::{Document, NodeId, NodeKind, TextWrap};
 
 use super::typecmd::refresh_bounds;
 use super::{CommandSpec, EngineError, Result, Session, bool_or, checked_ids_or_selection, cmd, f64_or, has_selection};
@@ -101,7 +101,7 @@ fn options(s: &mut Session, p: &Value) -> Result<Value> {
 
 /// Re-resolve the wrap shapes of every area text object (called after each edit).
 pub(crate) fn refresh(before: &Document, doc: &mut Document) {
-    for id in vectorcraft_doc::text::resolve_wrap(Some(before), doc) {
+    for id in vansoncraft_doc::text::resolve_wrap(Some(before), doc) {
         if let Some(NodeKind::Text(t)) = doc.node_mut(id).map(|n| &mut n.kind) {
             refresh_bounds(t);
         }
@@ -111,13 +111,13 @@ pub(crate) fn refresh(before: &Document, doc: &mut Document) {
 #[cfg(test)]
 mod tests {
     use serde_json::json;
-    use vectorcraft_doc::NodeKind;
+    use vansoncraft_doc::NodeKind;
 
     use crate::{NodeId, Session};
 
     fn lines(s: &Session, id: u64) -> Vec<(f64, f64)> {
         let Some(NodeKind::Text(t)) = s.doc().unwrap().doc.node(NodeId(id)).map(|n| n.kind.clone()) else { panic!() };
-        vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &t).lines.iter().map(|l| l.avail).collect()
+        vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &t).lines.iter().map(|l| l.avail).collect()
     }
 
     /// Invalid explicit ids must not turn a requested multi-object edit into a partial one.
@@ -199,7 +199,7 @@ mod tests {
         s.execute("select.set", &json!({"ids": [r]})).unwrap();
         s.execute("object.textWrap.make", &json!({})).unwrap();
         let Some(NodeKind::Text(tx)) = s.doc().unwrap().doc.node(NodeId(t)).map(|n| n.kind.clone()) else { panic!() };
-        let lay = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &tx);
+        let lay = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &tx);
         // Beside the circle each line band holds two lines: left of it and right of it.
         let beside: Vec<_> = lay.lines.iter().filter(|l| l.baseline > 120.0 && l.baseline < 180.0).collect();
         assert!(

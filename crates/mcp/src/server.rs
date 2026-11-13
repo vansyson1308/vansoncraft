@@ -9,7 +9,7 @@ use std::sync::mpsc::{SyncSender, sync_channel};
 use std::time::{Duration, Instant};
 
 use serde_json::{Value, json};
-use vectorcraft_engine::cancel;
+use vansoncraft_engine::cancel;
 
 use crate::backend::Backend;
 use crate::intake::{Job, Message, Shared, read_loop};
@@ -78,14 +78,21 @@ fn progress_sink(out: SyncSender<String>, msg: &Value) -> Option<cancel::Progres
     }))
 }
 
-const INSTRUCTIONS: &str = "VectorCraft is a professional vector illustration app. Coordinates are \
+const INSTRUCTIONS: &str = "VansonCraft is a professional vector illustration app. Coordinates are \
 points in document space (y down, origin at the first artboard's top-left; a new document is 612×792). \
 Draw with draw_shape / draw_path, change colours with set_paint, look with render_preview and doc_inspect. \
 Every menu action is a command: find it with command_list and run it with command_run (or command_batch for several). New objects become \
 the selection, and most commands act on the selection (or on explicit `ids`). prompts/list has ready-made \
 workflows, completion/complete finishes a command id, a format, an effect or a swatch name, and \
-vectorcraft://object/{id}, vectorcraft://command/{id}, vectorcraft://effect/{id} and \
-vectorcraft://swatch/{name} read one thing at a time instead of the whole document.";
+vansoncraft://object/{id}, vansoncraft://command/{id}, vansoncraft://effect/{id} and \
+vansoncraft://swatch/{name} read one thing at a time instead of the whole document.";
+
+/// What a server that fell back to headless says about it.
+pub(crate) fn fallback_notice(addr: &str) -> String {
+    format!(
+        "Note: no VansonCraft app answered on {addr} when this server started, so it runs headless: nothing drawn here appears in a desktop window, and work not saved with save_file is lost when the server stops. To draw in the app, start it with --control and restart this server (or register it with --connect {addr})."
+    )
+}
 
 /// An MCP server bound to one backend.
 pub struct Server {
@@ -98,6 +105,10 @@ pub struct Server {
     /// process-wide, so a server whose client didn't ask leaves it to the one that did.
     logging: bool,
     busy_after: Duration,
+    /// Said once, after the first tool result, when the server fell back to headless because no
+    /// app answered: an agent must not believe it draws in a desktop window it isn't reaching
+    /// (F1 in docs/speed/audit.md).
+    fallback_notice: Option<String>,
 }
 
 pub(crate) fn response(id: Value, result: Value) -> Value {
@@ -143,7 +154,7 @@ pub(crate) fn stateless_reply(msg: &Value, modern: bool) -> Option<Value> {
     }
     let params = o.get("params").cloned().unwrap_or(Value::Null);
     // A panic here is a bug: leave the request to the engine thread, which reports it.
-    let r = vectorcraft_engine::guard::catch_panic(|| stateless_request(method, &params)).ok()??;
+    let r = vansoncraft_engine::guard::catch_panic(|| stateless_request(method, &params)).ok()??;
     Some(match r {
         Ok(r) => response(id, complete_result(method, &params, modern, r)),
         Err((code, m)) => error(id, code, m),
@@ -225,7 +236,21 @@ fn write_reply(output: &mut impl Write, line: &str) -> std::io::Result<()> {
 
 impl Server {
     pub fn new(backend: Box<dyn Backend>) -> Self {
-        Self { backend, initialized: false, modern: Arc::new(AtomicBool::new(false)), logging: false, busy_after: DEFAULT_BUSY_AFTER }
+        Self {
+            backend,
+            initialized: false,
+            modern: Arc::new(AtomicBool::new(false)),
+            logging: false,
+            busy_after: DEFAULT_BUSY_AFTER,
+            fallback_notice: None,
+        }
+    }
+
+    /// A server that runs headless because no app answered at `addr` when it started: its
+    /// `initialize` instructions say so, and so does a note after its first tool result.
+    pub fn fell_back_from(mut self, addr: &str) -> Self {
+        self.fallback_notice = Some(fallback_notice(addr));
+        self
     }
 
     /// How long a call runs before [`Server::serve`] turns away a request that would have to wait
@@ -392,7 +417,7 @@ impl Server {
             return Some(error(Value::Null, INVALID_REQUEST, "`id` must be a string or number"));
         }
         // A bug that panics fails this request only; the server keeps serving.
-        let r = vectorcraft_engine::guard::catch_panic(|| self.request(method, &params))
+        let r = vansoncraft_engine::guard::catch_panic(|| self.request(method, &params))
             .unwrap_or_else(|msg| Err((INTERNAL_ERROR, format!("internal error in `{method}`: {msg} (please report this bug)"))));
         Some(match r {
             Ok(r) => response(id, complete_result(method, &params, self.modern.load(Ordering::Relaxed), r)),
@@ -426,8 +451,11 @@ impl Server {
                         "completions": {},
                         "logging": {},
                     },
-                    "serverInfo": {"name": "vectorcraft", "title": "VectorCraft", "version": env!("CARGO_PKG_VERSION")},
-                    "instructions": format!("{INSTRUCTIONS} Backend: {}.", self.backend.describe()),
+                    "serverInfo": {"name": "vansoncraft", "title": "VansonCraft", "version": env!("CARGO_PKG_VERSION")},
+                    "instructions": match &self.fallback_notice {
+                        Some(n) => format!("{INSTRUCTIONS} Backend: {}. {n}", self.backend.describe()),
+                        None => format!("{INSTRUCTIONS} Backend: {}.", self.backend.describe()),
+                    },
                 }))
             }
             "tools/call" => {
@@ -436,10 +464,16 @@ impl Server {
                 if let Some(arguments) = args.as_object() {
                     crate::tools::check_tool_arguments(name, arguments).map_err(|e| (INVALID_PARAMS, e))?;
                 }
-                let result = call_tool(self.backend.as_mut(), name, &args);
+                let mut result = call_tool(self.backend.as_mut(), name, &args);
                 match result.script_busy() {
                     Some(message) => Err((SERVER_BUSY, message)),
-                    None => Ok(result.to_value()),
+                    None => {
+                        // After the result, so a client reading the first block as JSON still can.
+                        if let Some(n) = self.fallback_notice.take() {
+                            result.content.push(json!({"type": "text", "text": n}));
+                        }
+                        Ok(result.to_value())
+                    }
                 }
             }
             "resources/read" => {

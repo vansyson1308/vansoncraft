@@ -3,9 +3,9 @@
 use std::collections::BTreeSet;
 
 use serde_json::{Value, json};
-use vectorcraft_color::Paint;
-use vectorcraft_doc::{Document, LockedArtboards, Node, NodeId, NodeKind};
-use vectorcraft_tools::builder::is_live_paint;
+use vansoncraft_color::Paint;
+use vansoncraft_doc::{Document, LockedArtboards, Node, NodeId, NodeKind};
+use vansoncraft_tools::builder::is_live_paint;
 
 use super::object::can_align;
 use super::wand::{fill_of, stroke_of};
@@ -352,8 +352,8 @@ fn all_on_artboard(s: &mut Session, p: &Value) -> Result<Value> {
 
 /// Is `n` on the artboard at `r`, as All on Active Artboard takes it: its geometric bounds (a
 /// symbol instance's measured by its art) overlap the artboard, or its center is on it.
-pub(crate) fn on_artboard(n: &Node, symbols: &vectorcraft_doc::SymbolBoxes, r: vectorcraft_geom::Rect) -> bool {
-    n.geometric_bounds_with(symbols).is_some_and(|b| b.intersect(r).area() > 0.0 || vectorcraft_doc::artboard_holds(r, b.center()))
+pub(crate) fn on_artboard(n: &Node, symbols: &vansoncraft_doc::SymbolBoxes, r: vansoncraft_geom::Rect) -> bool {
+    n.geometric_bounds_with(symbols).is_some_and(|b| b.intersect(r).area() > 0.0 || vansoncraft_doc::artboard_holds(r, b.center()))
 }
 
 fn none(s: &mut Session, _: &Value) -> Result<Value> {
@@ -708,7 +708,7 @@ pub(crate) fn same_paint(a: &Paint, b: &Paint, tint: bool) -> bool {
 }
 
 /// Select › Same › Stroke Weight: an unpainted stroke weighs nothing, as
-/// [`vectorcraft_doc::Appearance::stroke_width`] has it.
+/// [`vansoncraft_doc::Appearance::stroke_width`] has it.
 fn stroke_weight(n: &Node) -> f64 {
     let (paint, width) = stroke_of(n);
     if paint.is_none() { 0.0 } else { width }
@@ -815,8 +815,8 @@ fn same_graphic_style(s: &mut Session, _: &Value) -> Result<Value> {
 // An appearance item takes up to 328 bytes and an effect 64; one search holds a single attribute.
 #[allow(clippy::large_enum_variant)]
 enum Attribute {
-    Item(vectorcraft_doc::AppearanceItem),
-    Effect(vectorcraft_doc::Effect),
+    Item(vansoncraft_doc::AppearanceItem),
+    Effect(vansoncraft_doc::Effect),
 }
 
 fn same_attribute(s: &mut Session, p: &Value) -> Result<Value> {

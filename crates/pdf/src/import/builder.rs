@@ -151,7 +151,7 @@ impl<'p> Builder<'p> {
         // The interpreter drew another number of paths than the file was read to paint: which
         // of them overprint can't be trusted.
         if self.scan.overprints && self.paint_at != self.scan.paints.len() {
-            children.iter_mut().for_each(vectorcraft_doc::overprint::clear_overprints);
+            children.iter_mut().for_each(vansoncraft_doc::overprint::clear_overprints);
             self.warn(OVERPRINT_UNREAD);
         }
         let groups = std::mem::take(&mut self.root_groups);
@@ -470,7 +470,7 @@ impl<'p> Builder<'p> {
         true
     }
 
-    /// Convert a hayro paint to a VectorCraft paint and opacity (`stroke`: for a stroke; `walked`:
+    /// Convert a hayro paint to a VansonCraft paint and opacity (`stroke`: for a stroke; `walked`:
     /// what it paints in the page's walk, which names its ink).
     pub(super) fn paint(&mut self, p: &craft_pdf::interpret::Paint<'_>, stroke: bool, walked: Option<Walked>) -> (Paint, f32) {
         let pattern = matches!(p, craft_pdf::interpret::Paint::Pattern(_));
@@ -718,7 +718,7 @@ impl<'p> Builder<'p> {
     /// Mesh shadings filling `region` (document space): gradient meshes, clipped to the region
     /// when they reach past it, or always (`clip`: a stroke's outline, which a mesh can lie
     /// within the box of without filling it).
-    pub(super) fn draw_meshes(&mut self, meshes: Vec<vectorcraft_doc::live::GradientMesh>, region: &BezPath, opacity: f32, clip: bool) {
+    pub(super) fn draw_meshes(&mut self, meshes: Vec<vansoncraft_doc::live::GradientMesh>, region: &BezPath, opacity: f32, clip: bool) {
         let nodes: Vec<Arc<Node>> = meshes.into_iter().map(|m| Arc::new(Node::new(self.id(), NodeKind::Mesh(m)))).collect();
         let Some(art) = bounds(&nodes) else { return };
         let mut content = match <[Arc<Node>; 1]>::try_from(nodes) {
@@ -758,7 +758,7 @@ impl<'p> Builder<'p> {
             Some((tag, rest)) if tag.len() == 6 && tag.chars().all(|c| c.is_ascii_uppercase()) => rest.to_string(),
             _ => n.to_string(),
         });
-        let installed = ps.as_deref().and_then(|ps| vectorcraft_text::FontDb::global().find_postscript(ps));
+        let installed = ps.as_deref().and_then(|ps| vansoncraft_text::FontDb::global().find_postscript(ps));
         let n = match (installed, name) {
             (Some(face), _) => FontInfo { family: face.family.clone(), style: face.style.clone(), face: Some(face) },
             (None, Some(name)) => {
@@ -770,7 +770,7 @@ impl<'p> Builder<'p> {
                 FontInfo { family, style, face: None }
             }
             (None, None) => {
-                let d = vectorcraft_doc::CharStyle::default();
+                let d = vansoncraft_doc::CharStyle::default();
                 FontInfo { family: d.font_family, style: d.font_style, face: None }
             }
         };
@@ -889,9 +889,9 @@ impl<'p> Builder<'p> {
         }
         // A version of the family and style that the two alone don't resolve to: the type names it.
         // Kept per font once its face is decided (until then each glyph asks).
-        let named = |f: &Option<Arc<vectorcraft_text::FontFace>>| {
+        let named = |f: &Option<Arc<vansoncraft_text::FontFace>>| {
             let f = f.as_ref()?;
-            let default = vectorcraft_text::FontDb::global().face(&f.family, &f.style)?;
+            let default = vansoncraft_text::FontDb::global().face(&f.family, &f.style)?;
             (default.version != f.version).then(|| f.version.clone())
         };
         let version = match self.versions.get(&key) {
@@ -978,7 +978,7 @@ fn visual_glyph_text(text: String) -> String {
     if text.chars().nth(1).is_none() {
         return text;
     }
-    let Some((order, _)) = vectorcraft_text::logical_order(&text) else { return text };
+    let Some((order, _)) = vansoncraft_text::logical_order(&text) else { return text };
     let chars: Vec<char> = text.chars().collect();
     order.iter().filter_map(|&i| chars.get(i)).collect()
 }

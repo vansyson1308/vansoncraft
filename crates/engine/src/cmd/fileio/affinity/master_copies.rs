@@ -67,7 +67,7 @@ mod tests {
 
     fn node(kind: Kind, mask: Option<af::Path>) -> af::Node {
         af::Node {
-            class: vectorcraft_affinity::stream::Tag::of(b"ShpN"),
+            class: vansoncraft_affinity::stream::Tag::of(b"ShpN"),
             name: String::new(),
             visible: true,
             locked: false,

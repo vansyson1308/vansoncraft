@@ -3,10 +3,10 @@
 
 use std::sync::Arc;
 
-use vectorcraft_color::{BlendMode, Color};
-use vectorcraft_doc::{Document, LayerColor, Node};
-use vectorcraft_geom::Rect;
-use vectorcraft_testkit::fixtures::DocBuilder;
+use vansoncraft_color::{BlendMode, Color};
+use vansoncraft_doc::{Document, LayerColor, Node};
+use vansoncraft_geom::Rect;
+use vansoncraft_testkit::fixtures::DocBuilder;
 
 use super::jpeg::ColorModel;
 use super::psd::{MAX_SIDE, PsdOptions};
@@ -263,7 +263,7 @@ fn guides_are_not_layers() {
     let mut b = DocBuilder::new(20.0, 20.0);
     b.rect(Rect::new(0.0, 0.0, 5.0, 5.0), Color::rgb8(0, 0, 0), |_| {});
     b.rect(Rect::new(0.0, 10.0, 20.0, 10.0), Color::rgb8(0, 0, 0), |n: &mut Node| {
-        if let vectorcraft_doc::NodeKind::Path { guide, .. } = &mut n.kind {
+        if let vansoncraft_doc::NodeKind::Path { guide, .. } = &mut n.kind {
             *guide = true;
         }
     });
@@ -275,7 +275,7 @@ fn guides_are_not_layers() {
 /// without Maximum Editability, the same drawn bounds and the same cached size of each layer.
 #[test]
 fn ruler_guides_are_not_exported() {
-    use vectorcraft_doc::{NodeId, NodeKind};
+    use vansoncraft_doc::{NodeId, NodeKind};
     let plain = doc();
     let mut guided = plain.clone();
     let guide = |id, vertical, pos| Node::new(NodeId(id), NodeKind::RulerGuide { vertical, pos, artboard: None });

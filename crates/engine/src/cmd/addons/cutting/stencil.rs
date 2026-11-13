@@ -4,7 +4,7 @@
 //! of a set width across the art (<https://en.wikipedia.org/wiki/Stencil> describes islands and
 //! bridges). The art becomes one compound path with the gaps cut, and type is measured by its
 //! glyph outlines. The original goes to a new hidden layer or is replaced. The geometry is
-//! `vectorcraft_pathops::addons::stencil`.
+//! `vansoncraft_pathops::addons::stencil`.
 
 #[cfg(test)]
 mod tests;
@@ -12,9 +12,9 @@ mod tests;
 use std::sync::Arc;
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{Document, Node, NodeId, NodeKind};
-use vectorcraft_geom::{FillRule, PathData};
-use vectorcraft_pathops::addons::stencil::{BRIDGE_WIDTH_RANGE, BridgeDirection, BridgeSpec, MAX_BRIDGES_PER_ISLAND, stencil_bridges};
+use vansoncraft_doc::{Document, Node, NodeId, NodeKind};
+use vansoncraft_geom::{FillRule, PathData};
+use vansoncraft_pathops::addons::stencil::{BRIDGE_WIDTH_RANGE, BridgeDirection, BridgeSpec, MAX_BRIDGES_PER_ISLAND, stencil_bridges};
 
 use super::super::super::edit::selected_roots;
 use super::super::super::object::choice;
@@ -90,7 +90,7 @@ fn bridges(s: &mut Session, p: &Value) -> Result<Value> {
         let refs: Vec<(&PathData, FillRule)> = parts.iter().map(|(p, r)| (p, *r)).collect();
         let spec = BridgeSpec { width, count: count as usize, direction };
         let bridged = stencil_bridges(&refs, spec).map_err(|e| match e {
-            vectorcraft_pathops::PathOpsError::TooComplex => {
+            vansoncraft_pathops::PathOpsError::TooComplex => {
                 EngineError::Other("Stencil Bridges: the selected art is too large or too detailed to bridge".into())
             }
             e => EngineError::Other(e.to_string()),

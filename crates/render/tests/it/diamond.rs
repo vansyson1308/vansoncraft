@@ -2,11 +2,11 @@
 //! the vector, and follow the model's parameter when the square is stretched or turned, on fills
 //! and strokes; a stroke gets no dither noise, and a diamond without an extent draws its last stop.
 
-use vectorcraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, Paint};
-use vectorcraft_doc::{Appearance, Document};
-use vectorcraft_geom::{Point, Rect, Vec2, shapes};
-use vectorcraft_testkit::fixtures::DocBuilder;
-use vectorcraft_testkit::raster::{Image, render_view};
+use vansoncraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, Paint};
+use vansoncraft_doc::{Appearance, Document};
+use vansoncraft_geom::{Point, Rect, Vec2, shapes};
+use vansoncraft_testkit::fixtures::DocBuilder;
+use vansoncraft_testkit::raster::{Image, render_view};
 
 /// A white-to-black diamond on `geom`, dithered when `dither`.
 fn paint(geom: GradientGeom, dither: bool) -> Paint {
@@ -83,13 +83,13 @@ fn a_diamond_stroke_follows_the_squares_past_its_paint_box() {
     let geom = GradientGeom { start: c, end: c + Vec2::new(45.0, 0.0), aspect: 1.0, focal: None };
     let mut ap = Appearance::basic(Paint::None, paint(geom, false), 8.0);
     for it in &mut ap.items {
-        if let vectorcraft_doc::AppearanceItem::Stroke(s) = it {
+        if let vansoncraft_doc::AppearanceItem::Stroke(s) = it {
             s.miter_limit = 10.0;
         }
     }
     let mut b = DocBuilder::new(100.0, 100.0);
-    let peak = vectorcraft_geom::SubPath::polyline(&[Point::new(20.0, 80.0), Point::new(50.0, 20.0), Point::new(80.0, 80.0)], false);
-    b.path(vectorcraft_geom::PathData::single(peak), ap, |_| {});
+    let peak = vansoncraft_geom::SubPath::polyline(&[Point::new(20.0, 80.0), Point::new(50.0, 20.0), Point::new(80.0, 80.0)], false);
+    b.path(vansoncraft_geom::PathData::single(peak), ap, |_| {});
     let img = render_view(&b.build(), 100, 100);
     // The miter's tip runs up to y 11.06; the paint box starts at y 16. Rows 13 and 14 are
     // covered across pixel column 50.

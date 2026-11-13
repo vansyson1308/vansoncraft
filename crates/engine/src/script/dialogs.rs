@@ -12,7 +12,7 @@
 //! answer left, or with the next answer for another kind of dialog, ends the run. The report's
 //! `dialogs` lists each dialog and its answer.
 //!
-//! The values here are VectorCraft's own limits: [`MAX_MESSAGE_BYTES`], [`MAX_TITLE_BYTES`],
+//! The values here are VansonCraft's own limits: [`MAX_MESSAGE_BYTES`], [`MAX_TITLE_BYTES`],
 //! [`MAX_PROMPT_BYTES`], [`MAX_ANSWERS`], [`MAX_ANSWERS_BYTES`], [`MAX_RECORDS`] and
 //! [`MAX_RECORD_BYTES`].
 
@@ -21,7 +21,7 @@ use std::collections::VecDeque;
 use std::rc::Rc;
 
 use serde_json::{Map, Value, json};
-use vectorcraft_js::{Arg, Data, HostError, HostFunction, Realm, RunError};
+use vansoncraft_js::{Arg, Data, HostError, HostFunction, Realm, RunError};
 
 use super::{Host, console};
 

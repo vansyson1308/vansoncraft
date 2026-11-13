@@ -3,12 +3,12 @@
 
 use std::fmt::Write;
 
-use vectorcraft_color::gradient::GradientGeom;
-use vectorcraft_color::swatch::REGISTRATION;
-use vectorcraft_color::{Color, Gradient, GradientKind, GradientPaint, GradientStop, Paint};
-use vectorcraft_doc::{AppearanceItem, FillLayer, PatternDef, StrokeLayer, TileType};
-use vectorcraft_effects::stroke;
-use vectorcraft_geom::{Affine, BezPath, Rect, Shape, Vec2};
+use vansoncraft_color::gradient::GradientGeom;
+use vansoncraft_color::swatch::REGISTRATION;
+use vansoncraft_color::{Color, Gradient, GradientKind, GradientPaint, GradientStop, Paint};
+use vansoncraft_doc::{AppearanceItem, FillLayer, PatternDef, StrokeLayer, TileType};
+use vansoncraft_effects::stroke;
+use vansoncraft_geom::{Affine, BezPath, Rect, Shape, Vec2};
 
 use super::{MAX_NEST, Writer, Xy};
 use crate::ai_ops::{average, unit};
@@ -177,7 +177,7 @@ impl Writer<'_> {
     /// of one that repeats or reflects repeated over the box the stroke paints, miter spikes
     /// included ([`StrokeLayer::bounds_on`]). A gradient along or across a stroke is its average
     /// color (the stroke is written as its outline).
-    pub(super) fn items(&mut self, n: &vectorcraft_doc::Node, bp: &BezPath) -> Vec<AppearanceItem> {
+    pub(super) fn items(&mut self, n: &vansoncraft_doc::Node, bp: &BezPath) -> Vec<AppearanceItem> {
         let bounds = bp.bounding_box();
         super::visible_items(n)
             .into_iter()
@@ -464,7 +464,7 @@ impl Writer<'_> {
         // The tile's box first, unpainted and marked as the box: the tile is that box.
         self.state(false, false);
         self.line("0 XR");
-        if let Some(sp) = vectorcraft_geom::shapes::rectangle(def.tile).subpaths.first() {
+        if let Some(sp) = vansoncraft_geom::shapes::rectangle(def.tile).subpaths.first() {
             crate::ai_ops::subpath(&mut self.body, self.to_art, sp);
         }
         self.line("n\n%_/ArtDictionary :\n%_1 /Bool (AIPattern_Editor_Backing_Tile_Rect) ,\n%_;\n%_");
@@ -549,7 +549,7 @@ impl Writer<'_> {
     /// `0 0 0 0 Bh`, `2 (name) 0 0 0 1 1 0 0 1 0 0 1 Bg`, `0 BB`; a pattern's
     /// `(name) 0 0 1 1 0 0 0 0 0 [1 0 0 1 0 0] p`. False for other paint, and for paint that can't
     /// be written.
-    pub(super) fn swatch_paint(&mut self, s: &mut String, sw: &vectorcraft_color::swatch::Swatch) -> bool {
+    pub(super) fn swatch_paint(&mut self, s: &mut String, sw: &vansoncraft_color::swatch::Swatch) -> bool {
         // A swatch has no placement: one that repeats or reflects holds its stops repeated along
         // its vector.
         let unrolled = match &sw.paint {

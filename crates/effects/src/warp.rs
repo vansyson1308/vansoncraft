@@ -6,11 +6,11 @@
 //! points are mapped (see `map_nonlinear`).
 
 use serde_json::Value;
-use vectorcraft_geom::{PathData, Point, Rect};
+use vansoncraft_geom::{PathData, Point, Rect};
 
 use crate::util::{map_nonlinear_within, num, text};
 
-pub use vectorcraft_doc::live::{WARP_NET, WarpNet, WarpStyle, uses_net, warp_point, warp_version};
+pub use vansoncraft_doc::live::{WARP_NET, WarpNet, WarpStyle, uses_net, warp_point, warp_version};
 
 /// The map version warp params `p` ask for: their `version`, 0 (the first map) when absent.
 pub fn map_version(p: &Value) -> u32 {

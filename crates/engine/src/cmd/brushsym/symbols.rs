@@ -111,7 +111,7 @@ fn instances_of(d: &Document, name: Option<&str>) -> Vec<NodeId> {
 
 /// The symbols an instance in `n` (its opacity masks included) places, pushed onto `out`.
 fn art_symbols(n: &Node, out: &mut Vec<String>) {
-    vectorcraft_doc::swatches::walk_with_masks(n, &mut |m| {
+    vansoncraft_doc::swatches::walk_with_masks(n, &mut |m| {
         if let NodeKind::SymbolInstance { symbol, .. } = &m.kind {
             out.push(symbol.clone());
         }
@@ -368,13 +368,13 @@ pub(super) fn symbol_place(s: &mut Session, p: &Value) -> Result<Value> {
 fn expanded_instance(d: &mut Document, inst: &Node, own: bool) -> Option<Node> {
     let NodeKind::SymbolInstance { symbol, xf } = &inst.kind else { return None };
     let sym = d.symbols.iter().find(|s| &s.name == symbol)?;
-    let mut art = if own { vectorcraft_doc::symbol_overrides::dynamic_art(&sym.art, inst) } else { (*sym.art).clone() };
+    let mut art = if own { vansoncraft_doc::symbol_overrides::dynamic_art(&sym.art, inst) } else { (*sym.art).clone() };
     if let Some((color, amount)) = brush::stain(inst) {
         brush::tint_node(&mut art, &color, amount);
     }
     let art = d.place_symbol_art(symbol, &art, *xf)?;
     let mut art = d.reid(&art);
-    if inst.opacity < 1.0 || inst.blend != vectorcraft_color::BlendMode::Normal {
+    if inst.opacity < 1.0 || inst.blend != vansoncraft_color::BlendMode::Normal {
         if !matches!(art.kind, NodeKind::Group { .. }) {
             let id = d.alloc_id();
             art = Node::group(id, vec![Arc::new(art)]);
@@ -394,7 +394,7 @@ fn expanded_instance(d: &mut Document, inst: &Node, own: bool) -> Option<Node> {
 
 /// The most objects [`expanded_instance`] makes of instance `inst` in `d` (`own` as there): its
 /// symbol's object count with the art of its opacity masks, or
-/// [`vectorcraft_doc::NineSliceMap::most_placed`] when it is placed through 9-slice guides, plus
+/// [`vansoncraft_doc::NineSliceMap::most_placed`] when it is placed through 9-slice guides, plus
 /// the group that opacity, a blending mode or the instance's opacity mask adds, plus the art of
 /// the instance's opacity mask. 0 for any other object.
 fn expanded_bound(d: &Document, inst: &Node, own: bool) -> u64 {
@@ -402,9 +402,9 @@ fn expanded_bound(d: &Document, inst: &Node, own: bool) -> u64 {
     let Some(sym) = d.symbols.iter().find(|s| &s.name == symbol) else { return 0 };
     let dynamic = own && !inst.extras().symbol_overrides.is_empty();
     let most = match d.symbol_slice_map(symbol, *xf) {
-        Some(m) if dynamic => m.most_placed(&vectorcraft_doc::symbol_overrides::dynamic_art(&sym.art, inst), d),
+        Some(m) if dynamic => m.most_placed(&vansoncraft_doc::symbol_overrides::dynamic_art(&sym.art, inst), d),
         Some(m) => m.most_placed(&sym.art, d),
-        None if dynamic => vectorcraft_doc::symbol_overrides::dynamic_art(&sym.art, inst).count_with_masks() as u64,
+        None if dynamic => vansoncraft_doc::symbol_overrides::dynamic_art(&sym.art, inst).count_with_masks() as u64,
         None => sym.art.count_with_masks() as u64,
     };
     let mask = inst.extras().mask.as_ref().map_or(0, |m| m.art.count_with_masks() as u64);
@@ -739,7 +739,7 @@ const RESET_TOLERANCE: f64 = 1e-9;
 /// The transform Reset Transformation gives instance `n` of the document of `boxes`: its symbol's
 /// own scale, without rotation, shear or reflection, with the center of its art's bounding box
 /// where it is. `None` when [`reset_transformation_changes`] is false for `n`.
-fn reset_transformation(boxes: &vectorcraft_doc::SymbolBoxes, n: &Node) -> Option<Affine> {
+fn reset_transformation(boxes: &vansoncraft_doc::SymbolBoxes, n: &Node) -> Option<Affine> {
     let d = boxes.document();
     if !reset_transformation_changes(d, n) {
         return None;
@@ -748,7 +748,7 @@ fn reset_transformation(boxes: &vectorcraft_doc::SymbolBoxes, n: &Node) -> Optio
     let scale = d.symbol_natural_xf(symbol);
     // The art's box in symbol space (the ±HALF square when the art cannot be measured): its
     // center keeps its place on the page.
-    let art = boxes.art_bounds(symbol).unwrap_or_else(|| vectorcraft_geom::Rect::new(-HALF, -HALF, HALF, HALF));
+    let art = boxes.art_bounds(symbol).unwrap_or_else(|| vansoncraft_geom::Rect::new(-HALF, -HALF, HALF, HALF));
     let center = xf.transform_rect_bbox(art).center();
     Some(Affine::translate(center - scale * art.center()) * scale)
 }

@@ -4,9 +4,9 @@
 use std::collections::BTreeSet;
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{LiveCorners, NodeId, NodeKind};
-use vectorcraft_geom::shapes::CornerKind;
-use vectorcraft_tools::addons::corner_tool::MAX_RADIUS;
+use vansoncraft_doc::{LiveCorners, NodeId, NodeKind};
+use vansoncraft_geom::shapes::CornerKind;
+use vansoncraft_tools::addons::corner_tool::MAX_RADIUS;
 
 use super::super::super::object::recut;
 use super::super::super::{CommandSpec, bad, checked_id, checked_ids_or_selection, cmd, has_doc, number_or};

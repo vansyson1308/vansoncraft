@@ -10,14 +10,14 @@ use std::ops::Range;
 use std::sync::{Arc, Mutex};
 
 use serde_json::{Value, json};
-use vectorcraft_color::cms::{self, Cms, CmykLut, lab};
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::cmyk::oversized_tiff;
-use vectorcraft_doc::{
+use vansoncraft_color::cms::{self, Cms, CmykLut, lab};
+use vansoncraft_color::{Color, Paint};
+use vansoncraft_doc::cmyk::oversized_tiff;
+use vansoncraft_doc::{
     Appearance, AppearanceItem, Document, Effect, FillLayer, ImageBlob, LineCap, LineJoin, Node, NodeId, NodeKind, StrokeLayer, SymbolBoxes,
     TextKind, TextObject,
 };
-use vectorcraft_geom::{Affine, FillRule, PathData, Point, Rect};
+use vansoncraft_geom::{Affine, FillRule, PathData, Point, Rect};
 
 use crate::{Error, InputKind, Result};
 
@@ -505,7 +505,7 @@ fn rgba_pixels(b: &ImageBlob, w: u32, h: u32, max: usize, charged: &mut usize) -
 static CMYK_DISPLAY: Mutex<Option<(Arc<Cms>, Arc<CmykLut>)>> = Mutex::new(None);
 
 /// The pixels of CMYK image `b` as straight RGBA, when it is `w` × `h` pixels: its inks shown
-/// through the working CMYK profile, by a table built as `vectorcraft-render`'s `InkLut` builds its
+/// through the working CMYK profile, by a table built as `vansoncraft-render`'s `InkLut` builds its
 /// own and kept for the active color settings.
 fn cmyk_rgba(b: &ImageBlob, w: u32, h: u32) -> Option<Vec<u8>> {
     let inks = b.cmyk().filter(|i| (i.width, i.height) == (w, h))?;
@@ -617,8 +617,8 @@ fn decode_paint(v: &Value, at: &str) -> Result<Paint> {
             stops.sort_by(|a, b| a.offset.total_cmp(&b.offset));
             g.angle = g.angle.rem_euclid(360.0);
             g.gradient.repeats = g.gradient.repeat_count();
-            let conic = g.gradient.kind == vectorcraft_color::GradientKind::Conic;
-            let no_focal = conic || g.gradient.kind == vectorcraft_color::GradientKind::Diamond;
+            let conic = g.gradient.kind == vansoncraft_color::GradientKind::Conic;
+            let no_focal = conic || g.gradient.kind == vansoncraft_color::GradientKind::Diamond;
             if let Some(geom) = &mut g.geom {
                 check_point(geom.start, at)?;
                 check_point(geom.end, at)?;

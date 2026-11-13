@@ -5,14 +5,14 @@ use std::ops::Range;
 use std::sync::Arc;
 
 use serde_json::Value;
-use vectorcraft_doc::color::{BlendMode, Color, Paint};
-use vectorcraft_doc::{Appearance, AppearanceItem, FillLayer, Node, NodeId};
-use vectorcraft_three_d::{Shadow, ShadowCaster, ShadowPlane, ShadowPosition};
+use vansoncraft_doc::color::{BlendMode, Color, Paint};
+use vansoncraft_doc::{Appearance, AppearanceItem, FillLayer, Node, NodeId};
+use vansoncraft_three_d::{Shadow, ShadowCaster, ShadowPlane, ShadowPosition};
 
 use super::Scope;
 use crate::util::{flag, num, text};
 
-/// The shadow's paint: black at this opacity. VectorCraft's own values.
+/// The shadow's paint: black at this opacity. VansonCraft's own values.
 const SHADOW_OPACITY: f32 = 0.5;
 
 /// The shadow `p` asks for, or `None` with the switch off or when the first light lights nothing

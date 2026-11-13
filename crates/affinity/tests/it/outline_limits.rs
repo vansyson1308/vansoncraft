@@ -1,7 +1,7 @@
 //! Original synthetic graph tests for bounded `.af` outline expansion. These model the reader's
 //! accepted schema, without using Affinity software, third-party parser code or external assets.
 
-use vectorcraft_affinity::{
+use vansoncraft_affinity::{
     Document, Limits,
     model::{Kind, Path, Point},
     synth::{self, F, Method, tag},
@@ -11,7 +11,7 @@ fn compound(id: u32, children: Vec<F>) -> F {
     F::Def(id, vec![tag(b"Comp")], vec![(tag(b"Chld"), F::Shared(children))])
 }
 
-fn shape(id: u32, class: &[u8; 4], parameters: Vec<(vectorcraft_affinity::stream::Tag, F)>) -> F {
+fn shape(id: u32, class: &[u8; 4], parameters: Vec<(vansoncraft_affinity::stream::Tag, F)>) -> F {
     F::Def(
         id,
         vec![tag(b"ShpN")],
@@ -23,7 +23,7 @@ fn read(definitions: Vec<F>, top: u32) -> Document {
     try_read(definitions, top).unwrap()
 }
 
-fn try_read(definitions: Vec<F>, top: u32) -> Result<Document, vectorcraft_affinity::Error> {
+fn try_read(definitions: Vec<F>, top: u32) -> Result<Document, vansoncraft_affinity::Error> {
     let data = synth::stream(&[
         (tag(b"Defs"), F::Shared(definitions)),
         (
@@ -43,7 +43,7 @@ fn try_read(definitions: Vec<F>, top: u32) -> Result<Document, vectorcraft_affin
         ),
     ]);
     let bytes = synth::container(&[("doc.dat", &data, Method::Zlib)], None);
-    vectorcraft_affinity::read(&bytes, Limits::default())
+    vansoncraft_affinity::read(&bytes, Limits::default())
 }
 
 fn path(document: &Document) -> &Path {
@@ -244,7 +244,7 @@ fn null_slots_of_shared_lists_are_charged_for_every_visit() {
     assert_eq!(shapes, 16, "each placement costs a million slots of the 2^24");
     // A group of a million null children, placed 20 times, fails the read like too many layers.
     let result = try_read(vec![group(100, vec![F::Null; 1_000_000]), group(200, vec![F::Ref(100); 20])], 200);
-    assert!(matches!(result, Err(vectorcraft_affinity::Error::Limit(_))), "{:?}", result.map(|d| d.warnings));
+    assert!(matches!(result, Err(vansoncraft_affinity::Error::Limit(_))), "{:?}", result.map(|d| d.warnings));
     // Within the work of one document the same lists are read, nulls skipped.
     let document = read(vec![group(100, vec![F::Null; 1_000]), group(200, vec![F::Ref(100); 20])], 200);
     assert_eq!((document.spreads[0].nodes[0].children.len(), document.warnings.len()), (20, 0));

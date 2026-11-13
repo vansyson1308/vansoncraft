@@ -6,13 +6,13 @@ use std::borrow::Cow;
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
-use vectorcraft_doc::{Artboard, Document};
-use vectorcraft_geom::Rect;
-use vectorcraft_render::AntiAlias;
-use vectorcraft_render::encode::jpeg::{self, JpegOptions};
-use vectorcraft_render::encode::quantize::{Dither, PaletteOptions, Reduction};
-use vectorcraft_render::encode::tiff::{ByteOrder, TiffOptions};
-use vectorcraft_render::encode::{RasterExportOptions, RasterFormat, bmp, psd, tga};
+use vansoncraft_doc::{Artboard, Document};
+use vansoncraft_geom::Rect;
+use vansoncraft_render::AntiAlias;
+use vansoncraft_render::encode::jpeg::{self, JpegOptions};
+use vansoncraft_render::encode::quantize::{Dither, PaletteOptions, Reduction};
+use vansoncraft_render::encode::tiff::{ByteOrder, TiffOptions};
+use vansoncraft_render::encode::{RasterExportOptions, RasterFormat, bmp, psd, tga};
 
 use super::super::{EngineError, Result, bad, color_value, parse_range};
 use super::Format;
@@ -71,7 +71,7 @@ pub struct Encoded {
     /// `(artboard, bytes)`; the artboard names the file when there are several.
     pub files: Vec<(Option<usize>, Vec<u8>)>,
     /// Images to write next to the file(s) (SVG `images: "link"`).
-    pub linked: Vec<vectorcraft_svg::LinkedImage>,
+    pub linked: Vec<vansoncraft_svg::LinkedImage>,
     /// Image maps, each written beside its image under the image's name (raster `imageMap`).
     pub maps: Vec<imagemap::Map>,
     /// The encoder's warnings (features approximated or left out, options not applied yet).
@@ -393,7 +393,7 @@ pub(super) fn options<T: DeserializeOwned + Default>(f: &Format, p: &Value) -> R
 const WEBP_SIDE: f64 = 16383.0;
 
 /// Refuse a raster export its format can't store (instead of writing an empty file). The
-/// renderer's own size limits are [`vectorcraft_render::raster_size`]'s.
+/// renderer's own size limits are [`vansoncraft_render::raster_size`]'s.
 fn check_format_size(f: &Format, w: f64, h: f64) -> Result<()> {
     let max = match f.id {
         "webp" => WEBP_SIDE,
@@ -433,7 +433,7 @@ pub fn encode_all(doc: &Document, format: &str, p: &Value) -> Result<Encoded> {
     let format = super::writable(C, Some(format), None)?.id;
     // Formats with editing data prepare their drawn output separately from their original
     // document. Other formats only need the placed files' art.
-    if !matches!(format, "vectorcraft" | "template" | "ai" | "pdf" | "eps" | "svg" | "svgz") {
+    if !matches!(format, "vansoncraft" | "template" | "ai" | "pdf" | "eps" | "svg" | "svgz") {
         let (full, warnings) = crate::cmd::place::document::full_documents(doc);
         if !warnings.is_empty() {
             let mut enc = encode_all_of(&full, format, p)?;
@@ -448,13 +448,13 @@ pub fn encode_all(doc: &Document, format: &str, p: &Value) -> Result<Encoded> {
 /// [`encode_all`] of `doc` as it is.
 fn encode_all_of(doc: &Document, format: &str, p: &Value) -> Result<Encoded> {
     let f = super::writable(C, Some(format), None)?;
-    if let Some(plugin) = vectorcraft_plugins::export::by_format(f.id) {
+    if let Some(plugin) = vansoncraft_plugins::export::by_format(f.id) {
         return plugin_file(doc, &plugin, f, p);
     }
-    let failed = vectorcraft_render::decode_failures();
+    let failed = vansoncraft_render::decode_failures();
     let mut enc = encode_files(doc, f, p)?;
     // Baking, flattening and drawing stop early when cancelled and leave a truncated result.
-    vectorcraft_doc::cancel::check()?;
+    vansoncraft_doc::cancel::check()?;
     // An image the renderer couldn't decode draws nothing: say so rather than write a picture
     // that silently lacks it.
     if f.raster
@@ -473,28 +473,28 @@ fn encode_all_of(doc: &Document, format: &str, p: &Value) -> Result<Encoded> {
 }
 
 /// The file exporter plug-in `plugin` writes of `doc` in its format `f`
-/// ([`vectorcraft_plugins::export`]). The plug-in is given the native file's JSON
-/// ([`vectorcraft_format::json_part`]) and `p`'s `params`, for the file `p`'s `path` names (else
+/// ([`vansoncraft_plugins::export`]). The plug-in is given the native file's JSON
+/// ([`vansoncraft_format::json_part`]) and `p`'s `params`, for the file `p`'s `path` names (else
 /// one named after the document) with that path's extension when the plug-in lists it, else its
 /// first. Its warnings come back with the file.
-fn plugin_file(doc: &Document, plugin: &vectorcraft_plugins::Plugin, f: &Format, p: &Value) -> Result<Encoded> {
-    use vectorcraft_plugins::{Error, export};
+fn plugin_file(doc: &Document, plugin: &vansoncraft_plugins::Plugin, f: &Format, p: &Value) -> Result<Encoded> {
+    use vansoncraft_plugins::{Error, export};
     let doc = &*doc.without_edit_modes();
-    let file = vectorcraft_format::save_with(doc, &vectorcraft_format::SaveOptions::default()).map_err(|e| EngineError::Other(e.to_string()))?;
+    let file = vansoncraft_format::save_with(doc, &vansoncraft_format::SaveOptions::default()).map_err(|e| EngineError::Other(e.to_string()))?;
     let path = p.get("path").and_then(Value::as_str);
     let listed = path.map(super::extension).and_then(|e| f.extensions.iter().copied().find(|x| *x == e));
     let extension = listed.or(f.extensions.first().copied()).unwrap_or_default();
     let name = super::file_stem(path.unwrap_or(&super::default_name(doc, extension)));
     let params = p.get("params").cloned().unwrap_or(Value::Null);
     let target = export::Target { extension, name: &name };
-    let out = export::run(plugin, vectorcraft_format::json_part(&file), &params, target).map_err(|e| match e {
+    let out = export::run(plugin, vansoncraft_format::json_part(&file), &params, target).map_err(|e| match e {
         Error::Cancelled => EngineError::Cancelled,
         Error::Params(why) => bad(C, why),
         e => EngineError::Other(e.to_string()),
     })?;
     // The plug-in's output, so reported as its other output errors are.
     let invalid = || EngineError::Other(Error::Output("`dataBase64` is not valid base64".into()).to_string());
-    let bytes = vectorcraft_format::base64_decode(&out.data_base64).ok_or_else(invalid)?;
+    let bytes = vansoncraft_format::base64_decode(&out.data_base64).ok_or_else(invalid)?;
     Ok(Encoded { warnings: out.warnings, ..Encoded::one(bytes) })
 }
 
@@ -514,7 +514,7 @@ fn encode_files(doc: &Document, f: &Format, p: &Value) -> Result<Encoded> {
         return encode_files(&single_artboard(doc, rect, "Rect"), f, &q);
     }
     if use_artboards == Some(false) {
-        let bounds = vectorcraft_render::encode::art_bounds(doc).ok_or_else(|| bad(C, "nothing to export: the document has no visible art"))?;
+        let bounds = vansoncraft_render::encode::art_bounds(doc).ok_or_else(|| bad(C, "nothing to export: the document has no visible art"))?;
         let mut q = super::export::without_artboards(p);
         if let Some(o) = q.as_object_mut() {
             o.remove("useArtboards");
@@ -522,7 +522,7 @@ fn encode_files(doc: &Document, f: &Format, p: &Value) -> Result<Encoded> {
         return encode_files(&single_artboard(doc, bounds, "Art"), f, &q);
     }
     let bytes = match f.id {
-        "vectorcraft" => super::native::encode(C, f, doc, p)?,
+        "vansoncraft" => super::native::encode(C, f, doc, p)?,
         // A native file flagged so opening it starts a new untitled document.
         "template" => {
             let mut d = doc.clone();
@@ -534,8 +534,8 @@ fn encode_files(doc: &Document, f: &Format, p: &Value) -> Result<Encoded> {
         "dxf" => return super::dxf::encode(doc, p, use_artboards),
         // EPS reads its own `useArtboards` (the art's bounds unless asked).
         "eps" => return super::eps::encode(doc, p),
-        "emf" => return super::metafile::encode(doc, p, use_artboards, vectorcraft_metafile::Kind::Emf),
-        "wmf" => return super::metafile::encode(doc, p, use_artboards, vectorcraft_metafile::Kind::Wmf),
+        "emf" => return super::metafile::encode(doc, p, use_artboards, vansoncraft_metafile::Kind::Emf),
+        "wmf" => return super::metafile::encode(doc, p, use_artboards, vansoncraft_metafile::Kind::Wmf),
         "hpgl" => return super::hpgl::encode(doc, p, use_artboards),
         "ai" => return super::save::encode_ai(C, f, doc, p),
         "pdf" => {
@@ -546,7 +546,7 @@ fn encode_files(doc: &Document, f: &Format, p: &Value) -> Result<Encoded> {
             let o: RasterOptions = options(f, p)?;
             // New Document → Background Contents: White makes the export opaque, unless `background`
             // says otherwise (JPEG has no alpha: white either way).
-            let page = (doc.setup.background == vectorcraft_doc::Background::White).then_some([255; 3]);
+            let page = (doc.setup.background == vansoncraft_doc::Background::White).then_some([255; 3]);
             let mut settings = o.settings(page, doc.raster_ppi())?;
             let size = o.pixel_size()?;
             let format = match f.id {
@@ -575,11 +575,11 @@ fn encode_files(doc: &Document, f: &Format, p: &Value) -> Result<Encoded> {
             let filled = super::export::with_artboard_fills(doc, p, chosen.iter().copied()).map_err(|e| bad(C, e))?;
             let doc = &*filled;
             let mut enc = Encoded::default();
-            let mut renderer = vectorcraft_render::Renderer::new();
+            let mut renderer = vansoncraft_render::Renderer::new();
             let total = chosen.len() as u64;
             for (done, b) in chosen.into_iter().enumerate() {
-                vectorcraft_doc::cancel::check()?;
-                vectorcraft_doc::cancel::progress(done as u64, total, &format!("Rendering artboard {} of {total}", done + 1));
+                vansoncraft_doc::cancel::check()?;
+                vansoncraft_doc::cancel::progress(done as u64, total, &format!("Rendering artboard {} of {total}", done + 1));
                 let region = doc.artboards.get(b).ok_or_else(|| bad(C, format!("no artboard {}", b + 1)))?.rect;
                 // `width` or `height`: each file gets the scale that makes its region that size.
                 if let Some(size) = size {
@@ -587,18 +587,18 @@ fn encode_files(doc: &Document, f: &Format, p: &Value) -> Result<Encoded> {
                 }
                 let scale = settings.scale();
                 check_format_size(f, region.width() * scale, region.height() * scale)?;
-                vectorcraft_render::raster_size(region, scale).map_err(|e| bad(C, e))?;
+                vansoncraft_render::raster_size(region, scale).map_err(|e| bad(C, e))?;
                 enc.maps.extend(imagemap::build(doc, region, scale, map, enc.files.len()));
                 let bytes = renderer.export_region(doc, region, format, &settings).map_err(EngineError::Other)?;
                 // File Info as PNG text chunks.
                 let bytes = if matches!(format, RasterFormat::Png | RasterFormat::Png8) {
-                    vectorcraft_render::encode::png::with_text(bytes, &doc.metadata.png_text(doc.info_title()))
+                    vansoncraft_render::encode::png::with_text(bytes, &doc.metadata.png_text(doc.info_title()))
                 } else {
                     bytes
                 };
                 // PNG: say the colours are sRGB (what the renderer draws), unless `embedIcc` is false.
                 let bytes =
-                    if format == RasterFormat::Png && settings.jpeg.embed_icc { vectorcraft_render::encode::png::with_srgb(bytes) } else { bytes };
+                    if format == RasterFormat::Png && settings.jpeg.embed_icc { vansoncraft_render::encode::png::with_srgb(bytes) } else { bytes };
                 enc.files.push((Some(b), bytes));
             }
             if enc.files.is_empty() {

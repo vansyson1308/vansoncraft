@@ -1,9 +1,9 @@
 #[cfg(not(target_arch = "wasm32"))]
 use super::dialogs;
-use super::{VectorcraftApp, browsable_url};
+use super::{VansoncraftApp, browsable_url};
 
-impl VectorcraftApp {
-    /// Open a link in the browser (Help → Discord, website, GitHub…).
+impl VansoncraftApp {
+    /// Open a link in the browser (Help → VansonCraft on GitHub…).
     pub fn open_url(&mut self, url: &str) {
         match self.services.open_url.as_mut() {
             Some(open) => open(url),
@@ -56,7 +56,7 @@ impl VectorcraftApp {
     /// Linked files another app changed while their document is open: every two seconds, and as
     /// soon as the window comes back to the front, stamp the active document's linked files on a
     /// worker thread and act on the changed ones as Preferences › File Handling › Update Links
-    /// says ([`vectorcraft_engine::link_watch`]). No look starts while a dialog is open, so an
+    /// says ([`vansoncraft_engine::link_watch`]). No look starts while a dialog is open, so an
     /// Ask When Modified question never goes unseen.
     #[cfg(not(target_arch = "wasm32"))]
     pub(super) fn tick_link_updates(&mut self, ctx: &egui::Context, now: f64) {

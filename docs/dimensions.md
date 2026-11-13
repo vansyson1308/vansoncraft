@@ -21,7 +21,7 @@ The **Dimension Tool** is in the Modify section of the toolbar. Its strip offers
   [linear dimensions help](https://helpx.adobe.com/illustrator/desktop/measure-and-align/plot-and-measure/plot-linear-dimensions-of-objects.html)
   describes: after the second click, clicking again places an aligned dimension, and moving the
   pointer away gives a horizontal or vertical one. Which one a pointer position gives is
-  VectorCraft's own rule. When the pointer is beside the two points (the nearest point of the
+  VansonCraft's own rule. When the pointer is beside the two points (the nearest point of the
   line through them lies between them) or on that line, the dimension is aligned. When the
   pointer is past either point, the line through the points and the perpendicular through that
   point divide the area beyond it into two quarters, one on each side of the line. The quarter
@@ -68,7 +68,7 @@ attaching them to a different edge. Undo links them again. A linked dimension mo
 stays where it was dropped (its distance from the art changes); moved together with its art, it
 keeps its distance.
 
-Native `.vectorcraft` files keep the recipes and links. SVG, PDF and bitmap output contain
+Native `.vansoncraft` files keep the recipes and links. SVG, PDF and bitmap output contain
 ordinary paths and text, so exported dimensions look the same. Ungrouping a dimension leaves its
 paths and text as ordinary art. Object › Expand, Object › Expand Appearance, Type › Create Outlines
 and Object › Path › Outline Stroke turn a dimension whose art they change into a plain group of that

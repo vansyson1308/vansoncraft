@@ -1,5 +1,5 @@
-use vectorcraft_doc::AnchorRef;
-use vectorcraft_geom::PathData;
+use vansoncraft_doc::AnchorRef;
+use vansoncraft_geom::PathData;
 
 use super::spans::Span;
 use super::{

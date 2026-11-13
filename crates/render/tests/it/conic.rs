@@ -2,11 +2,11 @@
 //! where the last stop meets the first, and follow the model's parameter when the extent ellipse
 //! is squashed, turned or mirrored, or holds numbers out of range.
 
-use vectorcraft_color::{Color, Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop, Paint};
-use vectorcraft_doc::{Appearance, Document};
-use vectorcraft_geom::{Point, Rect, shapes};
-use vectorcraft_testkit::fixtures::DocBuilder;
-use vectorcraft_testkit::raster::{Image, render_view};
+use vansoncraft_color::{Color, Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop, Paint};
+use vansoncraft_doc::{Appearance, Document};
+use vansoncraft_geom::{Point, Rect, shapes};
+use vansoncraft_testkit::fixtures::DocBuilder;
+use vansoncraft_testkit::raster::{Image, render_view};
 
 /// A 100 pt square filled with `gradient` placed on `geom`.
 fn square(gradient: Gradient, geom: GradientGeom) -> Document {

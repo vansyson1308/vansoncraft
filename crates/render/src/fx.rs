@@ -1,7 +1,7 @@
 //! Live effects in the renderer.
 //!
 //! Geometry effects (object-level, then per fill/stroke) rewrite the path before painting via
-//! `vectorcraft-effects`. Raster effects use vello_cpu filter layers. Those only work in
+//! `vansoncraft-effects`. Raster effects use vello_cpu filter layers. Those only work in
 //! single-threaded contexts, so on the multithreaded pipeline each filter layer is rendered
 //! offscreen on the calling thread (cropped to its reach) and composited back with the same blend
 //! mode and opacity ([`Renderer::with_filters`]):
@@ -49,11 +49,11 @@
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::sync::{Arc, Weak};
 
-use vectorcraft_color::cms::Cms;
-use vectorcraft_doc::{AppearanceItem, Document, Effect, Node, NodeId, NodeKind, SymbolBoxes};
-use vectorcraft_effects::pixel::{Channels, PixelFx};
-use vectorcraft_effects::{self as effects, GeomContext, RasterFx};
-use vectorcraft_geom::{Affine, BezPath, FillRule, PathEl, Point, Rect, Shape, Size, Vec2};
+use vansoncraft_color::cms::Cms;
+use vansoncraft_doc::{AppearanceItem, Document, Effect, Node, NodeId, NodeKind, SymbolBoxes};
+use vansoncraft_effects::pixel::{Channels, PixelFx};
+use vansoncraft_effects::{self as effects, GeomContext, RasterFx};
+use vansoncraft_geom::{Affine, BezPath, FillRule, PathEl, Point, Rect, Shape, Size, Vec2};
 use vello_common::filter_effects::{EdgeMode, Filter, FilterPrimitive};
 use vello_cpu::RenderContext;
 use vello_cpu::peniko;

@@ -1,11 +1,11 @@
-use vectorcraft_engine::cmd::plugin::InstallApproval;
-use vectorcraft_plugins::permissions;
+use vansoncraft_engine::cmd::plugin::InstallApproval;
+use vansoncraft_plugins::permissions;
 
 use super::save::{notes_of, show_with_notes, suggested};
-use super::{Dialog, FilePick, Format, Value, VectorcraftApp, dialogs, fileio, json};
+use super::{Dialog, FilePick, Format, Value, VansoncraftApp, dialogs, fileio, json};
 
 /// Template extensions New from Template's open dialog lists first.
-const TEMPLATE_EXTS: &[&str] = &["vctemplate", "ait", "vectorcraft", "drawcraft"];
+const TEMPLATE_EXTS: &[&str] = &["vctemplate", "ait", "vansoncraft", "vectorcraft", "drawcraft"]; // brand-ok: files saved before the rename
 
 /// Open bytes of any readable format as a new document (templates open untitled); swatch and
 /// graphic style library files open in the library panel, Libraries panel files are added to it,
@@ -13,16 +13,16 @@ const TEMPLATE_EXTS: &[&str] = &["vctemplate", "ait", "vectorcraft", "drawcraft"
 /// app saved (`.kys`) opens Import Shortcut Set, and a script written for the reference app
 /// (`.jsx`, `.jsxinc`, `.jsxbin`) shows its check (Check Script…). → `document.open`'s result for
 /// a document opened now (its `warnings` say what didn't come in as it was), else null.
-pub fn open_bytes(app: &mut VectorcraftApp, name: &str, bytes: &[u8], path: Option<String>) -> Result<Value, String> {
+pub fn open_bytes(app: &mut VansoncraftApp, name: &str, bytes: &[u8], path: Option<String>) -> Result<Value, String> {
     open_bytes_with(app, name, bytes, path, &Value::Null)
 }
 
 /// [`open_bytes`], a document opening with `document.open`'s params `p`.
-fn open_bytes_with(app: &mut VectorcraftApp, name: &str, bytes: &[u8], path: Option<String>, p: &Value) -> Result<Value, String> {
+fn open_bytes_with(app: &mut VansoncraftApp, name: &str, bytes: &[u8], path: Option<String>, p: &Value) -> Result<Value, String> {
     let opens = opens_as(name);
     // A WebAssembly plug-in is installed.
     if opens == Some(OpensAs::Plugin) {
-        let module = json!({"dataBase64": vectorcraft_format::base64_encode(bytes), "name": path.as_deref().unwrap_or(name)});
+        let module = json!({"dataBase64": vansoncraft_format::base64_encode(bytes), "name": path.as_deref().unwrap_or(name)});
         return install_module(app, module).map(|_| Value::Null);
     }
     if opens == Some(OpensAs::ShortcutSet) {
@@ -31,23 +31,23 @@ fn open_bytes_with(app: &mut VectorcraftApp, name: &str, bytes: &[u8], path: Opt
     if opens == Some(OpensAs::Script) {
         let p = match path {
             Some(path) => json!({ "path": path }),
-            None => json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(bytes)}),
+            None => json!({"name": name, "dataBase64": vansoncraft_format::base64_encode(bytes)}),
         };
         return dialogs::script_check::command(app, &p).map(|_| Value::Null);
     }
     if let Some(OpensAs::Presets { import, what }) = opens {
-        import_presets(app, import, what, serde_json::json!({"dataBase64": vectorcraft_format::base64_encode(bytes)}))?;
+        import_presets(app, import, what, serde_json::json!({"dataBase64": vansoncraft_format::base64_encode(bytes)}))?;
         return Ok(Value::Null);
     }
     if opens == Some(OpensAs::Library) {
-        return crate::panels::libraries::import(app, json!({"dataBase64": vectorcraft_format::base64_encode(bytes)})).map(|_| Value::Null);
+        return crate::panels::libraries::import(app, json!({"dataBase64": vansoncraft_format::base64_encode(bytes)})).map(|_| Value::Null);
     }
     let swatches = opens == Some(OpensAs::SwatchLibrary);
     if swatches || opens == Some(OpensAs::StyleLibrary) {
         let p = match path {
             Some(path) => serde_json::json!({ "path": path }),
             // The file's bytes as they are (`.ase` swatch libraries are binary).
-            None => serde_json::json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(bytes)}),
+            None => serde_json::json!({"name": name, "dataBase64": vansoncraft_format::base64_encode(bytes)}),
         };
         let load = if swatches { crate::panels::swatches::load_library } else { crate::panels::graphic_styles::load_library };
         return load(app, p).map(|_| Value::Null);
@@ -88,7 +88,7 @@ pub(crate) const EXPORT_PRESETS: &str = "export presets";
 
 /// Run presets command `import` with `p` (the file) and say in the status bar which presets
 /// (`what`) it added → its result.
-pub(crate) fn import_presets(app: &mut VectorcraftApp, import: &str, what: &str, p: Value) -> Result<Value, String> {
+pub(crate) fn import_presets(app: &mut VansoncraftApp, import: &str, what: &str, p: Value) -> Result<Value, String> {
     let r = app.run(import, p)?;
     let names: Vec<&str> = r["imported"].as_array().into_iter().flatten().filter_map(Value::as_str).collect();
     app.status(format!("Imported {what}: {}", names.join(", ")));
@@ -98,30 +98,30 @@ pub(crate) fn import_presets(app: &mut VectorcraftApp, import: &str, what: &str,
 /// The kind of file named `name` (by its extension) that File → Open installs, imports, checks,
 /// shows in the library panel or the Libraries panel, or reviews in Import Shortcut Set
 /// ([`open_bytes`]), else `None`. A drop opens these files the same way, wherever they are dropped
-/// ([`VectorcraftApp::drop_target`]).
+/// ([`VansoncraftApp::drop_target`]).
 pub fn opens_as(name: &str) -> Option<OpensAs> {
     let ext = fileio::extension(name);
     let presets = [
-        (vectorcraft_engine::cmd::flatten::PRESET_EXTS, "flattener.presets.import", "flattener presets"),
-        (vectorcraft_engine::cmd::pdfcmds::PRESET_EXTS, "pdf.preset.import", "PDF presets"),
-        (vectorcraft_engine::cmd::printpresets::PRESET_EXTS, "print.presets.import", "print presets"),
-        (vectorcraft_engine::cmd::perspgrid::PRESET_EXTS, "perspective.presets.import", "perspective grid presets"),
+        (vansoncraft_engine::cmd::flatten::PRESET_EXTS, "flattener.presets.import", "flattener presets"),
+        (vansoncraft_engine::cmd::pdfcmds::PRESET_EXTS, "pdf.preset.import", "PDF presets"),
+        (vansoncraft_engine::cmd::printpresets::PRESET_EXTS, "print.presets.import", "print presets"),
+        (vansoncraft_engine::cmd::perspgrid::PRESET_EXTS, "perspective.presets.import", "perspective grid presets"),
         (fileio::SCREEN_EXPORT_PRESET_EXTS, "document.exportPresets.import", EXPORT_PRESETS),
-        (vectorcraft_engine::cmd::compositefonts::EXTS, "type.compositeFonts.import", "composite fonts"),
+        (vansoncraft_engine::cmd::compositefonts::EXTS, "type.compositeFonts.import", "composite fonts"),
     ];
-    if vectorcraft_engine::cmd::plugin::EXTS.contains(&ext.as_str()) {
+    if vansoncraft_engine::cmd::plugin::EXTS.contains(&ext.as_str()) {
         Some(OpensAs::Plugin)
-    } else if vectorcraft_engine::cmd::shortcutset::EXTS.contains(&ext.as_str()) {
+    } else if vansoncraft_engine::cmd::shortcutset::EXTS.contains(&ext.as_str()) {
         Some(OpensAs::ShortcutSet)
-    } else if vectorcraft_engine::cmd::scripts::EXTS.contains(&ext.as_str()) {
+    } else if vansoncraft_engine::cmd::scripts::EXTS.contains(&ext.as_str()) {
         Some(OpensAs::Script)
     } else if let Some(&(_, import, what)) = presets.iter().find(|(exts, ..)| exts.contains(&ext.as_str())) {
         Some(OpensAs::Presets { import, what })
-    } else if vectorcraft_engine::cmd::library::LIBRARY_EXTS.contains(&ext.as_str()) {
+    } else if vansoncraft_engine::cmd::library::LIBRARY_EXTS.contains(&ext.as_str()) {
         Some(OpensAs::Library)
-    } else if vectorcraft_engine::cmd::swatchlib::LIBRARY_EXTS.contains(&ext.as_str()) {
+    } else if vansoncraft_engine::cmd::swatchlib::LIBRARY_EXTS.contains(&ext.as_str()) {
         Some(OpensAs::SwatchLibrary)
-    } else if ext == vectorcraft_doc::style_libs::STYLES_EXT {
+    } else if ext == vansoncraft_doc::style_libs::STYLES_EXT {
         Some(OpensAs::StyleLibrary)
     } else {
         None
@@ -130,7 +130,7 @@ pub fn opens_as(name: &str) -> Option<OpensAs> {
 
 /// Open a document through the engine loader with the `document.open` options in `p` →
 /// `document.open`'s result.
-pub fn open_document(app: &mut VectorcraftApp, name: &str, bytes: &[u8], path: Option<String>, p: &Value) -> Result<Value, String> {
+pub fn open_document(app: &mut VansoncraftApp, name: &str, bytes: &[u8], path: Option<String>, p: &Value) -> Result<Value, String> {
     let r = fileio::open_bytes_with(&mut app.session, name, bytes, path, p).map_err(|e| e.to_string())?;
     opened(app, &r);
     Ok(r)
@@ -140,7 +140,7 @@ pub fn open_document(app: &mut VectorcraftApp, name: &str, bytes: &[u8], path: O
 /// what didn't come in as it was, and missing links are asked about. The status bar names the
 /// first of the notes that say reading the file left something out (the ones that make Save ask
 /// before writing over it), else the first note, and keeps the notes in that order for its hover.
-pub(crate) fn opened(app: &mut VectorcraftApp, r: &Value) {
+pub(crate) fn opened(app: &mut VansoncraftApp, r: &Value) {
     app.sync_views();
     let notes = open_notes(app, r);
     if let Some(first) = notes.first() {
@@ -152,7 +152,7 @@ pub(crate) fn opened(app: &mut VectorcraftApp, r: &Value) {
 
 /// The notes of the open `r`, those of what reading the file left out (its document's
 /// `import_losses`) first, each group in the order the import gave them.
-fn open_notes(app: &VectorcraftApp, r: &Value) -> Vec<String> {
+fn open_notes(app: &VansoncraftApp, r: &Value) -> Vec<String> {
     let notes = notes_of(r);
     let index = r["index"].as_u64().and_then(|i| usize::try_from(i).ok());
     let losses = index.and_then(|i| app.session.documents().get(i)).map(|st| st.import_losses.as_slice()).unwrap_or_default();
@@ -167,14 +167,14 @@ pub(crate) fn opened_with_notes(n: usize, first: &str) -> String {
 }
 
 /// A path from the open dialog, or "cancelled".
-fn pick_open(app: &mut VectorcraftApp, pick: &FilePick) -> Result<String, String> {
+fn pick_open(app: &mut VansoncraftApp, pick: &FilePick) -> Result<String, String> {
     crate::picks::open(app, pick).ok_or_else(|| "cancelled".into())
 }
 
 /// Object › Plug-ins › Install Plug-in…: installs the module `p` gives (`path`, or `dataBase64`
 /// with `name`), else a picked `.wasm` (the web's file picker hands the file to [`open_bytes`],
 /// which installs it) → [`install_module`]'s result.
-pub fn install_plugin(app: &mut VectorcraftApp, p: &Value) -> Result<Value, String> {
+pub fn install_plugin(app: &mut VansoncraftApp, p: &Value) -> Result<Value, String> {
     let given = |k: &str| p.get(k).and_then(Value::as_str).is_some_and(|v| !v.is_empty());
     if given("path") || given("dataBase64") {
         return install_module(app, p.clone());
@@ -183,7 +183,7 @@ pub fn install_plugin(app: &mut VectorcraftApp, p: &Value) -> Result<Value, Stri
         return open_dialog(app).map(|_| Value::Null);
     }
     let path =
-        pick_open(app, &FilePick { filters: vec![FilePick::filter("Plug-ins", vectorcraft_engine::cmd::plugin::EXTS)], ..Default::default() })?;
+        pick_open(app, &FilePick { filters: vec![FilePick::filter("Plug-ins", vansoncraft_engine::cmd::plugin::EXTS)], ..Default::default() })?;
     install_module(app, json!({ "path": path }))
 }
 
@@ -216,12 +216,12 @@ fn permission_words(name: &str, commands: &[String]) -> String {
 /// the module still has the hash the prompt showed, Cancel installs nothing → `{pending}` while it
 /// asks. The `grant` and `allowHeavy` of a request are ignored: only the dialog's OK approves.
 /// Every question opens the approval dialog ([`dialogs::plugin::ask_install`]). When automation
-/// asked ([`VectorcraftApp::automation_asked`]), the question has no OK that installs, its
+/// asked ([`VansoncraftApp::automation_asked`]), the question has no OK that installs, its
 /// `replace: true` doesn't skip asking about replacing, and the answer while it asks adds
 /// `approval: "personMustStartInstall"`: the person starts Install Plug-in… to install it.
 /// Every text from the manifest is shown with its hidden characters escaped and its length capped
 /// ([`permissions::display_text`]).
-pub fn install_module(app: &mut VectorcraftApp, module: Value) -> Result<Value, String> {
+pub fn install_module(app: &mut VansoncraftApp, module: Value) -> Result<Value, String> {
     let origin = if app.automation_asked() { dialogs::plugin::InstallOrigin::Automation } else { dialogs::plugin::InstallOrigin::Person };
     let automated = origin == dialogs::plugin::InstallOrigin::Automation;
     let given = |k: &str| module.get(k).map(|v| (k.to_string(), v.clone()));
@@ -274,7 +274,7 @@ pub fn install_module(app: &mut VectorcraftApp, module: Value) -> Result<Value, 
         install["grant"] = Value::Array(asked.clone());
     }
     if heavy {
-        let (minutes, times) = vectorcraft_plugins::heavy_terms();
+        let (minutes, times) = vansoncraft_plugins::heavy_terms();
         paragraphs.push(crate::i18n::fmt(
             tl!(
                 "Each run may take up to {minutes} minutes and do {times} times the work other plug-ins may. It runs in the background, and you can cancel it."
@@ -305,18 +305,18 @@ pub fn install_module(app: &mut VectorcraftApp, module: Value) -> Result<Value, 
 }
 
 /// Says in the status bar that `plugin.install`'s result `r` was installed.
-pub(crate) fn report_installed(app: &mut VectorcraftApp, r: &Value) {
+pub(crate) fn report_installed(app: &mut VansoncraftApp, r: &Value) {
     app.status(format!("Installed plug-in {}", permissions::display_text(r["name"].as_str().unwrap_or_default(), permissions::MAX_SHOWN_NAME)));
 }
 
 /// Where File → Open… starts: the folder of the most recently opened file, else the active
 /// document's (#4122).
-fn open_dialog_folder(app: &VectorcraftApp) -> Option<String> {
+fn open_dialog_folder(app: &VansoncraftApp) -> Option<String> {
     app.ui.recent_files.iter().find_map(|p| fileio::dialog_folder(p)).or_else(|| suggested(app, "").1)
 }
 
 /// File → Open…
-pub fn open_dialog(app: &mut VectorcraftApp) -> Result<(), String> {
+pub fn open_dialog(app: &mut VansoncraftApp) -> Result<(), String> {
     if crate::picks::open_async(app) {
         return Ok(());
     }
@@ -334,7 +334,7 @@ pub fn open_dialog(app: &mut VectorcraftApp) -> Result<(), String> {
 /// it. A file the user picked is read off the UI thread where that is available
 /// ([`crate::opening`]), and the result is then `{background: true, status}`; with `path` the file
 /// opens before the reply, as automation needs.
-pub fn open_with(app: &mut VectorcraftApp, p: &Value) -> Result<Value, String> {
+pub fn open_with(app: &mut VansoncraftApp, p: &Value) -> Result<Value, String> {
     open_with_on(app, p, picks_a_file(p) && crate::opening::available())
 }
 
@@ -345,15 +345,15 @@ fn picks_a_file(p: &Value) -> bool {
 
 /// [`open_with`]; with `background`, the importer runs off the UI thread
 /// ([`crate::opening::start_with`]), its progress window offering Cancel.
-pub(crate) fn open_with_on(app: &mut VectorcraftApp, p: &Value, background: bool) -> Result<Value, String> {
+pub(crate) fn open_with_on(app: &mut VansoncraftApp, p: &Value, background: bool) -> Result<Value, String> {
     let importer = p.get("importer").and_then(Value::as_str).ok_or("missing `importer` (see document.formats)")?;
-    let plugin = vectorcraft_plugins::import::named(importer).map_err(|e| e.to_string())?;
+    let plugin = vansoncraft_plugins::import::named(importer).map_err(|e| e.to_string())?;
     let path = match p.get("path").and_then(Value::as_str).filter(|s| !s.is_empty()) {
         Some(path) => path.to_string(),
         None if app.services.open_async.is_some() => return open_dialog(app).map(|_| Value::Null),
         None => {
             // The importer's format: its name and extensions, made once for each installation.
-            let filters = fileio::format(&vectorcraft_plugins::export::format_id(plugin.id()))
+            let filters = fileio::format(&vansoncraft_plugins::export::format_id(plugin.id()))
                 .filter(|f| f.read)
                 .map(|f| FilePick::filter(f.label, f.extensions))
                 .into_iter()
@@ -361,9 +361,9 @@ pub(crate) fn open_with_on(app: &mut VectorcraftApp, p: &Value, background: bool
             pick_open(app, &FilePick { filters, folder: open_dialog_folder(app), ..Default::default() })?
         }
     };
-    let importer = vectorcraft_plugins::export::format_id(plugin.id());
+    let importer = vansoncraft_plugins::export::format_id(plugin.id());
     let given = p.get("params").filter(|v| !v.is_null());
-    let opened = vectorcraft_engine::file_access::check_read(&path).and_then(|()| check_import_size(&path, true)).and_then(|()| {
+    let opened = vansoncraft_engine::file_access::check_read(&path).and_then(|()| check_import_size(&path, true)).and_then(|()| {
         if given.is_none() && !plugin.manifest().params.is_empty() {
             dialogs::plugin::open_import(app, &plugin, json!({ "path": path, "importer": importer, "picked": picks_a_file(p) }));
             return Ok(Value::Null);
@@ -396,7 +396,7 @@ pub(crate) fn open_with_on(app: &mut VectorcraftApp, p: &Value, background: bool
 #[cfg(not(target_arch = "wasm32"))]
 fn check_import_size(path: &str, explicit: bool) -> Result<(), String> {
     use std::io::Read as _;
-    use vectorcraft_plugins::import;
+    use vansoncraft_plugins::import;
     let ext = fileio::extension(path);
     if !explicit && (fileio::readable_format(&ext).is_some() || import::for_extension(&ext).is_empty()) {
         return Ok(());
@@ -423,7 +423,7 @@ fn check_import_size(_: &str, _: bool) -> Result<(), String> {
 
 /// A file the user asked to open (File › Open, Open Recent, the Home screen, a drop, the Finder)
 /// couldn't be: say so in a dialog as well as the status bar, which is easily missed (#861).
-pub fn report_open_error(app: &mut VectorcraftApp, name: &str, e: &str) {
+pub fn report_open_error(app: &mut VansoncraftApp, name: &str, e: &str) {
     app.status(format!("Couldn't open {name}: {e}"));
     let message = crate::i18n::fmt(tl!("Can't open “{name}”."), &[("name", name)]);
     dialogs::confirm::tell(app, &message, &crate::i18n::message(crate::i18n::current(), e));
@@ -433,7 +433,7 @@ pub fn report_open_error(app: &mut VectorcraftApp, name: &str, e: &str) {
 /// the desktop a document is decoded off the UI thread ([`crate::opening`]): the result is then
 /// `{background: true, status}`, and the document opens in its tab (or the failure is reported)
 /// once it is ready.
-pub fn open_reporting(app: &mut VectorcraftApp, path: &str) -> Result<Value, String> {
+pub fn open_reporting(app: &mut VansoncraftApp, path: &str) -> Result<Value, String> {
     let r = open_file(app, path, crate::opening::available());
     if let Err(e) = &r {
         report_open_error(app, &fileio::file_name(path), e);
@@ -444,7 +444,7 @@ pub fn open_reporting(app: &mut VectorcraftApp, path: &str) -> Result<Value, Str
 /// A file already open in a tab is not opened again: its tab comes to the front, unsaved edits
 /// and all (#3455), without the questions asked after an open (missing links and fonts).
 /// → `{activated: true, …}` as `document.open`'s result, or None.
-fn try_activate_open_document(app: &mut VectorcraftApp, path: &str) -> Result<Option<Value>, String> {
+fn try_activate_open_document(app: &mut VansoncraftApp, path: &str) -> Result<Option<Value>, String> {
     let Some(index) = document_index_for_path(app, path) else {
         return Ok(None);
     };
@@ -464,7 +464,7 @@ fn try_activate_open_document(app: &mut VectorcraftApp, path: &str) -> Result<Op
     Ok(Some(r))
 }
 
-fn document_index_for_path(app: &VectorcraftApp, path: &str) -> Option<usize> {
+fn document_index_for_path(app: &VansoncraftApp, path: &str) -> Option<usize> {
     app.session.documents().iter().position(|st| st.path.as_deref().is_some_and(|p| same_open_path(p, path)))
 }
 
@@ -475,37 +475,37 @@ fn same_open_path(a: &str, b: &str) -> bool {
     }
 }
 
-fn read(app: &VectorcraftApp, path: &str) -> Result<Vec<u8>, String> {
+fn read(app: &VansoncraftApp, path: &str) -> Result<Vec<u8>, String> {
     app.services.read.as_ref().ok_or("no file reader")?(path)
 }
 
 /// Open the file at `path` (see [`open_bytes`]) → `document.open`'s result, or null.
-pub fn open_path(app: &mut VectorcraftApp, path: &str) -> Result<Value, String> {
+pub fn open_path(app: &mut VansoncraftApp, path: &str) -> Result<Value, String> {
     open_file(app, path, false)
 }
 
 /// [`open_path`], with `params` for the importer plug-in that opens the file, if one does.
-pub fn open_path_with(app: &mut VectorcraftApp, path: &str, params: &Value) -> Result<Value, String> {
+pub fn open_path_with(app: &mut VansoncraftApp, path: &str, params: &Value) -> Result<Value, String> {
     open_file_with(app, path, false, &json!({ "params": params }))
 }
 
 /// [`open_path`]; with `background`, a document (not a file that installs, imports or asks
 /// first) is decoded off the UI thread ([`crate::opening::start`]).
-pub(crate) fn open_file(app: &mut VectorcraftApp, path: &str, background: bool) -> Result<Value, String> {
+pub(crate) fn open_file(app: &mut VansoncraftApp, path: &str, background: bool) -> Result<Value, String> {
     open_file_with(app, path, background, &Value::Null)
 }
 
 /// [`open_file`], a document opening with `document.open`'s params `p`.
-fn open_file_with(app: &mut VectorcraftApp, path: &str, background: bool, p: &Value) -> Result<Value, String> {
+fn open_file_with(app: &mut VansoncraftApp, path: &str, background: bool, p: &Value) -> Result<Value, String> {
     // Automation confined to some folders reaches no file outside them, open in a tab or not.
-    vectorcraft_engine::file_access::check_read(path)?;
+    vansoncraft_engine::file_access::check_read(path)?;
     // File › Open, Open Recent, the Home screen, a drop and the Finder all focus a document that
     // is already open, or still being read, instead of opening a second copy. While a dialog or
     // a drag acts on the active document, its tab comes to the front once that ends
     // ([`crate::opening::poll`]), as a file that finishes opening then does.
     if document_index_for_path(app, path).is_some() && !crate::opening::may_switch(app) {
         if !app.opening.activate.iter().any(|(p, _)| same_open_path(p, path)) {
-            let scope = vectorcraft_engine::file_access::ScopeHandle::capture();
+            let scope = vansoncraft_engine::file_access::ScopeHandle::capture();
             app.opening.activate.push((path.to_string(), scope));
         }
         return Ok(Value::Null);
@@ -553,7 +553,7 @@ fn open_file_with(app: &mut VectorcraftApp, path: &str, background: bool, p: &Va
 /// File → New from Template…: a template (or any readable file) as a new untitled document. Without
 /// a path the open dialog starts in the Templates folder. On the web the browser's file picker
 /// opens it (`.vctemplate`, `.ait` and template files open untitled there too).
-pub fn new_from_template(app: &mut VectorcraftApp, path: Option<String>) -> Result<Value, String> {
+pub fn new_from_template(app: &mut VansoncraftApp, path: Option<String>) -> Result<Value, String> {
     let path = match path {
         Some(p) => p,
         None if app.services.open_async.is_some() => return open_dialog(app).map(|_| Value::Null),
@@ -571,7 +571,7 @@ pub fn new_from_template(app: &mut VectorcraftApp, path: Option<String>) -> Resu
 
 /// Open the save options dialog of format `f` before writing `path`: `action` is the save command
 /// it finishes, and `pick` (the web's Save As) also names the file and chooses the format.
-pub(super) fn open_options(app: &mut VectorcraftApp, action: &str, f: &Format, path: &str, pick: bool) -> Value {
+pub(super) fn open_options(app: &mut VansoncraftApp, action: &str, f: &Format, path: &str, pick: bool) -> Value {
     let mut fields = dialogs::save_options::option_values(app, f);
     fields.insert("__action".into(), json!(action));
     fields.insert("__pick".into(), json!(pick));
@@ -586,7 +586,7 @@ pub(super) fn open_options(app: &mut VectorcraftApp, action: &str, f: &Format, p
 pub const MAX_RECENT_FILES: usize = 30;
 
 /// Put `path` at the top of File → Open Recent Files.
-pub fn note_recent(app: &mut VectorcraftApp, path: &str) {
+pub fn note_recent(app: &mut VansoncraftApp, path: &str) {
     let r = &mut app.ui.recent_files;
     r.retain(|p| p != path);
     r.insert(0, path.to_string());
@@ -594,14 +594,14 @@ pub fn note_recent(app: &mut VectorcraftApp, path: &str) {
 }
 
 /// The recent files File → Open Recent Files lists.
-pub fn recent_files(app: &VectorcraftApp) -> &[String] {
+pub fn recent_files(app: &VansoncraftApp) -> &[String] {
     let r = &app.ui.recent_files;
     &r[..r.len().min(app.session.prefs.recent_files_count as usize)]
 }
 
 /// File → Revert: ask first; OK runs `file.revert` with `confirmed`, which goes to the engine.
-pub fn ask_revert(app: &mut VectorcraftApp) -> Result<Value, String> {
-    let c = vectorcraft_engine::find_command("file.revert").ok_or("no revert command")?;
+pub fn ask_revert(app: &mut VansoncraftApp) -> Result<Value, String> {
+    let c = vansoncraft_engine::find_command("file.revert").ok_or("no revert command")?;
     (c.enabled)(&app.session)?;
     let name = app.session.active().map(|d| d.title()).unwrap_or_default();
     let message = crate::i18n::fmt(tl!("Revert to the saved version of “{name}”?"), &[("name", &name)]);
@@ -611,6 +611,6 @@ pub fn ask_revert(app: &mut VectorcraftApp) -> Result<Value, String> {
 
 /// Place a file's bytes (no path, so embedded) centered in the view: `file.place`, read off the UI
 /// thread on the desktop ([`crate::place::run_for_user`]).
-pub fn place_bytes(app: &mut VectorcraftApp, name: &str, bytes: &[u8]) -> Result<(), String> {
-    crate::place::run_for_user(app, &serde_json::json!({ "name": name, "dataBase64": vectorcraft_format::base64_encode(bytes) })).map(|_| ())
+pub fn place_bytes(app: &mut VansoncraftApp, name: &str, bytes: &[u8]) -> Result<(), String> {
+    crate::place::run_for_user(app, &serde_json::json!({ "name": name, "dataBase64": vansoncraft_format::base64_encode(bytes) })).map(|_| ())
 }

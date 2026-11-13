@@ -2,7 +2,7 @@
 //! `corners` params or the preferences, and what the journal records.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{LiveShape, Node, NodeId, NodeKind};
+use vansoncraft_doc::{LiveShape, Node, NodeId, NodeKind};
 
 use crate::*;
 

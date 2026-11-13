@@ -1,6 +1,6 @@
 use super::*;
 use crate::testutil::*;
-use vectorcraft_doc::Selection;
+use vansoncraft_doc::Selection;
 
 /// While an opacity mask is edited, a press on a selected Shaper original shape moves it, over the
 /// art the group shows and over a part of the shape the group does not show. A press on an original
@@ -10,7 +10,7 @@ fn a_press_on_a_selected_shaper_source_moves_it_while_a_mask_is_edited() {
     let (mut d, g, sources, _) = doc_with_shaper_group();
     let rect = d.layers[0].children().unwrap()[0].id;
     let layer = d.layers[0].id;
-    d.mask_edit = Some(vectorcraft_doc::MaskEdit { object: rect, layer });
+    d.mask_edit = Some(vansoncraft_doc::MaskEdit { object: rect, layer });
     let ids: Vec<NodeId> = d.node(sources).unwrap().children().unwrap().iter().map(|n| n.id).collect();
     let (mut s, p) = (Selection::default(), paint());
     s.set([ids[1]]);
@@ -35,11 +35,11 @@ fn a_press_on_a_selected_shaper_source_moves_it_while_a_mask_is_edited() {
 /// object still moves on a press, and an object in front of the Shaper Group keeps the press.
 #[test]
 fn a_selected_shaper_source_moves_after_other_objects_and_behind_front_art() {
-    use vectorcraft_doc::{Appearance, Node};
+    use vansoncraft_doc::{Appearance, Node};
     let (mut d, _, sources, _) = doc_with_shaper_group();
     let rect = d.layers[0].children().unwrap()[0].id;
     let layer = d.layers[0].id;
-    d.mask_edit = Some(vectorcraft_doc::MaskEdit { object: rect, layer });
+    d.mask_edit = Some(vansoncraft_doc::MaskEdit { object: rect, layer });
     let ids: Vec<NodeId> = d.node(sources).unwrap().children().unwrap().iter().map(|n| n.id).collect();
     let (mut s, p) = (Selection::default(), paint());
     s.set([rect, ids[1]]);
@@ -51,7 +51,7 @@ fn a_selected_shaper_source_moves_after_other_objects_and_behind_front_art() {
     let drag = t.pointer(&c, &ev(PointerKind::Drag, 145.0, 350.0));
     assert!(drag.iter().any(|a| matches!(a, Action::Preview(c, _) if c == "object.transform")), "{drag:?}");
     let front = d.alloc_id();
-    let square = vectorcraft_geom::shapes::rectangle(Rect::new(110.0, 340.0, 140.0, 360.0));
+    let square = vansoncraft_geom::shapes::rectangle(Rect::new(110.0, 340.0, 140.0, 360.0));
     d.insert(Some(layer), 2, Node::path(front, square, Appearance::default_art())).unwrap();
     s.set([ids[1]]);
     let c = ToolContext { isolation: Some(layer), ..cx(&d, &s, &p) };
@@ -140,8 +140,8 @@ fn a_press_where_a_mask_hides_a_selected_object_drags_it() {
     // An object a click hits there wins: a press on a square over that point selects it.
     let mut d = d;
     let (front, l) = (d.alloc_id(), d.layers[0].id);
-    let square = vectorcraft_geom::shapes::rectangle(Rect::new(350.0, 430.0, 390.0, 470.0));
-    d.insert(Some(l), 2, vectorcraft_doc::Node::path(front, square, vectorcraft_doc::Appearance::default_art())).unwrap();
+    let square = vansoncraft_geom::shapes::rectangle(Rect::new(350.0, 430.0, 390.0, 470.0));
+    d.insert(Some(l), 2, vansoncraft_doc::Node::path(front, square, vansoncraft_doc::Appearance::default_art())).unwrap();
     let a = SelectionTool::default().pointer(&cx(&d, &picked, &p), &ev(PointerKind::Down, 370.0, 450.0));
     assert!(a.iter().any(|a| matches!(a, Action::Exec(c, v) if c == "select.set" && v["ids"] == json!([front.0]))), "{a:?}");
 }
@@ -154,8 +154,8 @@ fn a_move_grabbed_by_an_anchor_lands_it_on_another_anchor() {
     let l = d.layers[0].id;
     let tri = d.alloc_id();
     let pts = [Point::new(350.3, 250.0), Point::new(300.0, 320.0), Point::new(420.0, 330.0)];
-    let path = vectorcraft_geom::PathData::single(vectorcraft_geom::SubPath::polyline(&pts, true));
-    d.insert(Some(l), 1, vectorcraft_doc::Node::path(tri, path, vectorcraft_doc::Appearance::default_art())).unwrap();
+    let path = vansoncraft_geom::PathData::single(vansoncraft_geom::SubPath::polyline(&pts, true));
+    d.insert(Some(l), 1, vansoncraft_doc::Node::path(tri, path, vansoncraft_doc::Appearance::default_art())).unwrap();
     let (none, mut picked) = (Selection::default(), Selection::default());
     picked.add(id);
     let p = paint();
@@ -199,16 +199,16 @@ fn a_click_near_an_anchor_selects_without_moving() {
 /// A corner-radius drag is a transform, so the sharp selection box hides while the radius changes.
 #[test]
 fn a_corner_drag_counts_as_transforming_once_it_moves() {
-    use vectorcraft_doc::{Appearance, LiveShape, Node, NodeKind};
+    use vansoncraft_doc::{Appearance, LiveShape, Node, NodeKind};
     let live = LiveShape::Rectangle {
         w: 100.0,
         h: 100.0,
         radii: [0.0; 4],
         kinds: Default::default(),
         radii_relative: false,
-        xf: vectorcraft_geom::Affine::translate((100.0, 100.0)),
+        xf: vansoncraft_geom::Affine::translate((100.0, 100.0)),
     };
-    let mut d = vectorcraft_doc::Document::new(500.0, 500.0);
+    let mut d = vansoncraft_doc::Document::new(500.0, 500.0);
     let id = d.alloc_id();
     let mut n = Node::path(id, live.to_path(), Appearance::default_art());
     if let NodeKind::Path { live: slot, .. } = &mut n.kind {
@@ -231,16 +231,16 @@ fn a_corner_drag_counts_as_transforming_once_it_moves() {
 /// After an Alt-press on a widget, Escape drops the press, so its release cycles no corner kind.
 #[test]
 fn escape_cancels_a_corner_widget_drag() {
-    use vectorcraft_doc::{Appearance, LiveShape, Node, NodeKind};
+    use vansoncraft_doc::{Appearance, LiveShape, Node, NodeKind};
     let live = LiveShape::Rectangle {
         w: 100.0,
         h: 100.0,
         radii: [0.0; 4],
         kinds: Default::default(),
         radii_relative: false,
-        xf: vectorcraft_geom::Affine::translate((100.0, 100.0)),
+        xf: vansoncraft_geom::Affine::translate((100.0, 100.0)),
     };
-    let mut d = vectorcraft_doc::Document::new(500.0, 500.0);
+    let mut d = vansoncraft_doc::Document::new(500.0, 500.0);
     let id = d.alloc_id();
     let mut n = Node::path(id, live.to_path(), Appearance::default_art());
     if let NodeKind::Path { live: slot, .. } = &mut n.kind {
@@ -334,12 +334,12 @@ fn hovering_labels_the_centre_and_anchors_and_a_press_grabs_by_them() {
 }
 
 /// [`doc_with_rect`] (100, 100)–(200, 200), selected, and a second rectangle `other`.
-fn two_rects(other: Rect) -> (vectorcraft_doc::Document, NodeId, NodeId) {
+fn two_rects(other: Rect) -> (vansoncraft_doc::Document, NodeId, NodeId) {
     let (mut d, a) = doc_with_rect();
     let l = d.layers[0].id;
     let b = d.alloc_id();
-    let path = vectorcraft_geom::shapes::rectangle(other);
-    d.insert(Some(l), 1, vectorcraft_doc::Node::path(b, path, vectorcraft_doc::Appearance::default_art())).unwrap();
+    let path = vansoncraft_geom::shapes::rectangle(other);
+    d.insert(Some(l), 1, vansoncraft_doc::Node::path(b, path, vansoncraft_doc::Appearance::default_art())).unwrap();
     (d, a, b)
 }
 
@@ -430,7 +430,7 @@ fn alt_over_the_artboard_measures_to_its_four_edges_in_the_general_unit() {
         ]
     );
     assert!(dashed.is_empty());
-    let mm = ToolContext { unit: vectorcraft_doc::Unit::Millimeters, ..cx };
+    let mm = ToolContext { unit: vansoncraft_doc::Unit::Millimeters, ..cx };
     t.pointer(&mm, &alt(PointerKind::Move, 50.0, 450.0));
     let texts: Vec<String> = distances(&t, &mm).0.into_iter().map(|l| l.2).collect();
     assert_eq!(texts, ["35.28 mm", "105.83 mm", "35.28 mm", "105.83 mm"]);
@@ -502,7 +502,7 @@ fn click_selects_object() {
 #[test]
 fn a_press_on_a_ruler_guide_picks_it_over_the_art() {
     let (mut d, _) = doc_with_rect();
-    d.add_ruler_guide(&vectorcraft_doc::Guide::new(false, 150.0));
+    d.add_ruler_guide(&vansoncraft_doc::Guide::new(false, 150.0));
     let s = Selection::default();
     let p = paint();
     let cx = cx(&d, &s, &p);
@@ -524,8 +524,8 @@ fn a_press_on_a_ruler_guide_picks_it_over_the_art() {
 #[test]
 fn a_cmd_shift_double_click_releases_the_guide_under_the_pointer() {
     let (mut d, id) = doc_with_rect();
-    d.add_ruler_guide(&vectorcraft_doc::Guide::new(false, 300.0));
-    let Some(vectorcraft_doc::NodeKind::Path { guide, .. }) = d.node_mut(id).map(|n| &mut n.kind) else { panic!("the rectangle is a path") };
+    d.add_ruler_guide(&vansoncraft_doc::Guide::new(false, 300.0));
+    let Some(vansoncraft_doc::NodeKind::Path { guide, .. }) = d.node_mut(id).map(|n| &mut n.kind) else { panic!("the rectangle is a path") };
     *guide = true;
     let s = Selection::default();
     let p = paint();
@@ -567,10 +567,10 @@ fn the_rotate_cursor_wraps_the_corner_it_is_at() {
 
 #[test]
 fn a_rotated_large_selection_keeps_handles_outside_its_axis_aligned_bounds() {
-    use vectorcraft_doc::{Appearance, Node};
-    use vectorcraft_geom::shapes;
+    use vansoncraft_doc::{Appearance, Node};
+    use vansoncraft_geom::shapes;
 
-    let mut d = vectorcraft_doc::Document::new(4000.0, 500.0);
+    let mut d = vansoncraft_doc::Document::new(4000.0, 500.0);
     let layer = d.layers[0].id;
     let mut ids = vec![];
     for i in 0..129 {
@@ -598,10 +598,10 @@ fn a_rotated_large_selection_keeps_handles_outside_its_axis_aligned_bounds() {
 
 #[test]
 fn a_large_selection_keeps_a_pie_widget_just_outside_the_art() {
-    use vectorcraft_doc::{Appearance, LiveShape, Node, NodeKind};
-    use vectorcraft_geom::{Affine, shapes};
+    use vansoncraft_doc::{Appearance, LiveShape, Node, NodeKind};
+    use vansoncraft_geom::{Affine, shapes};
 
-    let mut d = vectorcraft_doc::Document::new(500.0, 500.0);
+    let mut d = vansoncraft_doc::Document::new(500.0, 500.0);
     let layer = d.layers[0].id;
     let live = LiveShape::Ellipse { w: 200.0, h: 100.0, pie: (0.0, 360.0), xf: Affine::translate((100.0, 100.0)) };
     let id = d.alloc_id();
@@ -679,7 +679,7 @@ fn box_cursors_turn_with_the_view() {
     let mut s = Selection::default();
     s.add(id);
     let p = paint();
-    d.add_ruler_guide(&vectorcraft_doc::Guide::new(false, 300.0));
+    d.add_ruler_guide(&vansoncraft_doc::Guide::new(false, 300.0));
     let mut c = cx(&d, &s, &p);
     c.screen = turned_view(90.0);
     assert!((c.view_angle() - 90.0).abs() < 1e-9);
@@ -752,7 +752,7 @@ fn escape_cancels_a_move_or_an_alt_drag_copy() {
 #[test]
 fn a_move_snaps_the_grabbed_point_to_a_ruler_guide_with_smart_guides_on() {
     let (mut d, id) = doc_with_rect();
-    d.add_ruler_guide(&vectorcraft_doc::Guide::new(true, 173.4));
+    d.add_ruler_guide(&vansoncraft_doc::Guide::new(true, 173.4));
     let mut s = Selection::default();
     s.add(id);
     let p = paint();
@@ -775,7 +775,7 @@ fn a_move_snaps_the_grabbed_point_to_a_ruler_guide_with_smart_guides_on() {
 #[test]
 fn a_shift_move_lands_the_edges_on_a_ruler_guide() {
     let (mut d, id) = doc_with_rect();
-    d.add_ruler_guide(&vectorcraft_doc::Guide::new(true, 333.0));
+    d.add_ruler_guide(&vansoncraft_doc::Guide::new(true, 333.0));
     let mut s = Selection::default();
     s.add(id);
     let p = paint();
@@ -798,7 +798,7 @@ fn a_shift_move_lands_the_edges_on_a_ruler_guide() {
 /// gathered before the previews moved it); released, the move doesn't.
 #[test]
 fn an_alt_copy_snaps_to_the_original_left_behind() {
-    use vectorcraft_doc::{Appearance, Node};
+    use vansoncraft_doc::{Appearance, Node};
     let (mut d, id) = doc_with_rect();
     // An artboard whose edges and centre are out of reach.
     d.artboards[0].rect = Rect::new(0.0, 0.0, 1000.0, 1000.0);
@@ -816,7 +816,7 @@ fn an_alt_copy_snaps_to_the_original_left_behind() {
     let mut moved = d.clone();
     let l = moved.layers[0].id;
     moved.remove(id).unwrap();
-    let r = vectorcraft_geom::shapes::rectangle(Rect::new(150.0, 100.0, 250.0, 200.0));
+    let r = vansoncraft_geom::shapes::rectangle(Rect::new(150.0, 100.0, 250.0, 200.0));
     moved.insert(Some(l), 0, Node::path(id, r, Appearance::default_art())).unwrap();
     let c = cx(&moved, &s, &p);
     let alt = Mods { alt: true, ..Mods::default() };
@@ -872,12 +872,12 @@ fn snap_to_last_location_puts_a_move_back_where_it_began() {
 /// pixels, a Shift move on its own axis, and shows no "last location" label.
 #[test]
 fn snap_to_pixel_wins_over_snap_to_last_location() {
-    let mut d = vectorcraft_doc::Document::new(500.0, 500.0);
+    let mut d = vansoncraft_doc::Document::new(500.0, 500.0);
     d.artboards[0].rect = Rect::new(0.0, 0.0, 1000.0, 1000.0);
     let l = d.layers[0].id;
     let id = d.alloc_id();
-    let square = vectorcraft_geom::shapes::rectangle(Rect::new(100.3, 100.4, 200.3, 200.4));
-    d.insert(Some(l), 0, vectorcraft_doc::Node::path(id, square, vectorcraft_doc::Appearance::default_art())).unwrap();
+    let square = vansoncraft_geom::shapes::rectangle(Rect::new(100.3, 100.4, 200.3, 200.4));
+    d.insert(Some(l), 0, vansoncraft_doc::Node::path(id, square, vansoncraft_doc::Appearance::default_art())).unwrap();
     let mut s = Selection::default();
     s.add(id);
     let p = paint();
@@ -904,12 +904,12 @@ fn snap_to_pixel_wins_over_snap_to_last_location() {
 /// one); Alt, which leaves a copy behind, the double arrowhead.
 #[test]
 fn a_move_shows_the_filled_arrow_hollow_on_a_snap_and_alt_the_copy_cursor() {
-    use vectorcraft_doc::{Appearance, Node};
+    use vansoncraft_doc::{Appearance, Node};
     let (mut d, _) = doc_with_rect();
     d.artboards[0].rect = Rect::new(0.0, 0.0, 1000.0, 1000.0);
     let l = d.layers[0].id;
     let b = d.alloc_id();
-    let sq = vectorcraft_geom::shapes::rectangle(Rect::new(300.0, 300.0, 400.0, 400.0));
+    let sq = vansoncraft_geom::shapes::rectangle(Rect::new(300.0, 300.0, 400.0, 400.0));
     d.insert(Some(l), 1, Node::path(b, sq, Appearance::default_art())).unwrap();
     let mut s = Selection::default();
     s.add(b);
@@ -1001,7 +1001,7 @@ fn a_shift_move_snapped_to_the_grid_stays_on_its_line() {
 #[test]
 fn a_move_keeps_an_object_on_the_grid_when_its_center_is_off_it() {
     let (mut d, id) = doc_with_rect();
-    d.grid = vectorcraft_doc::GridPrefs { spacing: 100.0, subdivisions: 5 };
+    d.grid = vansoncraft_doc::GridPrefs { spacing: 100.0, subdivisions: 5 };
     let mut s = Selection::default();
     s.add(id);
     let p = paint();
@@ -1028,11 +1028,11 @@ fn a_move_keeps_an_object_on_the_grid_when_its_center_is_off_it() {
 /// axis its line runs along, and on a diagonal on the axis that needs the shorter way there.
 #[test]
 fn a_shift_move_snapped_to_pixels_stays_on_its_line() {
-    let mut d = vectorcraft_doc::Document::new(500.0, 500.0);
+    let mut d = vansoncraft_doc::Document::new(500.0, 500.0);
     let l = d.layers[0].id;
     let id = d.alloc_id();
-    let square = vectorcraft_geom::shapes::rectangle(Rect::new(100.3, 100.4, 200.3, 200.4));
-    d.insert(Some(l), 0, vectorcraft_doc::Node::path(id, square, vectorcraft_doc::Appearance::default_art())).unwrap();
+    let square = vansoncraft_geom::shapes::rectangle(Rect::new(100.3, 100.4, 200.3, 200.4));
+    d.insert(Some(l), 0, vansoncraft_doc::Node::path(id, square, vansoncraft_doc::Appearance::default_art())).unwrap();
     let mut s = Selection::default();
     s.add(id);
     let p = paint();
@@ -1057,7 +1057,7 @@ fn a_shift_move_lined_up_by_smart_guides_stays_on_its_line() {
         let (mut d, id) = doc_with_rect();
         let l = d.layers[0].id;
         let other = d.alloc_id();
-        d.insert(Some(l), 1, vectorcraft_doc::Node::path(other, vectorcraft_geom::shapes::rectangle(r), vectorcraft_doc::Appearance::default_art()))
+        d.insert(Some(l), 1, vansoncraft_doc::Node::path(other, vansoncraft_geom::shapes::rectangle(r), vansoncraft_doc::Appearance::default_art()))
             .unwrap();
         (d, id)
     };
@@ -1096,8 +1096,8 @@ fn a_shift_move_spaced_by_smart_guides_stays_on_its_line() {
     let l = d.layers[0].id;
     for x in [330.0, 440.0] {
         let other = d.alloc_id();
-        let sq = vectorcraft_geom::shapes::rectangle(Rect::new(x, 102.0, x + 50.0, 202.0));
-        d.insert(Some(l), 1, vectorcraft_doc::Node::path(other, sq, vectorcraft_doc::Appearance::default_art())).unwrap();
+        let sq = vansoncraft_geom::shapes::rectangle(Rect::new(x, 102.0, x + 50.0, 202.0));
+        d.insert(Some(l), 1, vansoncraft_doc::Node::path(other, sq, vansoncraft_doc::Appearance::default_art())).unwrap();
     }
     let mut s = Selection::default();
     s.add(id);
@@ -1116,9 +1116,9 @@ fn a_shift_move_snapped_by_its_grabbed_point_stays_on_its_line() {
     let (mut d, id) = doc_with_rect();
     let l = d.layers[0].id;
     let other = d.alloc_id();
-    let sq = vectorcraft_geom::shapes::rectangle(Rect::new(300.0, 151.5, 350.0, 201.5));
-    d.insert(Some(l), 1, vectorcraft_doc::Node::path(other, sq, vectorcraft_doc::Appearance::default_art())).unwrap();
-    d.add_ruler_guide(&vectorcraft_doc::Guide::new(true, 420.5));
+    let sq = vansoncraft_geom::shapes::rectangle(Rect::new(300.0, 151.5, 350.0, 201.5));
+    d.insert(Some(l), 1, vansoncraft_doc::Node::path(other, sq, vansoncraft_doc::Appearance::default_art())).unwrap();
+    d.add_ruler_guide(&vansoncraft_doc::Guide::new(true, 420.5));
     let mut s = Selection::default();
     s.add(id);
     let p = paint();
@@ -1132,7 +1132,7 @@ fn a_shift_move_snapped_by_its_grabbed_point_stays_on_its_line() {
     assert!(moved_by(m, (270.5, 270.5)), "{m:?}");
     // Smart Guides on, the selection alone with a ruler guide 1.5 below the grabbed point.
     let (mut d, id) = doc_with_rect();
-    d.add_ruler_guide(&vectorcraft_doc::Guide::new(false, 330.5));
+    d.add_ruler_guide(&vansoncraft_doc::Guide::new(false, 330.5));
     let mut s = Selection::default();
     s.add(id);
     let (m, _) = shift_moved(&cx(&d, &s, &p), (329.0, 329.0));
@@ -1259,7 +1259,7 @@ fn a_click_on_a_selected_object_makes_it_the_key() {
     let mut one = Selection::default();
     one.add(rect);
     assert!(click(&one, 150.0, 150.0).is_empty());
-    one.guides = vec![vectorcraft_doc::NodeId(999)];
+    one.guides = vec![vansoncraft_doc::NodeId(999)];
     assert_eq!(click(&one, 150.0, 150.0), vec![Action::Exec("select.key".into(), json!({"id": rect.0}))]);
 }
 
@@ -1269,8 +1269,8 @@ fn a_click_on_a_selected_object_makes_it_the_key() {
 /// click inside an isolated compound path picks a member.
 #[test]
 fn a_click_makes_only_a_selected_top_level_object_the_key() {
-    use vectorcraft_doc::{Appearance, Document, LayerColor, Node, NodeKind};
-    use vectorcraft_geom::shapes;
+    use vansoncraft_doc::{Appearance, Document, LayerColor, Node, NodeKind};
+    use vansoncraft_geom::shapes;
     let p = paint();
     let click = |d: &Document, s: &Selection, isolation: NodeId| {
         let c = ToolContext { isolation: Some(isolation), ..cx(d, s, &p) };
@@ -1377,10 +1377,10 @@ fn shift_marquee_toggles() {
 /// (a group whole), and E pressed again makes it take what it touches. Only a marquee takes E.
 #[test]
 fn e_during_a_marquee_takes_only_the_objects_inside() {
-    use vectorcraft_doc::{Appearance, Node};
+    use vansoncraft_doc::{Appearance, Node};
     let (mut d, inside) = doc_with_rect();
     let l = d.layers[0].id;
-    let rect = |id, r| Node::path(id, vectorcraft_geom::shapes::rectangle(r), Appearance::default_art());
+    let rect = |id, r| Node::path(id, vansoncraft_geom::shapes::rectangle(r), Appearance::default_art());
     let (touched, g, a, b) = (d.alloc_id(), d.alloc_id(), d.alloc_id(), d.alloc_id());
     d.insert(Some(l), 1, rect(touched, Rect::new(250.0, 100.0, 350.0, 200.0))).unwrap();
     // A group with one member inside the marquee and one outside it.
@@ -1482,8 +1482,8 @@ fn directional_marquee_uses_screen_direction_and_a_dead_zone() {
 fn e_during_a_marquee_takes_only_the_guides_inside() {
     let (mut d, id) = doc_with_rect();
     let board = d.artboards[0].id;
-    d.add_ruler_guide(&vectorcraft_doc::Guide::new(true, 150.0));
-    d.add_ruler_guide(&vectorcraft_doc::Guide { artboard: Some(board), ..vectorcraft_doc::Guide::new(false, 150.0) });
+    d.add_ruler_guide(&vansoncraft_doc::Guide::new(true, 150.0));
+    d.add_ruler_guide(&vansoncraft_doc::Guide { artboard: Some(board), ..vansoncraft_doc::Guide::new(false, 150.0) });
     let s = Selection::default();
     let p = paint();
     let cx = cx(&d, &s, &p);
@@ -1506,7 +1506,7 @@ fn e_during_a_marquee_takes_only_the_guides_inside() {
 #[test]
 fn marquee_selects_ruler_guides() {
     let (mut d, id) = doc_with_rect();
-    d.add_ruler_guide(&vectorcraft_doc::Guide::new(false, 80.0));
+    d.add_ruler_guide(&vansoncraft_doc::Guide::new(false, 80.0));
     let s = Selection::default();
     let p = paint();
     let cx = cx(&d, &s, &p);
@@ -1523,7 +1523,7 @@ fn marquee_selects_ruler_guides() {
 #[test]
 fn marquee_selects_only_guide() {
     let (mut d, _) = doc_with_rect();
-    d.add_ruler_guide(&vectorcraft_doc::Guide::new(true, 20.0));
+    d.add_ruler_guide(&vansoncraft_doc::Guide::new(true, 20.0));
     let s = Selection::default();
     let p = paint();
     let cx = cx(&d, &s, &p);
@@ -1540,7 +1540,7 @@ fn marquee_selects_only_guide() {
 #[test]
 fn marquee_ignores_locked_guides() {
     let (mut d, id) = doc_with_rect();
-    d.add_ruler_guide(&vectorcraft_doc::Guide::new(false, 80.0));
+    d.add_ruler_guide(&vansoncraft_doc::Guide::new(false, 80.0));
     let s = Selection::default();
     let p = paint();
     let mut cx_locked = cx(&d, &s, &p);
@@ -1560,9 +1560,9 @@ fn marquee_passes_through_locked_guide_objects() {
     let l = d.layers[0].id;
     let g = d.alloc_id();
     let pts = [Point::new(20.0, 20.0), Point::new(400.0, 20.0), Point::new(400.0, 400.0), Point::new(20.0, 400.0)];
-    let path = vectorcraft_geom::PathData::single(vectorcraft_geom::SubPath::polyline(&pts, true));
-    let mut guide = vectorcraft_doc::Node::path(g, path, vectorcraft_doc::Appearance::default_art());
-    let vectorcraft_doc::NodeKind::Path { guide: flag, .. } = &mut guide.kind else { panic!("a path") };
+    let path = vansoncraft_geom::PathData::single(vansoncraft_geom::SubPath::polyline(&pts, true));
+    let mut guide = vansoncraft_doc::Node::path(g, path, vansoncraft_doc::Appearance::default_art());
+    let vansoncraft_doc::NodeKind::Path { guide: flag, .. } = &mut guide.kind else { panic!("a path") };
     *flag = true;
     d.insert(Some(l), 1, guide).unwrap();
     let s = Selection::default();
@@ -1674,12 +1674,12 @@ fn escape_cancels_a_scale_or_a_rotation() {
 
 #[test]
 fn handle_drag_snaps_to_the_other_objects_with_smart_guides() {
-    use vectorcraft_doc::{Appearance, Node};
+    use vansoncraft_doc::{Appearance, Node};
     let (mut d, _) = doc_with_rect();
     let l = d.layers[0].id;
     let id = d.alloc_id();
     let r = Rect::new(250.0, 100.0, 300.0, 150.0);
-    d.insert(Some(l), 1, Node::path(id, vectorcraft_geom::shapes::rectangle(r), Appearance::default_art())).unwrap();
+    d.insert(Some(l), 1, Node::path(id, vansoncraft_geom::shapes::rectangle(r), Appearance::default_art())).unwrap();
     let mut s = Selection::default();
     s.add(id);
     let p = paint();
@@ -1763,13 +1763,13 @@ fn handle_drag_lands_what_it_moves_on_whole_pixels() {
 /// ruler guides still pull it within the Snapping Tolerance (4 px), as a move does (#1534).
 #[test]
 fn handle_drag_snaps_to_anchors_and_ruler_guides_with_snap_to_point() {
-    use vectorcraft_doc::{Appearance, Node};
+    use vansoncraft_doc::{Appearance, Node};
     let (mut d, id) = doc_with_rect();
     let l = d.layers[0].id;
     let other = d.alloc_id();
-    let sq = vectorcraft_geom::shapes::rectangle(Rect::new(250.0, 250.0, 300.0, 300.0));
+    let sq = vansoncraft_geom::shapes::rectangle(Rect::new(250.0, 250.0, 300.0, 300.0));
     d.insert(Some(l), 1, Node::path(other, sq, Appearance::default_art())).unwrap();
-    d.add_ruler_guide(&vectorcraft_doc::Guide::new(true, 230.5));
+    d.add_ruler_guide(&vansoncraft_doc::Guide::new(true, 230.5));
     let mut s = Selection::default();
     s.add(id);
     let p = paint();
@@ -1799,11 +1799,11 @@ fn handle_drag_snaps_to_anchors_and_ruler_guides_with_snap_to_point() {
 /// far a dragged handle is pulled.
 #[test]
 fn smart_guide_display_preferences_drive_the_readouts_and_the_pull() {
-    use vectorcraft_doc::{Appearance, Node};
+    use vansoncraft_doc::{Appearance, Node};
     let (mut d, _) = doc_with_rect();
     let l = d.layers[0].id;
     let id = d.alloc_id();
-    d.insert(Some(l), 1, Node::path(id, vectorcraft_geom::shapes::rectangle(Rect::new(250.0, 100.0, 300.0, 150.0)), Appearance::default_art()))
+    d.insert(Some(l), 1, Node::path(id, vansoncraft_geom::shapes::rectangle(Rect::new(250.0, 100.0, 300.0, 150.0)), Appearance::default_art()))
         .unwrap();
     let mut s = Selection::default();
     s.add(id);
@@ -1844,7 +1844,7 @@ fn smart_guide_display_preferences_drive_the_readouts_and_the_pull() {
 
 #[test]
 fn handle_drag_of_a_turned_box_snaps_on_the_page() {
-    use vectorcraft_doc::{Appearance, Node};
+    use vansoncraft_doc::{Appearance, Node};
     let matrix = |a: &[Action]| {
         let Action::Preview(_, v) = &a[0] else { panic!("{a:?}") };
         let m: Vec<f64> = v["matrix"].as_array().unwrap().iter().map(|x| x.as_f64().unwrap()).collect();
@@ -1856,7 +1856,7 @@ fn handle_drag_of_a_turned_box_snaps_on_the_page() {
         let l = d.layers[0].id;
         let id = d.alloc_id();
         let r = Rect::new(250.0, 100.0, 300.0, 150.0);
-        d.insert(Some(l), 1, Node::path(id, vectorcraft_geom::shapes::rectangle(r), Appearance::default_art())).unwrap();
+        d.insert(Some(l), 1, Node::path(id, vansoncraft_geom::shapes::rectangle(r), Appearance::default_art())).unwrap();
         let c = Point::new(275.0, 125.0);
         d.node_mut(id)
             .unwrap()
@@ -1952,12 +1952,12 @@ fn click_empty_deselects() {
 
 /// [`doc_with_area_type`] with more text than its frame holds, selected; the rectangle's id and
 /// where the frame's out port is.
-fn overflowing_area_type() -> (vectorcraft_doc::Document, NodeId, NodeId, Point) {
+fn overflowing_area_type() -> (vansoncraft_doc::Document, NodeId, NodeId, Point) {
     let (mut d, id) = doc_with_area_type();
     let rect = d.children(Some(d.layers[0].id)).unwrap()[0].id;
-    let Some(vectorcraft_doc::NodeKind::Text(t)) = d.node_mut(id).map(|n| &mut n.kind) else { panic!("not text") };
-    let style = vectorcraft_doc::CharStyle { size: 20.0, ..Default::default() };
-    t.runs = vec![vectorcraft_doc::TextRun::new("Words that fill more than the frame holds. ".repeat(20), style)];
+    let Some(vansoncraft_doc::NodeKind::Text(t)) = d.node_mut(id).map(|n| &mut n.kind) else { panic!("not text") };
+    let style = vansoncraft_doc::CharStyle { size: 20.0, ..Default::default() };
+    t.runs = vec![vansoncraft_doc::TextRun::new("Words that fill more than the frame holds. ".repeat(20), style)];
     // On the frame's right side, above its bottom-right corner (120 × 40 at 100%).
     let port = t.xf * Point::new(120.0, 40.0 - crate::text::PORT_RISE_PX);
     (d, id, rect, port)
@@ -1968,15 +1968,15 @@ fn overflowing_area_type() -> (vectorcraft_doc::Document, NodeId, NodeId, Point)
 #[test]
 fn the_out_port_of_type_on_a_path_loads_its_text() {
     let (mut d, id) = doc_with_area_type();
-    let Some(vectorcraft_doc::NodeKind::Text(t)) = d.node_mut(id).map(|n| &mut n.kind) else { panic!("not text") };
-    let line = vectorcraft_geom::kurbo::Line::new((0.0, 200.0), (100.0, 200.0));
-    t.kind = vectorcraft_doc::TextKind::OnPath {
-        path: vectorcraft_geom::PathData::from_bezpath(&vectorcraft_geom::kurbo::Shape::to_path(&line, 0.1)),
+    let Some(vansoncraft_doc::NodeKind::Text(t)) = d.node_mut(id).map(|n| &mut n.kind) else { panic!("not text") };
+    let line = vansoncraft_geom::kurbo::Line::new((0.0, 200.0), (100.0, 200.0));
+    t.kind = vansoncraft_doc::TextKind::OnPath {
+        path: vansoncraft_geom::PathData::from_bezpath(&vansoncraft_geom::kurbo::Shape::to_path(&line, 0.1)),
         start: 0.0,
         end: Some(0.8),
     };
-    t.xf = vectorcraft_geom::Affine::IDENTITY;
-    t.runs = vec![vectorcraft_doc::TextRun::new("Words that run past the end of the path. ".repeat(5), vectorcraft_doc::CharStyle::default())];
+    t.xf = vansoncraft_geom::Affine::IDENTITY;
+    t.runs = vec![vansoncraft_doc::TextRun::new("Words that run past the end of the path. ".repeat(5), vansoncraft_doc::CharStyle::default())];
     let mut s = Selection::default();
     s.set([id]);
     let p = paint();
@@ -2035,10 +2035,10 @@ fn a_click_on_the_out_port_loads_the_text_and_the_next_click_or_drag_threads_it(
 fn loaded_text_threads_into_the_art_on_a_layer_masks_edge() {
     let (mut d, id, _, port) = overflowing_area_type();
     let art = d.alloc_id();
-    let picture = vectorcraft_doc::Node::path(
+    let picture = vansoncraft_doc::Node::path(
         art,
-        vectorcraft_geom::shapes::rectangle(Rect::new(350.0, 350.0, 550.0, 550.0)),
-        vectorcraft_doc::Appearance::default_art(),
+        vansoncraft_geom::shapes::rectangle(Rect::new(350.0, 350.0, 550.0, 550.0)),
+        vansoncraft_doc::Appearance::default_art(),
     );
     add_masked_layer(&mut d, Rect::new(400.0, 400.0, 500.0, 500.0), picture);
     let mut s = Selection::default();
@@ -2071,8 +2071,8 @@ fn a_guide_on_a_layer_masks_edge_is_released() {
     let (mut d, _) = doc_with_rect();
     let id = d.alloc_id();
     let mut guide_path =
-        vectorcraft_doc::Node::path(id, vectorcraft_geom::shapes::rectangle(Rect::new(450.0, 350.0, 550.0, 550.0)), Default::default());
-    let vectorcraft_doc::NodeKind::Path { guide, .. } = &mut guide_path.kind else { panic!("a path") };
+        vansoncraft_doc::Node::path(id, vansoncraft_geom::shapes::rectangle(Rect::new(450.0, 350.0, 550.0, 550.0)), Default::default());
+    let vansoncraft_doc::NodeKind::Path { guide, .. } = &mut guide_path.kind else { panic!("a path") };
     *guide = true;
     add_masked_layer(&mut d, Rect::new(400.0, 400.0, 500.0, 500.0), guide_path);
     let (s, p) = (Selection::default(), paint());
@@ -2139,10 +2139,10 @@ fn a_dropped_press_keeps_the_text_loaded() {
 }
 
 /// [`doc_with_area_type`], its text fitting its frame; where its in and out ports are.
-fn fitting_area_type() -> (vectorcraft_doc::Document, NodeId, Point, Point) {
+fn fitting_area_type() -> (vansoncraft_doc::Document, NodeId, Point, Point) {
     let (d, id) = doc_with_area_type();
-    let Some(vectorcraft_doc::NodeKind::Text(t)) = d.node(id).map(|n| &n.kind) else { panic!("not text") };
-    assert!(!vectorcraft_text::layout(vectorcraft_text::FontDb::global(), t).overflow, "the text fits");
+    let Some(vansoncraft_doc::NodeKind::Text(t)) = d.node(id).map(|n| &n.kind) else { panic!("not text") };
+    assert!(!vansoncraft_text::layout(vansoncraft_text::FontDb::global(), t).overflow, "the text fits");
     // On the left side below the top-left corner, on the right side above the bottom-right one.
     let (input, output) = (t.xf * Point::new(0.0, crate::text::PORT_RISE_PX), t.xf * Point::new(120.0, 40.0 - crate::text::PORT_RISE_PX));
     (d, id, input, output)
@@ -2228,7 +2228,7 @@ fn a_double_click_on_a_threaded_port_breaks_the_thread() {
     let mut s = Selection::default();
     s.set([id]);
     let p = paint();
-    let double_click = |d: &vectorcraft_doc::Document, at: Point| {
+    let double_click = |d: &vansoncraft_doc::Document, at: Point| {
         let cx = cx(d, &s, &p);
         let mut t = SelectionTool::default();
         let kinds = [PointerKind::Down, PointerKind::Up, PointerKind::Down, PointerKind::Up, PointerKind::DoubleClick];
@@ -2283,11 +2283,11 @@ fn the_preview_memo_measures_once_per_revision_selection_and_preview_bounds() {
 /// glyphs; the memo measures again when only that setting changes.
 #[test]
 fn the_bounding_box_of_point_type_follows_measure_type_by_glyph_bounds() {
-    use vectorcraft_doc::{CharStyle, Document, Node, NodeKind, TextObject};
+    use vansoncraft_doc::{CharStyle, Document, Node, NodeKind, TextObject};
     let mut d = Document::new(500.0, 500.0);
     let (l, id) = (d.layers[0].id, d.alloc_id());
     let text = TextObject::point(Point::new(100.0, 300.0), "Hg", CharStyle { size: 60.0, ..Default::default() });
-    let ink = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &text).ink_bounds().unwrap();
+    let ink = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &text).ink_bounds().unwrap();
     d.insert(Some(l), 0, Node::new(id, NodeKind::Text(Box::new(text.clone())))).unwrap();
     let (mut s, p, memo) = (Selection::default(), paint(), PreviewMemo::default());
     s.set([id]);
@@ -2308,15 +2308,15 @@ fn the_bounding_box_of_point_type_follows_measure_type_by_glyph_bounds() {
 /// inside the art of the symbol being edited is not entered.
 #[test]
 fn a_double_click_on_a_symbol_instance_edits_its_symbol() {
-    use vectorcraft_doc::{Appearance, Node, NodeKind, Symbol, SymbolEdit};
+    use vansoncraft_doc::{Appearance, Node, NodeKind, Symbol, SymbolEdit};
     let (mut d, rect) = doc_with_rect();
-    let art = Node::path(NodeId(0), vectorcraft_geom::shapes::rectangle(Rect::new(-10.0, -10.0, 10.0, 10.0)), Appearance::default_art());
+    let art = Node::path(NodeId(0), vansoncraft_geom::shapes::rectangle(Rect::new(-10.0, -10.0, 10.0, 10.0)), Appearance::default_art());
     d.symbols.push(Symbol { dynamic: false, name: "Dot".into(), art: std::sync::Arc::new(art) });
     let (l, id) = (d.layers[0].id, d.alloc_id());
     let xf = Affine::translate((300.0, 300.0)) * Affine::scale(2.0);
     d.insert(Some(l), usize::MAX, Node::new(id, NodeKind::SymbolInstance { symbol: "Dot".into(), xf })).unwrap();
     let (s, p) = (Selection::default(), paint());
-    let double = |d: &vectorcraft_doc::Document, isolation: Option<NodeId>, x: f64, y: f64| {
+    let double = |d: &vansoncraft_doc::Document, isolation: Option<NodeId>, x: f64, y: f64| {
         let c = ToolContext { isolation, ..cx(d, &s, &p) };
         SelectionTool::default().pointer(&c, &ev(PointerKind::DoubleClick, x, y))
     };
@@ -2404,16 +2404,16 @@ fn a_shift_press_on_the_centre_point_moves_or_deselects() {
 /// the press, as they take the press itself: the centre is within their 5 pt reach.
 #[test]
 fn a_thin_shapes_centre_point_gives_the_handles_the_pointer() {
-    use vectorcraft_doc::{Appearance, LiveShape, Node, NodeKind};
+    use vansoncraft_doc::{Appearance, LiveShape, Node, NodeKind};
     let shape = LiveShape::Rectangle {
         w: 100.0,
         h: 8.0,
         radii: [0.0; 4],
         kinds: Default::default(),
         radii_relative: false,
-        xf: vectorcraft_geom::Affine::translate((100.0, 100.0)),
+        xf: vansoncraft_geom::Affine::translate((100.0, 100.0)),
     };
-    let mut d = vectorcraft_doc::Document::new(500.0, 500.0);
+    let mut d = vansoncraft_doc::Document::new(500.0, 500.0);
     let (layer, id) = (d.layers[0].id, d.alloc_id());
     let mut n = Node::path(id, shape.to_path(), Appearance::default());
     if let NodeKind::Path { live: slot, .. } = &mut n.kind {
@@ -2436,7 +2436,7 @@ fn a_thin_shapes_centre_point_gives_the_handles_the_pointer() {
 #[test]
 fn a_ruler_guide_under_the_centre_point_keeps_the_pointer() {
     let (mut d, id) = doc_with_live_rect();
-    d.add_ruler_guide(&vectorcraft_doc::Guide::new(true, 150.0));
+    d.add_ruler_guide(&vansoncraft_doc::Guide::new(true, 150.0));
     let mut s = Selection::default();
     s.add(id);
     let p = paint();
@@ -2456,13 +2456,13 @@ fn a_ruler_guide_under_the_centre_point_keeps_the_pointer() {
 /// the click.
 #[test]
 fn outline_view_click_through_an_image_selects_the_path_behind() {
-    use vectorcraft_doc::{Appearance, Document, ImageObject, Node, NodeKind};
+    use vansoncraft_doc::{Appearance, Document, ImageObject, Node, NodeKind};
     let mut d = Document::new(500.0, 500.0);
     let layer = d.layers[0].id;
     let (back, image) = (d.alloc_id(), d.alloc_id());
-    let square = vectorcraft_geom::shapes::rectangle(Rect::new(100.0, 100.0, 200.0, 200.0));
+    let square = vansoncraft_geom::shapes::rectangle(Rect::new(100.0, 100.0, 200.0, 200.0));
     d.insert(Some(layer), 0, Node::path(back, square, Appearance::default_art())).unwrap();
-    let xf = vectorcraft_geom::Affine::translate((150.0, 150.0));
+    let xf = vansoncraft_geom::Affine::translate((150.0, 150.0));
     let im = ImageObject { key: "k".into(), width: 100, height: 100, xf, link: None, placement: Default::default(), pixels: None };
     d.insert(Some(layer), 1, Node::new(image, NodeKind::Image(Box::new(im)))).unwrap();
     let selects = |a: &[Action], id: NodeId| a.iter().any(|a| matches!(a, Action::Exec(c, v) if c == "select.set" && v["ids"] == json!([id.0])));

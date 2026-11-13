@@ -1,12 +1,12 @@
-//! Linked images in `.vectorcraft` files: their link details round-trip, and an image only linked
+//! Linked images in `.vansoncraft` files: their link details round-trip, and an image only linked
 //! images show is saved as its preview.
 
 use std::sync::Arc;
 
 use serde_json::Value;
-use vectorcraft_doc::{Document, ImageBlob, ImageObject, LinkInfo, Node, NodeKind};
-use vectorcraft_format::{base64_decode, load, save};
-use vectorcraft_geom::Affine;
+use vansoncraft_doc::{Document, ImageBlob, ImageObject, LinkInfo, Node, NodeKind};
+use vansoncraft_format::{base64_decode, load, save};
+use vansoncraft_geom::Affine;
 
 fn image(d: &mut Document, key: &str, link: Option<LinkInfo>) {
     let (id, layer) = (d.alloc_id(), d.layers[0].id);

@@ -2,10 +2,10 @@
 //! the diamond's frame and equal to it there, drawn as the canvas draws the diamond; an image
 //! where the gradient is drawn as pixels or has no extent.
 
-use vectorcraft_color::{Color, Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop, Paint};
-use vectorcraft_doc::{Appearance, Document, Node};
-use vectorcraft_geom::{Point, Rect, shapes};
-use vectorcraft_testkit::raster::{assert_similar, render_artboard};
+use vansoncraft_color::{Color, Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop, Paint};
+use vansoncraft_doc::{Appearance, Document, Node};
+use vansoncraft_geom::{Point, Rect, shapes};
+use vansoncraft_testkit::raster::{assert_similar, render_artboard};
 
 use crate::*;
 
@@ -77,10 +77,10 @@ fn a_perceptual_diamond_of_a_spot_ink_is_four_separation_shadings() {
         stops.push(s);
     }
     stops.push(GradientStop::new(1.0, Color::cmyk(0.0, 0.0, 0.0, 0.0)));
-    let g = Gradient { method: vectorcraft_color::GradientMethod::Perceptual, ..Gradient::new(GradientKind::Diamond, stops) };
+    let g = Gradient { method: vansoncraft_color::GradientMethod::Perceptual, ..Gradient::new(GradientKind::Diamond, stops) };
     let mut d = doc(g, placed());
-    d.color_mode = vectorcraft_doc::ColorMode::Cmyk;
-    d.swatches.push(vectorcraft_color::Swatch { name: "Gold".into(), paint: Paint::solid(gold), global: true, spot: true });
+    d.color_mode = vansoncraft_doc::ColorMode::Cmyk;
+    d.swatches.push(vansoncraft_color::Swatch { name: "Gold".into(), paint: Paint::solid(gold), global: true, spot: true });
     let (text, warnings) = uncompressed(&d, &PdfOptions::uncompressed());
     assert_eq!(text.matches("/ShadingType 2").count(), 4, "{text}");
     assert!(text.contains("[/Separation/Gold"), "{text}");
@@ -95,7 +95,7 @@ fn a_perceptual_diamond_of_a_spot_ink_is_four_separation_shadings() {
 fn a_diamond_drawn_as_pixels_or_without_an_extent_is_an_image() {
     let c = Point::new(100.0, 100.0);
     let dithered = Gradient { dither: true, ..rgb_diamond() };
-    let perceptual = Gradient { method: vectorcraft_color::GradientMethod::Perceptual, ..rgb_diamond() };
+    let perceptual = Gradient { method: vansoncraft_color::GradientMethod::Perceptual, ..rgb_diamond() };
     let mut translucent = rgb_diamond();
     translucent.stops[1].opacity = 0.4;
     for (case, d) in [

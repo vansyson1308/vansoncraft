@@ -1,15 +1,15 @@
-//! `.vectorcraft` format: round trips, robustness against garbage, versioning, unknown fields.
+//! `.vansoncraft` format: round trips, robustness against garbage, versioning, unknown fields.
 // Integration tests: unwrapping and panicking on failure is fine here, unlike in shipped code (AGENTS.md › Robustness).
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use proptest::prelude::*;
 use serde_json::{Value, json};
-use vectorcraft_doc::{Document, ImageBlob, ImageObject, Node, NodeId, NodeKind};
-use vectorcraft_format::{SaveOptions, base64_decode, base64_encode, load, load_file, pdf_content, preview, save, save_with, sniff};
-use vectorcraft_geom::Affine;
-use vectorcraft_testkit::fixtures;
-use vectorcraft_testkit::invariants::{check_document, check_native_roundtrip, check_native_roundtrip_exact, doc_json, json_approx_eq};
-use vectorcraft_testkit::strategies::arb_ops;
+use vansoncraft_doc::{Document, ImageBlob, ImageObject, Node, NodeId, NodeKind};
+use vansoncraft_format::{SaveOptions, base64_decode, base64_encode, load, load_file, pdf_content, preview, save, save_with, sniff};
+use vansoncraft_geom::Affine;
+use vansoncraft_testkit::fixtures;
+use vansoncraft_testkit::invariants::{check_document, check_native_roundtrip, check_native_roundtrip_exact, doc_json, json_approx_eq};
+use vansoncraft_testkit::strategies::arb_ops;
 
 fn rich_doc() -> Document {
     (*fixtures::rich_session().doc().unwrap().doc).clone()
@@ -87,8 +87,8 @@ proptest! {
     /// and what loads saves and loads again unchanged.
     #[test]
     fn area_type_rows_and_columns_read_as_1_to_100(rows in prop_oneof![0u64..=200, any::<u64>()], columns in prop_oneof![0u64..=200, any::<u64>()]) {
-        use vectorcraft_doc::{AreaOptions, TextKind, TextObject};
-        use vectorcraft_geom::{Point, Rect, shapes};
+        use vansoncraft_doc::{AreaOptions, TextKind, TextObject};
+        use vansoncraft_geom::{Point, Rect, shapes};
         let count = |n: u64| usize::try_from(n).unwrap_or(usize::MAX);
         let mut t = TextObject::point(Point::ZERO, "Rows and columns", Default::default());
         t.kind = TextKind::Area { frame: shapes::rectangle(Rect::new(0.0, 0.0, 300.0, 120.0)) };
@@ -167,8 +167,8 @@ fn rich_document_roundtrips() {
     let bytes = save(&d, true);
     assert!(sniff(&bytes));
     let v: Value = serde_json::from_slice(&bytes).unwrap();
-    assert_eq!(v["format"], "vectorcraft");
-    assert_eq!(v["version"], vectorcraft_format::VERSION);
+    assert_eq!(v["format"], vansoncraft_format::FORMAT_NAME);
+    assert_eq!(v["version"], vansoncraft_format::VERSION);
 }
 
 /// A file's Path Effects are its own business: whatever their parameters hold, they load and save
@@ -179,13 +179,13 @@ fn path_effects_with_junk_params_round_trip() {
     let mut id = None;
     d.walk(|n| id = id.or(n.path_data().map(|_| n.id)));
     let id = id.unwrap();
-    let effects: Vec<vectorcraft_doc::Effect> = [
+    let effects: Vec<vansoncraft_doc::Effect> = [
         ("addon.path.dashes", json!({"dash1": 1e308, "gap1": -1e308, "offset": "x", "alignCorners": 3})),
         ("addon.path.addAnchors", json!({"count": 1e308, "maxCount": 1e308, "distance": -1e308, "spacing": "distance", "target": []})),
         ("addon.path.extend", json!(null)),
     ]
     .into_iter()
-    .map(|(id, params)| vectorcraft_doc::Effect { id: id.into(), params, visible: true })
+    .map(|(id, params)| vansoncraft_doc::Effect { id: id.into(), params, visible: true })
     .collect();
     d.node_mut(id).unwrap().appearance.effects = effects.clone();
     let back = load(&save(&d, true)).unwrap();
@@ -204,14 +204,14 @@ fn sniff_distinguishes_formats() {
 #[test]
 fn rejects_newer_versions_and_other_formats() {
     let mut v: Value = serde_json::from_slice(&save(&Document::new(1.0, 1.0), false)).unwrap();
-    v["version"] = json!(vectorcraft_format::VERSION + 1);
-    assert!(matches!(load(&serde_json::to_vec(&v).unwrap()), Err(vectorcraft_format::FormatError::TooNew(_))));
-    v["version"] = json!(vectorcraft_format::VERSION);
+    v["version"] = json!(vansoncraft_format::VERSION + 1);
+    assert!(matches!(load(&serde_json::to_vec(&v).unwrap()), Err(vansoncraft_format::FormatError::TooNew(_))));
+    v["version"] = json!(vansoncraft_format::VERSION);
     v["format"] = json!("other");
-    assert!(matches!(load(&serde_json::to_vec(&v).unwrap()), Err(vectorcraft_format::FormatError::NotVectorcraft(_))));
-    v["format"] = json!("vectorcraft");
+    assert!(matches!(load(&serde_json::to_vec(&v).unwrap()), Err(vansoncraft_format::FormatError::NotVansoncraft(_))));
+    v["format"] = json!(vansoncraft_format::FORMAT_NAME);
     v["images"] = json!({"x": {"mime": "image/png", "data": "not base64!"}});
-    assert!(matches!(load(&serde_json::to_vec(&v).unwrap()), Err(vectorcraft_format::FormatError::BadImage(_))));
+    assert!(matches!(load(&serde_json::to_vec(&v).unwrap()), Err(vansoncraft_format::FormatError::BadImage(_))));
 }
 
 #[test]
@@ -270,8 +270,8 @@ fn saved_selections_from_a_file_are_tidied() {
     v["document"]["saved_selections"] = json!(list);
     let back = load(&serde_json::to_vec(&v).unwrap()).unwrap();
     let saved = &back.saved_selections;
-    assert_eq!(saved.len(), vectorcraft_doc::SavedSelection::MAX);
-    assert_eq!(saved[0].name, "x".repeat(vectorcraft_doc::SavedSelection::MAX_NAME));
+    assert_eq!(saved.len(), vansoncraft_doc::SavedSelection::MAX);
+    assert_eq!(saved[0].name, "x".repeat(vansoncraft_doc::SavedSelection::MAX_NAME));
     assert_eq!(saved[0].objects, vec![id], "a missing id is dropped, a repeated one kept once");
     assert_eq!((saved[1].name.as_str(), saved[1].objects.len()), ("Dup", 0), "blank names go, the first of a name stays");
     assert_eq!(saved[2].name, "S0");
@@ -287,8 +287,8 @@ fn saved_selections_from_a_file_are_tidied() {
 /// and a zoom the canvas can show.
 #[test]
 fn saved_views_round_trip_and_from_a_file_are_tidied() {
-    use vectorcraft_doc::SavedView;
-    use vectorcraft_geom::Point;
+    use vansoncraft_doc::SavedView;
+    use vansoncraft_geom::Point;
     let mut d = rich_doc();
     let mut v: Value = serde_json::from_slice(&save(&d, false)).unwrap();
     assert!(v["document"].get("views").is_none(), "nothing written when there are none");

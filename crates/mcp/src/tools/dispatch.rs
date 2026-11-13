@@ -72,6 +72,13 @@ fn filter_commands(all: Value, a: &Args) -> Value {
     )
 }
 
+/// `{kind: "headless"|"remote", describe}`: where the tools act.
+pub(super) fn backend_info(b: &dyn Backend) -> Value {
+    let describe = b.describe();
+    let kind = if describe.starts_with("remote") { "remote" } else { "headless" };
+    json!({"kind": kind, "describe": describe, "desktopWindow": kind == "remote"})
+}
+
 fn dispatch(b: &mut dyn Backend, name: &str, a: &Args) -> Result<ToolResult, String> {
     let j = |v: Value| Ok(ToolResult::json(&v));
     match name {
@@ -96,6 +103,7 @@ fn dispatch(b: &mut dyn Backend, name: &str, a: &Args) -> Result<ToolResult, Str
             j(json!({"count": list.as_array().map_or(0, Vec::len), "commands": list}))
         }
         "command_run" | "run_command" | "invoke_menu" => {
+            expect_document(b, a)?;
             let cmd = req_str(a, if name == "command_run" { "id" } else { "command" })?;
             let params = match a.get("params") {
                 None | Some(Value::Null) => json!({}),
@@ -103,13 +111,28 @@ fn dispatch(b: &mut dyn Backend, name: &str, a: &Args) -> Result<ToolResult, Str
                 Some(_) => return Err("`params` must be an object".into()),
             };
             let method = if name == "invoke_menu" && b.has_ui() { "ui.menu.invoke" } else { "engine.execute" };
-            j(b.call(method, json!({"command": cmd, "params": params}))?)
+            let mut reply = b.call(method, json!({"command": cmd, "params": params}))?;
+            // A picture in the reply (`study.render`, `study.values {image}`, `study.compare {image}`)
+            // goes back as an image the model can look at, not as base64 text it can't read.
+            match reply.as_object_mut().and_then(|o| o.remove("pngBase64")) {
+                Some(Value::String(encoded)) => {
+                    let png = vansoncraft_format::base64_decode(&encoded).ok_or("the command returned bad base64")?;
+                    Ok(image_result(&png, reply))
+                }
+                _ => j(reply),
+            }
         }
         "doc_inspect" | "inspect_document" => {
             // Only the slicing and scope options reach the command, which validates them.
             let slice: Map<String, Value> =
                 a.iter().filter(|(k, _)| INSPECT_KEYS.contains(&k.as_str())).map(|(k, v)| (k.clone(), v.clone())).collect();
-            j(b.call("document.inspect", Value::Object(slice))?)
+            let mut v = b.call("document.inspect", Value::Object(slice))?;
+            // Which backend the document lives in, so an agent can tell a desktop window from an
+            // in-process session (F1 in docs/speed/audit.md).
+            if let Some(o) = v.as_object_mut() {
+                o.insert("backend".into(), backend_info(b));
+            }
+            j(v)
         }
         "ui_inspect" | "inspect_ui" => {
             need_ui(b, name)?;
@@ -299,7 +322,7 @@ pub fn call_tool(b: &mut dyn Backend, name: &str, args: &Value) -> ToolResult {
         Value::Null => &empty,
         _ => return ToolResult::error("tool arguments must be a JSON object"),
     };
-    match vectorcraft_engine::guard::catch_panic(|| dispatch(b, name, a)) {
+    match vansoncraft_engine::guard::catch_panic(|| dispatch(b, name, a)) {
         Ok(Ok(r)) => r,
         Ok(Err(e)) => ToolResult::error(format!("{name}: {e}")),
         Err(e) => ToolResult::error(format!("internal error in `{name}`: {e} (please report this bug)")),
@@ -324,7 +347,26 @@ pub(crate) fn check_tool_arguments(name: &str, args: &Args) -> Result<(), String
     }
 }
 
+/// `expect_document`: the uid (from `doc_inspect`) of the document the caller means to change.
+/// Refused before anything runs when another document is active, as after a person switched tabs
+/// in the desktop app or a step opened another file (F2b in docs/speed/audit.md). The check and
+/// the command are separate requests to a desktop app, so a switch in between still slips past.
+fn expect_document(b: &mut dyn Backend, a: &Args) -> Result<(), String> {
+    let Some(v) = a.get("expect_document").filter(|v| !v.is_null()) else { return Ok(()) };
+    let want = v.as_u64().ok_or("`expect_document` must be a document uid (a whole number from doc_inspect)")?;
+    let doc = b.call("document.inspect", json!({"depth": 0}))?;
+    match doc.get("uid").and_then(Value::as_u64) {
+        Some(uid) if uid == want => Ok(()),
+        Some(uid) => Err(format!(
+            "the active document is uid {uid} ({}), not {want}: nothing was run; inspect and activate the right document first",
+            doc.get("title").and_then(Value::as_str).unwrap_or("untitled")
+        )),
+        None => Err("no document is open: nothing was run".into()),
+    }
+}
+
 fn command_batch(b: &mut dyn Backend, a: &Args) -> Result<ToolResult, String> {
+    expect_document(b, a)?;
     let steps = a.get("steps").and_then(Value::as_array).ok_or("`steps` must be an array")?;
     if steps.len() > MAX_COMMAND_BATCH_STEPS {
         return Err(format!("`steps` holds {} steps; at most {MAX_COMMAND_BATCH_STEPS}", steps.len()));
@@ -337,6 +379,14 @@ fn command_batch(b: &mut dyn Backend, a: &Args) -> Result<ToolResult, String> {
         None => false,
         Some(v) => v.as_bool().ok_or("`atomic` must be a boolean")?,
     };
+    // An atomic batch that fails is taken back unless the caller keeps what ran (F3).
+    let keep = match a.get("keep_on_error") {
+        None => false,
+        Some(v) => v.as_bool().ok_or("`keep_on_error` must be a boolean")?,
+    };
+    if keep && !atomic {
+        return Err("`keep_on_error` is for an atomic batch: give atomic:true too".into());
+    }
     if atomic {
         let label = a.get("label").cloned().unwrap_or(Value::Null);
         b.call("engine.execute", json!({"command":"edit.undoGroup.begin","params":{"label":label}}))?;
@@ -352,7 +402,7 @@ fn command_batch(b: &mut dyn Backend, a: &Args) -> Result<ToolResult, String> {
     // The objects the drawing steps made (#2113).
     let mut created: Vec<Value> = vec![];
     for step in steps {
-        let result = vectorcraft_engine::guard::catch_panic(|| {
+        let result = vansoncraft_engine::guard::catch_panic(|| {
             let args = step.as_object().ok_or("each step must be an object")?;
             if args.keys().any(|k| k != "id" && k != "params") {
                 return Err("unknown step argument (expected id, params)".into());
@@ -360,7 +410,7 @@ fn command_batch(b: &mut dyn Backend, a: &Args) -> Result<ToolResult, String> {
             let id = req_str(args, "id")?;
             let params = match args.get("params") {
                 None | Some(Value::Null) => json!({}),
-                Some(v @ Value::Object(_)) => vectorcraft_engine::steps::resolve(v, &values)?,
+                Some(v @ Value::Object(_)) => vansoncraft_engine::steps::resolve(v, &values)?,
                 Some(_) => return Err("`params` must be an object".into()),
             };
             match id {
@@ -406,17 +456,68 @@ fn command_batch(b: &mut dyn Backend, a: &Args) -> Result<ToolResult, String> {
             }
         }
     }
-    // The steps that ran stay, as one undo step.
+    // The steps that ran stay as one undo step; when one failed, the group is taken back instead
+    // (its edits undone in every document it reached), unless `keep_on_error`. Files the steps
+    // wrote stay written, and documents they opened stay open.
+    let roll_back = atomic && failed > 0 && !keep;
+    let mut reply = json!({"completed":completed,"failed":failed,"results":results,"created":created});
     if atomic {
-        b.call("engine.execute", json!({"command":"edit.undoGroup.end","params":{}}))?;
+        let end = b.call("engine.execute", json!({"command":"edit.undoGroup.end","params":{"cancel": roll_back}}));
+        match end {
+            Ok(_) if roll_back => {
+                reply["rolledBack"] = json!(true);
+                reply["created"] = json!([]);
+                reply["note"] = json!(
+                    "a step failed, so the edits the steps before it made in the active document and in documents they opened were undone; edits in a document open before the batch that a step switched to stay, as do files written and documents opened; their ids are void"
+                );
+            }
+            Ok(_) => {}
+            // The results still go back: the steps ran.
+            Err(e) => reply["warning"] = json!(format!("the batch's undo group could not be closed: {e}")),
+        }
     }
-    let mut r = ToolResult::json(&json!({"completed":completed,"failed":failed,"results":results,"created":created}));
+    let mut r = ToolResult::json(&reply);
     r.is_error = failed > 0;
     Ok(r)
 }
 
+/// `render_preview` with a `region`, a `mode` or `showTemplates`: the engine's `study.render`
+/// draws it (a zoom into any rectangle, grey, or value groups), in both backends.
+fn study_preview(b: &mut dyn Backend, a: &Args, max: u32) -> Result<ToolResult, String> {
+    let mut p = json!({"maxSide": max.max(16)});
+    for (from, to) in [
+        ("artboard", "artboard"),
+        ("region", "region"),
+        ("mode", "mode"),
+        ("levels", "levels"),
+        ("thresholds", "thresholds"),
+        ("showTemplates", "showTemplates"),
+        ("flip", "flip"),
+    ] {
+        if let Some(v) = a.get(from).filter(|v| !v.is_null()) {
+            p[to] = v.clone();
+        }
+    }
+    let mut r = b.call("engine.execute", json!({"command": "study.render", "params": p}))?;
+    let encoded = r.get("pngBase64").and_then(Value::as_str).ok_or("renderer returned no image")?.to_string();
+    let png = vansoncraft_format::base64_decode(&encoded).ok_or("renderer returned bad base64")?;
+    if let Some(o) = r.as_object_mut() {
+        o.remove("pngBase64");
+    }
+    Ok(image_result(&png, r))
+}
+
+/// The longer side a default `render_preview` draws a small artboard at.
+const PREVIEW_FLOOR: u32 = 512;
+
 fn render_preview(b: &mut dyn Backend, a: &Args) -> Result<ToolResult, String> {
     let max = max_side(a)?.unwrap_or(1024);
+    let study = ["region", "mode", "showTemplates", "levels", "thresholds", "flip"].iter().any(|k| a.get(*k).is_some_and(|v| !v.is_null()));
+    // A zoomed region is drawn at max_side; a whole artboard at the size the plain preview gives
+    // it, so its colour and value views compare pixel for pixel.
+    if study && a.get("region").is_some_and(|v| !v.is_null()) {
+        return study_preview(b, a, max);
+    }
     let index = match a.get("artboard") {
         None => 0,
         Some(v) => v.as_u64().ok_or("`artboard` must be a 0-based artboard index")?,
@@ -431,8 +532,20 @@ fn render_preview(b: &mut dyn Backend, a: &Args) -> Result<ToolResult, String> {
         return Err("invalid artboard dimensions".into());
     }
     // The headless renderer clamps scale at 0.01. Bound its allocation even for
-    // a huge artboard, then downsize to the requested dimensions.
-    let scale = (f64::from(max) / width.max(height)).clamp(0.01, 1.0);
+    // a huge artboard, then downsize to the requested dimensions. A small artboard is drawn larger
+    // (F6 in docs/speed/audit.md), up to 16 pixels a point: to max_side when it is given, else to
+    // 512 pixels, so a 32 pt icon is not a 32 pixel preview while a page keeps its usual size
+    // (image tokens grow with pixels).
+    // max_side stays an upper bound: a page is never drawn past 1 pixel a point, and a small
+    // artboard is drawn up to 512 pixels (or max_side when smaller).
+    let longest = width.max(height);
+    let fit = f64::from(max) / longest;
+    let scale = fit.min((f64::from(max.min(PREVIEW_FLOOR)) / longest).max(1.0)).clamp(0.01, 16.0);
+    if study {
+        // The same size as the plain preview, drawn by study.render.
+        let side = (longest * scale).round().clamp(16.0, 4096.0) as u32;
+        return study_preview(b, a, side);
+    }
     if width.max(height) * scale > 4096.0 {
         return Err("artboard is too large for a bounded preview".into());
     }
@@ -442,7 +555,7 @@ fn render_preview(b: &mut dyn Backend, a: &Args) -> Result<ToolResult, String> {
     }
     let r = b.call("ui.render", p)?;
     let encoded = r.get("pngBase64").and_then(Value::as_str).ok_or("renderer returned no image")?;
-    let png = vectorcraft_format::base64_decode(encoded).ok_or("renderer returned bad base64")?;
+    let png = vansoncraft_format::base64_decode(encoded).ok_or("renderer returned bad base64")?;
     // The render was asked for at most 4096 a side.
     let img = super::handlers::decode_png(&png, 8192).map_err(|e| format!("read preview: {e}"))?;
     let img = if img.width() > max || img.height() > max { img.thumbnail(max, max) } else { img };

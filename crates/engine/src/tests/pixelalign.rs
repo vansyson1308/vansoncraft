@@ -2,7 +2,7 @@
 //! horizontal and vertical segments on the pixel grid through transforms.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{NodeId, NodeKind};
+use vansoncraft_doc::{NodeId, NodeKind};
 
 use crate::Session;
 
@@ -278,12 +278,12 @@ fn a_stroke_without_paint_snaps_to_whole_points() {
     let id = path(&mut s, "M10.3 20.6 L40.7 20.6 L40.7 30.3 L10.3 30.3 Z", 1.0);
     // An imported file can hold a stroke item without paint that keeps its weight.
     let n = std::sync::Arc::make_mut(&mut s.doc_mut().unwrap().doc).node_mut(NodeId(id)).unwrap();
-    let Some(vectorcraft_doc::AppearanceItem::Stroke(st)) =
-        n.appearance.items.iter_mut().find(|i| matches!(i, vectorcraft_doc::AppearanceItem::Stroke(_)))
+    let Some(vansoncraft_doc::AppearanceItem::Stroke(st)) =
+        n.appearance.items.iter_mut().find(|i| matches!(i, vansoncraft_doc::AppearanceItem::Stroke(_)))
     else {
         panic!("no stroke");
     };
-    st.paint = vectorcraft_color::Paint::None;
+    st.paint = vansoncraft_color::Paint::None;
     assert_eq!(st.width, 1.0);
     s.execute("object.setPixelAligned", &json!({})).unwrap();
     assert_eq!(points(&s, id), [(10.0, 21.0), (41.0, 21.0), (41.0, 30.0), (10.0, 30.0)]);
@@ -318,7 +318,7 @@ fn a_path_with_live_corners_snaps_its_inner_edges() {
     let base = |s: &Session| {
         let n = s.doc().unwrap().doc.node(NodeId(id)).unwrap().clone();
         let NodeKind::Path { live: Some(live), .. } = &n.kind else { panic!("no Live Corners") };
-        let vectorcraft_doc::LiveShape::Path { base, .. } = &**live else { panic!("not a path with Live Corners") };
+        let vansoncraft_doc::LiveShape::Path { base, .. } = &**live else { panic!("not a path with Live Corners") };
         base.anchors().map(|(_, _, a)| (a.p.x, a.p.y)).collect::<Vec<_>>()
     };
     assert!(base(&s).iter().any(|p| close(*p, (40.0, 20.3))));
@@ -410,7 +410,7 @@ fn a_linked_opacity_mask_follows_a_snap() {
     s.execute("object.setPixelAligned", &json!({"ids": [o]})).unwrap();
     let to = s.doc().unwrap().doc.node(NodeId(o)).unwrap().geometric_bounds().unwrap();
     assert_eq!(points(&s, o), [(10.0, 21.0), (41.0, 21.0), (41.0, 30.0), (10.0, 30.0)]);
-    let at = |r: vectorcraft_geom::Rect, x: f64, y: f64| ((x - r.x0) / r.width(), (y - r.y0) / r.height());
+    let at = |r: vansoncraft_geom::Rect, x: f64, y: f64| ((x - r.x0) / r.width(), (y - r.y0) / r.height());
     let after = mask_bounds(&s);
     assert!(close(at(to, after.x0, after.y0), at(from, mask.x0, mask.y0)), "{after:?} from {mask:?}");
     assert!(close(at(to, after.x1, after.y1), at(from, mask.x1, mask.y1)), "{after:?} from {mask:?}");
@@ -506,7 +506,7 @@ fn type_and_images_cannot_be_aligned() {
     let before = points(&s, p);
     let text = s.execute("text.create", &json!({"x": 10, "y": 100, "text": "Hi"})).unwrap()["id"].as_u64().unwrap();
     let png = crate::tests_links::png(4, 4, [255, 0, 0]);
-    s.execute("file.place", &json!({"name": "red.png", "dataBase64": vectorcraft_format::base64_encode(&png), "link": false})).unwrap();
+    s.execute("file.place", &json!({"name": "red.png", "dataBase64": vansoncraft_format::base64_encode(&png), "link": false})).unwrap();
     let image = {
         let st = s.doc().unwrap();
         let id = st.selection.objects[0];
@@ -535,7 +535,7 @@ fn the_property_is_saved_and_read_back() {
     let b = path(&mut s, "M110.3 20.6 L140.7 20.6 L140.7 30.3 L110.3 30.3 Z", 2.0);
     s.execute("object.setPixelAligned", &json!({"ids": [a]})).unwrap();
     let d = &s.doc().unwrap().doc;
-    let back = vectorcraft_format::load(&vectorcraft_format::save(d, false)).unwrap();
+    let back = vansoncraft_format::load(&vansoncraft_format::save(d, false)).unwrap();
     assert!(back.node(NodeId(a)).unwrap().extras().pixel_aligned);
     assert!(!back.node(NodeId(b)).unwrap().extras().pixel_aligned);
     let plain: Value = serde_json::to_value(d.node(NodeId(b)).unwrap()).unwrap();
@@ -599,7 +599,7 @@ fn the_art_of_a_linked_opacity_mask_keeps_it_aligned() {
 /// The start point of path object `id`'s placed gradient fill.
 fn gradient_start(s: &Session, id: u64) -> (f64, f64) {
     let n = s.doc().unwrap().doc.node(NodeId(id)).unwrap().clone();
-    let Some(vectorcraft_color::Paint::Gradient(g)) = n.appearance.paint_at(None, true) else { panic!("no gradient fill") };
+    let Some(vansoncraft_color::Paint::Gradient(g)) = n.appearance.paint_at(None, true) else { panic!("no gradient fill") };
     let p = g.geom.expect("a placed gradient").start;
     (p.x, p.y)
 }
@@ -613,8 +613,8 @@ fn placed_gradients_follow_the_snapped_path() {
     {
         let n = std::sync::Arc::make_mut(&mut s.doc_mut().unwrap().doc).node_mut(NodeId(id)).unwrap();
         let bounds = n.geometric_bounds().unwrap();
-        let Some(vectorcraft_doc::AppearanceItem::Fill(f)) = n.appearance.items.iter_mut().find(|i| i.is_fill()) else { panic!("no fill") };
-        let vectorcraft_color::Paint::Gradient(g) = &mut f.paint else { panic!("no gradient fill") };
+        let Some(vansoncraft_doc::AppearanceItem::Fill(f)) = n.appearance.items.iter_mut().find(|i| i.is_fill()) else { panic!("no fill") };
+        let vansoncraft_color::Paint::Gradient(g) = &mut f.paint else { panic!("no gradient fill") };
         g.pin(bounds);
     }
     s.execute("object.setPixelAligned", &json!({"ids": [id]})).unwrap();
@@ -633,7 +633,7 @@ fn strokes(s: &Session, id: u64) -> Vec<(usize, f64)> {
         .iter()
         .enumerate()
         .filter_map(|(i, it)| match it {
-            vectorcraft_doc::AppearanceItem::Stroke(st) => Some((i, st.width)),
+            vansoncraft_doc::AppearanceItem::Stroke(st) => Some((i, st.width)),
             _ => None,
         })
         .collect()
@@ -735,7 +735,7 @@ fn patterns_follow_the_snap_with_transform_patterns() {
     s.execute("object.setPixelAligned", &json!({"ids": [a]})).unwrap();
     let tiles = |s: &Session| {
         let n = s.doc().unwrap().doc.node(NodeId(a)).unwrap().clone();
-        let vectorcraft_color::Paint::Pattern { xf, .. } = n.appearance.fill_paint() else { panic!("no pattern fill") };
+        let vansoncraft_color::Paint::Pattern { xf, .. } = n.appearance.fill_paint() else { panic!("no pattern fill") };
         xf.as_coeffs()
     };
     let (before, xf) = (points(&s, a), tiles(&s));
@@ -880,16 +880,16 @@ fn align_new_objects_is_saved_and_read_back() {
     let mut s = new_doc();
     let off = serde_json::to_value(&s.doc().unwrap().doc.setup).unwrap();
     assert!(off.get("alignNewObjectsToPixelGrid").is_none(), "{off}");
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = vansoncraft_format::load(&vansoncraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
     assert!(!back.setup.align_new_objects_to_pixel_grid);
     s.execute("document.setup", &json!({"alignNewObjectsToPixelGrid": true})).unwrap();
     let on = serde_json::to_value(&s.doc().unwrap().doc.setup).unwrap();
     assert_eq!(on["alignNewObjectsToPixelGrid"], true);
-    let back = vectorcraft_format::load(&vectorcraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
+    let back = vansoncraft_format::load(&vansoncraft_format::save(&s.doc().unwrap().doc, false)).unwrap();
     assert!(back.setup.align_new_objects_to_pixel_grid);
     let mut older = on;
     older.as_object_mut().unwrap().remove("alignNewObjectsToPixelGrid");
-    assert!(!serde_json::from_value::<vectorcraft_doc::DocSetup>(older).unwrap().align_new_objects_to_pixel_grid);
+    assert!(!serde_json::from_value::<vansoncraft_doc::DocSetup>(older).unwrap().align_new_objects_to_pixel_grid);
 }
 
 fn selected_ids(s: &Session) -> Vec<u64> {
@@ -995,7 +995,7 @@ fn not_aligned_to_pixel_grid_leaves_out_images_symbol_instances_and_type() {
     let mut s = new_doc();
     let p = path(&mut s, "M10.3 20.6 L40.7 20.6 L40.7 30.3 L10.3 30.3 Z", 1.0);
     let png = crate::tests_links::png(4, 4, [255, 0, 0]);
-    s.execute("file.place", &json!({"name": "red.png", "dataBase64": vectorcraft_format::base64_encode(&png), "link": false})).unwrap();
+    s.execute("file.place", &json!({"name": "red.png", "dataBase64": vansoncraft_format::base64_encode(&png), "link": false})).unwrap();
     let image = s.doc().unwrap().selection.objects[0].0;
     let art = path(&mut s, "M60.5 60 L80 60 L80 80 L60.5 80 Z", 1.0);
     let made = s.execute("symbol.new", &json!({"name": "Mark", "ids": [art]})).unwrap()["id"].as_u64().unwrap();
@@ -1118,15 +1118,15 @@ fn not_aligned_to_pixel_grid_leaves_out_meshes_placed_documents_and_guides_but_t
     s.execute("paint.setFill", &json!({"color": "#3366cc"})).unwrap();
     let mesh = s.execute("object.mesh.create", &json!({"ids": [filled], "rows": 2, "cols": 2})).unwrap()["ids"][0].as_u64().unwrap();
     let dir = crate::tests_links::Folder::new("pixelalign-placed");
-    let file = dir.file("placed.vectorcraft");
-    let mut d = vectorcraft_doc::Document::new(50.0, 50.0);
+    let file = dir.file("placed.vansoncraft");
+    let mut d = vansoncraft_doc::Document::new(50.0, 50.0);
     let layer = d.layers[0].id;
     let id = d.alloc_id();
-    let rect = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(0.5, 0.5, 40.0, 40.0));
-    let paint = vectorcraft_color::Paint::solid(vectorcraft_color::Color::rgb8(20, 20, 230));
-    let look = vectorcraft_doc::Appearance::basic(paint, vectorcraft_color::Paint::None, 0.0);
-    d.insert(Some(layer), 0, vectorcraft_doc::Node::path(id, rect, look)).unwrap();
-    crate::tests_links::write(&file, &vectorcraft_format::save_file(&d));
+    let rect = vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(0.5, 0.5, 40.0, 40.0));
+    let paint = vansoncraft_color::Paint::solid(vansoncraft_color::Color::rgb8(20, 20, 230));
+    let look = vansoncraft_doc::Appearance::basic(paint, vansoncraft_color::Paint::None, 0.0);
+    d.insert(Some(layer), 0, vansoncraft_doc::Node::path(id, rect, look)).unwrap();
+    crate::tests_links::write(&file, &vansoncraft_format::save_file(&d));
     let placed = s.execute("file.place", &json!({"path": file, "at": [200, 200]})).unwrap()["ids"][0].as_u64().unwrap();
     let guide = path(&mut s, "M0 300.5 L400 300.5", 1.0);
     s.execute("view.guides.make", &json!({})).unwrap();

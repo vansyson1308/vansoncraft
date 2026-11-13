@@ -3,9 +3,9 @@
 
 use std::sync::Arc;
 
-use vectorcraft_color::{Color, Freeform, FreeformPoint, Gradient, GradientKind, GradientMethod, GradientPaint, GradientStop, Paint, Swatch};
-use vectorcraft_doc::{Appearance, AppearanceItem, Dash, Document, ImageBlob, ImageObject, LineCap, LineJoin, Node, NodeKind};
-use vectorcraft_geom::{Affine, PathData, Point, Rect, shapes};
+use vansoncraft_color::{Color, Freeform, FreeformPoint, Gradient, GradientKind, GradientMethod, GradientPaint, GradientStop, Paint, Swatch};
+use vansoncraft_doc::{Appearance, AppearanceItem, Dash, Document, ImageBlob, ImageObject, LineCap, LineJoin, Node, NodeKind};
+use vansoncraft_geom::{Affine, PathData, Point, Rect, shapes};
 
 use crate::*;
 
@@ -107,7 +107,7 @@ fn the_header_follows_dsc_and_the_file_ends_with_eof() {
     let out = export(&d, &EpsOptions { title: "Poster (draft)".into(), created: Some(0), ..opts(&d) }, None, None).unwrap();
     let ps = text(&out);
     assert!(ps.starts_with("%!PS-Adobe-3.0 EPSF-3.0\n"), "{ps}");
-    assert!(dsc(&ps, "Creator").unwrap().starts_with("VectorCraft"));
+    assert!(dsc(&ps, "Creator").unwrap().starts_with("VansonCraft"));
     assert_eq!(dsc(&ps, "Title").as_deref(), Some("(Poster \\(draft\\))"));
     assert_eq!(dsc(&ps, "CreationDate").as_deref(), Some("(1970-01-01 00:00:00 UTC)"));
     assert_eq!(dsc(&ps, "LanguageLevel").as_deref(), Some("3"));
@@ -196,7 +196,7 @@ fn conic_gradients_are_solid_wedges_at_both_levels() {
     let stops = vec![GradientStop::new(0.0, Color::rgb(1.0, 0.0, 0.0)), GradientStop::new(1.0, Color::rgb(0.0, 0.0, 1.0))];
     for aspect in [1.0, -0.5] {
         let mut g = GradientPaint::new(Gradient::new(GradientKind::Conic, stops.clone()));
-        g.geom = Some(vectorcraft_color::GradientGeom { start: Point::new(100.0, 70.0), end: Point::new(150.0, 70.0), aspect, focal: None });
+        g.geom = Some(vansoncraft_color::GradientGeom { start: Point::new(100.0, 70.0), end: Point::new(150.0, 70.0), aspect, focal: None });
         let paint = Paint::Gradient(Box::new(g));
         let d = doc_with(|d| vec![path(d, shapes::rectangle(Rect::new(20.0, 20.0, 180.0, 120.0)), paint, Paint::None, 0.0)]);
         for o in [opts(&d), EpsOptions { level: Level::Two, ..opts(&d) }] {
@@ -208,9 +208,9 @@ fn conic_gradients_are_solid_wedges_at_both_levels() {
         }
         let out = export(&d, &opts(&d), None, None).unwrap();
         let back = import_with(&out.bytes, false).unwrap().document;
-        vectorcraft_testkit::raster::assert_similar(
-            &vectorcraft_testkit::raster::render_artboard(&d),
-            &vectorcraft_testkit::raster::render_artboard(&back),
+        vansoncraft_testkit::raster::assert_similar(
+            &vansoncraft_testkit::raster::render_artboard(&d),
+            &vansoncraft_testkit::raster::render_artboard(&back),
             8.0,
             0.01,
         );
@@ -224,7 +224,7 @@ fn conic_gradients_are_solid_wedges_at_both_levels() {
 fn diamond_gradients_are_four_linear_gradients_clipped_to_quadrants() {
     let stops = vec![GradientStop::new(0.0, Color::rgb(1.0, 0.0, 0.0)), GradientStop::new(1.0, Color::rgb(0.0, 0.0, 1.0))];
     let mut g = GradientPaint::new(Gradient::new(GradientKind::Diamond, stops));
-    g.geom = Some(vectorcraft_color::GradientGeom { start: Point::new(100.0, 70.0), end: Point::new(140.0, 40.0), aspect: 0.6, focal: None });
+    g.geom = Some(vansoncraft_color::GradientGeom { start: Point::new(100.0, 70.0), end: Point::new(140.0, 40.0), aspect: 0.6, focal: None });
     let paint = Paint::Gradient(Box::new(g));
     let d = doc_with(|d| vec![path(d, shapes::rectangle(Rect::new(20.0, 20.0, 180.0, 120.0)), paint, Paint::None, 0.0)]);
     for (o, shadings) in [(opts(&d), 4), (EpsOptions { level: Level::Two, ..opts(&d) }, 0)] {
@@ -236,9 +236,9 @@ fn diamond_gradients_are_four_linear_gradients_clipped_to_quadrants() {
     }
     let out = export(&d, &opts(&d), None, None).unwrap();
     let back = import_with(&out.bytes, false).unwrap().document;
-    vectorcraft_testkit::raster::assert_similar(
-        &vectorcraft_testkit::raster::render_artboard(&d),
-        &vectorcraft_testkit::raster::render_artboard(&back),
+    vansoncraft_testkit::raster::assert_similar(
+        &vansoncraft_testkit::raster::render_artboard(&d),
+        &vansoncraft_testkit::raster::render_artboard(&back),
         6.0,
         0.01,
     );
@@ -250,13 +250,13 @@ fn diamond_gradients_are_four_linear_gradients_clipped_to_quadrants() {
 /// and Level 2.
 #[test]
 fn spread_gradients_are_written_with_their_stops_repeated() {
-    use vectorcraft_color::{GradientGeom, GradientSpread};
+    use vansoncraft_color::{GradientGeom, GradientSpread};
     let c = Point::new(100.0, 100.0);
-    let around = GradientGeom { start: c, end: c + vectorcraft_geom::Vec2::new(60.0, -25.0), aspect: 0.7, focal: None };
+    let around = GradientGeom { start: c, end: c + vansoncraft_geom::Vec2::new(60.0, -25.0), aspect: 0.7, focal: None };
     let cases = [
         (GradientKind::Linear, GradientGeom { start: Point::new(70.0, 80.0), end: Point::new(150.0, 110.0), aspect: 1.0, focal: None }),
         (GradientKind::Radial, around),
-        (GradientKind::Radial, GradientGeom { focal: Some(c + vectorcraft_geom::Vec2::new(-15.0, 12.0)), ..around }),
+        (GradientKind::Radial, GradientGeom { focal: Some(c + vansoncraft_geom::Vec2::new(-15.0, 12.0)), ..around }),
         (GradientKind::Conic, around),
         (GradientKind::Diamond, around),
     ];
@@ -270,8 +270,8 @@ fn spread_gradients_are_written_with_their_stops_repeated() {
             for o in [opts(&d), EpsOptions { level: Level::Two, ..opts(&d) }] {
                 let out = export(&d, &o, None, None).unwrap();
                 let back = import_with(&out.bytes, false).unwrap().document;
-                let (a, b) = (vectorcraft_testkit::raster::render_artboard(&d), vectorcraft_testkit::raster::render_artboard(&back));
-                let st = vectorcraft_testkit::raster::perceptual_diff(&a, &b, 12.0);
+                let (a, b) = (vansoncraft_testkit::raster::render_artboard(&d), vansoncraft_testkit::raster::render_artboard(&back));
+                let st = vansoncraft_testkit::raster::perceptual_diff(&a, &b, 12.0);
                 assert!(
                     (st.bad_pixels as f64) < 0.03 * st.pixels as f64,
                     "{kind:?} {spread:?} level {:?}: {} of {} pixels differ",
@@ -288,7 +288,7 @@ fn spread_gradients_are_written_with_their_stops_repeated() {
 /// EPS, legacy `.ai` and the `.ai` editing data.
 #[test]
 fn a_spread_gradient_without_stops_is_written() {
-    use vectorcraft_color::GradientSpread;
+    use vansoncraft_color::GradientSpread;
     for kind in [GradientKind::Linear, GradientKind::Radial, GradientKind::Conic, GradientKind::Diamond] {
         let g = GradientPaint::new(Gradient { spread: GradientSpread::Repeat, repeats: 3, ..Gradient::new(kind, vec![]) });
         let paint = Paint::Gradient(Box::new(g));
@@ -303,7 +303,7 @@ fn a_spread_gradient_without_stops_is_written() {
 /// stitching bounds lie where the runs meet, to well under a run's thousandth.
 #[test]
 fn many_repeats_keep_their_places_in_a_smooth_shading() {
-    use vectorcraft_color::{GradientGeom, GradientSpread};
+    use vansoncraft_color::{GradientGeom, GradientSpread};
     let stops = vec![GradientStop::new(0.0, Color::rgb(1.0, 0.0, 0.0)), GradientStop::new(1.0, Color::rgb(0.0, 0.0, 1.0))];
     // A run of 0.4 pt across a shape 160 pt wide: capped at 256 runs.
     let mut g = GradientPaint::new(Gradient { spread: GradientSpread::Repeat, repeats: 100, ..Gradient::new(GradientKind::Linear, stops) });
@@ -531,7 +531,7 @@ fn spot_inks_named_all_or_none_are_written_under_names_of_their_own() {
         // A fill of the spot ink and a Registration stroke.
         let mut d = doc_with(|_| vec![]);
         d.swatches.push(Swatch { name: name.into(), paint: Paint::solid(GOLD), global: true, spot: true });
-        let n = rect(&mut d, name, vectorcraft_color::swatch::REGISTRATION);
+        let n = rect(&mut d, name, vansoncraft_color::swatch::REGISTRATION);
         d.insert(Some(d.layers[0].id), 0, n).unwrap();
         let ps = text(&export(&d, &opts(&d), None, None).unwrap());
         assert_eq!(dsc(&ps, "DocumentCustomColors"), Some(format!("({colorant})")), "{ps}");
@@ -669,7 +669,7 @@ fn rgb_is_written_as_cmyk_when_asked_and_in_cmyk_documents() {
     let cmyk = page_of(&d, &EpsOptions { cmyk: true, ..opts(&d) });
     assert!(!cmyk.contains(" rg\n") && cmyk.lines().any(|l| l.ends_with(" k") && l.split(' ').count() == 5), "{cmyk}");
     let mut c = d.clone();
-    c.color_mode = vectorcraft_doc::ColorMode::Cmyk;
+    c.color_mode = vansoncraft_doc::ColorMode::Cmyk;
     assert!(!page_of(&c, &opts(&c)).contains(" rg\n"));
 }
 
@@ -747,7 +747,7 @@ fn gray_freeform_points_are_written_as_black_ink_in_a_cmyk_document() {
     let mut g = GradientPaint::new(Gradient { kind: GradientKind::Freeform, ..Default::default() });
     g.freeform = Some(Freeform { points: vec![p(40.0, Color::gray(0.2)), p(160.0, Color::gray(0.8))], ..Default::default() });
     let mut d = doc_with(|d| vec![path(d, shapes::rectangle(Rect::new(0.0, 0.0, 200.0, 200.0)), Paint::Gradient(Box::new(g)), Paint::None, 0.0)]);
-    d.color_mode = vectorcraft_doc::ColorMode::Cmyk;
+    d.color_mode = vansoncraft_doc::ColorMode::Cmyk;
     let page = text(&export(&d, &opts(&d), None, None).unwrap());
     let size = |key: &str| {
         let at = page.find(key).unwrap() + key.len();
@@ -950,7 +950,7 @@ fn gray_colorized_ramp_scales_process_and_spot_inks_over_paper() {
         assert_eq!(warnings.len(), if level == Level::Three { 1 } else { 2 });
 
         let mut cmyk = process.clone();
-        cmyk.color_mode = vectorcraft_doc::ColorMode::Cmyk;
+        cmyk.color_mode = vansoncraft_doc::ColorMode::Cmyk;
         let (ps, pixels, _) = colorized_samples(&cmyk, level);
         assert!(ps.contains("/DeviceCMYK setcolorspace"));
         assert_eq!(pixels.len(), 12);
@@ -1067,17 +1067,35 @@ fn the_native_document_and_thumbnail_come_back() {
         assert_eq!(image::load_from_memory(&png).unwrap().to_rgba8().dimensions(), (3, 2));
         let ps = text(&out);
         checked_page(&ps);
-        assert!(ps.find("%VectorCraft_BeginData: thumbnail").unwrap() < ps.find("%%BeginProlog").unwrap());
-        assert!(ps.find("%VectorCraft_BeginData: native").unwrap() > ps.find("%%Trailer").unwrap());
+        assert!(ps.find("%VansonCraft_BeginData: thumbnail").unwrap() < ps.find("%%BeginProlog").unwrap());
+        assert!(ps.find("%VansonCraft_BeginData: native").unwrap() > ps.find("%%Trailer").unwrap());
         assert!(ps.lines().all(|l| l.len() <= 255));
     }
     let plain = export(&d, &opts(&d), None, None).unwrap();
     assert_eq!((super::native(&plain.bytes), super::thumbnail(&plain.bytes)), (None, None));
     // Damaged files give nothing back.
-    assert_eq!(super::native(b"%VectorCraft_BeginData: native\n% 9jqo^\n%VectorCraft_EndData\n"), None);
+    assert_eq!(super::native(b"%VansonCraft_BeginData: native\n% 9jqo^\n%VansonCraft_EndData\n"), None);
     let mut bad = vec![0xC5, 0xD0, 0xD3, 0xC6];
     bad.extend([0xFF; 26]);
     assert_eq!(sections(&bad), None);
+}
+
+#[test]
+fn data_sections_written_before_the_rename_come_back() {
+    // EPS files saved before the project took the name VansonCraft mark their sections
+    // `%VectorCraft_BeginData` and `%VectorCraft_EndData`.
+    let d = doc_with(|d| vec![red_rect(d)]);
+    let native: Vec<u8> = (0..5_000u32).flat_map(|i| (i % 251).to_le_bytes()).collect();
+    let o = EpsOptions { native: Some(native.clone()), preview: Preview::None, ..opts(&d) };
+    let out = export(&d, &o, Some(&preview()), Some(&preview())).unwrap();
+    let old = text(&out).replace("%VansonCraft_BeginData", "%VectorCraft_BeginData").replace("%VansonCraft_EndData", "%VectorCraft_EndData");
+    assert!(!old.contains("%VansonCraft_") && old.contains("%VectorCraft_BeginData: native"));
+    assert!(super::has_native(old.as_bytes()));
+    assert_eq!(super::native(old.as_bytes()).as_deref(), Some(&native[..]));
+    assert!(super::thumbnail(old.as_bytes()).is_some());
+    // A section opened under one name ends only at the same name's end marker.
+    let mixed = text(&out).replace("%VansonCraft_EndData", "%VectorCraft_EndData");
+    assert_eq!(super::native(mixed.as_bytes()), None);
 }
 
 #[test]
@@ -1090,7 +1108,7 @@ fn clipping_groups_clip_and_hidden_or_template_art_is_left_out() {
         let id = d.alloc_id();
         vec![Node::new(id, NodeKind::Group { children: vec![Arc::new(clip), Arc::new(inside)], clip: true }), hidden]
     });
-    let mut t = Node::layer(d.alloc_id(), "Template", vectorcraft_doc::LayerColor::Preset(0));
+    let mut t = Node::layer(d.alloc_id(), "Template", vansoncraft_doc::LayerColor::Preset(0));
     if let NodeKind::Layer { template, .. } = &mut t.kind {
         *template = true;
     }
@@ -1109,7 +1127,7 @@ fn an_instance_whose_art_reaches_the_region_is_written() {
     // while the 20 × 20 square around the origin, moved to (-60, -60) to (-40, -40), is off it.
     let mut d = doc_with(|d| vec![Node::new(d.alloc_id(), NodeKind::SymbolInstance { symbol: "Far".into(), xf: Affine::translate((-50.0, -50.0)) })]);
     let art = path(&mut d, shapes::rectangle(Rect::new(100.0, 100.0, 140.0, 140.0)), Paint::solid(Color::rgb(1.0, 0.0, 0.0)), Paint::None, 0.0);
-    d.symbols.push(vectorcraft_doc::Symbol { dynamic: false, name: "Far".into(), art: Arc::new(art) });
+    d.symbols.push(vansoncraft_doc::Symbol { dynamic: false, name: "Far".into(), art: Arc::new(art) });
     let page = page_of(&d, &opts(&d));
     assert!(page.contains("1 0 0 rg"), "{page}");
 }
@@ -1120,15 +1138,15 @@ fn an_instance_whose_brush_art_reaches_the_region_is_written() {
     // round nib. Drawn from (-5, 0), the line lies left of the artboard, and the nib paints 10 pt
     // either side of it, onto the artboard.
     let mut d = doc_with(|d| vec![Node::new(d.alloc_id(), NodeKind::SymbolInstance { symbol: "Nib".into(), xf: Affine::translate((-5.0, 0.0)) })]);
-    let mut lib = vectorcraft_brush::library(&d);
-    let Some(vectorcraft_brush::BrushKind::Calligraphic(c)) = lib.iter_mut().find(|b| b.name == "3 pt. Round").map(|b| &mut b.kind) else {
+    let mut lib = vansoncraft_brush::library(&d);
+    let Some(vansoncraft_brush::BrushKind::Calligraphic(c)) = lib.iter_mut().find(|b| b.name == "3 pt. Round").map(|b| &mut b.kind) else {
         panic!("the 3 pt. Round brush")
     };
     c.size = 20.0;
-    vectorcraft_brush::store(&mut d, &lib);
+    vansoncraft_brush::store(&mut d, &lib);
     let mut art = path(&mut d, shapes::line((0.0, 40.0).into(), (0.0, 60.0).into()), Paint::None, Paint::solid(Color::rgb(1.0, 0.0, 0.0)), 1.0);
     art.appearance.stroke_mut().unwrap().brush = Some("3 pt. Round".into());
-    d.symbols.push(vectorcraft_doc::Symbol { dynamic: false, name: "Nib".into(), art: Arc::new(art) });
+    d.symbols.push(vansoncraft_doc::Symbol { dynamic: false, name: "Nib".into(), art: Arc::new(art) });
     let page = page_of(&d, &opts(&d));
     assert!(page.contains("1 0 0 rg"), "{page}");
 }
@@ -1148,7 +1166,7 @@ fn level_preview_and_overprint_ids_read_back() {
 
 #[test]
 fn a_rich_document_is_well_formed_at_both_levels() {
-    let d = (*vectorcraft_testkit::fixtures::rich_session().doc().unwrap().doc).clone();
+    let d = (*vansoncraft_testkit::fixtures::rich_session().doc().unwrap().doc).clone();
     for level in Level::ALL {
         for cmyk in [false, true] {
             let out = export(&d, &EpsOptions { level, cmyk, ..opts(&d) }, None, None).unwrap();
@@ -1162,9 +1180,9 @@ fn a_rich_document_is_well_formed_at_both_levels() {
 /// paint it.
 #[test]
 fn colour_bitmap_glyphs_are_images() {
-    use vectorcraft_doc::{CharStyle, TextObject};
-    use vectorcraft_text::test_fonts::{COLOUR_CHAR, colour_bitmap_family, colour_bitmap_font};
-    vectorcraft_text::FontDb::global().add_font(colour_bitmap_font(false).unwrap());
+    use vansoncraft_doc::{CharStyle, TextObject};
+    use vansoncraft_text::test_fonts::{COLOUR_CHAR, colour_bitmap_family, colour_bitmap_font};
+    vansoncraft_text::FontDb::global().add_font(colour_bitmap_font(false).unwrap());
     let d = doc_with(|d| {
         let st = CharStyle { font_family: colour_bitmap_family(false).into(), size: 32.0, ..CharStyle::default() };
         vec![Node::new(d.alloc_id(), NodeKind::Text(Box::new(TextObject::point(Point::new(20.0, 100.0), &COLOUR_CHAR.to_string(), st))))]
@@ -1179,11 +1197,11 @@ fn colour_bitmap_glyphs_are_images() {
 
 #[test]
 fn colr_glyphs_are_vector_art() {
-    use vectorcraft_doc::{CharStyle, TextObject};
-    use vectorcraft_text::test_fonts::{COLOUR_CHAR, colr_family, colr_font};
-    vectorcraft_text::FontDb::global().add_font(colr_font(false).unwrap());
+    use vansoncraft_doc::{CharStyle, TextObject};
+    use vansoncraft_text::test_fonts::{COLOUR_CHAR, colr_family, colr_font};
+    vansoncraft_text::FontDb::global().add_font(colr_font(false).unwrap());
     let d = doc_with(|d| {
-        let fill = vectorcraft_color::Paint::solid(vectorcraft_color::Color::rgb(0.0, 0.0, 1.0));
+        let fill = vansoncraft_color::Paint::solid(vansoncraft_color::Color::rgb(0.0, 0.0, 1.0));
         let st = CharStyle { font_family: colr_family(false).into(), size: 32.0, fill, ..CharStyle::default() };
         vec![Node::new(d.alloc_id(), NodeKind::Text(Box::new(TextObject::point(Point::new(20.0, 100.0), &COLOUR_CHAR.to_string(), st))))]
     });
@@ -1198,7 +1216,7 @@ fn colr_glyphs_are_vector_art() {
 /// of the reading's glyphs.
 #[test]
 fn ruby_is_written_with_its_type() {
-    use vectorcraft_doc::{CharStyle, RubySpan, TextObject};
+    use vansoncraft_doc::{CharStyle, RubySpan, TextObject};
     let typed = |ruby: bool| {
         let mut t = TextObject::point(Point::new(20.0, 100.0), "AB", CharStyle { size: 30.0, ..CharStyle::default() });
         if ruby {
@@ -1206,7 +1224,7 @@ fn ruby_is_written_with_its_type() {
         }
         t
     };
-    let lay = vectorcraft_text::layout(vectorcraft_text::FontDb::global(), &typed(true));
+    let lay = vansoncraft_text::layout(vansoncraft_text::FontDb::global(), &typed(true));
     let reading = lay.ruby.iter().flat_map(|g| g.outline.elements()).filter(|e| matches!(e, kurbo::PathEl::MoveTo(_))).count();
     assert!(reading >= 3, "the reading has ink: {reading}");
     let moves = |ruby: bool| {

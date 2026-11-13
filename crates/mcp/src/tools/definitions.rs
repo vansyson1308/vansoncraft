@@ -109,7 +109,10 @@ pub fn tool_definitions() -> Vec<Value> {
             "command_run",
             "Run a command",
             "Run an engine command by id with its JSON params. Command parameters follow the registry's descriptions. run_command runs it the same way; it takes the id as command instead of id.",
-            obj(json!({"id": string("Command id"), "params": {"type":"object"}}), &["id"]),
+            obj(
+                json!({"id": string("Command id"), "params": {"type":"object"}, "expect_document": {"type":"integer","minimum":0,"description":"The uid (doc_inspect) of the document this call is meant for; refused, with nothing run, when another document is active"}}),
+                &["id"],
+            ),
             false,
         ),
         tool(
@@ -117,7 +120,7 @@ pub fn tool_definitions() -> Vec<Value> {
             "Run several commands",
             "Run steps in order; each edit is its own undo step, or with atomic:true the whole batch is one (named `label`, else after its first edit; `atomic` says which documents). A step's id is a command id, or draw_path / draw_shape with that tool's arguments as params (its result is the tool's: the new object's `id`). A param string that is exactly \"$N.path\" (N: 0-based step index) or \"$last.path\" takes that value from an earlier step's result, e.g. {\"id\":\"$1.id\"}; \"$$\" starts a literal \"$\". Returns completed, failed, results and created (the ids draw_path / draw_shape steps made, in order). Stops on the first error by default. At most 256 steps; kept step results total at most 8 MiB, past which the batch stops with the reason.",
             obj(
-                json!({"steps": {"type":"array", "maxItems": 256, "items":obj(json!({"id":string("Command id, or draw_path / draw_shape"),"params":{"type":"object"}}), &["id"])}, "stop_on_error":{"type":"boolean", "default":true}, "atomic":{"type":"boolean", "default":false, "description":"Make the batch's edits one undo step in the active document and in each document a step opens or creates; in a document open before the batch that a step switches to, each edit stays its own undo step"}, "label":string("The undo step's name with atomic")}),
+                json!({"steps": {"type":"array", "maxItems": 256, "items":obj(json!({"id":string("Command id, or draw_path / draw_shape"),"params":{"type":"object"}}), &["id"])}, "stop_on_error":{"type":"boolean", "default":true}, "atomic":{"type":"boolean", "default":false, "description":"Make the batch's edits one undo step in the active document and in each document a step opens or creates; in a document open before the batch that a step switches to, each edit stays its own undo step. When a step fails, the edits of the steps before it are undone and the reply says rolledBack: true (files written and documents opened are not taken back); keep_on_error keeps them instead"}, "keep_on_error":{"type":"boolean", "default":false, "description":"With atomic: keep the edits of the steps that ran when one fails (as one undo step)"}, "label":string("The undo step's name with atomic"), "expect_document": {"type":"integer","minimum":0,"description":"The uid (doc_inspect) of the document this call is meant for; refused, with nothing run, when another document is active"}}),
                 &["steps"],
             ),
             false,
@@ -125,16 +128,22 @@ pub fn tool_definitions() -> Vec<Value> {
         tool(
             "doc_inspect",
             "Inspect document",
-            "Summary of the active document, including artboards, layer tree, selection and history. A node below full opacity reports `opacity` as a 0–1 fraction and `opacityPct` in the 0–100 % scale the drawing tools and object.setProps take: pass `opacityPct` back, never `opacity`. On a large document scope it: depth 0 for the layer skeleton, ids for just those nodes, kind for every node of one kind, limit/offset to page. inspect_document returns the same summary.",
+            "Summary of the active document, including artboards, layer tree, selection and history. A node below full opacity reports `opacity` as a 0–1 fraction and `opacityPct` in the 0–100 % scale the drawing tools and object.setProps take: pass `opacityPct` back, never `opacity`. On a large document scope it: depth 0 for the layer skeleton, ids for just those nodes, kind for every node of one kind, limit/offset to page. `uid` names the document (unique while the server or app runs) and `backend` says where the tools act: kind \"remote\" is a running desktop app (desktopWindow: true), \"headless\" an in-process session no window shows. inspect_document returns the same summary.",
             obj(inspect_props(), &[]),
             true,
         ),
         tool(
             "render_preview",
             "Render a preview",
-            "Render an artboard (default the first) as inline PNG without changing the document. max_side defaults to 1024, limited to 1..4096.",
+            "Render an artboard (default the first) as inline PNG without changing the document, drawn as a PNG export on white. max_side (default 1024, 1..4096) bounds the longer side: a page is drawn at most 1 pixel a point, and a small artboard larger, up to 512 pixels (or max_side when smaller) and 16 pixels a point. With region, mode, showTemplates or flip it is drawn by the study.render command instead: region [x, y, width, height] (document points) zooms into any rectangle at max_side pixels (up to 64 pixels a point); mode \"gray\" shows each pixel's lightness (CIE L*) and \"values\" paints each pixel the mean grey of its value group (levels 2–5, default 3; thresholds: the L* boundaries) to check masses and tone grouping; showTemplates also draws template layers (a reference, construction lines), which exports leave out.",
             obj(
-                json!({"max_side":{"type":"integer","minimum":1,"maximum":4096},"artboard":{"type":"integer","minimum":0,"description":"0-based artboard (default 0)"},"traceViews":{"type":"boolean","description":TRACE_VIEWS}}),
+                json!({"max_side":{"type":"integer","minimum":1,"maximum":4096},"artboard":{"type":"integer","minimum":0,"description":"0-based artboard (default 0)"},"traceViews":{"type":"boolean","description":TRACE_VIEWS},
+                    "region":{"type":"array","items":{"type":"number"},"minItems":4,"maxItems":4,"description":"[x, y, width, height] in document points (y down): render just this rectangle, zoomed to max_side"},
+                    "mode":{"type":"string","enum":["color","gray","values"],"description":"color (default), gray (CIE L* lightness), or values (value groups as flat greys)"},
+                    "levels":{"type":"integer","minimum":2,"maximum":5,"description":"Value groups in values mode (default 3: dark, middle, light)"},
+                    "thresholds":{"type":"array","items":{"type":"number"},"description":"values mode: levels − 1 rising L* boundaries between 0 and 100 (default equal steps)"},
+                    "showTemplates":{"type":"boolean","description":"Also draw template layers (references, construction lines)"},
+                    "flip":{"type":"string","enum":["none","horizontal","vertical","both"],"description":"See the picture afresh: horizontal mirrors it (a mirror or black glass), both turns it upside down (a half turn), vertical mirrors it top to bottom"}}),
                 &[],
             ),
             true,
@@ -156,7 +165,7 @@ pub fn tool_definitions() -> Vec<Value> {
         tool(
             "list_commands",
             "List commands",
-            "List VectorCraft commands (id, label, menu path, shortcut, parameter description, enabled state, and schema and inputSchema for a command with a parameter schema). Includes engine commands and desktop UI menu commands (ui: true; a UI-only id run headless needs --connect). Every editing action is a command; run any of them with run_command (or invoke_menu for a menu path). Coordinates are points in document space, y down, origin at the first artboard's top-left. command_list lists the same commands as a bare array and takes enabled_only. Effect ids (effect.list) are not command ids.",
+            "List VansonCraft commands (id, label, menu path, shortcut, parameter description, enabled state, and schema and inputSchema for a command with a parameter schema). Includes engine commands and desktop UI menu commands (ui: true; a UI-only id run headless needs --connect). Every editing action is a command; run any of them with run_command (or invoke_menu for a menu path). Coordinates are points in document space, y down, origin at the first artboard's top-left. command_list lists the same commands as a bare array and takes enabled_only. Effect ids (effect.list) are not command ids.",
             obj(
                 json!({"filter": string("Case-insensitive substring matched against id, label and menu path (e.g. \"align\", \"Object\")"), "query": string("Same as filter"), "menu": string(MENU_FILTER), "enabledOnly": {"type": "boolean", "description": "Only commands that can run right now"}, "brief": {"type": "boolean", "description": BRIEF}}),
                 &[],
@@ -166,9 +175,9 @@ pub fn tool_definitions() -> Vec<Value> {
         tool(
             "run_command",
             "Run command",
-            "Execute any VectorCraft command by id with JSON params (see list_commands for ids and params). Examples: {\"command\":\"object.group\"}, {\"command\":\"object.align\",\"params\":{\"horizontal\":\"left\"}}, {\"command\":\"file.new\",\"params\":{\"width\":800,\"height\":600}}. Returns the command's result (e.g. {id} for creation commands). command_run runs it the same way and takes the id as id.",
+            "Execute any VansonCraft command by id with JSON params (see list_commands for ids and params). Examples: {\"command\":\"object.group\"}, {\"command\":\"object.align\",\"params\":{\"horizontal\":\"left\"}}, {\"command\":\"file.new\",\"params\":{\"width\":800,\"height\":600}}. Returns the command's result (e.g. {id} for creation commands). command_run runs it the same way and takes the id as id.",
             obj(
-                json!({"command": string("Command id, e.g. shape.rectangle, object.group, paint.setFill"), "params": {"type": "object", "description": "Command parameters"}}),
+                json!({"command": string("Command id, e.g. shape.rectangle, object.group, paint.setFill"), "params": {"type": "object", "description": "Command parameters"}, "expect_document": {"type":"integer","minimum":0,"description":"The uid (doc_inspect) of the document this call is meant for; refused, with nothing run, when another document is active"}}),
                 &["command"],
             ),
             false,
@@ -227,10 +236,10 @@ pub fn tool_definitions() -> Vec<Value> {
         tool(
             "draw_path",
             "Draw path",
-            "Create a path from points ([[x,y],…] or [{x,y,in?:[x,y],out?:[x,y]},…] with Bézier handles) or SVG path data `d`, then apply optional paint, stroke dash/cap/join, opacity, name and live effects. Omitted paint fields inherit the current new-art appearance (initially white fill and 1 pt black stroke). For a filled path without an outline, pass an explicit fill and stroke:\"none\". Returns the new object id.",
+            "Create a path from points ([[x,y],…] or [{x,y,in?:[x,y],out?:[x,y]},…] with Bézier handles: `in` and `out` are absolute document points, not offsets from the anchor; a handle left out sits on its anchor) or SVG path data `d`, then apply optional paint, stroke dash/cap/join, opacity, name and live effects. Omitted paint fields inherit the current new-art appearance (initially white fill and 1 pt black stroke). For a filled path without an outline, pass an explicit fill and stroke:\"none\". Returns the new object id.",
             obj(
                 with_draw_options(json!({
-                    "points": {"type": "array", "description": "Anchors: [x,y] pairs or {x, y, in?, out?, smooth?} objects", "items": {"anyOf": [{"type": "array", "items": {"type": "number"}, "minItems": 2}, {"type": "object"}]}},
+                    "points": {"type": "array", "description": "Anchors: [x,y] pairs or {x, y, in?, out?, smooth?} objects; in and out are absolute [x,y] document points (pt, y down), not offsets", "items": {"anyOf": [{"type": "array", "items": {"type": "number"}, "minItems": 2}, {"type": "object"}]}},
                     "d": string("SVG path data (alternative to points), e.g. \"M0 0 L100 0 L50 80 Z\""),
                     "closed": {"type": "boolean", "description": "Close the path (points only)"},
                     "fill": paint_schema("Fill"),
@@ -326,7 +335,10 @@ pub fn tool_definitions() -> Vec<Value> {
             "invoke_menu",
             "Invoke menu",
             "Invoke a menu item by its command id (same ids as list_commands, including UI-only commands like view.zoomIn or window.* in the desktop app).",
-            obj(json!({"command": string("Menu command id"), "params": {"type": "object"}}), &["command"]),
+            obj(
+                json!({"command": string("Menu command id"), "params": {"type": "object"}, "expect_document": {"type":"integer","minimum":0,"description":"The uid (doc_inspect) of the document this call is meant for; refused, with nothing run, when another document is active"}}),
+                &["command"],
+            ),
             false,
         ),
         tool(
@@ -374,16 +386,16 @@ pub fn tool_definitions() -> Vec<Value> {
             "save_file",
             "Save file",
             &format!(
-                "Save the active document with the engine's document.save: by default to its own file in its own format (native .vectorcraft unless it was opened from or saved as SVG, PDF or a restorable .ai). With `path`, the extension picks the format: .{}. Other formats are exports (see export). A native file is gzipped when `compress` is true (default: the useCompression preference, Preferences > File Handling > Use Compression); `version` writes it for an older VectorCraft, `preview` embeds a PNG of the first artboard, and `precision` rounds path anchors and handles to that many decimal places for that save only. `options` carries the format's save options (see run_command document.formats); giving `compress`, `version`, `preview` or `precision` both at the top level and in `options` with different values is an error. The reply's `format` says what was written and `warnings` what that format loses and each option given that the format doesn't read (such as `compress` for .svg). In the running app the call returns once the file is written, or with the error, even with Background Save on. When the save asks first (before replacing a file that opened with losses, or with a file dialog for an untitled document without `path`), the reply is `pending` or \"cancelled\" as before.",
+                "Save the active document with the engine's document.save: by default to its own file in its own format (native .vansoncraft unless it was opened from or saved as SVG, PDF or a restorable .ai). With `path`, the extension picks the format: .{}. Other formats are exports (see export). A native file is gzipped when `compress` is true (default: the useCompression preference, Preferences > File Handling > Use Compression); `version` writes it for an older VansonCraft, `preview` embeds a PNG of the first artboard, and `precision` rounds path anchors and handles to that many decimal places for that save only. `options` carries the format's save options (see run_command document.formats); giving `compress`, `version`, `preview` or `precision` both at the top level and in `options` with different values is an error. The reply's `format` says what was written and `warnings` what that format loses and each option given that the format doesn't read (such as `compress` for .svg). In the running app the call returns once the file is written, or with the error, even with Background Save on. When the save asks first (before replacing a file that opened with losses, or with a file dialog for an untitled document without `path`), the reply is `pending` or \"cancelled\" as before.",
                 save_extensions().join(", .")
             ),
             obj(
                 json!({
                     "path": string("Destination; its extension picks the format (default: the document's own file)"),
                     "compress": {"type": "boolean", "description": "Native files: gzip the file (default: the useCompression preference)"},
-                    "version": {"type": "integer", "minimum": 1, "maximum": vectorcraft_format::VERSION, "description": "Native files: the format version to write (default: the current one; 1 and 2 are never compressed)"},
+                    "version": {"type": "integer", "minimum": 1, "maximum": vansoncraft_format::VERSION, "description": "Native files: the format version to write (default: the current one; 1 and 2 are never compressed)"},
                     "preview": {"type": "boolean", "description": "Native files: embed a PNG of the first artboard, at most 256 px (default false)"},
-                    "precision": {"type": "integer", "minimum": 0, "maximum": vectorcraft_format::MAX_PRECISION, "description": "Native files: round path anchors and handles to this many decimal places, a smaller file; colors, transforms and type stay exact (default: exact)"},
+                    "precision": {"type": "integer", "minimum": 0, "maximum": vansoncraft_format::MAX_PRECISION, "description": "Native files: round path anchors and handles to this many decimal places, a smaller file; colors, transforms and type stay exact (default: exact)"},
                     "options": {"type": "object", "description": "The format's save options, passed through (see run_command document.formats); default: as last saved"},
                 }),
                 &[],
@@ -393,7 +405,7 @@ pub fn tool_definitions() -> Vec<Value> {
         tool(
             "export",
             "Export",
-            "Export the active document with the engine's document.export (the same bytes in the app and headless), in any format of the `format` enum: vectors (svg/svgz with the artboard as viewBox, eps, dxf, emf, wmf, hpgl pen moves for plotters and cutters), pdf and ai (one page per artboard: all, or `artboard` / `range`; ai is the PDF-compatible .ai file that Save writes, which carries the document when every artboard is written in order), rasters (one rendered artboard: png, jpg, webp, gif, png8 as an indexed .png, tiff, bmp, tga, psd with its layers), txt (the stories, back to front), vectorcraft or template (a native copy or template; the document keeps its path). run_command document.formats lists each format's options. For SVG/SVGZ, top-level `outlineText: true` writes text as paths; DXF takes it too (its type is outlined anyway unless `preserve: editability`). PDF instead uses `options.advanced.outlineText: true`, default false (live text). `selection: true` exports only the selected objects, cropped to their bounds. Template layers are left out; live effects are kept (geometry baked, SVG filters for shadows/glows/blur). Without `path` the bytes come back as dataBase64.",
+            "Export the active document with the engine's document.export (the same bytes in the app and headless), in any format of the `format` enum: vectors (svg/svgz with the artboard as viewBox, eps, dxf, emf, wmf, hpgl pen moves for plotters and cutters), pdf and ai (one page per artboard: all, or `artboard` / `range`; ai is the PDF-compatible .ai file that Save writes, which carries the document when every artboard is written in order), rasters (one rendered artboard: png, jpg, webp, gif, png8 as an indexed .png, tiff, bmp, tga, psd with its layers), txt (the stories, back to front), vansoncraft or template (a native copy or template; the document keeps its path). run_command document.formats lists each format's options. For SVG/SVGZ, top-level `outlineText: true` writes text as paths; DXF takes it too (its type is outlined anyway unless `preserve: editability`). PDF instead uses `options.advanced.outlineText: true`, default false (live text). `selection: true` exports only the selected objects, cropped to their bounds. Template layers are left out; live effects are kept (geometry baked, SVG filters for shadows/glows/blur). Without `path` the bytes come back as dataBase64.",
             obj(
                 json!({
                     "format": {"type": "string", "enum": FORMATS.iter().filter(|f| f.write).map(|f| f.id).collect::<Vec<_>>(), "description": "Default: from the path's extension"},

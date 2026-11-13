@@ -10,7 +10,7 @@ pub mod catalog;
 use egui::{Sense, Stroke, Ui, vec2};
 use serde_json::{Value, json};
 
-use crate::VectorcraftApp;
+use crate::VansoncraftApp;
 use crate::theme::Tokens;
 
 pub const ID: &str = "learn";
@@ -33,7 +33,7 @@ pub struct View {
     pub tutorial: Option<&'static str>,
 }
 
-pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn show(app: &mut VansoncraftApp, ui: &mut Ui) {
     ui.horizontal(|ui| {
         for (tab, label) in [(Tab::ForYou, tl!("For you")), (Tab::Skills, tl!("Skills"))] {
             if ui.selectable_label(app.ui.learn.tab == tab, label).clicked() {
@@ -49,7 +49,7 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
 }
 
 /// The For you tab: Get started, with the Quick skill guide card.
-fn for_you(app: &mut VectorcraftApp, ui: &mut Ui) {
+fn for_you(app: &mut VansoncraftApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     crate::widgets::subheader(ui, tl!("Get started"));
     ui.add_space(4.0);
@@ -79,7 +79,7 @@ fn for_you(app: &mut VectorcraftApp, ui: &mut Ui) {
 }
 
 /// The Skills tab: the skills, a skill's tutorials, or a tutorial's steps.
-fn skills(app: &mut VectorcraftApp, ui: &mut Ui) {
+fn skills(app: &mut VansoncraftApp, ui: &mut Ui) {
     let open = app.ui.learn.tutorial.and_then(catalog::tutorial);
     if let Some((skill, tutorial)) = open {
         if back(ui) {
@@ -156,7 +156,7 @@ fn row(ui: &mut Ui, title: &str, tutorials: Option<usize>) -> egui::Response {
 }
 
 /// The Learn panel's UI commands: `window.learn`, `learn.list` and `learn.show`.
-pub(crate) fn command(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
+pub(crate) fn command(app: &mut VansoncraftApp, id: &str, p: &Value) -> Option<Result<Value, String>> {
     Some(match id {
         "window.learn" => toggle(app, p),
         "learn.list" => Ok(list()),
@@ -174,7 +174,7 @@ pub(crate) fn visible(ui: &crate::state::UiState) -> bool {
 /// `window.learn {show?}`: show the panel (true), hide it (false) or toggle it (omitted), as the
 /// app bar's Explore tutorials button and Window › Learn do → whether it shows ([`visible`]).
 /// Showing it also shows a hidden dock; in a full screen mode it makes the panel the front one.
-fn toggle(app: &mut VectorcraftApp, p: &Value) -> Result<Value, String> {
+fn toggle(app: &mut VansoncraftApp, p: &Value) -> Result<Value, String> {
     let shown = visible(&app.ui);
     let show = crate::menus::opt_bool(p, "show")?.unwrap_or(!shown);
     if show && !shown {
@@ -196,7 +196,7 @@ fn list() -> Value {
 
 /// `learn.show {tutorial}`: show the panel on the Skills tab with that tutorial's steps → the
 /// tutorial. A missing or unknown id is an error and changes nothing.
-fn open(app: &mut VectorcraftApp, p: &Value) -> Result<Value, String> {
+fn open(app: &mut VansoncraftApp, p: &Value) -> Result<Value, String> {
     let key = "tutorial";
     let id = match p.get(key) {
         None | Some(Value::Null) => return Err("missing `tutorial` (see learn.list)".into()),

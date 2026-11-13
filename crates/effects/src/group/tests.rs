@@ -1,11 +1,11 @@
 use super::*;
-use vectorcraft_color::{BlendMode, Color, Paint};
-use vectorcraft_doc::{CharStyle, Effect, NodeId, TextObject};
-use vectorcraft_geom::{Point, Rect, shapes};
+use vansoncraft_color::{BlendMode, Color, Paint};
+use vansoncraft_doc::{CharStyle, Effect, NodeId, TextObject};
+use vansoncraft_geom::{Point, Rect, shapes};
 
 /// Type tests need glyph outlines, which only the optional craft-fonts build input provides.
 fn skip_without_craft_fonts() -> bool {
-    let skip = vectorcraft_text::CRAFT_FONTS.is_empty();
+    let skip = vansoncraft_text::CRAFT_FONTS.is_empty();
     if skip {
         eprintln!("skipped: built without craft-fonts (set CRAFT_FONTS_DIR to a craft-fonts checkout to run it)");
     }
@@ -205,8 +205,8 @@ fn a_random_transform_on_a_group_moves_its_members_together() {
 /// What [`evaluate_container`] makes of black 40 pt type "IIII" (id 3), changed by `style`,
 /// in a group with a square and Offset Path 0, which leaves every path as it is.
 fn type_in_group(style: impl FnOnce(&mut Node)) -> Node {
-    let ts = vectorcraft_doc::CharStyle { size: 40.0, fill: Paint::solid(Color::BLACK), ..Default::default() };
-    let text = vectorcraft_doc::TextObject::point(vectorcraft_geom::Point::new(5.0, 60.0), "IIII", ts);
+    let ts = vansoncraft_doc::CharStyle { size: 40.0, fill: Paint::solid(Color::BLACK), ..Default::default() };
+    let text = vansoncraft_doc::TextObject::point(vansoncraft_geom::Point::new(5.0, 60.0), "IIII", ts);
     let mut t = Node::new(NodeId(3), NodeKind::Text(Box::new(text)));
     style(&mut t);
     let mut g = Node::group(NodeId(10), vec![sq(1, 0.0, Color::BLACK), Arc::new(t)]);
@@ -220,13 +220,13 @@ fn type_in_a_group_keeps_its_look_when_the_groups_geometry_effects_outline_it() 
     if skip_without_craft_fonts() {
         return;
     }
-    use vectorcraft_color::BlendMode;
+    use vansoncraft_color::BlendMode;
     let art = type_in_group(|t| (t.opacity, t.blend) = (0.5, BlendMode::Multiply));
     assert!(art.id == NodeId(3) && !matches!(art.kind, NodeKind::Text(_)), "{art:?}");
     assert_eq!((art.opacity, art.blend), (0.5, BlendMode::Multiply));
     // Its opacity mask, its own shadow, its knockout shape option and its visibility stay.
     let mask_art = Node::path(NodeId(4), shapes::rectangle(Rect::new(0.0, 0.0, 50.0, 50.0)), Appearance::default());
-    let mask = vectorcraft_doc::OpacityMask::new(mask_art, true);
+    let mask = vansoncraft_doc::OpacityMask::new(mask_art, true);
     assert_eq!(type_in_group(|t| t.extras_mut().mask = Some(Box::new(mask.clone()))).extras().mask.as_deref(), Some(&mask));
     let shadow = Effect { id: "stylize.dropShadow".into(), params: serde_json::json!({}), visible: true };
     assert_eq!(type_in_group(|t| t.appearance.effects.push(shadow.clone())).appearance.effects, vec![shadow]);
@@ -252,12 +252,12 @@ fn a_transform_on_a_group_moves_the_gradients_of_its_type_and_those_placed_on_it
     if skip_without_craft_fonts() {
         return;
     }
-    use vectorcraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop};
+    use vansoncraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop};
     let stops = vec![GradientStop::new(0.0, Color::rgb(1.0, 0.0, 0.0)), GradientStop::new(1.0, Color::rgb(0.0, 0.0, 1.0))];
     let ramp = GradientPaint::new(Gradient::new(GradientKind::Linear, stops));
     // The type's characters fit the gradient to its layout; the square has it placed across itself.
-    let style = vectorcraft_doc::CharStyle { size: 40.0, fill: Paint::Gradient(Box::new(ramp.clone())), ..Default::default() };
-    let text = vectorcraft_doc::TextObject::point(vectorcraft_geom::Point::new(5.0, 60.0), "IIII", style);
+    let style = vansoncraft_doc::CharStyle { size: 40.0, fill: Paint::Gradient(Box::new(ramp.clone())), ..Default::default() };
+    let text = vansoncraft_doc::TextObject::point(vansoncraft_geom::Point::new(5.0, 60.0), "IIII", style);
     let t = Arc::new(Node::new(NodeId(3), NodeKind::Text(Box::new(text))));
     let geom = GradientGeom { start: (0.0, 5.0).into(), end: (10.0, 5.0).into(), aspect: 1.0, focal: None };
     let placed = Paint::Gradient(Box::new(GradientPaint { geom: Some(geom), ..ramp }));
@@ -278,14 +278,14 @@ fn a_transform_on_a_group_moves_the_gradients_of_its_type_and_those_placed_on_it
 
 #[test]
 fn a_groups_transform_moves_the_gradient_of_its_own_fill() {
-    use vectorcraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop};
+    use vansoncraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop};
     let stops = vec![GradientStop::new(0.0, Color::rgb(1.0, 0.0, 0.0)), GradientStop::new(1.0, Color::rgb(0.0, 0.0, 1.0))];
     let ramp = GradientPaint::new(Gradient::new(GradientKind::Linear, stops));
     let geom = GradientGeom { start: (0.0, 5.0).into(), end: (15.0, 5.0).into(), aspect: 1.0, focal: None };
     let mut g = Node::group(NodeId(10), vec![sq(1, 0.0, Color::BLACK), sq(2, 5.0, Color::BLACK)]);
     g.appearance
         .items
-        .push(AppearanceItem::Fill(vectorcraft_doc::FillLayer::new(Paint::Gradient(Box::new(GradientPaint { geom: Some(geom), ..ramp })))));
+        .push(AppearanceItem::Fill(vansoncraft_doc::FillLayer::new(Paint::Gradient(Box::new(GradientPaint { geom: Some(geom), ..ramp })))));
     g.appearance.effects.push(Effect { id: "distort.transform".into(), params: serde_json::json!({"moveH": 30}), visible: true });
     let art = evaluate_container(None, &g).unwrap();
     let mut starts = vec![];
@@ -301,7 +301,7 @@ fn a_groups_transform_moves_the_gradient_of_its_own_fill() {
 /// gradient and a group's own fill move with a Transform effect.
 #[test]
 fn shape_art_moves_gradients_with_a_transform_effect() {
-    use vectorcraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop};
+    use vansoncraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop};
     let stops = vec![GradientStop::new(0.0, Color::rgb(1.0, 0.0, 0.0)), GradientStop::new(1.0, Color::rgb(0.0, 0.0, 1.0))];
     let ramp = GradientPaint::new(Gradient::new(GradientKind::Linear, stops));
     let geom = GradientGeom { start: (0.0, 5.0).into(), end: (10.0, 5.0).into(), aspect: 1.0, focal: None };
@@ -323,7 +323,7 @@ fn shape_art_moves_gradients_with_a_transform_effect() {
     let got = starts(&shape_art(None, &path, None).unwrap());
     assert!(got.len() == 1 && (got[0] - 40.0).abs() < 1e-6, "the path's gradient: {got:?}");
     let mut g = Node::group(NodeId(10), vec![sq(2, 0.0, Color::BLACK)]);
-    g.appearance.items.push(AppearanceItem::Fill(vectorcraft_doc::FillLayer::new(placed)));
+    g.appearance.items.push(AppearanceItem::Fill(vansoncraft_doc::FillLayer::new(placed)));
     g.appearance.effects.push(moved());
     let got = starts(&shape_art(None, &g, None).unwrap());
     assert!(!got.is_empty() && got.iter().all(|s| (s - 40.0).abs() < 1e-6), "the group's own fill: {got:?}");
@@ -333,15 +333,15 @@ fn shape_art_moves_gradients_with_a_transform_effect() {
 /// art Pathfinder takes, as it moves its members.
 #[test]
 fn shape_art_moves_the_gradient_of_a_symbol_instances_art_with_its_transform() {
-    use vectorcraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop};
+    use vansoncraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop};
     let stops = vec![GradientStop::new(0.0, Color::rgb(1.0, 0.0, 0.0)), GradientStop::new(1.0, Color::rgb(0.0, 0.0, 1.0))];
     let ramp = GradientPaint::new(Gradient::new(GradientKind::Linear, stops));
     let geom = GradientGeom { start: (0.0, 5.0).into(), end: (10.0, 5.0).into(), aspect: 1.0, focal: None };
     let placed = Paint::Gradient(Box::new(GradientPaint { geom: Some(geom), ..ramp }));
     let mut art = Node::group(NodeId(20), vec![sq(21, 0.0, Color::BLACK)]);
-    art.appearance.items.push(AppearanceItem::Fill(vectorcraft_doc::FillLayer::new(placed)));
+    art.appearance.items.push(AppearanceItem::Fill(vansoncraft_doc::FillLayer::new(placed)));
     let hook = move |_: &Node| Some(art.clone());
-    let mut instance = Node::new(NodeId(1), NodeKind::SymbolInstance { symbol: "s".into(), xf: vectorcraft_geom::Affine::IDENTITY });
+    let mut instance = Node::new(NodeId(1), NodeKind::SymbolInstance { symbol: "s".into(), xf: vansoncraft_geom::Affine::IDENTITY });
     instance.appearance.effects.push(Effect { id: "distort.transform".into(), params: serde_json::json!({"moveH": 30}), visible: true });
     let out = shape_art(None, &instance, Some(&hook)).unwrap();
     let Paint::Gradient(g) = out.appearance.fill_paint() else { panic!("a gradient: {:?}", out.appearance) };
@@ -354,7 +354,7 @@ fn shape_art_moves_the_gradient_of_a_symbol_instances_art_with_its_transform() {
 /// the warp to after it, in the art Pathfinder takes.
 #[test]
 fn shape_art_moves_the_gradients_of_a_symbol_instances_art_and_a_compound_shape_with_a_warp() {
-    use vectorcraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop};
+    use vansoncraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop};
     let stops = vec![GradientStop::new(0.0, Color::rgb(1.0, 0.0, 0.0)), GradientStop::new(1.0, Color::rgb(0.0, 0.0, 1.0))];
     let ramp = GradientPaint::new(Gradient::new(GradientKind::Linear, stops));
     let geom = GradientGeom { start: (2.0, 3.0).into(), end: (9.0, 3.0).into(), aspect: 1.0, focal: None };
@@ -373,9 +373,9 @@ fn shape_art_moves_the_gradients_of_a_symbol_instances_art_and_a_compound_shape_
     for style in ["arc", "rise", "bulge"] {
         let warp = || Effect { id: format!("warp.{style}"), params: serde_json::json!({"bend": 40.0}), visible: true };
         let mut art = Node::group(NodeId(20), vec![sq(21, 0.0, Color::BLACK)]);
-        art.appearance.items.push(AppearanceItem::Fill(vectorcraft_doc::FillLayer::new(placed.clone())));
+        art.appearance.items.push(AppearanceItem::Fill(vansoncraft_doc::FillLayer::new(placed.clone())));
         let hook = move |_: &Node| Some(art.clone());
-        let mut instance = Node::new(NodeId(1), NodeKind::SymbolInstance { symbol: "s".into(), xf: vectorcraft_geom::Affine::IDENTITY });
+        let mut instance = Node::new(NodeId(1), NodeKind::SymbolInstance { symbol: "s".into(), xf: vansoncraft_geom::Affine::IDENTITY });
         instance.appearance.effects.push(warp());
         check(&shape_art(None, &instance, Some(&hook)).unwrap(), Rect::new(0.0, 0.0, 10.0, 10.0), &format!("warp.{style} on a symbol instance"));
         let mut shape = compound_shape(ShapeMode::Add);
@@ -387,7 +387,7 @@ fn shape_art_moves_the_gradients_of_a_symbol_instances_art_and_a_compound_shape_
 
 #[test]
 fn a_groups_transform_and_free_distort_move_the_gradients_placed_on_its_paths() {
-    use vectorcraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop};
+    use vansoncraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop};
     let stops = vec![GradientStop::new(0.0, Color::rgb(1.0, 0.0, 0.0)), GradientStop::new(1.0, Color::rgb(0.0, 0.0, 1.0))];
     let ramp = GradientPaint::new(Gradient::new(GradientKind::Linear, stops));
     let geom = GradientGeom { start: (0.0, 5.0).into(), end: (10.0, 5.0).into(), aspect: 1.0, focal: None };
@@ -418,7 +418,7 @@ fn a_groups_transform_and_free_distort_move_the_gradients_placed_on_its_paths() 
 /// bounds before the warp to its bounds after it, not by the group's bounds.
 #[test]
 fn a_groups_warp_moves_the_gradients_placed_on_its_paths_by_each_paths_bounds() {
-    use vectorcraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop};
+    use vansoncraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop};
     let stops = vec![GradientStop::new(0.0, Color::rgb(1.0, 0.0, 0.0)), GradientStop::new(1.0, Color::rgb(0.0, 0.0, 1.0))];
     let ramp = GradientPaint::new(Gradient::new(GradientKind::Linear, stops));
     let geom = |x: f64| GradientGeom { start: (x + 2.0, 3.0).into(), end: (x + 8.0, 3.0).into(), aspect: 1.0, focal: None };
@@ -454,14 +454,14 @@ fn a_groups_warp_moves_the_gradients_placed_on_its_paths_by_each_paths_bounds() 
 /// stroke's: those bounds inflated by the stroke).
 #[test]
 fn a_groups_warp_moves_its_own_a_nested_groups_and_a_compound_paths_gradients_by_their_bounds() {
-    use vectorcraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop};
+    use vansoncraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop};
     let stops = vec![GradientStop::new(0.0, Color::rgb(1.0, 0.0, 0.0)), GradientStop::new(1.0, Color::rgb(0.0, 0.0, 1.0))];
     let ramp = GradientPaint::new(Gradient::new(GradientKind::Linear, stops));
     let geom = GradientGeom { start: (12.0, 4.0).into(), end: (26.0, 4.0).into(), aspect: 1.0, focal: None };
     let placed = Paint::Gradient(Box::new(GradientPaint { geom: Some(geom), ..ramp }));
     let own_fill = |n: &mut Node| {
-        n.appearance.items.push(AppearanceItem::Fill(vectorcraft_doc::FillLayer::new(placed.clone())));
-        n.appearance.items.push(AppearanceItem::Stroke(vectorcraft_doc::StrokeLayer::new(placed.clone(), 3.0)));
+        n.appearance.items.push(AppearanceItem::Fill(vansoncraft_doc::FillLayer::new(placed.clone())));
+        n.appearance.items.push(AppearanceItem::Stroke(vansoncraft_doc::StrokeLayer::new(placed.clone(), 3.0)));
     };
     let follow = |p: Point, from: Rect, to: Rect| {
         Point::new(to.x0 + (p.x - from.x0) / from.width() * to.width(), to.y0 + (p.y - from.y0) / from.height() * to.height())
@@ -531,14 +531,14 @@ fn a_groups_warp_moves_its_own_a_nested_groups_and_a_compound_paths_gradients_by
 /// nested group's bounds before the effect to its bounds after it.
 #[test]
 fn a_nested_groups_own_gradient_follows_the_outer_groups_transform_and_free_distort() {
-    use vectorcraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop};
+    use vansoncraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop};
     let stops = vec![GradientStop::new(0.0, Color::rgb(1.0, 0.0, 0.0)), GradientStop::new(1.0, Color::rgb(0.0, 0.0, 1.0))];
     let ramp = GradientPaint::new(Gradient::new(GradientKind::Linear, stops));
     let geom = GradientGeom { start: (0.0, 5.0).into(), end: (10.0, 5.0).into(), aspect: 1.0, focal: None };
     let placed = Paint::Gradient(Box::new(GradientPaint { geom: Some(geom), ..ramp }));
     let ends = |e: Effect| {
         let mut inner = Node::group(NodeId(5), vec![sq(1, 0.0, Color::BLACK)]);
-        inner.appearance.items.push(AppearanceItem::Fill(vectorcraft_doc::FillLayer::new(placed.clone())));
+        inner.appearance.items.push(AppearanceItem::Fill(vansoncraft_doc::FillLayer::new(placed.clone())));
         let mut g = Node::group(NodeId(10), vec![Arc::new(inner), sq(2, 20.0, Color::BLACK)]);
         g.appearance.effects.push(e);
         let art = evaluate_container(None, &g).unwrap();
@@ -560,8 +560,8 @@ fn a_nested_groups_own_gradient_follows_the_outer_groups_transform_and_free_dist
 /// transform.
 #[test]
 fn a_groups_transform_moves_the_gradients_placed_on_an_images_own_fills() {
-    use vectorcraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop};
-    use vectorcraft_doc::ImageObject;
+    use vansoncraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop};
+    use vansoncraft_doc::ImageObject;
     let stops = vec![GradientStop::new(0.0, Color::rgb(1.0, 0.0, 0.0)), GradientStop::new(1.0, Color::rgb(0.0, 0.0, 1.0))];
     let ramp = GradientPaint::new(Gradient::new(GradientKind::Linear, stops));
     let geom = GradientGeom { start: (0.0, 5.0).into(), end: (10.0, 5.0).into(), aspect: 1.0, focal: None };
@@ -571,13 +571,13 @@ fn a_groups_transform_moves_the_gradients_placed_on_an_images_own_fills() {
             key: "k".into(),
             width: 10,
             height: 10,
-            xf: vectorcraft_geom::Affine::IDENTITY,
+            xf: vansoncraft_geom::Affine::IDENTITY,
             link: None,
             placement: Default::default(),
             pixels: None,
         }))
     };
-    let instance = || NodeKind::SymbolInstance { symbol: "s".into(), xf: vectorcraft_geom::Affine::IDENTITY };
+    let instance = || NodeKind::SymbolInstance { symbol: "s".into(), xf: vansoncraft_geom::Affine::IDENTITY };
     let starts = |kind: NodeKind, params: serde_json::Value| {
         let mut object = Node::new(NodeId(1), kind);
         object.appearance = Appearance::basic(placed.clone(), Paint::None, 0.0).into();
@@ -604,8 +604,8 @@ fn a_groups_transform_moves_the_gradients_placed_on_an_images_own_fills() {
 /// fitted.
 #[test]
 fn a_groups_transform_turns_the_gradients_fitted_to_its_members_and_its_own_fill() {
-    use vectorcraft_color::{Gradient, GradientKind, GradientPaint, GradientStop};
-    use vectorcraft_doc::ImageObject;
+    use vansoncraft_color::{Gradient, GradientKind, GradientPaint, GradientStop};
+    use vansoncraft_doc::ImageObject;
     let stops = vec![GradientStop::new(0.0, Color::rgb(1.0, 0.0, 0.0)), GradientStop::new(1.0, Color::rgb(0.0, 0.0, 1.0))];
     let fitted = Paint::Gradient(Box::new(GradientPaint::new(Gradient::new(GradientKind::Linear, stops))));
     let square = |id: u64, x: f64| {
@@ -617,7 +617,7 @@ fn a_groups_transform_turns_the_gradients_fitted_to_its_members_and_its_own_fill
             key: "k".into(),
             width: 10,
             height: 10,
-            xf: vectorcraft_geom::Affine::translate((30.0, 0.0)),
+            xf: vansoncraft_geom::Affine::translate((30.0, 0.0)),
             link: None,
             placement: Default::default(),
             pixels: None,
@@ -626,15 +626,15 @@ fn a_groups_transform_turns_the_gradients_fitted_to_its_members_and_its_own_fill
     image.appearance = Appearance::basic(fitted.clone(), Paint::None, 0.0).into();
     // A symbol instance whose symbol is not in a document is measured as the 20 pt square about
     // its origin: here 22.5..27.5 across and 2.5..7.5 down.
-    let at = vectorcraft_geom::Affine::translate((25.0, 5.0)) * vectorcraft_geom::Affine::scale(0.25);
+    let at = vansoncraft_geom::Affine::translate((25.0, 5.0)) * vansoncraft_geom::Affine::scale(0.25);
     let mut instance = Node::new(NodeId(6), NodeKind::SymbolInstance { symbol: "s".into(), xf: at });
     instance.appearance = Appearance::basic(fitted.clone(), Paint::None, 0.0).into();
     // Ends of each gradient by object id; none for a gradient still fitted.
     let ends = |params: serde_json::Value| {
         let mut inner = Node::group(NodeId(5), vec![square(2, 10.0)]);
-        inner.appearance.items.push(AppearanceItem::Fill(vectorcraft_doc::FillLayer::new(fitted.clone())));
+        inner.appearance.items.push(AppearanceItem::Fill(vansoncraft_doc::FillLayer::new(fitted.clone())));
         let mut g = Node::group(NodeId(10), vec![square(1, 0.0), Arc::new(inner), Arc::new(image.clone()), Arc::new(instance.clone())]);
-        g.appearance.items.push(AppearanceItem::Fill(vectorcraft_doc::FillLayer::new(fitted.clone())));
+        g.appearance.items.push(AppearanceItem::Fill(vansoncraft_doc::FillLayer::new(fitted.clone())));
         g.appearance.effects.push(Effect { id: "distort.transform".into(), params, visible: true });
         let art = evaluate_container(None, &g).unwrap();
         let mut out = std::collections::BTreeMap::new();
@@ -664,7 +664,7 @@ fn a_groups_transform_turns_the_gradients_fitted_to_its_members_and_its_own_fill
 
 #[test]
 fn a_transform_on_a_group_paints_each_copy_with_its_own_gradient() {
-    use vectorcraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop};
+    use vansoncraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop};
     let stops = vec![GradientStop::new(0.0, Color::rgb(1.0, 0.0, 0.0)), GradientStop::new(1.0, Color::rgb(0.0, 0.0, 1.0))];
     let ramp = GradientPaint::new(Gradient::new(GradientKind::Linear, stops));
     let geom = GradientGeom { start: (0.0, 5.0).into(), end: (10.0, 5.0).into(), aspect: 1.0, focal: None };
@@ -697,7 +697,7 @@ fn white_square(id: u64) -> Node {
 
 /// `n` masked by `art`, linked or not.
 fn masked_by(mut n: Node, art: Node, linked: bool) -> Node {
-    let mut mask = vectorcraft_doc::OpacityMask::new(art, true);
+    let mut mask = vansoncraft_doc::OpacityMask::new(art, true);
     mask.linked = linked;
     n.extras_mut().mask = Some(Box::new(mask));
     n
@@ -919,11 +919,11 @@ fn a_transform_that_moves_paths_as_objects_moves_a_member_groups_nested_mask() {
 fn a_groups_transform_moves_an_image_members_linked_mask() {
     for linked in [true, false] {
         for copies in [0, 2] {
-            let im = vectorcraft_doc::ImageObject {
+            let im = vansoncraft_doc::ImageObject {
                 key: "k".into(),
                 width: 10,
                 height: 10,
-                xf: vectorcraft_geom::Affine::IDENTITY,
+                xf: vansoncraft_geom::Affine::IDENTITY,
                 link: None,
                 placement: Default::default(),
                 pixels: None,
@@ -978,8 +978,8 @@ fn a_mask_whose_art_passes_the_budget_stays_whole() {
 /// the member.
 #[test]
 fn a_groups_effects_reshape_a_live_object_in_a_members_mask() {
-    let mut grid = vectorcraft_doc::RepeatSpec::grid(vec![Arc::new(white_square(5))], 0.0, 0.0);
-    if let vectorcraft_doc::RepeatKind::Grid { rows, cols, .. } = &mut grid.kind {
+    let mut grid = vansoncraft_doc::RepeatSpec::grid(vec![Arc::new(white_square(5))], 0.0, 0.0);
+    if let vansoncraft_doc::RepeatKind::Grid { rows, cols, .. } = &mut grid.kind {
         (*rows, *cols) = (1, 1);
     }
     let repeat = Node::new(NodeId(4), NodeKind::Repeat(grid));
@@ -1038,7 +1038,7 @@ fn a_compound_paths_and_a_layers_members_masks_take_the_effects() {
         assert!(geometry(member) != square.path_data().cloned(), "{}: the compound path is reshaped", e.id);
         assert_eq!(geometry(&member.extras().mask.as_deref().unwrap().art), geometry(member), "{}: compound path", e.id);
 
-        let mut layer = Node::layer(NodeId(10), "Layer", vectorcraft_doc::LayerColor::Preset(0));
+        let mut layer = Node::layer(NodeId(10), "Layer", vansoncraft_doc::LayerColor::Preset(0));
         if let Some(ch) = layer.children_mut() {
             ch.extend([Arc::new(masked_by(square.clone(), white_square(4), true)), sq(2, 20.0, Color::BLACK)]);
         }
@@ -1053,7 +1053,7 @@ fn a_compound_paths_and_a_layers_members_masks_take_the_effects() {
 /// A group's Transform effect moves a symbol instance member's linked mask with the instance.
 #[test]
 fn a_groups_transform_moves_a_symbol_instance_members_linked_mask() {
-    let instance = Node::new(NodeId(1), NodeKind::SymbolInstance { symbol: "s".into(), xf: vectorcraft_geom::Affine::IDENTITY });
+    let instance = Node::new(NodeId(1), NodeKind::SymbolInstance { symbol: "s".into(), xf: vansoncraft_geom::Affine::IDENTITY });
     let mut g = Node::group(NodeId(10), vec![Arc::new(masked_by(instance, white_square(4), true)), sq(2, 20.0, Color::BLACK)]);
     g.appearance.effects.push(reshaping_effects()[0].clone());
     let art = evaluate_container(None, &g).unwrap();
@@ -1070,11 +1070,11 @@ fn a_groups_transform_moves_a_symbol_instance_members_linked_mask() {
 fn a_transform_with_scale_strokes_scales_the_masks_of_images_and_paths_alike() {
     let stroked =
         Node::path(NodeId(4), shapes::rectangle(Rect::new(0.0, 0.0, 10.0, 10.0)), Appearance::basic(Paint::None, Paint::solid(Color::WHITE), 2.0));
-    let im = vectorcraft_doc::ImageObject {
+    let im = vansoncraft_doc::ImageObject {
         key: "k".into(),
         width: 10,
         height: 10,
-        xf: vectorcraft_geom::Affine::IDENTITY,
+        xf: vansoncraft_geom::Affine::IDENTITY,
         link: None,
         placement: Default::default(),
         pixels: None,
@@ -1133,11 +1133,11 @@ fn a_masks_art_is_copied_as_it_was_before_the_first_effect() {
 
 /// A 10 × 10 image with id `id` at the origin.
 fn image_node(id: u64) -> Node {
-    let im = vectorcraft_doc::ImageObject {
+    let im = vansoncraft_doc::ImageObject {
         key: "k".into(),
         width: 10,
         height: 10,
-        xf: vectorcraft_geom::Affine::IDENTITY,
+        xf: vansoncraft_geom::Affine::IDENTITY,
         link: None,
         placement: Default::default(),
         pixels: None,
@@ -1197,8 +1197,8 @@ fn art_with_a_masked_image_keeps_its_shape_under_a_warp() {
 #[test]
 fn perspective_projects_the_masks_in_a_symbols_art() {
     let art = Node::group(NodeId(20), vec![Arc::new(masked_by(white_square(21), white_square(22), true))]);
-    let mut instance = Node::new(NodeId(1), NodeKind::SymbolInstance { symbol: "s".into(), xf: vectorcraft_geom::Affine::IDENTITY });
-    let mut at = vectorcraft_doc::PerspectiveAttachment::new("left", 0.0);
+    let mut instance = Node::new(NodeId(1), NodeKind::SymbolInstance { symbol: "s".into(), xf: vansoncraft_geom::Affine::IDENTITY });
+    let mut at = vansoncraft_doc::PerspectiveAttachment::new("left", 0.0);
     at.projection = Some([1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.01, 0.0, 1.0]);
     instance.extras_mut().perspective = Some(Box::new(at));
     let out = crate::reshape::reshape(None, &instance, Some(&art)).unwrap();
@@ -1344,7 +1344,7 @@ fn nested_compound_shapes_take_part_as_their_area() {
 /// fills and strokes of its own take no part: they stay last in the layer, once and unchanged.
 #[test]
 fn a_layers_ruler_guides_stay_last_through_its_effects() {
-    use vectorcraft_doc::LayerColor;
+    use vansoncraft_doc::LayerColor;
     let guide = |id, pos| Arc::new(Node::new(NodeId(id), NodeKind::RulerGuide { vertical: true, pos, artboard: None }));
     let layer = |effect: &str, params: serde_json::Value| {
         let mut l = Node::layer(NodeId(10), "Layer 1", LayerColor::Preset(0));
@@ -1386,7 +1386,7 @@ fn a_layers_ruler_guides_stay_last_through_its_effects() {
 /// copies its art, stay on a layer of the evaluated art, once, hidden and locked as the sublayer is.
 #[test]
 fn a_sublayers_ruler_guides_survive_its_layers_effects() {
-    use vectorcraft_doc::LayerColor;
+    use vansoncraft_doc::LayerColor;
     let layer = |effect: &str, params: serde_json::Value, shown: bool| {
         let mut sub = Node::layer(NodeId(11), "Sub", LayerColor::Preset(1));
         (sub.visible, sub.locked) = (shown, !shown);
@@ -1427,7 +1427,7 @@ fn a_sublayers_ruler_guides_survive_its_layers_effects() {
 /// Pathfinder effect moves it onto the layer, as the group made it.
 #[test]
 fn a_sublayers_ruler_guide_in_a_hidden_or_locked_group_stays_hidden_or_locked() {
-    use vectorcraft_doc::LayerColor;
+    use vansoncraft_doc::LayerColor;
     for (hidden, locked) in [(true, false), (false, true), (false, false)] {
         let mut sub = Node::layer(NodeId(11), "Sub", LayerColor::Preset(1));
         if let Some(ch) = sub.children_mut() {

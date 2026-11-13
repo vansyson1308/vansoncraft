@@ -11,9 +11,9 @@ use std::borrow::Cow;
 use std::collections::BTreeSet;
 
 use serde_json::{Value, json};
-use vectorcraft_doc::live::{GradientMesh, envelope_grid};
-use vectorcraft_doc::{EnvelopeKind, Node, NodeId, NodeKind};
-use vectorcraft_geom::{Point, Vec2};
+use vansoncraft_doc::live::{GradientMesh, envelope_grid};
+use vansoncraft_doc::{EnvelopeKind, Node, NodeId, NodeKind};
+use vansoncraft_geom::{Point, Vec2};
 
 use crate::{Action, Mods, Overlay, ToolContext, ToolKey};
 
@@ -336,9 +336,9 @@ mod tests {
     use super::*;
     use crate::testutil::*;
     use crate::{PointerEvent, PointerKind, Tool};
-    use vectorcraft_doc::live::{EnvelopeOptions, grid_points};
-    use vectorcraft_doc::{Document, Selection};
-    use vectorcraft_geom::{Affine, Rect};
+    use vansoncraft_doc::live::{EnvelopeOptions, grid_points};
+    use vansoncraft_doc::{Document, Selection};
+    use vansoncraft_geom::{Affine, Rect};
 
     /// The rectangle of [`doc_with_rect`] (100..200 square) in a 1×1 mesh envelope.
     fn doc_with_envelope() -> (Document, NodeId) {
@@ -454,7 +454,7 @@ mod tests {
         let (mut d, a) = doc_with_rect();
         d.remove(a).unwrap();
         let id = d.alloc_id();
-        let m = GradientMesh::from_surface(2, 2, &|u, v| Point::new(100.0 + 100.0 * u, 100.0 + 100.0 * v), &|_, _| vectorcraft_color::Color::WHITE);
+        let m = GradientMesh::from_surface(2, 2, &|u, v| Point::new(100.0 + 100.0 * u, 100.0 + 100.0 * v), &|_, _| vansoncraft_color::Color::WHITE);
         let l = d.layers[0].id;
         d.insert(Some(l), 0, Node::new(id, NodeKind::Mesh(m))).unwrap();
         (d, id)

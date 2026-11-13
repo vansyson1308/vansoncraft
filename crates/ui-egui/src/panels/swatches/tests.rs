@@ -1,28 +1,28 @@
 use super::*;
 use crate::dialogs::swatch_options::KIND;
 use egui::{Event, Modifiers, PointerButton, Pos2};
-use vectorcraft_color::Color;
-use vectorcraft_engine::Session;
+use vansoncraft_color::Color;
+use vansoncraft_engine::Session;
 
-fn app() -> VectorcraftApp {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+fn app() -> VansoncraftApp {
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 200, "height": 200})).unwrap();
     app
 }
 
 /// One frame of `draw` on a persistent context (clicks need the previous frame's layout).
-fn frame(app: &mut VectorcraftApp, ctx: &egui::Context, events: Vec<Event>, time: f64, draw: fn(&mut VectorcraftApp, &mut Ui)) {
+fn frame(app: &mut VansoncraftApp, ctx: &egui::Context, events: Vec<Event>, time: f64, draw: fn(&mut VansoncraftApp, &mut Ui)) {
     frame_with(app, ctx, events, Modifiers::NONE, time, draw);
 }
 
 /// [`frame`] with `modifiers` held.
 fn frame_with(
-    app: &mut VectorcraftApp,
+    app: &mut VansoncraftApp,
     ctx: &egui::Context,
     events: Vec<Event>,
     modifiers: Modifiers,
     time: f64,
-    draw: fn(&mut VectorcraftApp, &mut Ui),
+    draw: fn(&mut VansoncraftApp, &mut Ui),
 ) {
     let screen_rect = Some(Rect::from_min_size(Pos2::ZERO, vec2(280.0, 700.0)));
     let events = std::iter::once(Event::ModifiersChanged(modifiers)).chain(events).collect();
@@ -43,14 +43,14 @@ fn double_click(at: Pos2) -> Vec<Event> {
 }
 
 /// Double-click the thumbnail of swatch `name` in the panel.
-fn double_click_tile(app: &mut VectorcraftApp, ctx: &egui::Context, name: &str) {
+fn double_click_tile(app: &mut VansoncraftApp, ctx: &egui::Context, name: &str) {
     frame(app, ctx, vec![], 0.0, show);
     let tile = ctx.read_response(egui::Id::unique(("swatch-tile", name))).unwrap_or_else(|| panic!("no tile for {name}")).rect;
     frame(app, ctx, double_click(tile.center()), 1.0, show);
 }
 
 /// Click the thumbnail of swatch or group `name` with `modifiers` held (frames at `time`, `time + 0.5`).
-fn click_tile(app: &mut VectorcraftApp, ctx: &egui::Context, name: &str, modifiers: Modifiers, time: f64) {
+fn click_tile(app: &mut VansoncraftApp, ctx: &egui::Context, name: &str, modifiers: Modifiers, time: f64) {
     frame(app, ctx, vec![], time, show);
     let at = ctx.read_response(egui::Id::unique(("swatch-tile", name))).unwrap_or_else(|| panic!("no tile for {name}")).rect.center();
     let button = |pressed| Event::PointerButton { pos: at, button: PointerButton::Primary, pressed, modifiers };
@@ -61,7 +61,7 @@ fn selected(ctx: &egui::Context) -> Vec<String> {
     pstate(ctx, "swatch-selected")
 }
 
-fn dialog_frame(app: &mut VectorcraftApp, ctx: &egui::Context) {
+fn dialog_frame(app: &mut VansoncraftApp, ctx: &egui::Context) {
     frame(app, ctx, vec![], 2.0, |app, ui| crate::dialogs::show(app, ui.ctx()));
 }
 
@@ -86,7 +86,7 @@ fn double_click_opens_swatch_options_and_ok_edits_linked_art() {
     assert!(app.ui.dialog.is_none() && !app.session.in_interaction());
     let doc = &app.session.doc().unwrap().doc;
     assert_eq!(doc.swatch("Signal").and_then(|w| w.paint.color()).map(|c| c.to_hex()), Some("#00ff00".into()));
-    let fill = doc.node(vectorcraft_doc::NodeId(id.as_u64().unwrap())).unwrap().appearance.fill_paint();
+    let fill = doc.node(vansoncraft_doc::NodeId(id.as_u64().unwrap())).unwrap().appearance.fill_paint();
     assert_eq!(fill, Paint::Solid { color: Color::from_hex("#00ff00").unwrap(), swatch: Some("Signal".into()), tint: 1.0 });
     assert_eq!(app.session.doc().unwrap().history.undo.len(), undo + 1);
 }
@@ -156,7 +156,7 @@ fn a_clicked_color_swatch_becomes_the_color_guides_base() {
     let ctx = context();
     app.ui.color_guide_base = Some(Color::WHITE);
     click_tile(&mut app, &ctx, "Red", Modifiers::NONE, 0.0);
-    let base = |app: &VectorcraftApp| crate::panels::color_guide::base_color(app).to_hex();
+    let base = |app: &VansoncraftApp| crate::panels::color_guide::base_color(app).to_hex();
     assert_eq!(base(&app), "#ed1c24");
     click_tile(&mut app, &ctx, "Amber", Modifiers::SHIFT, 2.0);
     assert_eq!(base(&app), "#ed1c24", "a modifier click only selects");
@@ -177,7 +177,7 @@ fn a_clicked_color_swatch_becomes_the_color_guides_base() {
 }
 
 /// The hex colors of the stops of the selection's gradient fill, and its stroke's color.
-fn stops_and_stroke(app: &VectorcraftApp) -> (Vec<String>, String) {
+fn stops_and_stroke(app: &VansoncraftApp) -> (Vec<String>, String) {
     let (fill, stroke) = crate::panels::current_paints(app);
     let Paint::Gradient(g) = fill else { panic!("the fill is still a gradient: {fill:?}") };
     (g.gradient.stops.iter().map(|s| s.color.to_hex()).collect(), stroke.color().map(|c| c.to_hex()).unwrap_or_default())
@@ -253,7 +253,7 @@ fn delete_asks_then_removes_the_selection_and_unlinks_art() {
     assert!(app.ui.dialog.is_none());
     let doc = &app.session.doc().unwrap().doc;
     assert!(doc.swatch("Red").is_none() && doc.swatch("Bright Red").is_none() && doc.swatch_groups.iter().all(|g| g.name != "Brights"));
-    let fill = doc.node(vectorcraft_doc::NodeId(id.as_u64().unwrap())).unwrap().appearance.fill_paint();
+    let fill = doc.node(vansoncraft_doc::NodeId(id.as_u64().unwrap())).unwrap().appearance.fill_paint();
     assert_eq!(fill, Paint::solid(Color::from_hex("#ed1c24").unwrap()), "the art keeps its colour, unlinked");
     // Cancel keeps the swatch; Alt-click (now) deletes without asking.
     delete(&mut app, vec!["Orange".into()], false);
@@ -352,12 +352,12 @@ fn swatches_made_from_an_rgb_fill_stay_rgb_in_a_cmyk_document() {
     let mut app = app();
     let ctx = context();
     app.run("file.documentColorMode", json!({"mode": "cmyk"})).unwrap();
-    let newest = |app: &VectorcraftApp| app.session.doc().unwrap().doc.swatches.last().map(|w| w.paint.clone()).expect("a swatch");
+    let newest = |app: &VansoncraftApp| app.session.doc().unwrap().doc.swatches.last().map(|w| w.paint.clone()).expect("a swatch");
     let stop_colors = |p: &Paint| match p {
         Paint::Gradient(g) => g.gradient.stops.iter().map(|s| s.color).collect::<Vec<_>>(),
         other => panic!("a gradient: {other:?}"),
     };
-    let drop_on = |app: &mut VectorcraftApp, name: &str, paint: Paint, m: Modifiers, time: f64| {
+    let drop_on = |app: &mut VansoncraftApp, name: &str, paint: Paint, m: Modifiers, time: f64| {
         frame(app, &ctx, vec![], time, show);
         let at = tile_center(&ctx, name);
         egui::DragAndDrop::set_payload(&ctx, PanelDrag::paint(paint));
@@ -421,7 +421,7 @@ fn new_color_group_dialog_makes_a_group_from_swatches_or_artwork() {
     let doc = &app.session.doc().unwrap().doc;
     let g = doc.swatch_groups.iter().find(|g| g.name == "Color Group 2").expect("group made");
     assert_eq!(g.swatches.iter().map(|w| (w.name.as_str(), w.global)).collect::<Vec<_>>(), [("R=18 G=52 B=86", true)]);
-    let fill = doc.node(vectorcraft_doc::NodeId(id.as_u64().unwrap())).unwrap().appearance.fill_paint();
+    let fill = doc.node(vansoncraft_doc::NodeId(id.as_u64().unwrap())).unwrap().appearance.fill_paint();
     assert_eq!(fill, Paint::Solid { color: Color::from_hex("#123456").unwrap(), swatch: Some("R=18 G=52 B=86".into()), tint: 1.0 });
 }
 
@@ -431,12 +431,12 @@ fn tile_center(ctx: &egui::Context, name: &str) -> Pos2 {
 }
 
 /// Press at `from`, drag to `to` and release there, a frame per step from `time`.
-fn drag(app: &mut VectorcraftApp, ctx: &egui::Context, from: Pos2, to: Pos2, time: f64) {
+fn drag(app: &mut VansoncraftApp, ctx: &egui::Context, from: Pos2, to: Pos2, time: f64) {
     drag_with(app, ctx, from, to, Modifiers::NONE, time);
 }
 
 /// [`drag`] with `modifiers` held.
-fn drag_with(app: &mut VectorcraftApp, ctx: &egui::Context, from: Pos2, to: Pos2, modifiers: Modifiers, time: f64) {
+fn drag_with(app: &mut VansoncraftApp, ctx: &egui::Context, from: Pos2, to: Pos2, modifiers: Modifiers, time: f64) {
     let button = |pos, pressed| Event::PointerButton { pos, button: PointerButton::Primary, pressed, modifiers };
     frame_with(app, ctx, vec![Event::PointerMoved(from), button(from, true)], modifiers, time, show);
     frame_with(app, ctx, vec![Event::PointerMoved(from + vec2(6.0, 4.0))], modifiers, time + 0.1, show);
@@ -444,7 +444,7 @@ fn drag_with(app: &mut VectorcraftApp, ctx: &egui::Context, from: Pos2, to: Pos2
     frame_with(app, ctx, vec![Event::PointerMoved(to), button(to, false)], modifiers, time + 0.3, show);
 }
 
-fn names_of(app: &VectorcraftApp, group: Option<&str>) -> Vec<String> {
+fn names_of(app: &VansoncraftApp, group: Option<&str>) -> Vec<String> {
     let d = &app.session.active().unwrap().doc;
     let list = match group {
         Some(g) => &d.swatch_groups.iter().find(|x| x.name == g).unwrap().swatches,
@@ -529,14 +529,14 @@ fn art_dropped_on_the_panel_becomes_a_pattern_swatch() {
     frame(&mut app, &ctx, vec![], 0.0, show);
     // Released over a swatch tile: the list takes it.
     let at = tile_center(&ctx, "Bright Red");
-    egui::DragAndDrop::set_payload(&ctx, PanelDrag::Art(vec![vectorcraft_doc::NodeId(id)]));
+    egui::DragAndDrop::set_payload(&ctx, PanelDrag::Art(vec![vansoncraft_doc::NodeId(id)]));
     let release = Event::PointerButton { pos: at, button: PointerButton::Primary, pressed: false, modifiers: Modifiers::NONE };
     frame(&mut app, &ctx, vec![Event::PointerMoved(at), release], 1.0, show);
     let patterns = app.run("pattern.list", json!({})).unwrap();
     assert_eq!(patterns["patterns"].as_array().map(Vec::len), Some(1), "{patterns}");
     assert_eq!(patterns["editing"], Value::Null, "no pattern editing mode");
     let st = app.session.doc().unwrap();
-    assert_eq!(st.doc.node(vectorcraft_doc::NodeId(id)), before.node(vectorcraft_doc::NodeId(id)), "the art stays as it was");
+    assert_eq!(st.doc.node(vansoncraft_doc::NodeId(id)), before.node(vansoncraft_doc::NodeId(id)), "the art stays as it was");
     assert!(egui::DragAndDrop::payload::<PanelDrag>(&ctx).is_none());
 }
 
@@ -560,10 +560,10 @@ fn alt_dropping_a_gradient_on_a_gradient_swatch_replaces_it() {
     frame(&mut app, &ctx, vec![], 0.0, show);
     let grad = |c: &str| {
         let stops =
-            vec![vectorcraft_color::GradientStop::new(0.0, Color::from_hex(c).unwrap()), vectorcraft_color::GradientStop::new(1.0, Color::WHITE)];
-        Paint::Gradient(Box::new(vectorcraft_color::GradientPaint::new(vectorcraft_color::Gradient::new(GradientKind::Radial, stops))))
+            vec![vansoncraft_color::GradientStop::new(0.0, Color::from_hex(c).unwrap()), vansoncraft_color::GradientStop::new(1.0, Color::WHITE)];
+        Paint::Gradient(Box::new(vansoncraft_color::GradientPaint::new(vansoncraft_color::Gradient::new(GradientKind::Radial, stops))))
     };
-    let drop_on = |app: &mut VectorcraftApp, name: &str, paint: Paint, m: Modifiers, time: f64| {
+    let drop_on = |app: &mut VansoncraftApp, name: &str, paint: Paint, m: Modifiers, time: f64| {
         let at = tile_center(&ctx, name);
         egui::DragAndDrop::set_payload(&ctx, PanelDrag::paint(paint));
         let release = Event::PointerButton { pos: at, button: PointerButton::Primary, pressed: false, modifiers: m };
@@ -600,7 +600,7 @@ fn alt_dragging_a_swatch_onto_another_of_its_kind_replaces_its_color() {
     app.run("paint.setFill", json!({"ids": [id], "swatch": "Orange"})).unwrap();
     frame(&mut app, &ctx, vec![], 0.0, show);
     frame(&mut app, &ctx, vec![], 0.5, show);
-    let doc = |app: &VectorcraftApp| app.session.doc().unwrap().doc.clone();
+    let doc = |app: &VansoncraftApp| app.session.doc().unwrap().doc.clone();
     let (before, undo) = (names_of(&app, None), app.session.doc().unwrap().history.undo.len());
     let red = doc(&app).swatch("Red").and_then(|w| w.paint.color()).unwrap();
     drag_with(&mut app, &ctx, tile_center(&ctx, "Red"), tile_center(&ctx, "Orange"), Modifiers::ALT, 1.0);
@@ -609,7 +609,7 @@ fn alt_dragging_a_swatch_onto_another_of_its_kind_replaces_its_color() {
     assert_eq!((orange.paint.color(), orange.global), (Some(red), true), "Orange takes Red's color");
     assert_eq!(names_of(&app, None), before, "Red stays and Orange keeps its place");
     assert_eq!(app.session.doc().unwrap().history.undo.len(), undo + 1);
-    let fill = d.node(vectorcraft_doc::NodeId(id)).unwrap().appearance.fill_paint();
+    let fill = d.node(vansoncraft_doc::NodeId(id)).unwrap().appearance.fill_paint();
     assert_eq!(fill.color(), Some(red), "art linked to Orange takes the new color");
     // A gradient dropped on a color, and a swatch dropped without Alt, move as before.
     frame(&mut app, &ctx, vec![], 2.0, show);
@@ -645,7 +645,7 @@ fn menu_targets_follow_the_panel_selection() {
 #[test]
 fn kind_filter() {
     let solid = Paint::solid(Color::BLACK);
-    let grad = Paint::Gradient(Box::new(vectorcraft_color::GradientPaint::new(Default::default())));
+    let grad = Paint::Gradient(Box::new(vansoncraft_color::GradientPaint::new(Default::default())));
     assert!(Kind::All.accepts(&grad, false));
     assert!(Kind::Color.accepts(&solid, false));
     assert!(!Kind::Color.accepts(&grad, false));
@@ -712,7 +712,7 @@ fn deselecting_keeps_the_arts_swatch_highlighted() {
     app.run("paint.default", json!({})).unwrap();
     let ctx = context();
     let ui = egui::Ui::new(ctx.clone(), egui::Id::unique("t"), egui::UiBuilder::new());
-    let shown = |app: &VectorcraftApp| kept_swatch(app, &ui, active_swatch(app));
+    let shown = |app: &VansoncraftApp| kept_swatch(app, &ui, active_swatch(app));
     assert_ne!(shown(&app).as_deref(), Some("Ink 185"), "nothing selected yet: new art's paint");
     app.run("select.set", json!({"ids": [id]})).unwrap();
     assert_eq!(shown(&app).as_deref(), Some("Ink 185"));
@@ -738,7 +738,7 @@ fn images_and_unswatched_text_highlight_no_swatch() {
     let mut app = app();
     let mut png = vec![];
     image::RgbaImage::from_pixel(4, 4, image::Rgba([255, 0, 0, 255])).write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
-    let data = vectorcraft_format::base64_encode(&png);
+    let data = vansoncraft_format::base64_encode(&png);
     app.run("file.place", json!({"name": "a.png", "dataBase64": data, "link": false})).unwrap();
     assert_eq!(active_swatch(&app), None, "an image: no swatch");
     let text = app.run("text.create", json!({"x": 10, "y": 50, "text": "Hi"})).unwrap()["id"].clone();
@@ -760,7 +760,7 @@ fn lab_spot_tiles_show_the_colour_the_spot_colors_options_pick() {
     let mut app = app();
     let lab = Color::lab(60.0, 50.0, 20.0);
     app.run("swatch.new", json!({"name": "Ink", "color": lab, "spot": true})).unwrap();
-    let tile = |app: &VectorcraftApp| {
+    let tile = |app: &VansoncraftApp| {
         let ink = entries(app, Kind::All, "Ink").into_iter().find(|e| e.name() == "Ink");
         let Some(Entry::Swatch { paint, .. }) = ink else { panic!("the Ink tile") };
         paint.color().unwrap()

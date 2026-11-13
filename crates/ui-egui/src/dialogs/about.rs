@@ -1,15 +1,15 @@
-//! Help → About VectorCraft.
+//! Help → About VansonCraft.
 
-use crate::VectorcraftApp;
+use crate::VansoncraftApp;
 use crate::theme;
 
 /// The About window, while `UiState::about` is set.
-pub(super) fn show(app: &mut VectorcraftApp, ctx: &egui::Context) {
+pub(super) fn show(app: &mut VansoncraftApp, ctx: &egui::Context) {
     if !app.ui.about {
         return;
     }
     let mut open = true;
-    egui::Window::new(tl!("About VectorCraft"))
+    egui::Window::new(tl!("About VansonCraft"))
         .collapsible(false)
         .resizable(false)
         .open(&mut open)
@@ -45,14 +45,15 @@ pub(super) fn show(app: &mut VectorcraftApp, ctx: &egui::Context) {
     app.ui.about = open;
 }
 
-/// The About tab: mark, version, community links, licences and the GPU in use.
-fn about_tab(app: &mut VectorcraftApp, ui: &mut egui::Ui) {
+/// The About tab: mark, version, project links, licences, the project it is based on and the GPU
+/// in use.
+fn about_tab(app: &mut VansoncraftApp, ui: &mut egui::Ui) {
     ui.set_width(380.0);
     ui.horizontal(|ui| {
         let (r, _) = ui.allocate_exact_size(egui::vec2(44.0, 44.0), egui::Sense::hover());
         crate::brand::paint_mark(ui, r);
         ui.vertical(|ui| {
-            ui.label(egui::RichText::new("VectorCraft").font(theme::semibold(22.0)));
+            ui.label(egui::RichText::new("VansonCraft").font(theme::semibold(22.0)));
             ui.label(crate::i18n::fmt(
                 tl!("Version {version} — open-source vector illustration in pure Rust."),
                 &[("version", env!("CARGO_PKG_VERSION"))],
@@ -63,11 +64,13 @@ fn about_tab(app: &mut VectorcraftApp, ui: &mut egui::Ui) {
     crate::community::links(app, ui);
     ui.add_space(12.0);
     ui.label(
-        egui::RichText::new(tl!(
-            "Part of ArtCraft. MIT OR Apache-2.0. Fonts: Source Sans 3, Inter, JetBrains Mono (OFL). Icons: Lucide (ISC) + VectorCraft."
-        ))
-        .size(11.0),
+        // The app's own icons were drawn by VectorCraft's contributors (ASSETS.md).
+        egui::RichText::new(tl!("MIT OR Apache-2.0. Fonts: Source Sans 3, Inter, JetBrains Mono (OFL). Icons: Lucide (ISC) + VectorCraft.")) // brand-ok
+            .size(11.0),
     );
+    // The licence asks for the copyright notice; the upstream project's brand terms allow this plain
+    // sentence (NOTICE).
+    ui.label(egui::RichText::new(tl!("Based on VectorCraft by the ArtCraft team.")).size(11.0)); // brand-ok: attribution
     // The GPU the window renders with, for bug reports (Preferences › Performance picks it).
     if let Some(adapter) = &app.graphics_adapter {
         ui.add_space(6.0);

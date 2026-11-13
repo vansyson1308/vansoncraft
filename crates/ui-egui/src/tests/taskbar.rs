@@ -5,15 +5,15 @@
 
 use egui::{Event, PointerButton, Pos2, Rect, vec2};
 use serde_json::json;
-use vectorcraft_doc::text::TextKind;
-use vectorcraft_doc::{NodeId, NodeKind};
-use vectorcraft_engine::Session;
+use vansoncraft_doc::text::TextKind;
+use vansoncraft_doc::{NodeId, NodeKind};
+use vansoncraft_engine::Session;
 
 use crate::tests_removeanchors::{at, has, shapes_text};
-use crate::{VectorcraftApp, canvas};
+use crate::{VansoncraftApp, canvas};
 
-fn app() -> VectorcraftApp {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+fn app() -> VansoncraftApp {
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
     app
 }
@@ -22,11 +22,11 @@ fn id(v: serde_json::Value) -> u64 {
     v["id"].as_u64().unwrap()
 }
 
-fn kind(app: &VectorcraftApp, id: u64) -> NodeKind {
+fn kind(app: &VansoncraftApp, id: u64) -> NodeKind {
     app.session.active().unwrap().doc.node(NodeId(id)).unwrap().kind.clone()
 }
 
-fn frame(app: &mut VectorcraftApp, ctx: &egui::Context, events: Vec<Event>) -> Vec<(String, Rect)> {
+fn frame(app: &mut VansoncraftApp, ctx: &egui::Context, events: Vec<Event>) -> Vec<(String, Rect)> {
     let screen = Rect::from_min_size(Pos2::ZERO, vec2(1000.0, 700.0));
     let mut out = ctx.run_ui(egui::RawInput { screen_rect: Some(screen), events, ..Default::default() }, |ui| canvas::show(app, ui));
     out.textures_delta.clear();
@@ -34,7 +34,7 @@ fn frame(app: &mut VectorcraftApp, ctx: &egui::Context, events: Vec<Event>) -> V
 }
 
 /// The task bar's labels for the current selection (its area settles on the second frame).
-fn bar(app: &mut VectorcraftApp) -> (egui::Context, Vec<(String, Rect)>) {
+fn bar(app: &mut VansoncraftApp) -> (egui::Context, Vec<(String, Rect)>) {
     let ctx = egui::Context::default();
     crate::theme::install_fonts(&ctx);
     frame(app, &ctx, vec![]);
@@ -43,7 +43,7 @@ fn bar(app: &mut VectorcraftApp) -> (egui::Context, Vec<(String, Rect)>) {
 }
 
 /// Click the task bar's `label`.
-fn click(app: &mut VectorcraftApp, label: &str) {
+fn click(app: &mut VansoncraftApp, label: &str) {
     let (ctx, texts) = bar(app);
     let p = at(&texts, label);
     let press = |pressed| Event::PointerButton { pos: p, button: PointerButton::Primary, pressed, modifiers: Default::default() };
@@ -53,7 +53,7 @@ fn click(app: &mut VectorcraftApp, label: &str) {
     frame(app, &ctx, vec![]);
 }
 
-fn select(app: &mut VectorcraftApp, ids: &[u64]) {
+fn select(app: &mut VansoncraftApp, ids: &[u64]) {
     app.run("select.set", json!({"ids": ids})).unwrap();
 }
 
@@ -121,7 +121,7 @@ fn an_image_with_vector_art_offers_make_clipping_mask() {
     image::RgbaImage::from_pixel(20, 20, image::Rgba([0, 128, 255, 255]))
         .write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)
         .unwrap();
-    let dir = std::env::temp_dir().join(format!("vectorcraft-ui-taskbar-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("vansoncraft-ui-taskbar-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join("blue.png");
     std::fs::write(&path, &png).unwrap();
@@ -151,7 +151,7 @@ fn type_converts_between_point_and_area_type() {
     let mut app = app();
     let t = id(app.run("text.create", json!({"x": 60, "y": 80, "text": "Hello"})).unwrap());
     select(&mut app, &[t]);
-    let text_kind = |app: &VectorcraftApp| match kind(app, t) {
+    let text_kind = |app: &VansoncraftApp| match kind(app, t) {
         NodeKind::Text(t) => t.kind.clone(),
         other => panic!("{other:?}"),
     };
@@ -192,7 +192,7 @@ fn type_on_a_path_offers_dynamic_text() {
     let t = id(app.run("text.createInPath", json!({"path": path, "mode": "onPath", "text": "Along", "at": [60, 150]})).unwrap());
     app.run("tool.select", json!({"tool": "selection"})).unwrap();
     select(&mut app, &[t]);
-    let dynamic = |app: &VectorcraftApp| matches!(kind(app, t), NodeKind::Text(ref t) if t.dynamic_text);
+    let dynamic = |app: &VansoncraftApp| matches!(kind(app, t), NodeKind::Text(ref t) if t.dynamic_text);
     let (_, texts) = bar(&mut app);
     assert!(has(&texts, "Dynamic Text"), "{texts:?}");
     click(&mut app, "Dynamic Text");
@@ -221,7 +221,7 @@ fn type_on_a_closed_path_offers_center_on_top_and_bottom() {
     let circle = id(app.run("path.create", json!({"d": "M100 300 A100 100 0 1 1 300 300 A100 100 0 1 1 100 300 Z"})).unwrap());
     let t = id(app.run("text.createInPath", json!({"path": circle, "mode": "onPath", "text": "Round", "at": [90, 300]})).unwrap());
     select(&mut app, &[t]);
-    let start = |app: &VectorcraftApp| match kind(app, t) {
+    let start = |app: &VansoncraftApp| match kind(app, t) {
         NodeKind::Text(t) => match t.kind {
             TextKind::OnPath { start, .. } => start,
             k => panic!("{k:?}"),
@@ -244,7 +244,7 @@ fn area_type_offers_dynamic_text() {
     let t = id(app.run("text.create", json!({"x": 60, "y": 80, "area": {"width": 200, "height": 100}, "text": "Fit me"})).unwrap());
     app.run("tool.select", json!({"tool": "selection"})).unwrap();
     select(&mut app, &[t]);
-    let dynamic = |app: &VectorcraftApp| matches!(kind(app, t), NodeKind::Text(ref t) if t.dynamic_text);
+    let dynamic = |app: &VansoncraftApp| matches!(kind(app, t), NodeKind::Text(ref t) if t.dynamic_text);
     let (_, texts) = bar(&mut app);
     assert!(has(&texts, "Convert To Point Type") && has(&texts, "Dynamic Text"), "{texts:?}");
     click(&mut app, "Dynamic Text");
@@ -277,7 +277,7 @@ fn point_type_offers_dynamic_text() {
 }
 
 /// The path's anchors (its first subpath).
-fn anchors(app: &VectorcraftApp, id: u64) -> Vec<vectorcraft_geom::Anchor> {
+fn anchors(app: &VansoncraftApp, id: u64) -> Vec<vansoncraft_geom::Anchor> {
     match kind(app, id) {
         NodeKind::Path { path, .. } => path.subpaths[0].anchors.clone(),
         k => panic!("not a path: {k:?}"),
@@ -304,7 +304,7 @@ fn direct_selection_of_a_whole_path_offers_its_anchor_actions() {
     // Smooth and Corner convert every anchor of the path, one undo step each.
     click(&mut app, "Smooth");
     let a = anchors(&app, line);
-    assert_eq!(a[1].kind, vectorcraft_geom::AnchorKind::Smooth, "{a:?}");
+    assert_eq!(a[1].kind, vansoncraft_geom::AnchorKind::Smooth, "{a:?}");
     assert!(a[1].has_in() && a[1].has_out(), "{a:?}");
     click(&mut app, "Corner");
     assert!(anchors(&app, line).iter().all(|a| !a.has_in() && !a.has_out()), "{:?}", anchors(&app, line));
@@ -333,7 +333,7 @@ fn direct_selected_anchors_still_offer_remove_and_cut() {
 
 /// Click the task bar's button left of More Options (Lock, or a basic shape's Shape Properties),
 /// and return the context and what the frame after the click draws.
-fn click_lock_slot(app: &mut VectorcraftApp) -> (egui::Context, Vec<(String, Rect)>) {
+fn click_lock_slot(app: &mut VansoncraftApp) -> (egui::Context, Vec<(String, Rect)>) {
     let (ctx, _) = bar(app);
     let r = canvas::task_bar_rect(&ctx).expect("the task bar shows");
     // Right to left: the frame's margin, More Options, then the button.
@@ -347,7 +347,7 @@ fn click_lock_slot(app: &mut VectorcraftApp) -> (egui::Context, Vec<(String, Rec
 }
 
 /// Type `value` into the field showing `field` and press Enter.
-fn type_into(app: &mut VectorcraftApp, ctx: &egui::Context, texts: &[(String, Rect)], field: &str, value: &str) {
+fn type_into(app: &mut VansoncraftApp, ctx: &egui::Context, texts: &[(String, Rect)], field: &str, value: &str) {
     let p = at(texts, field);
     let press = |pressed| Event::PointerButton { pos: p, button: PointerButton::Primary, pressed, modifiers: Default::default() };
     frame(app, ctx, vec![Event::PointerMoved(p), press(true), press(false)]);
@@ -359,14 +359,14 @@ fn type_into(app: &mut VectorcraftApp, ctx: &egui::Context, texts: &[(String, Re
     frame(app, ctx, vec![]);
 }
 
-fn live(app: &VectorcraftApp, id: u64) -> vectorcraft_doc::LiveShape {
+fn live(app: &VansoncraftApp, id: u64) -> vansoncraft_doc::LiveShape {
     match kind(app, id) {
         NodeKind::Path { live: Some(l), .. } => *l,
         k => panic!("not a live shape: {k:?}"),
     }
 }
 
-fn locked(app: &VectorcraftApp, id: u64) -> bool {
+fn locked(app: &VansoncraftApp, id: u64) -> bool {
     app.session.active().unwrap().doc.node(NodeId(id)).unwrap().locked
 }
 
@@ -397,8 +397,8 @@ fn a_basic_shape_shows_its_properties_in_place_of_lock() {
 fn the_shape_properties_popup_edits_the_shape() {
     let mut app = app();
     app.run("tool.select", json!({"tool": "selection"})).unwrap();
-    let corners = |app: &VectorcraftApp, id: u64| match live(app, id) {
-        vectorcraft_doc::LiveShape::Rectangle { radii, .. } => radii,
+    let corners = |app: &VansoncraftApp, id: u64| match live(app, id) {
+        vansoncraft_doc::LiveShape::Rectangle { radii, .. } => radii,
         l => panic!("{l:?}"),
     };
     let rect = id(app.run("shape.rectangle", json!({"x": 40, "y": 40, "width": 80, "height": 60, "radius": 10})).unwrap());
@@ -411,8 +411,8 @@ fn the_shape_properties_popup_edits_the_shape() {
 
     let ellipse = id(app.run("shape.ellipse", json!({"x": 40, "y": 40, "width": 80, "height": 60})).unwrap());
     select(&mut app, &[ellipse]);
-    let pie = |app: &VectorcraftApp| match live(app, ellipse) {
-        vectorcraft_doc::LiveShape::Ellipse { pie, .. } => pie,
+    let pie = |app: &VansoncraftApp| match live(app, ellipse) {
+        vansoncraft_doc::LiveShape::Ellipse { pie, .. } => pie,
         l => panic!("{l:?}"),
     };
     let (ctx, texts) = click_lock_slot(&mut app);
@@ -423,8 +423,8 @@ fn the_shape_properties_popup_edits_the_shape() {
 
     let polygon = id(app.run("shape.polygon", json!({"cx": 100, "cy": 100, "radius": 40, "sides": 6})).unwrap());
     select(&mut app, &[polygon]);
-    let sides = |app: &VectorcraftApp| match live(app, polygon) {
-        vectorcraft_doc::LiveShape::Polygon { sides, .. } => sides,
+    let sides = |app: &VansoncraftApp| match live(app, polygon) {
+        vansoncraft_doc::LiveShape::Polygon { sides, .. } => sides,
         l => panic!("{l:?}"),
     };
     let (ctx, texts) = click_lock_slot(&mut app);
@@ -443,7 +443,7 @@ fn the_shape_properties_popup_keeps_its_corner_dropdown() {
     let polygon = id(app.run("shape.polygon", json!({"cx": 100, "cy": 100, "radius": 40, "sides": 6})).unwrap());
     select(&mut app, &[polygon]);
     let (ctx, texts) = click_lock_slot(&mut app);
-    let click = |app: &mut VectorcraftApp, p: Pos2| {
+    let click = |app: &mut VansoncraftApp, p: Pos2| {
         let press = |pressed| Event::PointerButton { pos: p, button: PointerButton::Primary, pressed, modifiers: Default::default() };
         frame(app, &ctx, vec![Event::PointerMoved(p), press(true), press(false)]);
         frame(app, &ctx, vec![])
@@ -451,8 +451,8 @@ fn the_shape_properties_popup_keeps_its_corner_dropdown() {
     let texts = click(&mut app, at(&texts, "Round"));
     assert!(has(&texts, "Polygon Properties:") && has(&texts, "Chamfer"), "the popup and its dropdown: {texts:?}");
     click(&mut app, at(&texts, "Chamfer"));
-    let vectorcraft_doc::LiveShape::Polygon { kinds, .. } = live(&app, polygon) else { panic!("not a polygon") };
-    assert!(!kinds.is_empty() && kinds.iter().all(|k| *k == vectorcraft_geom::shapes::CornerKind::Chamfer), "{kinds:?}");
+    let vansoncraft_doc::LiveShape::Polygon { kinds, .. } = live(&app, polygon) else { panic!("not a polygon") };
+    assert!(!kinds.is_empty() && kinds.iter().all(|k| *k == vansoncraft_geom::shapes::CornerKind::Chamfer), "{kinds:?}");
 }
 
 /// Every other selection keeps Lock: a plain closed path, a star (a plain path), a path with live
@@ -467,7 +467,7 @@ fn other_selections_keep_lock() {
     let rounded = id(app.run("shape.star", json!({"cx": 300, "cy": 150, "radius1": 40})).unwrap());
     select(&mut app, &[rounded]);
     app.run("object.setLiveShape", json!({"radius": 4})).unwrap();
-    assert!(matches!(live(&app, rounded), vectorcraft_doc::LiveShape::Path { .. }));
+    assert!(matches!(live(&app, rounded), vansoncraft_doc::LiveShape::Path { .. }));
     let a = id(app.run("shape.rectangle", json!({"x": 20, "y": 20, "width": 30, "height": 30})).unwrap());
     let b = id(app.run("shape.ellipse", json!({"x": 60, "y": 20, "width": 30, "height": 30})).unwrap());
     select(&mut app, &[a, b]);

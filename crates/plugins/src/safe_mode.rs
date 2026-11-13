@@ -50,7 +50,12 @@ pub const MAX_DISABLED: usize = 1000;
 /// The largest disabled-items file read, in bytes: room for [`MAX_DISABLED`] stored items.
 pub const MAX_DISABLED_FILE_BYTES: u64 = (MAX_DISABLED * MAX_ITEM_JSON_BYTES + 256) as u64;
 /// The `format` of a launch marker, and its version.
-const MARKER_FORMAT: &str = "vectorcraft-launch";
+const MARKER_FORMAT: &str = "vansoncraft-launch";
+/// The marker's and the disabled list's formats before the project took the name VansonCraft: a
+/// settings folder copied from then still reads.
+const FORMER_MARKER_FORMAT: &str = "vectorcraft-launch"; // brand-ok: files saved before the rename
+const DISABLED_FORMAT: &str = "vansoncraft-disabled-plugins";
+const FORMER_DISABLED_FORMAT: &str = "vectorcraft-disabled-plugins"; // brand-ok: files saved before the rename
 const MARKER_VERSION: u64 = 1;
 
 /// Why Safe Mode is on.
@@ -386,7 +391,7 @@ pub fn disabled_file() -> Vec<u8> {
 
 /// `items` as the file the apps keep the disabled items in.
 fn file_bytes(items: &[Item]) -> Vec<u8> {
-    serde_json::to_vec_pretty(&json!({"format": "vectorcraft-disabled-plugins", "version": 1, "items": items})).unwrap_or_default()
+    serde_json::to_vec_pretty(&json!({"format": DISABLED_FORMAT, "version": 1, "items": items})).unwrap_or_default()
 }
 
 /// The items of a file [`disabled_file`] wrote; none when it isn't one.
@@ -399,7 +404,7 @@ pub fn parse_disabled_file(bytes: &[u8]) -> Vec<Item> {
 /// items any launch can read: none.
 pub fn read_disabled_file(bytes: &[u8]) -> Option<Vec<Item>> {
     let Ok(v) = serde_json::from_slice::<Value>(bytes) else { return Some(vec![]) };
-    if v["format"] != "vectorcraft-disabled-plugins" || v["version"] != 1 {
+    if !(v["format"] == DISABLED_FORMAT || v["format"] == FORMER_DISABLED_FORMAT) || v["version"] != 1 {
         return None;
     }
     Some(
@@ -470,7 +475,7 @@ pub fn parse_marker(bytes: &[u8]) -> Option<Item> {
         return None;
     }
     let v: Value = serde_json::from_slice(bytes).ok()?;
-    if v["format"] != MARKER_FORMAT || v["version"] != MARKER_VERSION {
+    if !(v["format"] == MARKER_FORMAT || v["format"] == FORMER_MARKER_FORMAT) || v["version"] != MARKER_VERSION {
         return None;
     }
     serde_json::from_value::<Item>(v.get("item").filter(|i| i.is_object())?.clone()).ok()?.bounded()
@@ -688,20 +693,23 @@ mod tests {
         let item = Item { id: Some("org.example.x".into()), file: Some("/p/x.wasm".into()), name: None };
         assert_eq!(parse_marker(&marker_bytes(Some(&item))), Some(item));
         assert_eq!(parse_marker(&marker_bytes(None)), None, "nothing was loading");
+        // A marker an earlier version left, before the project took the name VansonCraft.
+        let former = br#"{"format":"vectorcraft-launch","version":1,"item":{"id":"org.example.x","file":"/p/x.wasm"}}"#;
+        assert_eq!(parse_marker(former), Some(Item { id: Some("org.example.x".into()), file: Some("/p/x.wasm".into()), name: None }));
         for bad in [
             &b""[..],
             b"{",
             b"[]",
-            br#"{"format":"vectorcraft-launch","version":2,"item":{"id":"x"}}"#,
+            br#"{"format":"vansoncraft-launch","version":2,"item":{"id":"x"}}"#,
             br#"{"format":"other","version":1,"item":{"id":"x"}}"#,
-            br#"{"format":"vectorcraft-launch","version":1,"item":"x"}"#,
-            br#"{"format":"vectorcraft-launch","version":1,"item":{}}"#,
-            br#"{"format":"vectorcraft-launch","version":1,"item":{"id":"x""#,
+            br#"{"format":"vansoncraft-launch","version":1,"item":"x"}"#,
+            br#"{"format":"vansoncraft-launch","version":1,"item":{}}"#,
+            br#"{"format":"vansoncraft-launch","version":1,"item":{"id":"x""#,
         ] {
             assert_eq!(parse_marker(bad), None, "{}", String::from_utf8_lossy(bad));
         }
         let mut big =
-            format!(r#"{{"format":"vectorcraft-launch","version":1,"item":{{"id":"{}"}}}}"#, "y".repeat(MAX_MARKER_BYTES as usize)).into_bytes();
+            format!(r#"{{"format":"vansoncraft-launch","version":1,"item":{{"id":"{}"}}}}"#, "y".repeat(MAX_MARKER_BYTES as usize)).into_bytes();
         assert_eq!(parse_marker(&big), None, "larger than the limit");
         big.truncate(10);
         assert_eq!(parse_marker(&big), None, "cut short");
@@ -768,6 +776,15 @@ mod tests {
         assert_eq!(begin_launch(&dir), None);
         end_launch();
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_disabled_list_from_before_the_rename_still_reads() {
+        let list = br#"{"format":"vectorcraft-disabled-plugins","version":1,"items":[{"id":"org.example.crashed"}]}"#;
+        let items = read_disabled_file(list).unwrap();
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].id.as_deref(), Some("org.example.crashed"));
+        assert_eq!(read_disabled_file(br#"{"format":"other","version":1,"items":[]}"#), None);
     }
 
     #[test]

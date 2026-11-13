@@ -3,8 +3,8 @@
 //! at the glyph's advance divided equally.
 
 use kurbo::{BezPath, Point, Vec2};
-use vectorcraft_doc::{CharStyle, TextKind, TextObject};
-use vectorcraft_geom::PathData;
+use vansoncraft_doc::{CharStyle, TextKind, TextObject};
+use vansoncraft_geom::PathData;
 
 use crate::test_fonts::{
     LIGATURE_CARET_FAMILY, LIGATURE_CARET_GLYPH, VARIABLE_LIGATURE_CARET_FAMILY, VERTICAL_LIGATURE_CARET_FAMILY, lam_alef_family, lam_alef_font,
@@ -660,7 +660,7 @@ fn drawing_differences_still_split_a_feature_styled_ligature() {
     let db = db_with(ligature_caret_font(None));
     let face = db.face(LIGATURE_CARET_FAMILY, "Regular").expect("the test face");
     let changes: [fn(&mut CharStyle); 3] =
-        [|st| st.fill = vectorcraft_doc::color::Paint::None, |st| st.baseline_shift = 10.0, |st| st.underline = true];
+        [|st| st.fill = vansoncraft_doc::color::Paint::None, |st| st.baseline_shift = 10.0, |st| st.underline = true];
     for (i, change) in changes.into_iter().enumerate() {
         for byte in [0, 1] {
             let mut text = point("fi", LIGATURE_CARET_FAMILY);
@@ -704,8 +704,8 @@ fn vertical_only_settings_keep_a_horizontal_ligature_whole() {
             let mut marked = plain.clone();
             mark(&mut marked);
             t.runs = vec![
-                vectorcraft_doc::TextRun { text: "f".into(), style: marked, inline: None },
-                vectorcraft_doc::TextRun { text: "i".into(), style: plain, inline: None },
+                vansoncraft_doc::TextRun { text: "f".into(), style: marked, inline: None },
+                vansoncraft_doc::TextRun { text: "i".into(), style: plain, inline: None },
             ];
             let l = layout(&db, &t);
             let joined = l.glyphs.iter().any(|g| g.len == 2);
@@ -763,7 +763,7 @@ fn an_upright_ligature_on_a_path_takes_its_stop_in_its_turned_cell() {
         slant.line_to((1000.0, 1000.0));
         t.runs[0].style.baseline_shift = 0.0;
         t.kind = TextKind::OnPath { path: PathData::from_bezpath(&slant), start: 0.0, end: None };
-        t.path_effect = vectorcraft_doc::PathEffect::Skew;
+        t.path_effect = vansoncraft_doc::PathEffect::Skew;
         let l = layout(&db, &t);
         let Some(s) = l.glyphs.iter().find(|g| g.len == 2) else { panic!("f + i is one glyph: {:?}", l.glyphs) };
         let tangent = Vec2::new(s.angle.cos(), s.angle.sin());
@@ -781,7 +781,7 @@ fn an_upright_ligature_on_a_path_takes_its_stop_in_its_turned_cell() {
 /// on its side is a quarter turn clockwise from that, as horizontal type on the path sets it.
 #[test]
 fn an_upright_ligature_on_a_path_reads_along_it_in_order() {
-    use vectorcraft_doc::PathEffect;
+    use vansoncraft_doc::PathEffect;
     let db = db_with(vertical_ligature_caret_font(280));
     let mut t = point("fi", VERTICAL_LIGATURE_CARET_FAMILY);
     t.vertical = true;
@@ -844,7 +844,7 @@ fn an_upright_ligature_on_a_path_reads_along_it_in_order() {
 /// 600 / 800 of its width, and the caret stands at the drawn stop.
 #[test]
 fn an_upright_ligature_on_a_path_keeps_its_font_caret_on_a_proportional_cell() {
-    use vectorcraft_doc::PathEffect;
+    use vansoncraft_doc::PathEffect;
     let db = db_with(proportional_vertical_ligature_caret_font(280, -200));
     let mut t = point("fi", VERTICAL_LIGATURE_CARET_FAMILY);
     t.vertical = true;

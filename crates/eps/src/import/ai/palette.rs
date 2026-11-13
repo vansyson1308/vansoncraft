@@ -22,8 +22,8 @@
 //! https://www.nationalarchives.gov.uk/PRONOM/fmt/423; §11 documents the palette operators, and its
 //! example writes the swatches without names.
 
-use vectorcraft_color::Color;
-use vectorcraft_doc::swatches::color_name;
+use vansoncraft_color::Color;
+use vansoncraft_doc::swatches::color_name;
 
 use super::lex::{Lexer, Tok};
 use super::obj::{Names, V};

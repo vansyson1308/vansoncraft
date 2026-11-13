@@ -13,8 +13,8 @@ use kurbo::Shape;
 use skrifa::MetadataProvider;
 use skrifa::charmap::Charmap;
 use skrifa::instance::Size;
-use vectorcraft_doc::text::INLINE_CHAR;
-use vectorcraft_doc::{CharStyle, Digits, InlineArt};
+use vansoncraft_doc::text::INLINE_CHAR;
+use vansoncraft_doc::{CharStyle, Digits, InlineArt};
 
 use crate::features::{OtFeatures, ligatures_suppressed_by};
 use crate::fontdb::{FontDb, FontFace};
@@ -71,7 +71,7 @@ pub(crate) struct SGlyph {
     pub vpal: Option<VAdjust>,
     /// Resolved Unicode bidi embedding level (logical source order).
     pub level: Level,
-    /// An inline graphic ([`vectorcraft_doc::TextRun::inline`]) standing in for a glyph.
+    /// An inline graphic ([`vansoncraft_doc::TextRun::inline`]) standing in for a glyph.
     pub inline: Option<InlineBox>,
     /// A word of a script written without spaces (Thai, Lao, Khmer, Myanmar) ends after the
     /// glyph's cluster, so a line may break there ([`mark_word_ends`]).

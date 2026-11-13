@@ -92,7 +92,7 @@ fn doc_with_type() -> (Session, [u64; 4], u64) {
 fn run_fresh(
     cmd: &str,
     params: &serde_json::Value,
-) -> (std::result::Result<serde_json::Value, String>, Option<std::sync::Arc<vectorcraft_doc::Document>>) {
+) -> (std::result::Result<serde_json::Value, String>, Option<std::sync::Arc<vansoncraft_doc::Document>>) {
     let (mut s, ..) = doc_with_type();
     let r = s.execute(cmd, params).map(|v| without_plugin_effects(cmd, v)).map_err(|e| e.to_string());
     (r, s.doc().ok().map(|d| d.doc.clone()))
@@ -105,7 +105,7 @@ fn without_plugin_effects(cmd: &str, mut r: serde_json::Value) -> serde_json::Va
     if cmd == "effect.list"
         && let Some(catalog) = r.get_mut("catalog").and_then(serde_json::Value::as_array_mut)
     {
-        catalog.retain(|e| !e["id"].as_str().is_some_and(|id| id.starts_with(vectorcraft_plugins::PREFIX)));
+        catalog.retain(|e| !e["id"].as_str().is_some_and(|id| id.starts_with(vansoncraft_plugins::PREFIX)));
     }
     r
 }
@@ -410,7 +410,7 @@ fn outcome(
     p: &serde_json::Value,
     selected: &[u64],
     slice: bool,
-) -> (std::result::Result<serde_json::Value, String>, vectorcraft_doc::Document, vectorcraft_doc::Selection, usize) {
+) -> (std::result::Result<serde_json::Value, String>, vansoncraft_doc::Document, vansoncraft_doc::Selection, usize) {
     let (mut s, ..) = doc_with_type();
     if slice {
         s.execute("object.slice.make", &json!({ "ids": selected })).unwrap();

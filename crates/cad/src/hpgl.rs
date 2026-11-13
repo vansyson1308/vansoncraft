@@ -9,7 +9,7 @@
 //! inch, y up) become points, through user units (SC, IP, IR) and the rotation (RO). The artboard
 //! is the bounds of what the art paints, its strokes included.
 //!
-//! VectorCraft's own rules where the device decides: before the first SP the pen is pen 1 (a
+//! VansonCraft's own rules where the device decides: before the first SP the pen is pen 1 (a
 //! device draws nothing until SP), and the hard-clip limits are 11 × 8.5 in from the origin, so
 //! P2 lies there when the file sets no scaling points. SP0 draws nothing. Labels, symbol mode's symbols and raster
 //! images (HP RTL) aren't drawn, the input window doesn't clip, hatched fills are filled solid,
@@ -31,9 +31,9 @@ pub use write::{HpglOptions, HpglOutput, Origin, Version, export, export_regions
 
 use std::sync::Arc;
 
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::{Appearance, AppearanceItem, Dash, Document, FillLayer, LayerColor, Node, NodeId, NodeKind, StrokeLayer};
-use vectorcraft_geom::{Affine, PathData, Rect};
+use vansoncraft_color::{Color, Paint};
+use vansoncraft_doc::{Appearance, AppearanceItem, Dash, Document, FillLayer, LayerColor, Node, NodeId, NodeKind, StrokeLayer};
+use vansoncraft_geom::{Affine, PathData, Rect};
 
 use crate::Imported;
 use lex::Lexer;

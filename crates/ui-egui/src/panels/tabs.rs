@@ -8,10 +8,10 @@ use std::collections::HashSet;
 
 use egui::{Sense, Stroke, Ui, vec2};
 use serde_json::{Value, json};
-use vectorcraft_doc::{Document, Node, NodeId, NodeKind, ParaStyle, TabAlign, TabStop, TextKind, TextObject};
+use vansoncraft_doc::{Document, Node, NodeId, NodeKind, ParaStyle, TabAlign, TabStop, TextKind, TextObject};
 
 use super::{first_selected, pstate, set_pstate};
-use crate::VectorcraftApp;
+use crate::VansoncraftApp;
 use crate::theme::Tokens;
 use crate::widgets::{self, menu_item};
 
@@ -127,7 +127,7 @@ fn append_story_targets(doc: &Document, story: &[NodeId], selected: impl Fn(Node
 /// Paragraphs touched by the Type selection (every paragraph of the story after Select All in
 /// threaded text), or all paragraphs of selected text objects. Each paragraph of a threaded story
 /// is listed once, in story order ([`append_story_targets`]).
-fn indent_targets(app: &VectorcraftApp, node: &Node) -> Vec<IndentTarget> {
+fn indent_targets(app: &VansoncraftApp, node: &Node) -> Vec<IndentTarget> {
     let mut targets = Vec::new();
     if let Some((_, a, b)) = super::character::text_editing(app) {
         if let (Some(story), Some(st)) = (super::character::text_story(app), app.session.active()) {
@@ -246,7 +246,7 @@ fn paint_markers(ui: &mut Ui, painter: &egui::Painter, tokens: &Tokens, view: Ma
 /// Apply an absolute ruler position through paragraph-format commands. Paragraphs that need values
 /// of their own get one command each, the story's last paragraph first: threaded text re-flows
 /// after each command, and a re-flow moves only text after the paragraph that changed.
-fn set_marker(app: &mut VectorcraftApp, marker: IndentMarker, target: f64, para: &ParaStyle, span: f64, targets: &[IndentTarget], both: bool) {
+fn set_marker(app: &mut VansoncraftApp, marker: IndentMarker, target: f64, para: &ParaStyle, span: f64, targets: &[IndentTarget], both: bool) {
     if targets.is_empty() || !target.is_finite() {
         return;
     }
@@ -309,14 +309,14 @@ fn set_marker(app: &mut VectorcraftApp, marker: IndentMarker, target: f64, para:
 
 /// The text object, the stops of the active paragraph and the ruler span for panel tests.
 #[cfg(test)]
-fn current(app: &VectorcraftApp) -> Option<(Node, Vec<TabStop>, f64)> {
+fn current(app: &VansoncraftApp) -> Option<(Node, Vec<TabStop>, f64)> {
     current_para(app).map(|(n, para, span)| (n, para.tabs, span))
 }
 
 /// As [`current`], with all the attributes of the paragraph whose stops the panel shows, its left
 /// indent as laid out ([`ParaStyle::laid_out_left_indent`]: its list level's indent added), where
 /// the ruler shows it.
-fn current_para(app: &VectorcraftApp) -> Option<(Node, ParaStyle, f64)> {
+fn current_para(app: &VansoncraftApp) -> Option<(Node, ParaStyle, f64)> {
     let editing = super::character::text_editing(app);
     let n = match editing {
         Some((id, _, _)) => app.session.active()?.doc.node(id)?.clone(),
@@ -337,7 +337,7 @@ fn current_para(app: &VectorcraftApp) -> Option<(Node, ParaStyle, f64)> {
 /// at least [`crate::panel_docking::PANEL_MIN_WIDTH`] wide, so for narrow text at a low zoom the
 /// panel comes out wider than asked; the ruler then draws text `n` at [`screen_scale`] and runs
 /// on past the text's width.
-fn place_above_text(app: &mut VectorcraftApp, ctx: &egui::Context, n: &Node, span: f64) {
+fn place_above_text(app: &mut VansoncraftApp, ctx: &egui::Context, n: &Node, span: f64) {
     if above_text(app, ctx, n, span).is_some() {
         set_pstate(ctx, "tabs-above", app.session.active().map(|doc| (doc.uid, n.id)));
     }
@@ -345,7 +345,7 @@ fn place_above_text(app: &mut VectorcraftApp, ctx: &egui::Context, n: &Node, spa
 
 /// Screen points per point of text `n` at the canvas zoom, as [`above_text`] sizes the ruler:
 /// across the frame for area type, the zoom for point type.
-fn screen_scale(app: &VectorcraftApp, n: &Node, span: f64) -> Option<f64> {
+fn screen_scale(app: &VansoncraftApp, n: &Node, span: f64) -> Option<f64> {
     let xf = app.canvas_xf()?;
     let per = match &n.kind {
         NodeKind::Text(t) if matches!(t.kind, TextKind::Area { .. }) => f64::from(xf.rect_to_screen(n.geometric_bounds()?).width()) / span,
@@ -357,7 +357,7 @@ fn screen_scale(app: &VectorcraftApp, n: &Node, span: f64) -> Option<f64> {
 /// Position Panel Above Text: float the panel just above text `n`, as wide as its ruler needs to
 /// put 0 on the text's left edge and its marks at the canvas zoom, so each stop sits over the
 /// column it sets (#729). `span`: the ruler's length in the text's points.
-fn above_text(app: &mut VectorcraftApp, ctx: &egui::Context, n: &Node, span: f64) -> Option<()> {
+fn above_text(app: &mut VansoncraftApp, ctx: &egui::Context, n: &Node, span: f64) -> Option<()> {
     let xf = app.canvas_xf()?;
     let on_screen = xf.rect_to_screen(n.geometric_bounds()?);
     // Screen points per point of the text: across the frame for area type (so a scaled frame
@@ -403,7 +403,7 @@ fn stops_json(stops: &[TabStop]) -> Value {
 }
 
 /// Run `text.tabs.set` with `stops` on the text the panel acts on. Returns false when it fails.
-fn apply(app: &mut VectorcraftApp, stops: &[TabStop]) -> bool {
+fn apply(app: &mut VansoncraftApp, stops: &[TabStop]) -> bool {
     if let Some((id, a, b)) = super::character::text_editing(app) {
         super::character::end_typing(app);
         let p = match super::character::text_story(app) {
@@ -421,7 +421,7 @@ fn apply(app: &mut VectorcraftApp, stops: &[TabStop]) -> bool {
 /// stop within 1e-6 pt of `position` on the ruler, the stop `text.tabs.set` keeps of those it
 /// merges. Returns its index, or `None` when the stops are not set and `stops` and the selection
 /// stay as they were.
-fn apply_moved(app: &mut VectorcraftApp, ctx: &egui::Context, stops: &mut Vec<TabStop>, i: usize, position: f64) -> Option<usize> {
+fn apply_moved(app: &mut VansoncraftApp, ctx: &egui::Context, stops: &mut Vec<TabStop>, i: usize, position: f64) -> Option<usize> {
     let mut moved = stops.clone();
     moved.get_mut(i)?.position = position;
     moved.sort_by(|a, b| a.position.total_cmp(&b.position));
@@ -447,7 +447,7 @@ fn moved_all(stops: &[TabStop], i: usize, position: f64) -> Option<Vec<TabStop>>
 
 /// Move every stop as [`moved_all`] does, in one `text.tabs.set`, and select stop `i`. Returns its
 /// index, or `None` when the stops are not set and `stops` and the selection stay as they were.
-fn apply_moved_all(app: &mut VectorcraftApp, ctx: &egui::Context, stops: &mut Vec<TabStop>, i: usize, position: f64) -> Option<usize> {
+fn apply_moved_all(app: &mut VansoncraftApp, ctx: &egui::Context, stops: &mut Vec<TabStop>, i: usize, position: f64) -> Option<usize> {
     let moved = moved_all(stops, i, position)?;
     apply(app, &moved).then(|| {
         *stops = moved;
@@ -456,7 +456,7 @@ fn apply_moved_all(app: &mut VectorcraftApp, ctx: &egui::Context, stops: &mut Ve
     })
 }
 
-pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn show(app: &mut VansoncraftApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let Some((node, para, span)) = current_para(app) else {
         super::empty_state(ui, "pilcrow", tl!("No text selected"), tl!("Select a text object to set its tab stops."));
@@ -544,7 +544,7 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
     // After Position Panel Above Text on this text, while the panel floats no wider than the
     // narrowest floating window, a ruler wider than the text is on screen draws the text at its
     // screen scale and runs on past its width. Any other ruler fits the span to its width.
-    let above: Option<(u64, vectorcraft_doc::NodeId)> = pstate(ui.ctx(), "tabs-above");
+    let above: Option<(u64, vansoncraft_doc::NodeId)> = pstate(ui.ctx(), "tabs-above");
     let narrowest = || {
         let floating = app.ui.docking.as_ref().and_then(|l| l.floating.iter().find(|f| f.contains(&"tabs".to_string())));
         floating.is_some_and(|f| f.rect[2] <= crate::panel_docking::PANEL_MIN_WIDTH + 0.5)
@@ -710,7 +710,7 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
     resp.on_hover_text(tl!("Click to add a tab stop, drag to move it, drag it off the ruler to delete it"));
 }
 
-pub fn menu(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn menu(app: &mut VansoncraftApp, ui: &mut Ui) {
     let Some((_, para, _)) = current_para(app) else {
         ui.add_enabled(false, egui::Button::new(tl!("Select text")).frame(false));
         snap_to_unit_item(ui);

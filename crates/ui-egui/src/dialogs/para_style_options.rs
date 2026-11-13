@@ -14,11 +14,11 @@
 //! <https://helpx.adobe.com/illustrator/using/character-paragraph-styles.html>.
 
 use serde_json::{Map, Value, json};
-use vectorcraft_doc::text::DEFAULT_TAB_INTERVAL;
-use vectorcraft_doc::{HyphenationOptions, JustificationOptions, TabAlign, TabStop, Unit};
+use vansoncraft_doc::text::DEFAULT_TAB_INTERVAL;
+use vansoncraft_doc::{HyphenationOptions, JustificationOptions, TabAlign, TabStop, Unit};
 
 use super::{DialogSpec, form};
-use crate::VectorcraftApp;
+use crate::VansoncraftApp;
 use crate::state::Dialog;
 
 pub const KIND: &str = "paraStyleOptions";
@@ -115,7 +115,7 @@ pub(super) const SPEC: DialogSpec = DialogSpec {
     ..DialogSpec::FORM
 };
 
-pub fn open(app: &mut VectorcraftApp, name: &str) -> Result<Value, String> {
+pub fn open(app: &mut VansoncraftApp, name: &str) -> Result<Value, String> {
     crate::panels::character::end_typing(app);
     let unit = app.session.general_unit();
     let doc = &app.session.active().ok_or("no document open")?.doc;
@@ -141,7 +141,7 @@ pub(crate) fn form_fields(attrs: &Map<String, Value>, unit: Unit) -> Map<String,
 
 /// Whether the first selected text is vertical type, where the Tabs section names a stop's
 /// position Y and its Left and Right alignments Top and Bottom.
-pub(crate) fn vertical_text(app: &VectorcraftApp) -> bool {
+pub(crate) fn vertical_text(app: &VansoncraftApp) -> bool {
     crate::panels::character::first_selected_text(app).is_some_and(|t| t.vertical)
 }
 
@@ -306,7 +306,7 @@ fn distance(d: &Dialog, key: &str, unit: Unit, lo: f64, hi: f64) -> Result<Optio
 fn number(d: &Dialog, key: &str, lo: f64, hi: f64) -> Result<Option<f64>, String> {
     let Some(s) = typed(d, key) else { return Ok(None) };
     let label = caption(label_of(key));
-    let n = vectorcraft_doc::parse_number(s.trim_end_matches('%').trim_end()).filter(|n| n.is_finite());
+    let n = vansoncraft_doc::parse_number(s.trim_end_matches('%').trim_end()).filter(|n| n.is_finite());
     let n = n.ok_or_else(|| format!("{label} must be a number"))?;
     if !(lo..=hi).contains(&n) {
         let (min, max) = (format_number(lo), format_number(hi));
@@ -588,7 +588,7 @@ pub(crate) fn is_paragraph_dialog(d: &Dialog) -> bool {
     d.kind == KIND || (d.kind == super::new_text_style::KIND && d.bool("__para"))
 }
 
-pub fn reset_panel(app: &mut VectorcraftApp) -> Result<Value, String> {
+pub fn reset_panel(app: &mut VansoncraftApp) -> Result<Value, String> {
     let d = app.ui.dialog.as_mut().ok_or("no dialog open")?;
     if !is_paragraph_dialog(d) || !can_reset(d) {
         return Err("the open dialog has no Reset".into());
@@ -960,7 +960,7 @@ fn content_id(ui: &egui::Ui) -> egui::Id {
 /// tall, and scrolls when it is taller than that or than the screen less the rest of the window
 /// (as drawn last frame). The section list stays put while the content scrolls. Returns whether
 /// the dialog asks to be canceled (never: Cancel comes from the button row in `dialogs::show`).
-fn body(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
+fn body(app: &mut VansoncraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
     let window = ui.ctx().memory(|m| m.area_rect(ui.layer_id().id)).map_or(0.0, |r| r.height());
     let content = ui.ctx().data(|m| m.get_temp::<f32>(content_id(ui))).unwrap_or(0.0);
     let rest = (window - content).max(0.0);
@@ -999,7 +999,7 @@ fn body(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
     false
 }
 
-fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
+fn confirm(app: &mut VansoncraftApp, d: &Dialog) -> Result<Value, String> {
     let attrs = edited_attrs(d)?;
     form::commit_preview(app, "paraStyle.edit", json!({"name": d.str("__style"), "to": d.str("name"), "attrs": attrs}))
 }

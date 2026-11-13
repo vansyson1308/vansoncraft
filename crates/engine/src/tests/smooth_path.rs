@@ -3,9 +3,9 @@
 //! (https://helpx.adobe.com/illustrator/desktop/draw-shapes-and-paths/modify-paths/refine-path-segments-with-the-smooth-slider.html).
 
 use serde_json::{Value, json};
-use vectorcraft_doc::NodeKind;
-use vectorcraft_geom::kurbo::ParamCurveNearest;
-use vectorcraft_geom::{ParamCurve, PathData, Point};
+use vansoncraft_doc::NodeKind;
+use vansoncraft_geom::kurbo::ParamCurveNearest;
+use vansoncraft_geom::{ParamCurve, PathData, Point};
 
 use crate::*;
 

@@ -1,10 +1,10 @@
 //! Colour bitmap glyphs (emoji): drawn as their images, which the type's fill doesn't paint.
 
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::text::{CharStyle, TextObject};
-use vectorcraft_doc::{Node, NodeKind};
-use vectorcraft_geom::Point;
-use vectorcraft_text::test_fonts::{COLOUR_CHAR, COLOUR_LARGE, colour_bitmap_family, colour_bitmap_font};
+use vansoncraft_color::{Color, Paint};
+use vansoncraft_doc::text::{CharStyle, TextObject};
+use vansoncraft_doc::{Node, NodeKind};
+use vansoncraft_geom::Point;
+use vansoncraft_text::test_fonts::{COLOUR_CHAR, COLOUR_LARGE, colour_bitmap_family, colour_bitmap_font};
 
 use crate::*;
 
@@ -12,7 +12,7 @@ use crate::*;
 /// baseline at (20, 120), on a white 160×160 page.
 fn render(sbix: bool, opts: RenderOptions) -> Rendered {
     let _adding = crate::tests_fontchange::adding_fonts();
-    vectorcraft_text::FontDb::global().add_font(colour_bitmap_font(sbix).unwrap());
+    vansoncraft_text::FontDb::global().add_font(colour_bitmap_font(sbix).unwrap());
     let mut d = Document::new(160.0, 160.0);
     let st = CharStyle {
         font_family: colour_bitmap_family(sbix).into(),
@@ -47,9 +47,9 @@ fn outline_mode_draws_a_bitmap_glyph_as_its_box() {
 }
 
 /// 100 pt [`COLOUR_CHAR`] in the `CBDT` test font with `effects`, on a white 160×160 page.
-fn render_with(effects: Vec<vectorcraft_doc::Effect>) -> Rendered {
+fn render_with(effects: Vec<vansoncraft_doc::Effect>) -> Rendered {
     let _adding = crate::tests_fontchange::adding_fonts();
-    vectorcraft_text::FontDb::global().add_font(colour_bitmap_font(false).unwrap());
+    vansoncraft_text::FontDb::global().add_font(colour_bitmap_font(false).unwrap());
     let mut d = Document::new(160.0, 160.0);
     let st = CharStyle { font_family: colour_bitmap_family(false).into(), size: 100.0, ..Default::default() };
     let mut n = Node::new(d.alloc_id(), NodeKind::Text(Box::new(TextObject::point(Point::new(20.0, 120.0), &COLOUR_CHAR.to_string(), st))));
@@ -61,8 +61,8 @@ fn render_with(effects: Vec<vectorcraft_doc::Effect>) -> Rendered {
     Renderer::new().render(&d, 160, 160, Affine::IDENTITY, &RenderOptions { background: Some([255, 255, 255, 255]), ..Default::default() })
 }
 
-fn effect(id: &str, params: serde_json::Value) -> vectorcraft_doc::Effect {
-    vectorcraft_doc::Effect { id: id.into(), params, visible: true }
+fn effect(id: &str, params: serde_json::Value) -> vansoncraft_doc::Effect {
+    vansoncraft_doc::Effect { id: id.into(), params, visible: true }
 }
 
 /// Type with a geometry effect is drawn as its outlines: its emoji go with them, as images that

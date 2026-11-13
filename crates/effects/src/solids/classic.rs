@@ -4,10 +4,10 @@
 use std::sync::Arc;
 
 use serde_json::Value;
-use vectorcraft_doc::color::{BlendMode, Color, Paint};
-use vectorcraft_doc::{Appearance, AppearanceItem, FillLayer, Node, StrokeLayer};
-use vectorcraft_geom::Rect;
-use vectorcraft_three_d::{Bevel, BevelShape, ClassicShading, ClassicSurface, Extrude, Facet, Light};
+use vansoncraft_doc::color::{BlendMode, Color, Paint};
+use vansoncraft_doc::{Appearance, AppearanceItem, FillLayer, Node, StrokeLayer};
+use vansoncraft_geom::Rect;
+use vansoncraft_three_d::{Bevel, BevelShape, ClassicShading, ClassicSurface, Extrude, Facet, Light};
 
 use crate::util::{flag, num, text};
 
@@ -77,8 +77,8 @@ fn lights(p: &Value) -> Vec<([f64; 3], f64)> {
         return list.iter().map(|l| (l.direction(), l.intensity)).collect();
     }
     let light = Light {
-        rotation: num(p, "lightRotation", vectorcraft_three_d::DEFAULT_LIGHT.0),
-        height: num(p, "lightHeight", vectorcraft_three_d::DEFAULT_LIGHT.1),
+        rotation: num(p, "lightRotation", vansoncraft_three_d::DEFAULT_LIGHT.0),
+        height: num(p, "lightHeight", vansoncraft_three_d::DEFAULT_LIGHT.1),
         behind: flag(p, "lightBehind", false),
         ..Light::default()
     };
@@ -208,7 +208,7 @@ pub(crate) fn surface(n: &Node, facets: Vec<Facet>, source: &Paint, opacity: f32
         .map(|face| {
             if wire {
                 let mut edge = StrokeLayer::new(paint.clone(), WIRE);
-                edge.join = vectorcraft_doc::LineJoin::Round;
+                edge.join = vansoncraft_doc::LineJoin::Round;
                 return Arc::new(Node::path(n.id, face.path(), Appearance { items: vec![AppearanceItem::Stroke(edge)], ..Default::default() }));
             }
             let (tone, spec) = shading.tone(face.normal, &lights);
@@ -248,8 +248,8 @@ pub(crate) fn surface(n: &Node, facets: Vec<Facet>, source: &Paint, opacity: f32
     group.blend = blend;
     if let Some(mask) = mask {
         let bounds = group.visual_bounds().unwrap_or(Rect::ZERO).inflate(1.0, 1.0);
-        let coverage = Node::path(n.id, vectorcraft_geom::shapes::rectangle(bounds), Appearance::basic(mask, Paint::None, 0.0));
-        group.extras_mut().mask = Some(Box::new(vectorcraft_doc::OpacityMask::new(coverage, true)));
+        let coverage = Node::path(n.id, vansoncraft_geom::shapes::rectangle(bounds), Appearance::basic(mask, Paint::None, 0.0));
+        group.extras_mut().mask = Some(Box::new(vansoncraft_doc::OpacityMask::new(coverage, true)));
     }
     group
 }

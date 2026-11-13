@@ -15,9 +15,9 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use serde_json::{Value, json};
-use vectorcraft_doc::symbol_overrides::SymbolOverride;
-use vectorcraft_doc::{Document, Node, NodeId, NodeKind, Selection, SymbolEdit, SymbolRegistration};
-use vectorcraft_geom::{Affine, Point};
+use vansoncraft_doc::symbol_overrides::SymbolOverride;
+use vansoncraft_doc::{Document, Node, NodeId, NodeKind, Selection, SymbolEdit, SymbolRegistration};
+use vansoncraft_geom::{Affine, Point};
 
 use super::brushsym::{fit_parts, natural_size, place_xf};
 use super::{EngineError, Result, Session, bad, number_or, object_param, ok, str_param};
@@ -218,6 +218,7 @@ pub(crate) fn leave(s: &mut Session, _: &Value) -> Result<Value> {
         && before.as_ref().is_some_and(|b| Arc::ptr_eq(b, &entry.doc))
         && let Some(entry) = st.history.undo.pop()
     {
+        st.id_floor = st.id_floor.max(st.doc.peek_next_id());
         let now = std::mem::replace(&mut st.doc, entry.doc);
         // What changed outside the undo history while editing (the current symbol and brush, the
         // perspective grid's view, export settings, the grid preferences) stays as it is now.
@@ -375,7 +376,7 @@ fn path_of(nodes: &[Arc<Node>], id: NodeId, depth: usize) -> Option<Vec<u32>> {
 /// symbol's art is a group of them (else it is the one object). A change to an object the edit
 /// removed is dropped.
 fn follow_paths(overrides: &mut Vec<SymbolOverride>, old: (&[Arc<Node>], bool), new: (&[Arc<Node>], bool)) {
-    let depth = vectorcraft_doc::symbol_overrides::MAX_PATH_DEPTH + 1;
+    let depth = vansoncraft_doc::symbol_overrides::MAX_PATH_DEPTH + 1;
     overrides.retain_mut(|o| {
         // The art's own group stays the art's root.
         if old.1 && o.path.is_empty() {
@@ -400,7 +401,7 @@ fn follow_paths(overrides: &mut Vec<SymbolOverride>, old: (&[Arc<Node>], bool), 
 /// appearance changes.
 fn holds_changed_instance(n: &Node, name: &str) -> bool {
     let mut found = false;
-    vectorcraft_doc::swatches::walk_with_masks(n, &mut |m| {
+    vansoncraft_doc::swatches::walk_with_masks(n, &mut |m| {
         found |= matches!(&m.kind, NodeKind::SymbolInstance { symbol, .. } if symbol == name) && !m.extras().symbol_overrides.is_empty();
     });
     found
@@ -450,12 +451,12 @@ fn follow_objects(d: &mut Document, name: &str, old: (&[Arc<Node>], bool), new: 
     // The default brushes hold no instances, so only a stored library can change. A stored entry
     // whose art holds no changed instance, or that does not parse, is stored again as it was read;
     // a changed one is merged into its entry, which keeps the fields the brush definition does not read.
-    let Some(stored) = d.unknown.get(vectorcraft_brush::DOC_KEY).and_then(Value::as_array).cloned() else { return };
+    let Some(stored) = d.unknown.get(vansoncraft_brush::DOC_KEY).and_then(Value::as_array).cloned() else { return };
     let mut changed = false;
     let lib: Vec<Value> = stored
         .into_iter()
         .map(|raw| {
-            let Ok(mut b) = vectorcraft_brush::Brush::from_json(raw.clone()) else { return raw };
+            let Ok(mut b) = vansoncraft_brush::Brush::from_json(raw.clone()) else { return raw };
             if !b.art().into_iter().any(|n| holds_changed_instance(n, name)) {
                 return raw;
             }
@@ -470,7 +471,7 @@ fn follow_objects(d: &mut Document, name: &str, old: (&[Arc<Node>], bool), new: 
         })
         .collect();
     if changed {
-        d.unknown.insert(vectorcraft_brush::DOC_KEY.into(), Value::Array(lib));
+        d.unknown.insert(vansoncraft_brush::DOC_KEY.into(), Value::Array(lib));
     }
 }
 

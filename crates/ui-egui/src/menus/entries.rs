@@ -4,7 +4,7 @@ use super::labels::{display_label, dynamic_label, effect_item_label, item_shortc
 use super::slots::{recent_readable, recent_slot};
 use super::state::{shortcut_of, shown_state};
 use super::tree::menu_tree_named;
-use super::{Entry, Item, Serialize, Value, VectorcraftApp};
+use super::{Entry, Item, Serialize, Value, VansoncraftApp};
 
 /// A menu item as it shows now ([`entry`]).
 pub struct Row<'a> {
@@ -29,7 +29,7 @@ impl Row<'_> {
 }
 
 /// Item `it` as the menus show it now, or `None` while they leave it out ([`shown_state`]).
-pub fn entry<'a>(app: &VectorcraftApp, it: &'a Item) -> Option<Entry<'a>> {
+pub fn entry<'a>(app: &VansoncraftApp, it: &'a Item) -> Option<Entry<'a>> {
     use crate::i18n::t;
     Some(match it {
         Item::Sep => Entry::Sep,
@@ -112,7 +112,7 @@ pub struct MenuEntry {
 }
 
 /// Flattened menu for `ui.menu.list`.
-pub fn menu_entries(app: &VectorcraftApp) -> Vec<MenuEntry> {
+pub fn menu_entries(app: &VansoncraftApp) -> Vec<MenuEntry> {
     let mut out = vec![];
     for (title, items) in menu_tree_named(app.session.prefs.font_names_in_english) {
         flatten(app, vec![title.to_string()], &items, &mut out);
@@ -121,7 +121,7 @@ pub fn menu_entries(app: &VectorcraftApp) -> Vec<MenuEntry> {
 }
 
 /// Flattened canvas context menu for `ui.contextMenu.list` (paths are its submenus).
-pub fn context_entries(app: &VectorcraftApp) -> Vec<MenuEntry> {
+pub fn context_entries(app: &VansoncraftApp) -> Vec<MenuEntry> {
     let mut out = vec![];
     flatten(app, vec![], &context_items(app), &mut out);
     out
@@ -142,7 +142,7 @@ pub struct InsertableItem {
 
 /// The menus whose items are not added to actions: the application menu, File (documents and
 /// files), Window (panels and workspaces) and Help.
-const NOT_INSERTED_MENUS: [&str; 4] = ["VectorCraft", "File", "Window", "Help"];
+const NOT_INSERTED_MENUS: [&str; 4] = ["VansonCraft", "File", "Window", "Help"];
 
 /// Commands whose menu items do more than run the command, which action playback does not do:
 /// Object › Image Trace › Make and Make and Expand trace off the UI thread with progress and Cancel
@@ -160,7 +160,7 @@ const MENU_ONLY_COMMANDS: [&str; 4] = ["imageTrace.make", "imageTrace.makeAndExp
 /// item of [`MENU_ONLY_COMMANDS`].
 pub fn insertable(title: &str, label: &str, id: &str, p: &Value) -> bool {
     use super::slots::{RECENT_FONT_IDS, SAVED_SELECTION_IDS, SAVED_VIEW_IDS};
-    vectorcraft_engine::find_command(id).is_some()
+    vansoncraft_engine::find_command(id).is_some()
         && !label.ends_with('…')
         && !NOT_INSERTED_MENUS.contains(&title)
         && !matches!(id, "edit.undo" | "edit.redo" | "command.batch" | "object.align")
@@ -200,7 +200,7 @@ pub fn insertable_items(english_names: bool) -> Vec<InsertableItem> {
     out
 }
 
-fn flatten(app: &VectorcraftApp, path: Vec<String>, items: &[Item], out: &mut Vec<MenuEntry>) {
+fn flatten(app: &VansoncraftApp, path: Vec<String>, items: &[Item], out: &mut Vec<MenuEntry>) {
     for it in items {
         match it {
             Item::Cmd(l, id, p) => {

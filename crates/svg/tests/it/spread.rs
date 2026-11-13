@@ -3,11 +3,11 @@
 //! draws the file as the canvas draws the gradient; SVG import reads `spreadMethod` as the
 //! gradient's spread; CSS writes repeating gradients.
 
-use vectorcraft_color::{Color, Gradient, GradientGeom, GradientKind, GradientPaint, GradientSpread, GradientStop, Paint};
-use vectorcraft_doc::{Appearance, Document, Node, NodeKind};
-use vectorcraft_geom::{Point, Rect, Vec2, shapes};
-use vectorcraft_svg::{ExportOptions, export_full, import};
-use vectorcraft_testkit::raster::{Image, assert_similar, render_artboard};
+use vansoncraft_color::{Color, Gradient, GradientGeom, GradientKind, GradientPaint, GradientSpread, GradientStop, Paint};
+use vansoncraft_doc::{Appearance, Document, Node, NodeKind};
+use vansoncraft_geom::{Point, Rect, Vec2, shapes};
+use vansoncraft_svg::{ExportOptions, export_full, import};
+use vansoncraft_testkit::raster::{Image, assert_similar, render_artboard};
 
 /// The SVG rendered by resvg on white at 1 px/pt.
 fn resvg_render(svg: &str, w: u32, h: u32) -> Image {
@@ -80,7 +80,7 @@ fn the_written_vector_holds_one_run() {
 /// lie along that vector: a third of it each.
 #[test]
 fn a_conic_on_characters_repeats_along_its_vector() {
-    use vectorcraft_doc::{CharStyle, TextObject};
+    use vansoncraft_doc::{CharStyle, TextObject};
     let geom = GradientGeom { start: Point::new(30.0, 50.0), end: Point::new(120.0, 50.0), aspect: 1.0, focal: None };
     let Paint::Gradient(g) = paint(GradientKind::Conic, GradientSpread::Repeat, geom) else { panic!("a gradient") };
     let st = CharStyle { fill: Paint::Gradient(g), size: 48.0, ..CharStyle::default() };

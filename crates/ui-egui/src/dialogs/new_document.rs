@@ -13,13 +13,13 @@
 //! any of them afterwards makes the settings custom.
 
 use serde_json::{Map, Value, json};
-use vectorcraft_doc::Unit;
-use vectorcraft_engine::cmd::newdoc::{self, ArtboardLayout, DocSettings, MAX_ARTBOARDS, PreviewMode, RASTER_PPI};
+use vansoncraft_doc::Unit;
+use vansoncraft_engine::cmd::newdoc::{self, ArtboardLayout, DocSettings, MAX_ARTBOARDS, PreviewMode, RASTER_PPI};
 
 use super::{DialogSpec, form};
 use crate::state::Dialog;
 use crate::theme::{self, Tokens};
-use crate::{VectorcraftApp, widgets};
+use crate::{VansoncraftApp, widgets};
 
 pub(super) const KIND: &str = "newDocument";
 /// New Document with its More Settings pop-up open.
@@ -78,7 +78,7 @@ const MORE_WIDTH: f32 = 310.0;
 
 /// Open New Document on the most recent settings (or Letter), named after the next untitled
 /// document.
-pub fn open(app: &mut VectorcraftApp) {
+pub fn open(app: &mut VansoncraftApp) {
     let category = if app.session.prefs.recent_new_docs.is_empty() { "Print" } else { "Recent" };
     let first = newdoc::category(&app.session, category).and_then(|v| v.into_iter().next()).unwrap_or_default();
     let mut d = Dialog::new(KIND, json!({ "category": category, "name": app.session.peek_untitled(), "advanced": false }));
@@ -104,7 +104,7 @@ fn apply(d: &mut Dialog, s: &DocSettings) {
 
 /// Keep the fields and the chosen preset in step: a new `preset` (also from `ui.dialog.set`) fills
 /// the fields; a changed field makes the settings custom.
-fn sync(app: &VectorcraftApp, d: &mut Dialog) {
+fn sync(app: &VansoncraftApp, d: &mut Dialog) {
     let preset = d.str("preset");
     match d.fields.get(APPLIED).and_then(Value::as_object) {
         Some(a) if a.get("preset").and_then(Value::as_str) == Some(preset.as_str()) => {
@@ -128,7 +128,7 @@ fn sync(app: &VectorcraftApp, d: &mut Dialog) {
 
 /// Create the document; the dialog stays open when that fails (bad size, …). While a preset is being
 /// saved this is its Save, and no document is created.
-fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
+fn confirm(app: &mut VansoncraftApp, d: &Dialog) -> Result<Value, String> {
     if d.bool(SAVING) {
         let mut d = d.clone();
         let r = save_preset(app, &mut d);
@@ -147,7 +147,7 @@ fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
 
 /// New Without Dialog (`file.newWithoutDialog`, Cmd+Alt+N): create the document [`open`] would
 /// offer, as its Create would, without showing the dialog. A dialog already open stays open.
-pub fn create_without_dialog(app: &mut VectorcraftApp) -> Result<Value, String> {
+pub fn create_without_dialog(app: &mut VansoncraftApp) -> Result<Value, String> {
     let shown = app.ui.dialog.take();
     open(app);
     let offered = app.ui.dialog.take();
@@ -157,7 +157,7 @@ pub fn create_without_dialog(app: &mut VectorcraftApp) -> Result<Value, String> 
 }
 
 /// The `file.new` params of the fields.
-fn params(app: &VectorcraftApp, d: &Dialog) -> Map<String, Value> {
+fn params(app: &VansoncraftApp, d: &Dialog) -> Map<String, Value> {
     let mut p: Map<String, Value> = PARAMS.iter().filter_map(|k| Some((k.to_string(), d.fields.get(*k)?.clone()))).collect();
     // Recent entries such as "Custom" aren't presets file.new knows.
     if newdoc::find(&app.session, &d.str("preset")).is_none() {
@@ -230,7 +230,7 @@ struct Buttons {
 
 impl Buttons {
     /// Act on the buttons (Enter also creates) once the window is drawn.
-    fn finish(self, app: &mut VectorcraftApp, ctx: &egui::Context, d: Dialog) {
+    fn finish(self, app: &mut VansoncraftApp, ctx: &egui::Context, d: Dialog) {
         let enter = !self.popup && crate::shortcuts::pressed_anew(ctx, egui::Key::Enter) && !ctx.memory(|m| m.focused().is_some());
         let create = !self.saving && !d.bool(SAVING) && (self.create || enter);
         app.ui.dialog = Some(d);
@@ -242,7 +242,7 @@ impl Buttons {
     }
 }
 
-fn show(app: &mut VectorcraftApp, ctx: &egui::Context) {
+fn show(app: &mut VansoncraftApp, ctx: &egui::Context) {
     let Some(mut d) = app.ui.dialog.clone() else { return };
     sync(app, &mut d);
     let t = Tokens::get(ctx);
@@ -277,7 +277,7 @@ fn show(app: &mut VectorcraftApp, ctx: &egui::Context) {
 
 /// The category tabs and the chosen category's preset cards: a click chooses one, a double-click
 /// also creates it (true then).
-fn presets(app: &VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
+fn presets(app: &VansoncraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
     let t = Tokens::get(ui.ctx());
     let names: Vec<&str> = newdoc::category_names().collect();
     let cat = names.iter().position(|n| n.eq_ignore_ascii_case(&d.str("category"))).unwrap_or(0);
@@ -403,7 +403,7 @@ pub fn preset_card(ui: &mut egui::Ui, s: &DocSettings, selected: bool) -> egui::
 }
 
 /// The Preset Details column.
-fn details(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog, b: &mut Buttons) {
+fn details(app: &mut VansoncraftApp, ui: &mut egui::Ui, d: &mut Dialog, b: &mut Buttons) {
     let t = Tokens::get(ui.ctx());
     ui.spacing_mut().item_spacing = egui::vec2(6.0, 4.0);
     let top = ui.cursor().top();
@@ -496,7 +496,7 @@ fn focus_first<R>(ui: &mut egui::Ui, opening: bool, add: impl FnOnce(&mut egui::
 
 /// The top of Preset Details while a preset is being saved: the heading, the preset's name, Cancel
 /// and Save. Enter in the name is Save. `opening` on the mode's first frame.
-fn save_header(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog, opening: bool) {
+fn save_header(app: &mut VansoncraftApp, ui: &mut egui::Ui, d: &mut Dialog, opening: bool) {
     let t = Tokens::get(ui.ctx());
     if opening && d.str("presetName").is_empty() {
         d.fields.insert("presetName".into(), json!(new_preset_name(app)));
@@ -524,7 +524,7 @@ fn save_header(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog, open
 
 /// Save Preset's default name: the first "Preset N" no saved preset has (`file.newPresets.save`
 /// replaces a preset of the same name).
-fn new_preset_name(app: &VectorcraftApp) -> String {
+fn new_preset_name(app: &VansoncraftApp) -> String {
     let saved = &app.session.prefs.new_doc_presets;
     let template = "Preset {number}";
     (1..=saved.len() + 1)
@@ -534,7 +534,7 @@ fn new_preset_name(app: &VectorcraftApp) -> String {
 }
 
 /// Save the fields as the preset named `presetName` and leave saving, on the saved preset.
-fn save_preset(app: &mut VectorcraftApp, d: &mut Dialog) -> Result<Value, String> {
+fn save_preset(app: &mut VansoncraftApp, d: &mut Dialog) -> Result<Value, String> {
     let mut p: Map<String, Value> = PARAMS.iter().filter_map(|k| Some((k.to_string(), d.fields.get(*k)?.clone()))).collect();
     p.insert("name".into(), json!(d.str("presetName")));
     p.remove("preset");
@@ -742,9 +742,9 @@ mod tests {
     use egui::accesskit::Role;
     use egui_kittest::kittest::{NodeT, Queryable};
     use serde_json::json;
-    use vectorcraft_engine::Session;
+    use vansoncraft_engine::Session;
 
-    use crate::VectorcraftApp;
+    use crate::VansoncraftApp;
 
     /// Cards translate the built-in presets' names only: Recent and Saved show the user's names.
     #[test]
@@ -754,7 +754,7 @@ mod tests {
         assert_eq!(super::preset_name("Black"), "Black");
     }
 
-    fn frame(app: &mut VectorcraftApp) -> egui::FullOutput {
+    fn frame(app: &mut VansoncraftApp) -> egui::FullOutput {
         let ctx = egui::Context::default();
         crate::theme::install_fonts(&ctx);
         crate::theme::apply(&ctx, Default::default());
@@ -764,11 +764,11 @@ mod tests {
         out
     }
 
-    fn set(app: &mut VectorcraftApp, k: &str, v: serde_json::Value) {
+    fn set(app: &mut VansoncraftApp, k: &str, v: serde_json::Value) {
         app.ui.dialog.as_mut().unwrap().fields.insert(k.into(), v);
     }
 
-    fn field(app: &VectorcraftApp, k: &str) -> serde_json::Value {
+    fn field(app: &VansoncraftApp, k: &str) -> serde_json::Value {
         app.ui.dialog.as_ref().unwrap().fields.get(k).cloned().unwrap_or_default()
     }
 
@@ -776,9 +776,9 @@ mod tests {
     /// their own orientations, and only the chosen one is selected (#2860).
     #[test]
     fn recent_cards_keep_the_orientation_they_were_made_in() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
-        let a3 = vectorcraft_engine::cmd::newdoc::find(&app.session, "A3").unwrap();
-        let landscape = vectorcraft_engine::cmd::newdoc::DocSettings { width: a3.height, height: a3.width, ..a3.clone() };
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
+        let a3 = vansoncraft_engine::cmd::newdoc::find(&app.session, "A3").unwrap();
+        let landscape = vansoncraft_engine::cmd::newdoc::DocSettings { width: a3.height, height: a3.width, ..a3.clone() };
         app.session.prefs.recent_new_docs = vec![landscape, a3];
         app.run("file.newDialog", json!({})).unwrap();
         assert_eq!(field(&app, "category"), json!("Recent"));
@@ -787,7 +787,7 @@ mod tests {
         let ctx = egui::Context::default();
         crate::theme::install_fonts(&ctx);
         let mut time = 0.0;
-        let mut run = |app: &mut VectorcraftApp| {
+        let mut run = |app: &mut VansoncraftApp| {
             time += 0.5;
             let screen_rect = Some(egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(1400.0, 1000.0)));
             let raw = egui::RawInput { screen_rect, time: Some(time), ..Default::default() };
@@ -825,14 +825,14 @@ mod tests {
     /// A double-click on a preset card creates the document from it (#663); a click only chooses it.
     #[test]
     fn a_double_clicked_preset_creates_the_document() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.run("file.newDialog", json!({})).unwrap();
         set(&mut app, "category", json!("Mobile"));
         let ctx = egui::Context::default();
         crate::theme::install_fonts(&ctx);
         // Frames 50 ms apart, so two clicks a frame apart make a double-click.
         let mut time = 0.0;
-        let mut run = |app: &mut VectorcraftApp, events| {
+        let mut run = |app: &mut VansoncraftApp, events| {
             time += 0.05;
             let screen_rect = Some(egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(1400.0, 1000.0)));
             let raw = egui::RawInput { screen_rect, events, time: Some(time), ..Default::default() };
@@ -842,7 +842,7 @@ mod tests {
         };
         run(&mut app, vec![]);
         // The first card of the category, found by its size line.
-        let card = |app: &mut VectorcraftApp, run: &mut dyn FnMut(&mut VectorcraftApp, Vec<egui::Event>) -> egui::FullOutput| {
+        let card = |app: &mut VansoncraftApp, run: &mut dyn FnMut(&mut VansoncraftApp, Vec<egui::Event>) -> egui::FullOutput| {
             let out = run(app, vec![]);
             let mut texts = vec![];
             fn walk(s: &egui::Shape, out: &mut Vec<(String, egui::Rect)>) {
@@ -891,12 +891,12 @@ mod tests {
     /// the orientation buttons turn the cards, keeping the chosen one selected (#2084).
     #[test]
     fn the_web_tab_is_landscape_and_orientation_turns_the_cards() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.run("file.newDialog", json!({})).unwrap();
         let ctx = egui::Context::default();
         crate::theme::install_fonts(&ctx);
         let mut time = 0.0;
-        let mut run = |app: &mut VectorcraftApp, events| {
+        let mut run = |app: &mut VansoncraftApp, events| {
             time += 0.5;
             let screen_rect = Some(egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(1400.0, 1000.0)));
             let raw = egui::RawInput { screen_rect, events, time: Some(time), ..Default::default() };
@@ -915,7 +915,7 @@ mod tests {
             out.shapes.iter().for_each(|c| walk(&c.shape, &mut v));
             v
         };
-        let click = |app: &mut VectorcraftApp, run: &mut dyn FnMut(&mut VectorcraftApp, Vec<egui::Event>) -> egui::FullOutput, at: egui::Pos2| {
+        let click = |app: &mut VansoncraftApp, run: &mut dyn FnMut(&mut VansoncraftApp, Vec<egui::Event>) -> egui::FullOutput, at: egui::Pos2| {
             let press =
                 |pressed| egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
             run(app, vec![egui::Event::PointerMoved(at), press(true)]);
@@ -976,13 +976,13 @@ mod tests {
     /// a preset replaces only the top of the column: the rows under it do not move.
     #[test]
     fn the_name_field_is_captioned_and_the_column_fits() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.run("file.newDialog", json!({})).unwrap();
         set(&mut app, "advanced", json!(true));
         let ctx = egui::Context::default();
         crate::theme::install_fonts(&ctx);
         let mut time = 0.0;
-        let mut run = |app: &mut VectorcraftApp| {
+        let mut run = |app: &mut VansoncraftApp| {
             time += 0.5;
             let screen_rect = Some(egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(1400.0, 1000.0)));
             let raw = egui::RawInput { screen_rect, time: Some(time), ..Default::default() };
@@ -997,7 +997,7 @@ mod tests {
                 _ => {}
             }
         }
-        let mut texts_of = |app: &mut VectorcraftApp| {
+        let mut texts_of = |app: &mut VansoncraftApp| {
             run(app);
             let out = run(app);
             let mut texts = vec![];
@@ -1029,7 +1029,7 @@ mod tests {
 
     #[test]
     fn a_preset_fills_the_details_and_create_makes_the_document() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.run("file.newDialog", json!({})).unwrap();
         frame(&mut app);
         assert_eq!((field(&app, "category"), field(&app, "preset"), field(&app, "name")), (json!("Print"), json!("Letter"), json!("Untitled-1")));
@@ -1050,7 +1050,7 @@ mod tests {
         let st = app.session.active().unwrap();
         let rects: Vec<_> = st.doc.artboards.iter().map(|a| (a.rect.x0, a.rect.y0)).collect();
         assert_eq!(rects, [(0.0, 0.0), (3850.0, 0.0), (0.0, 2170.0), (3850.0, 2170.0)]);
-        assert_eq!(st.doc.setup.background, vectorcraft_doc::Background::White);
+        assert_eq!(st.doc.setup.background, vansoncraft_doc::Background::White);
         assert!(app.ui.view.pixel_preview, "Pixel preview mode");
         // Next time Recent opens on it.
         app.run("file.newDialog", json!({})).unwrap();
@@ -1060,10 +1060,10 @@ mod tests {
 
     #[test]
     fn every_category_and_more_settings_draw_and_save_preset_saves() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.run("file.newDialog", json!({})).unwrap();
         set(&mut app, "advanced", json!(true));
-        for c in vectorcraft_engine::cmd::newdoc::category_names() {
+        for c in vansoncraft_engine::cmd::newdoc::category_names() {
             set(&mut app, "category", json!(c));
             let out = frame(&mut app);
             assert!(!out.shapes.is_empty());
@@ -1088,15 +1088,15 @@ mod tests {
         assert_eq!(app.session.prefs.recent_new_docs[0].name, "Zine");
     }
 
-    type Harness = egui_kittest::Harness<'static, VectorcraftApp>;
+    type Harness = egui_kittest::Harness<'static, VansoncraftApp>;
 
     /// New Document open in a harness of `size`, with the app's key handling and the dialogs drawn.
     fn harness(size: egui::Vec2) -> Harness {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.run("file.newDialog", json!({})).unwrap();
         let mut fonts = false;
         let mut h = egui_kittest::Harness::builder().with_size(size).build_ui_state(
-            move |ui, app: &mut VectorcraftApp| {
+            move |ui, app: &mut VansoncraftApp| {
                 if !std::mem::replace(&mut fonts, true) {
                     crate::theme::install_fonts(ui.ctx());
                     return;
@@ -1400,7 +1400,7 @@ mod tests {
     /// `ui.dialog.confirm` while saving is Save: it stores the preset and creates no document.
     #[test]
     fn confirm_while_saving_does_not_create_a_document() {
-        let mut app = VectorcraftApp::new(Session::new(), Default::default());
+        let mut app = VansoncraftApp::new(Session::new(), Default::default());
         app.run("file.newDialog", json!({})).unwrap();
         frame(&mut app);
         set(&mut app, super::SAVING, json!(true));

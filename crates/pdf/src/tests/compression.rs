@@ -7,8 +7,8 @@ use std::io::Cursor;
 
 use image::{DynamicImage, ImageFormat};
 use serde_json::{Value, json};
-use vectorcraft_doc::{Document, ImageBlob, ImageObject, Node, NodeKind};
-use vectorcraft_geom::Affine;
+use vansoncraft_doc::{Document, ImageBlob, ImageObject, Node, NodeKind};
+use vansoncraft_geom::Affine;
 
 use crate::*;
 

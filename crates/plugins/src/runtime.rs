@@ -264,7 +264,7 @@ impl Plugin {
     }
 
     /// Calls `f` with at most `fuel` instructions, in slices, checking the deadline and the
-    /// caller's cancellation ([`vectorcraft_doc::cancel`]) between them.
+    /// caller's cancellation ([`vansoncraft_doc::cancel`]) between them.
     ///
     /// wasmi pauses before an instruction that the store's fuel can't pay for, and charges nothing
     /// for it. It charges a `memory.fill` or `memory.copy` for its whole length before writing, so
@@ -303,13 +303,13 @@ impl Plugin {
                     };
                     charge(live, &mut left, host::CALL_FUEL.saturating_add(size as u64 / 64))?;
                     deadline.check()?;
-                    vectorcraft_doc::cancel::check().map_err(|_| Error::Cancelled)?;
+                    vansoncraft_doc::cancel::check().map_err(|_| Error::Cancelled)?;
                     let answer = bridge(&id, &args);
                     let code = live.store.data_mut().run.call_answered(&id, answer);
                     let returned = live.store.data().run.call_result.as_ref().map_or(0, Vec::len);
                     charge(live, &mut left, returned as u64 / 64)?;
                     deadline.check()?;
-                    vectorcraft_doc::cancel::check().map_err(|_| Error::Cancelled)?;
+                    vansoncraft_doc::cancel::check().map_err(|_| Error::Cancelled)?;
                     call = inv.resume(&mut live.store, &[Val::I32(code)]).map_err(wasm_err)?;
                 }
                 TypedResumableCall::OutOfFuel(inv) => {
@@ -320,7 +320,7 @@ impl Plugin {
                         return Err(Error::Limit("instruction budget".into()));
                     }
                     deadline.check()?;
-                    vectorcraft_doc::cancel::check().map_err(|_| Error::Cancelled)?;
+                    vansoncraft_doc::cancel::check().map_err(|_| Error::Cancelled)?;
                     let fill = total.min(FUEL_SLICE.max(need)).max(held);
                     left -= fill - held;
                     live.store.set_fuel(fill).map_err(wasm_err)?;
@@ -345,7 +345,7 @@ impl Plugin {
     /// [`Plugin::run_limited`], and what the run reported through the host imports: its last
     /// progress report and its log lines, which also go to the app's log under its id. Its storage
     /// imports reach the storage of its id ([`crate::registry::storage`]). Inside a
-    /// [`vectorcraft_doc::cancel::scope`] its progress goes to the scope's sink (a live effect's
+    /// [`vansoncraft_doc::cancel::scope`] its progress goes to the scope's sink (a live effect's
     /// doesn't) and `vc_cancelled` sees the scope's Cancel.
     pub fn run_reporting(&self, input: &[u8], params: &[u8], limits: &Limits) -> (Result<Vec<u8>>, Report) {
         self.run_guarded(input, params, limits, None)
@@ -421,7 +421,7 @@ impl Plugin {
         let packed = self.call_with(live, &run, (iptr as i32, input.len() as i32, pptr as i32, params.len() as i32), fuel, deadline, bridge)?;
         // A cancelled run, or one past its time budget, changes nothing, also when the plug-in saw
         // `vc_cancelled` and returned.
-        vectorcraft_doc::cancel::check().map_err(|_| Error::Cancelled)?;
+        vansoncraft_doc::cancel::check().map_err(|_| Error::Cancelled)?;
         deadline.check()?;
         if packed < 0 {
             return Err(Error::Failed(format!("vc_run returned error code {packed}")));

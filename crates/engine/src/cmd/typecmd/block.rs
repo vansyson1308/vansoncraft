@@ -2,7 +2,7 @@
 //! typed is set to the frame's width by changing its font size, after every edit
 //! ([`super::refresh_bounds`]).
 
-use vectorcraft_doc::{TextKind, TextObject, TextRun};
+use vansoncraft_doc::{TextKind, TextObject, TextRun};
 
 /// The font size range a line's first character is fitted within, in document points (the
 /// Character panel's).
@@ -53,7 +53,7 @@ pub(crate) fn size_at(runs: &[TextRun], byte: usize) -> f64 {
         }
         off = end;
     }
-    vectorcraft_text::edit::style_at(runs, byte).size
+    vansoncraft_text::edit::style_at(runs, byte).size
 }
 
 /// The stored size of each line's first character, in one pass over the runs.
@@ -75,13 +75,13 @@ fn first_sizes(runs: &[TextRun], lines: &[TypedLine]) -> Vec<f64> {
 
 /// Each line's content width (trailing spaces left out) by its first byte, with `t` laid out as
 /// point type, where no line wraps, with the word spacing `t`'s layout uses.
-fn line_widths(db: &vectorcraft_text::FontDb, t: &TextObject) -> std::collections::HashMap<usize, f64> {
+fn line_widths(db: &vansoncraft_text::FontDb, t: &TextObject) -> std::collections::HashMap<usize, f64> {
     let mut probe = t.clone();
     for p in probe.para_styles_mut() {
         p.justification = t.layout_justification(p);
     }
     probe.kind = TextKind::Point;
-    let laid = vectorcraft_text::layout(db, &probe);
+    let laid = vansoncraft_text::layout(db, &probe);
     let mut out = std::collections::HashMap::with_capacity(laid.lines.len());
     for m in &laid.lines {
         out.entry(m.start).or_insert(m.x1 - m.x0);
@@ -98,7 +98,7 @@ pub(crate) fn needed_room(t: &TextObject) -> Option<(f64, usize, usize)> {
     let points = t.style_scale().map(|s| s.points).filter(|p| p.is_finite() && *p > 1e-12)?;
     let text = t.plain_text();
     let lines = typed_lines(&text);
-    let widths = line_widths(vectorcraft_text::FontDb::global(), t);
+    let widths = line_widths(vansoncraft_text::FontDb::global(), t);
     let sizes = first_sizes(&t.runs, &lines);
     lines
         .iter()
@@ -168,7 +168,7 @@ pub(crate) fn block_fit(t: &mut TextObject) -> bool {
         return t.runs != before;
     }
 
-    let db = vectorcraft_text::FontDb::global();
+    let db = vansoncraft_text::FontDb::global();
     let text = t.plain_text();
     let lines = typed_lines(&text);
     let widths = line_widths(db, t);
@@ -232,7 +232,7 @@ pub(crate) fn block_fit(t: &mut TextObject) -> bool {
             }
             off = end;
         }
-        vectorcraft_text::edit::normalize(&mut out);
+        vansoncraft_text::edit::normalize(&mut out);
         t.runs = out;
     };
     let start = t.runs.clone();
@@ -268,7 +268,7 @@ pub(crate) fn block_fit(t: &mut TextObject) -> bool {
             }
         }
         if !again {
-            let laid = vectorcraft_text::layout(db, t);
+            let laid = vansoncraft_text::layout(db, t);
             // Per typed line: how many laid-out lines it took, and the room of its first.
             let mut parts: Vec<(usize, f64)> = vec![(0, 0.0); lines.len()];
             for m in &laid.lines {

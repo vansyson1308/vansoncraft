@@ -8,7 +8,7 @@ use super::{
 };
 use crate::SvgError;
 use kurbo::BezPath;
-use vectorcraft_color::GradientSpread;
+use vansoncraft_color::GradientSpread;
 
 /// How many clip paths deep (`<clipPath clip-path>`) an object's clip is read.
 const MAX_CLIP_NEST: usize = 16;
@@ -31,7 +31,7 @@ pub(super) struct SymbolMade {
 /// a placeholder): the key of the bytes and the path's. Images of other files that show the same
 /// pixels have keys of their own, and reading one file's pixels in changes that file's images only.
 fn linked_key(bytes: &[u8], path: &str) -> String {
-    format!("img-{:016x}-{}", fnv1a(bytes), vectorcraft_doc::links::hash_bytes(path.as_bytes()))
+    format!("img-{:016x}-{}", fnv1a(bytes), vansoncraft_doc::links::hash_bytes(path.as_bytes()))
 }
 
 impl Importer {
@@ -206,7 +206,7 @@ impl Importer {
                 self.symbol_names.insert(name.clone());
                 let reuse = Reuse::of(&self.doc, &art);
                 let made = SymbolMade { name: name.clone(), art: without_ids(&art), reuse };
-                self.doc.symbols.push(vectorcraft_doc::Symbol { dynamic: false, name: name.clone(), art: Arc::new(art) });
+                self.doc.symbols.push(vansoncraft_doc::Symbol { dynamic: false, name: name.clone(), art: Arc::new(art) });
                 self.symbols.insert(sym, made);
                 if !whole || !reuse.allows(xf) {
                     return None;
@@ -405,9 +405,9 @@ impl Importer {
             0.0
         } else {
             let grow = 18.0 / self.doc.raster_ppi();
-            vectorcraft_effects::raster_effects(&n.appearance.effects)
+            vansoncraft_effects::raster_effects(&n.appearance.effects)
                 .iter()
-                .map(|f| f.outset(bounds) + if matches!(f, vectorcraft_effects::RasterFx::OuterGlow { .. }) { grow } else { 0.0 })
+                .map(|f| f.outset(bounds) + if matches!(f, vansoncraft_effects::RasterFx::OuterGlow { .. }) { grow } else { 0.0 })
                 .sum()
         };
         let painted = bounds.inflate(reach, reach);
@@ -430,7 +430,7 @@ impl Importer {
     /// luminance is its alpha (images in it keep their colours, with a warning). A mask our export wrote gets its
     /// options back ([`mask_flags`]) and its art without what stands for them: the inverting
     /// filter group and the backdrop rectangle.
-    fn opacity_mask(&mut self, m: &usvg::Mask, ts: Affine, label: &str) -> Option<Box<vectorcraft_doc::OpacityMask>> {
+    fn opacity_mask(&mut self, m: &usvg::Mask, ts: Affine, label: &str) -> Option<Box<vansoncraft_doc::OpacityMask>> {
         if m.mask().is_some() {
             self.warn(format!("nested mask on {label} ignored"));
         }
@@ -450,7 +450,7 @@ impl Importer {
         }
         let mut children: Vec<Arc<Node>> = nodes.iter().filter_map(|c| self.node(c, ts)).map(Arc::new).collect();
         if m.kind() == usvg::MaskType::Alpha {
-            children.iter_mut().for_each(|c| vectorcraft_doc::node::whiten(Arc::make_mut(c)));
+            children.iter_mut().for_each(|c| vansoncraft_doc::node::whiten(Arc::make_mut(c)));
             let mut image = false;
             children.iter().for_each(|c| c.walk(&mut |n| image |= matches!(n.kind, NodeKind::Image(_))));
             if image {
@@ -466,7 +466,7 @@ impl Importer {
         // SVG 1.1 §14.4 (https://www.w3.org/TR/SVG11/masking.html#MaskElement): the mask's art
         // counts only inside its region.
         let art = self.region_clipped(art, m.rect(), user)?;
-        let mut mask = vectorcraft_doc::OpacityMask::new(art, clip);
+        let mut mask = vansoncraft_doc::OpacityMask::new(art, clip);
         mask.invert = invert;
         Some(Box::new(mask))
     }
@@ -732,7 +732,7 @@ impl Importer {
         }
         let (appearance, r) = self.appearance(p, acc);
         // Shared, so a compound path's subpaths don't each copy a gradient's stops.
-        let appearance: vectorcraft_doc::Shared<Appearance> = appearance.into();
+        let appearance: vansoncraft_doc::Shared<Appearance> = appearance.into();
         let mut n = if path.subpaths.len() > 1 {
             // Multi-subpath SVG paths are compound paths (as in Illustrator).
             let mut children = Vec::with_capacity(path.subpaths.len());
@@ -826,7 +826,7 @@ mod tests {
     use crate::import::files::Files;
     use crate::import::text::TextSlots;
     use std::collections::{HashMap, HashSet};
-    use vectorcraft_doc::Document;
+    use vansoncraft_doc::Document;
 
     #[test]
     fn svg_image_cap_sets_too_many_images_error() {

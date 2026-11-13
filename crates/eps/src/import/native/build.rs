@@ -9,7 +9,7 @@ use super::slots::{
 use super::{
     Affine, Arc, BTreeSet, Document, Node, NodeId, NodeKind, PathData, Rect, Scaling, Story, Structure, Texts, Unit, VariableKind, Vec2, ai,
 };
-use vectorcraft_doc::PlacedDocument;
+use vansoncraft_doc::PlacedDocument;
 
 /// Which box of the editing copy is the page.
 #[derive(Clone, Copy)]
@@ -293,7 +293,7 @@ pub(super) fn build_from(
         }
         let taken: BTreeSet<NodeId> = shown.iter().chain(&hidden).flatten().map(|n| n.id).collect();
         visible.walk(|n| {
-            if vectorcraft_pdf::is_glyph_outlines(n) && !taken.contains(&n.id) {
+            if vansoncraft_pdf::is_glyph_outlines(n) && !taken.contains(&n.id) {
                 lone.push(vec![Arc::new(n.clone())]);
             }
         });
@@ -558,7 +558,7 @@ fn to_placed_documents(n: &mut Node, pages: &std::collections::HashMap<NodeId, a
         && xf.as_coeffs().iter().all(|v| v.is_finite())
         && xf.determinant().abs() > 1e-12
     {
-        let link = vectorcraft_doc::LinkInfo { page: Some(page.page), ..link.clone() };
+        let link = vansoncraft_doc::LinkInfo { page: Some(page.page), ..link.clone() };
         let placed = PlacedDocument {
             link,
             key: im.key.clone(),
@@ -704,13 +704,13 @@ fn settle_warped_type(
     Ok(typed.put_back)
 }
 
-/// Most anchors copied into the wrap shapes of a file's area type ([`vectorcraft_doc::text::wrap_work`]).
+/// Most anchors copied into the wrap shapes of a file's area type ([`vansoncraft_doc::text::wrap_work`]).
 const MAX_WRAP_WORK: usize = 2_000_000;
 
 /// [`relayout_wrapped`], or an error when the wrap shapes would hold more than [`MAX_WRAP_WORK`]
 /// anchors.
 fn resolve_text_wrap(doc: &mut Document) -> Result<(), String> {
-    if has_wraps(doc) && vectorcraft_doc::text::wrap_work(doc) > MAX_WRAP_WORK {
+    if has_wraps(doc) && vansoncraft_doc::text::wrap_work(doc) > MAX_WRAP_WORK {
         return Err("it has too many text objects".into());
     }
     relayout_wrapped(doc);
@@ -725,14 +725,14 @@ fn has_wraps(doc: &Document) -> bool {
 }
 
 /// Resolve the wrap shapes of the area type in `doc` that has wrap objects above it (see
-/// [`vectorcraft_doc::text::resolve_wrap`]); the type whose shapes changed is laid out again.
+/// [`vansoncraft_doc::text::resolve_wrap`]); the type whose shapes changed is laid out again.
 /// Nothing is resolved when the shapes would hold more than [`MAX_WRAP_WORK`] anchors (such a
 /// file isn't read from its layers: see [`resolve_text_wrap`]).
 fn relayout_wrapped(doc: &mut Document) {
-    if !has_wraps(doc) || vectorcraft_doc::text::wrap_work(doc) > MAX_WRAP_WORK {
+    if !has_wraps(doc) || vansoncraft_doc::text::wrap_work(doc) > MAX_WRAP_WORK {
         return;
     }
-    for id in vectorcraft_doc::text::resolve_wrap(None, doc) {
+    for id in vansoncraft_doc::text::resolve_wrap(None, doc) {
         if let Some(NodeKind::Text(t)) = doc.node_mut(id).map(|n| &mut n.kind) {
             t.cached_bounds = None;
             t.cached_baselines.clear();
@@ -786,7 +786,7 @@ fn page_node_has_drawing_state(node: &Node) -> bool {
         || node.opacity < 1.0
         || node.blend != super::BlendMode::Normal
         || node.isolate
-        || node.knockout != vectorcraft_doc::Knockout::Neutral
+        || node.knockout != vansoncraft_doc::Knockout::Neutral
         || node.extras().mask.is_some()
         || !node.appearance.items.is_empty()
         || !node.appearance.effects.is_empty()
@@ -817,7 +817,7 @@ fn index_page(node: &Arc<Node>, pages: &[Rect], moves: &[Affine], art: &mut Vec<
 }
 
 /// Node IDs belong to the importing document, not to the pattern's drawing.
-fn same_pattern_art(existing: &vectorcraft_doc::PatternDef, source: &vectorcraft_doc::PatternDef) -> bool {
+fn same_pattern_art(existing: &vansoncraft_doc::PatternDef, source: &vansoncraft_doc::PatternDef) -> bool {
     fn clear_ids(node: &mut Node) {
         node.id = NodeId(0);
         if let Some(children) = node.children_mut() {
@@ -848,10 +848,10 @@ fn copy_page_resources(doc: &mut Document, page: &Document, nodes: &[&Node]) -> 
         }
         for item in &node.appearance.items {
             match item.paint() {
-                vectorcraft_color::Paint::Solid { swatch: Some(name), .. } => {
+                vansoncraft_color::Paint::Solid { swatch: Some(name), .. } => {
                     swatches.insert(name.clone());
                 }
-                vectorcraft_color::Paint::Gradient(gradient) => {
+                vansoncraft_color::Paint::Gradient(gradient) => {
                     if let Some(name) = &gradient.swatch {
                         swatches.insert(name.clone());
                     }
@@ -861,7 +861,7 @@ fn copy_page_resources(doc: &mut Document, page: &Document, nodes: &[&Node]) -> 
                         }
                     }
                 }
-                vectorcraft_color::Paint::Pattern { pattern, .. } => {
+                vansoncraft_color::Paint::Pattern { pattern, .. } => {
                     patterns.insert(pattern.clone());
                 }
                 _ => {}
@@ -933,9 +933,9 @@ fn page_carries_state(editing: &Node, page: &[&Node]) -> bool {
     let opacity = editing.opacity >= 0.999 || has(&|node: &Node| (node.opacity - editing.opacity).abs() < 0.001);
     let blend = editing.blend == super::BlendMode::Normal || has(&|node: &Node| node.blend == editing.blend);
     let isolate = !editing.isolate || has(&|node: &Node| node.isolate);
-    let knockout = matches!(editing.knockout, vectorcraft_doc::Knockout::Neutral | vectorcraft_doc::Knockout::Off)
+    let knockout = matches!(editing.knockout, vansoncraft_doc::Knockout::Neutral | vansoncraft_doc::Knockout::Off)
         || has(&|node: &Node| node.knockout == editing.knockout);
-    let appearance = !matches!(editing.kind, NodeKind::Group { .. }) || *editing.appearance == vectorcraft_doc::Appearance::default();
+    let appearance = !matches!(editing.kind, NodeKind::Group { .. }) || *editing.appearance == vansoncraft_doc::Appearance::default();
     opacity && blend && isolate && knockout && appearance
 }
 
@@ -945,10 +945,10 @@ fn unread_error(unread: &[(NodeId, Vec<String>)]) -> String {
     let (ops, other): (Vec<&str>, Vec<&str>) = kinds.into_iter().partition(|k| k.starts_with('`'));
     let mut list: BTreeSet<String> = other.into_iter().map(String::from).collect();
     if !ops.is_empty() {
-        list.insert(format!("operators VectorCraft doesn't know ({})", ops.join(", ")));
+        list.insert(format!("operators VansonCraft doesn't know ({})", ops.join(", ")));
     }
     let list: Vec<&str> = list.iter().map(String::as_str).collect();
-    format!("it has {}, which VectorCraft doesn't read from it yet", ai::join_and(&list))
+    format!("it has {}, which VansonCraft doesn't read from it yet", ai::join_and(&list))
 }
 
 /// The page's text objects in `shown` that the page objects replacing `doc`'s unread objects hold
@@ -1549,7 +1549,7 @@ fn in_units(board: Option<Rect>, page: &Document, unit: f64) -> bool {
 const MAX_BOARDS_WEIGHED: usize = 16;
 
 /// Does artboard `a` have the size of `page`?
-fn board_fits(a: &vectorcraft_doc::Artboard, page: &Rect) -> bool {
+fn board_fits(a: &vansoncraft_doc::Artboard, page: &Rect) -> bool {
     (a.rect.width() - page.width()).abs() <= 0.5 && (a.rect.height() - page.height()).abs() <= 0.5
 }
 
@@ -1558,7 +1558,7 @@ fn board_fits(a: &vectorcraft_doc::Artboard, page: &Rect) -> bool {
 /// the last page back, each page's entry is the last artboard of its size before the next page's
 /// entry. The first page's entry is the artboard before the second page's entry, or the last
 /// artboard when there is one page. `None` when the pages after the first have no such artboards.
-fn last_boards(boards: &[vectorcraft_doc::Artboard], pages: &[Rect]) -> Option<Vec<usize>> {
+fn last_boards(boards: &[vansoncraft_doc::Artboard], pages: &[Rect]) -> Option<Vec<usize>> {
     let mut last = vec![0; pages.len()];
     let mut end = boards.len();
     for (i, page) in pages.iter().enumerate().skip(1).rev() {
@@ -1602,7 +1602,7 @@ fn shown_artboard(doc: &Document, visible: &Document, page: Page, page_rect: Rec
 /// holds them: none when the pages don't show the artboards. They stop before the page that would
 /// take the pixels the comparisons draw (`samples`, [`comparison_samples`]), the first page's
 /// included, past [`MAX_PIXELS_COMPARED`], and after [`MAX_PAGES_COMPARED`] pages.
-fn more_pages(boards: Option<&[vectorcraft_doc::Artboard]>, pages: &[Rect], samples: u32) -> Vec<(Rect, Rect)> {
+fn more_pages(boards: Option<&[vansoncraft_doc::Artboard]>, pages: &[Rect], samples: u32) -> Vec<(Rect, Rect)> {
     let Some(boards) = boards else { return vec![] };
     let mut left = MAX_PIXELS_COMPARED;
     pages
@@ -1633,7 +1633,7 @@ fn pages_touched(bounds: Rect, pages: &[Rect], margin: f64) -> Vec<usize> {
 /// later pages together, each page's candidates in order: a page takes the best of its candidates
 /// that were weighed, or its first candidate when none of them were. `None` when the pages have no
 /// such artboards.
-fn page_boards(doc: &Document, visible: &Document, first: usize, pages: &[Rect]) -> Option<Vec<vectorcraft_doc::Artboard>> {
+fn page_boards(doc: &Document, visible: &Document, first: usize, pages: &[Rect]) -> Option<Vec<vansoncraft_doc::Artboard>> {
     let boards = &doc.artboards;
     let same = |j: usize, p: &Rect| boards.get(j).is_some_and(|a| board_fits(a, p));
     let last = last_boards(boards, pages)?;
@@ -1669,7 +1669,7 @@ fn page_boards(doc: &Document, visible: &Document, first: usize, pages: &[Rect])
 /// Drops the guides of artboards `doc` no longer has: an artboard guide goes with its artboard.
 fn drop_guides_off_boards(doc: &mut Document) {
     let kept: Vec<u32> = doc.artboards.iter().map(|a| a.id).collect();
-    doc.retain_guides(&mut vectorcraft_doc::Selection::default(), |g| g.artboard.is_none_or(|id| kept.contains(&id)));
+    doc.retain_guides(&mut vansoncraft_doc::Selection::default(), |g| g.artboard.is_none_or(|id| kept.contains(&id)));
 }
 
 /// Draw `doc`'s layers, artboards and guides `k` times as large, from the origin, with their
@@ -1677,7 +1677,7 @@ fn drop_guides_off_boards(doc: &mut Document) {
 /// styles.
 pub(crate) fn scale_document(doc: &mut Document, k: f64, styles: bool) {
     let a = Affine::scale(k);
-    let scaling = Scaling { strokes: true, effects: Some(vectorcraft_effects::scale_effect), patterns: true, ..Default::default() };
+    let scaling = Scaling { strokes: true, effects: Some(vansoncraft_effects::scale_effect), patterns: true, ..Default::default() };
     for layer in &mut doc.layers {
         let layer = Arc::make_mut(layer);
         layer.transform(a, scaling);
@@ -1691,7 +1691,7 @@ pub(crate) fn scale_document(doc: &mut Document, k: f64, styles: bool) {
     if styles {
         for g in doc.graphic_styles.iter_mut() {
             g.appearance.scale_strokes(k);
-            g.appearance.scale_effects(k, vectorcraft_effects::scale_effect);
+            g.appearance.scale_effects(k, vansoncraft_effects::scale_effect);
         }
     }
 }
@@ -1835,14 +1835,14 @@ pub(super) fn prune_unseen(frame: &Frame<'_>, view: &mut PageView, doc: &mut Doc
 mod candidate_tests {
     use super::*;
 
-    use vectorcraft_doc::{ImageBlob, ImageObject};
+    use vansoncraft_doc::{ImageBlob, ImageObject};
 
     /// The pages compared stop where their drawings would take more than the pixels allowed.
     #[test]
     fn the_pages_compared_stop_at_the_pixel_bound() {
         let pages: Vec<Rect> = (0..1000).map(|i| Rect::new(f64::from(i) * 700.0, 0.0, f64::from(i) * 700.0 + 612.0, 792.0)).collect();
         let doc = Document::new(612.0, 792.0);
-        let boards: Vec<vectorcraft_doc::Artboard> = pages
+        let boards: Vec<vansoncraft_doc::Artboard> = pages
             .iter()
             .map(|page| {
                 let mut board = doc.artboards[0].clone();
@@ -1859,8 +1859,8 @@ mod candidate_tests {
         assert_eq!(more_pages(Some(&boards), &pages, 4).len() + 1, (MAX_PIXELS_COMPARED / (each * 16)) as usize);
         // Tiny pages stop at the page count.
         let tiny: Vec<Rect> = (0..1000).map(|i| Rect::new(f64::from(i) * 2.0, 0.0, f64::from(i) * 2.0 + 1.0, 1.0)).collect();
-        let tiny_boards: Vec<vectorcraft_doc::Artboard> =
-            boards.iter().zip(&tiny).map(|(b, r)| vectorcraft_doc::Artboard { rect: *r, ..b.clone() }).collect();
+        let tiny_boards: Vec<vansoncraft_doc::Artboard> =
+            boards.iter().zip(&tiny).map(|(b, r)| vansoncraft_doc::Artboard { rect: *r, ..b.clone() }).collect();
         assert_eq!(more_pages(Some(&tiny_boards), &tiny, 1).len() + 1, MAX_PAGES_COMPARED);
     }
 
@@ -1871,17 +1871,17 @@ mod candidate_tests {
         let square = |doc: &mut Document, x: f64| {
             let art = Node::path(
                 doc.alloc_id(),
-                vectorcraft_geom::shapes::rectangle(Rect::new(x, 10.0, x + 20.0, 30.0)),
-                vectorcraft_doc::Appearance::basic(
-                    vectorcraft_color::Paint::solid(vectorcraft_color::Color::BLACK),
-                    vectorcraft_color::Paint::None,
+                vansoncraft_geom::shapes::rectangle(Rect::new(x, 10.0, x + 20.0, 30.0)),
+                vansoncraft_doc::Appearance::basic(
+                    vansoncraft_color::Paint::solid(vansoncraft_color::Color::BLACK),
+                    vansoncraft_color::Paint::None,
                     0.0,
                 ),
             );
             let layer = doc.layers[0].id;
             doc.insert(Some(layer), 0, art).unwrap();
         };
-        let board = |doc: &Document, x0: f64, width: f64| vectorcraft_doc::Artboard {
+        let board = |doc: &Document, x0: f64, width: f64| vansoncraft_doc::Artboard {
             rect: Rect::new(x0, 0.0, x0 + width, 100.0),
             ..doc.artboards[0].clone()
         };
@@ -1906,17 +1906,17 @@ mod candidate_tests {
         let square = |doc: &mut Document, x: f64| {
             let art = Node::path(
                 doc.alloc_id(),
-                vectorcraft_geom::shapes::rectangle(Rect::new(x, 10.0, x + 20.0, 30.0)),
-                vectorcraft_doc::Appearance::basic(
-                    vectorcraft_color::Paint::solid(vectorcraft_color::Color::BLACK),
-                    vectorcraft_color::Paint::None,
+                vansoncraft_geom::shapes::rectangle(Rect::new(x, 10.0, x + 20.0, 30.0)),
+                vansoncraft_doc::Appearance::basic(
+                    vansoncraft_color::Paint::solid(vansoncraft_color::Color::BLACK),
+                    vansoncraft_color::Paint::None,
                     0.0,
                 ),
             );
             let layer = doc.layers[0].id;
             doc.insert(Some(layer), 0, art).unwrap();
         };
-        let board = |doc: &Document, x0: f64, width: f64| vectorcraft_doc::Artboard {
+        let board = |doc: &Document, x0: f64, width: f64| vansoncraft_doc::Artboard {
             rect: Rect::new(x0, 0.0, x0 + width, 100.0),
             ..doc.artboards[0].clone()
         };
@@ -1924,7 +1924,7 @@ mod candidate_tests {
         // wide. The second page's square is on artboard 17 and the third page's on artboard 19.
         let n = MAX_BOARDS_WEIGHED + 2;
         let mut doc = Document::new(100.0, 100.0);
-        let mut boards: Vec<vectorcraft_doc::Artboard> = (0..n).map(|i| board(&doc, i as f64 * 150.0, 100.0)).collect();
+        let mut boards: Vec<vansoncraft_doc::Artboard> = (0..n).map(|i| board(&doc, i as f64 * 150.0, 100.0)).collect();
         let wide = n as f64 * 150.0;
         boards.push(board(&doc, wide, 200.0));
         boards.push(board(&doc, wide + 250.0, 200.0));
@@ -1949,17 +1949,17 @@ mod candidate_tests {
         let square = |doc: &mut Document, x: f64| {
             let art = Node::path(
                 doc.alloc_id(),
-                vectorcraft_geom::shapes::rectangle(Rect::new(x, 10.0, x + 20.0, 30.0)),
-                vectorcraft_doc::Appearance::basic(
-                    vectorcraft_color::Paint::solid(vectorcraft_color::Color::BLACK),
-                    vectorcraft_color::Paint::None,
+                vansoncraft_geom::shapes::rectangle(Rect::new(x, 10.0, x + 20.0, 30.0)),
+                vansoncraft_doc::Appearance::basic(
+                    vansoncraft_color::Paint::solid(vansoncraft_color::Color::BLACK),
+                    vansoncraft_color::Paint::None,
                     0.0,
                 ),
             );
             let layer = doc.layers[0].id;
             doc.insert(Some(layer), 0, art).unwrap();
         };
-        let board = |doc: &Document, x0: f64| vectorcraft_doc::Artboard { rect: Rect::new(x0, 0.0, x0 + 100.0, 100.0), ..doc.artboards[0].clone() };
+        let board = |doc: &Document, x0: f64| vansoncraft_doc::Artboard { rect: Rect::new(x0, 0.0, x0 + 100.0, 100.0), ..doc.artboards[0].clone() };
         // Three artboards of one size, a square on the third.
         let mut doc = Document::new(100.0, 100.0);
         doc.artboards = [0.0, 150.0, 300.0].map(|x| board(&doc, x)).to_vec();
@@ -2006,21 +2006,21 @@ mod candidate_tests {
         let mut ids = vec![];
         for (x, offset) in [(0.0, 6.0), (20.0, 200.0), (40.0, -150.0)] {
             let id = doc.alloc_id();
-            let mut n = Node::path(id, vectorcraft_geom::shapes::rectangle(Rect::new(x, 0.0, x + 10.0, 10.0)), Default::default());
-            n.extras_mut().wrap = Some(vectorcraft_doc::TextWrap { offset, invert: true });
+            let mut n = Node::path(id, vansoncraft_geom::shapes::rectangle(Rect::new(x, 0.0, x + 10.0, 10.0)), Default::default());
+            n.extras_mut().wrap = Some(vansoncraft_doc::TextWrap { offset, invert: true });
             doc.insert(Some(doc.layers[0].id), 0, n).unwrap();
             ids.push(id);
         }
         scale_document(&mut doc, 10.0, false);
         let offsets: Vec<_> = ids.iter().map(|id| doc.node(*id).and_then(|n| n.extras().wrap)).collect();
-        let wrap = |offset| Some(vectorcraft_doc::TextWrap { offset, invert: true });
+        let wrap = |offset| Some(vansoncraft_doc::TextWrap { offset, invert: true });
         assert_eq!(offsets, [wrap(60.0), wrap(1000.0), wrap(-1000.0)]);
     }
 
     /// Area type in `doc`'s first layer at `index`, in the frame `r`.
     fn insert_area(doc: &mut Document, index: usize, r: Rect) -> NodeId {
-        let mut t = vectorcraft_doc::TextObject::point(vectorcraft_geom::Point::ZERO, "Wrapped", Default::default());
-        t.kind = vectorcraft_doc::TextKind::Area { frame: vectorcraft_geom::shapes::rectangle(r) };
+        let mut t = vansoncraft_doc::TextObject::point(vansoncraft_geom::Point::ZERO, "Wrapped", Default::default());
+        t.kind = vansoncraft_doc::TextKind::Area { frame: vansoncraft_geom::shapes::rectangle(r) };
         let id = doc.alloc_id();
         doc.insert(Some(doc.layers[0].id), index, Node::new(id, NodeKind::Text(Box::new(t)))).unwrap()
     }
@@ -2036,7 +2036,7 @@ mod candidate_tests {
         bp.close_path();
         let id = doc.alloc_id();
         let mut n = Node::path(id, PathData::from_bezpath(&bp), Default::default());
-        n.extras_mut().wrap = Some(vectorcraft_doc::TextWrap::default());
+        n.extras_mut().wrap = Some(vansoncraft_doc::TextWrap::default());
         let top = doc.layers[0].children().map_or(0, Vec::len);
         doc.insert(Some(doc.layers[0].id), top, n).unwrap()
     }
@@ -2056,7 +2056,7 @@ mod candidate_tests {
             let mut doc = Document::new(100.0, 100.0);
             let ids: Vec<NodeId> = (0..texts).map(|_| insert_area(&mut doc, 0, Rect::new(0.0, 0.0, 100.0, 100.0))).collect();
             insert_wrap(&mut doc, Rect::new(40.0, 0.0, 60.0, 100.0), 10_000);
-            assert!(vectorcraft_doc::text::wrap_work(&doc) >= texts * 10_000);
+            assert!(vansoncraft_doc::text::wrap_work(&doc) >= texts * 10_000);
             assert_eq!(resolve_text_wrap(&mut doc).is_ok(), ok, "{texts} text objects");
             // Nor is anything copied on the way, as the placed files' other placement does.
             relayout_wrapped(&mut doc);
@@ -2072,12 +2072,12 @@ mod candidate_tests {
         for (texts, ok) in [(150, true), (250, false)] {
             let mut doc = Document::new(100.0, 100.0);
             (0..texts).for_each(|_| _ = insert_area(&mut doc, 0, Rect::new(0.0, 0.0, 100.0, 100.0)));
-            let t = vectorcraft_doc::TextObject::point(vectorcraft_geom::Point::new(50.0, 50.0), "TILT", Default::default());
+            let t = vansoncraft_doc::TextObject::point(vansoncraft_geom::Point::new(50.0, 50.0), "TILT", Default::default());
             let mut text = Node::new(doc.alloc_id(), NodeKind::Text(Box::new(t)));
-            let mut appearance = vectorcraft_doc::Appearance::default();
-            appearance.effects.push(vectorcraft_doc::Effect { id: "warp.arc".into(), params: serde_json::json!({"bend": 40.0}), visible: true });
+            let mut appearance = vansoncraft_doc::Appearance::default();
+            appearance.effects.push(vansoncraft_doc::Effect { id: "warp.arc".into(), params: serde_json::json!({"bend": 40.0}), visible: true });
             text.appearance = appearance.into();
-            text.extras_mut().wrap = Some(vectorcraft_doc::TextWrap::default());
+            text.extras_mut().wrap = Some(vansoncraft_doc::TextWrap::default());
             let top = doc.layers[0].children().map_or(0, Vec::len);
             let id = doc.insert(Some(doc.layers[0].id), top, text).unwrap();
             let look = insert_wrap(&mut doc, Rect::new(40.0, 0.0, 60.0, 100.0), 10_000);
@@ -2113,7 +2113,7 @@ mod candidate_tests {
     /// bound too. Every binding left out, and those the reader left out, are counted in one note.
     #[test]
     fn variable_bindings_take_objects_of_their_kind() {
-        use vectorcraft_doc::{LinkInfo, Variable, Variables};
+        use vansoncraft_doc::{LinkInfo, Variable, Variables};
         let mut doc = Document::new(100.0, 100.0);
         let made = insert_area(&mut doc, 0, Rect::new(0.0, 0.0, 50.0, 50.0));
         let (one, two) = (insert_area(&mut doc, 1, Rect::new(50.0, 0.0, 60.0, 10.0)), insert_area(&mut doc, 2, Rect::new(60.0, 0.0, 70.0, 10.0)));
@@ -2219,7 +2219,7 @@ mod candidate_tests {
                 pixels: None,
             })),
         );
-        n.extras_mut().wrap = Some(vectorcraft_doc::TextWrap::default());
+        n.extras_mut().wrap = Some(vansoncraft_doc::TextWrap::default());
         doc.insert(Some(doc.layers[0].id), 1, n).unwrap();
         resolve_text_wrap(&mut doc).unwrap();
         let x0 = |d: &Document| match d.node(text).map(|n| &n.kind) {
@@ -2236,7 +2236,7 @@ mod candidate_tests {
     fn page_image_with_different_proxy_keeps_editing_layer() {
         let mut doc = Document::new(100.0, 100.0);
         let placeholder_id = doc.alloc_id();
-        let placeholder = Node::path(placeholder_id, vectorcraft_geom::shapes::rectangle(Rect::new(50.0, 50.0, 54.0, 54.0)), Default::default());
+        let placeholder = Node::path(placeholder_id, vansoncraft_geom::shapes::rectangle(Rect::new(50.0, 50.0, 54.0, 54.0)), Default::default());
         doc.insert(Some(doc.layers[0].id), 0, placeholder).unwrap();
 
         let mut page = Document::new(100.0, 100.0);
@@ -2287,17 +2287,17 @@ mod candidate_tests {
         doc.insert(
             Some(doc.layers[0].id),
             0,
-            Node::path(id, vectorcraft_geom::shapes::rectangle(Rect::new(90.0, 10.0, 110.0, 20.0)), Default::default()),
+            Node::path(id, vansoncraft_geom::shapes::rectangle(Rect::new(90.0, 10.0, 110.0, 20.0)), Default::default()),
         )
         .unwrap();
         let mut page = Document::new(200.0, 100.0);
         for bounds in [Rect::new(91.0, 11.0, 99.0, 19.0), Rect::new(101.0, 11.0, 109.0, 19.0)] {
             let art = Node::path(
                 page.alloc_id(),
-                vectorcraft_geom::shapes::rectangle(bounds),
-                vectorcraft_doc::Appearance::basic(
-                    vectorcraft_color::Paint::solid(vectorcraft_color::Color::BLACK),
-                    vectorcraft_color::Paint::None,
+                vansoncraft_geom::shapes::rectangle(bounds),
+                vansoncraft_doc::Appearance::basic(
+                    vansoncraft_color::Paint::solid(vansoncraft_color::Color::BLACK),
+                    vansoncraft_color::Paint::None,
                     0.0,
                 ),
             );
@@ -2320,19 +2320,19 @@ mod candidate_tests {
     #[test]
     fn unread_object_on_an_artboard_without_a_page_is_not_replaced() {
         let mut doc = Document::new(100.0, 100.0);
-        doc.artboards.push(vectorcraft_doc::Artboard { id: 2, rect: Rect::new(100.0, 0.0, 200.0, 100.0), ..doc.artboards[0].clone() });
+        doc.artboards.push(vansoncraft_doc::Artboard { id: 2, rect: Rect::new(100.0, 0.0, 200.0, 100.0), ..doc.artboards[0].clone() });
         let id = doc.alloc_id();
         doc.insert(
             Some(doc.layers[0].id),
             0,
-            Node::path(id, vectorcraft_geom::shapes::rectangle(Rect::new(90.0, 10.0, 110.0, 20.0)), Default::default()),
+            Node::path(id, vansoncraft_geom::shapes::rectangle(Rect::new(90.0, 10.0, 110.0, 20.0)), Default::default()),
         )
         .unwrap();
         let mut page = Document::new(100.0, 100.0);
         let art = Node::path(
             page.alloc_id(),
-            vectorcraft_geom::shapes::rectangle(Rect::new(91.0, 11.0, 99.0, 19.0)),
-            vectorcraft_doc::Appearance::basic(vectorcraft_color::Paint::solid(vectorcraft_color::Color::BLACK), vectorcraft_color::Paint::None, 0.0),
+            vansoncraft_geom::shapes::rectangle(Rect::new(91.0, 11.0, 99.0, 19.0)),
+            vansoncraft_doc::Appearance::basic(vansoncraft_color::Paint::solid(vansoncraft_color::Color::BLACK), vansoncraft_color::Paint::None, 0.0),
         );
         page.insert(Some(page.layers[0].id), 0, art).unwrap();
         let rect = Rect::new(0.0, 0.0, 100.0, 100.0);
@@ -2341,7 +2341,7 @@ mod candidate_tests {
         assert_eq!(result.unwrap_err(), "an unread object lies on an artboard that has no page");
 
         // Half a point onto it is still on it.
-        let narrow = Node::path(id, vectorcraft_geom::shapes::rectangle(Rect::new(90.0, 10.0, 100.5, 20.0)), Default::default());
+        let narrow = Node::path(id, vansoncraft_geom::shapes::rectangle(Rect::new(90.0, 10.0, 100.5, 20.0)), Default::default());
         *doc.node_mut(id).unwrap() = narrow;
         let result = replace_unread(&mut doc, &frame, &[(id, vec!["placed files".into()])], &[], &BTreeSet::new(), &mut BTreeSet::new());
         assert_eq!(result.unwrap_err(), "an unread object lies on an artboard that has no page");
@@ -2352,9 +2352,9 @@ mod candidate_tests {
     fn nested_placeholder_corner_cannot_replace_readable_sibling() {
         let mut doc = Document::new(100.0, 100.0);
         let group_id = doc.alloc_id();
-        let placeholder = Node::path(doc.alloc_id(), vectorcraft_geom::shapes::rectangle(Rect::new(10.0, 10.0, 20.0, 20.0)), Default::default());
+        let placeholder = Node::path(doc.alloc_id(), vansoncraft_geom::shapes::rectangle(Rect::new(10.0, 10.0, 20.0, 20.0)), Default::default());
         let placeholder_id = placeholder.id;
-        let sibling = Node::path(doc.alloc_id(), vectorcraft_geom::shapes::rectangle(Rect::new(70.0, 70.0, 74.0, 74.0)), Default::default());
+        let sibling = Node::path(doc.alloc_id(), vansoncraft_geom::shapes::rectangle(Rect::new(70.0, 70.0, 74.0, 74.0)), Default::default());
         let sibling_id = sibling.id;
         let group = Node::group(group_id, vec![Arc::new(placeholder), Arc::new(sibling)]);
         doc.insert(Some(doc.layers[0].id), 0, group).unwrap();
@@ -2362,8 +2362,8 @@ mod candidate_tests {
         let mut page = Document::new(100.0, 100.0);
         let art = Node::path(
             page.alloc_id(),
-            vectorcraft_geom::shapes::rectangle(Rect::new(81.0, 81.0, 89.0, 89.0)),
-            vectorcraft_doc::Appearance::basic(vectorcraft_color::Paint::solid(vectorcraft_color::Color::BLACK), vectorcraft_color::Paint::None, 0.0),
+            vansoncraft_geom::shapes::rectangle(Rect::new(81.0, 81.0, 89.0, 89.0)),
+            vansoncraft_doc::Appearance::basic(vansoncraft_color::Paint::solid(vansoncraft_color::Color::BLACK), vansoncraft_color::Paint::None, 0.0),
         );
         page.insert(Some(page.layers[0].id), 0, art).unwrap();
         let rect = Rect::new(0.0, 0.0, 100.0, 100.0);
@@ -2386,7 +2386,7 @@ mod candidate_tests {
     fn alternative_box_can_carry_opacity_when_first_box_cannot() {
         let mut doc = Document::new(100.0, 100.0);
         let id = doc.alloc_id();
-        let mut editing = Node::path(id, vectorcraft_geom::shapes::rectangle(Rect::new(10.0, 10.0, 20.0, 20.0)), Default::default());
+        let mut editing = Node::path(id, vansoncraft_geom::shapes::rectangle(Rect::new(10.0, 10.0, 20.0, 20.0)), Default::default());
         editing.opacity = 0.5;
         doc.insert(Some(doc.layers[0].id), 0, editing).unwrap();
 
@@ -2394,10 +2394,10 @@ mod candidate_tests {
         for (bounds, opacity) in [(Rect::new(11.0, 11.0, 19.0, 19.0), 1.0), (Rect::new(51.0, 51.0, 59.0, 59.0), 0.5)] {
             let mut art = Node::path(
                 page.alloc_id(),
-                vectorcraft_geom::shapes::rectangle(bounds),
-                vectorcraft_doc::Appearance::basic(
-                    vectorcraft_color::Paint::solid(vectorcraft_color::Color::BLACK),
-                    vectorcraft_color::Paint::None,
+                vansoncraft_geom::shapes::rectangle(bounds),
+                vansoncraft_doc::Appearance::basic(
+                    vansoncraft_color::Paint::solid(vansoncraft_color::Color::BLACK),
+                    vansoncraft_color::Paint::None,
                     0.0,
                 ),
             );
@@ -2427,7 +2427,7 @@ mod candidate_tests {
     fn opacity_on_one_of_two_page_objects_is_not_identifiable() {
         let mut doc = Document::new(100.0, 100.0);
         let id = doc.alloc_id();
-        let mut editing = Node::path(id, vectorcraft_geom::shapes::rectangle(Rect::new(10.0, 10.0, 40.0, 40.0)), Default::default());
+        let mut editing = Node::path(id, vansoncraft_geom::shapes::rectangle(Rect::new(10.0, 10.0, 40.0, 40.0)), Default::default());
         editing.opacity = 0.5;
         doc.insert(Some(doc.layers[0].id), 0, editing).unwrap();
 
@@ -2435,10 +2435,10 @@ mod candidate_tests {
         for (bounds, opacity) in [(Rect::new(11.0, 11.0, 19.0, 19.0), 0.5), (Rect::new(21.0, 21.0, 39.0, 39.0), 1.0)] {
             let mut art = Node::path(
                 page.alloc_id(),
-                vectorcraft_geom::shapes::rectangle(bounds),
-                vectorcraft_doc::Appearance::basic(
-                    vectorcraft_color::Paint::solid(vectorcraft_color::Color::BLACK),
-                    vectorcraft_color::Paint::None,
+                vansoncraft_geom::shapes::rectangle(bounds),
+                vansoncraft_doc::Appearance::basic(
+                    vansoncraft_color::Paint::solid(vansoncraft_color::Color::BLACK),
+                    vansoncraft_color::Paint::None,
                     0.0,
                 ),
             );
@@ -2458,7 +2458,7 @@ mod candidate_tests {
         let first = doc.alloc_id();
         let second = doc.alloc_id();
         for (id, bounds) in [(first, Rect::new(10.0, 10.0, 20.0, 20.0)), (second, Rect::new(12.0, 12.0, 22.0, 22.0))] {
-            let node = Node::path(id, vectorcraft_geom::shapes::rectangle(bounds), Default::default());
+            let node = Node::path(id, vansoncraft_geom::shapes::rectangle(bounds), Default::default());
             doc.insert(Some(doc.layers[0].id), doc.layers[0].children().unwrap().len(), node).unwrap();
         }
 
@@ -2466,10 +2466,10 @@ mod candidate_tests {
         for bounds in [Rect::new(14.0, 14.0, 16.0, 16.0), Rect::new(51.0, 51.0, 59.0, 59.0)] {
             let art = Node::path(
                 page.alloc_id(),
-                vectorcraft_geom::shapes::rectangle(bounds),
-                vectorcraft_doc::Appearance::basic(
-                    vectorcraft_color::Paint::solid(vectorcraft_color::Color::BLACK),
-                    vectorcraft_color::Paint::None,
+                vansoncraft_geom::shapes::rectangle(bounds),
+                vansoncraft_doc::Appearance::basic(
+                    vansoncraft_color::Paint::solid(vansoncraft_color::Color::BLACK),
+                    vansoncraft_color::Paint::None,
                     0.0,
                 ),
             );
@@ -2501,7 +2501,7 @@ mod candidate_tests {
         doc.insert(
             Some(doc.layers[0].id),
             0,
-            Node::path(id, vectorcraft_geom::shapes::rectangle(Rect::new(10.0, 10.0, 20.0, 20.0)), Default::default()),
+            Node::path(id, vansoncraft_geom::shapes::rectangle(Rect::new(10.0, 10.0, 20.0, 20.0)), Default::default()),
         )
         .unwrap();
         let mut page = Document::new(100.0, 100.0);
@@ -2509,10 +2509,10 @@ mod candidate_tests {
         for bounds in [Rect::new(12.0, 12.0, 18.0, 18.0), Rect::new(52.0, 52.0, 58.0, 58.0)] {
             let art = Node::path(
                 page.alloc_id(),
-                vectorcraft_geom::shapes::rectangle(bounds),
-                vectorcraft_doc::Appearance::basic(
-                    vectorcraft_color::Paint::solid(vectorcraft_color::Color::BLACK),
-                    vectorcraft_color::Paint::None,
+                vansoncraft_geom::shapes::rectangle(bounds),
+                vansoncraft_doc::Appearance::basic(
+                    vansoncraft_color::Paint::solid(vansoncraft_color::Color::BLACK),
+                    vansoncraft_color::Paint::None,
                     0.0,
                 ),
             );

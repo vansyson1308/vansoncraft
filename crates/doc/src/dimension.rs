@@ -1,7 +1,7 @@
 //! Persistent dimension recipes. Children are ordinary paths and type for all renderers/exporters.
 use crate::{Document, NodeId, Unit};
 use serde::{Deserialize, Serialize};
-use vectorcraft_geom::{Affine, Anchor, PathData, Point, Vec2};
+use vansoncraft_geom::{Affine, Anchor, PathData, Point, Vec2};
 
 /// What a dimension measures.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -548,7 +548,7 @@ impl FreePoint {
     /// `p` on the segment `edge`, at the curve parameter of the segment's point nearest to it.
     /// None when the segment is gone or `p` is not on it.
     pub fn on_segment(doc: &Document, edge: &SegmentRef, p: Point) -> Option<Self> {
-        use vectorcraft_geom::kurbo::ParamCurveNearest;
+        use vansoncraft_geom::kurbo::ParamCurveNearest;
         let sp = doc.node(edge.node)?.path_data()?.subpaths.get(edge.subpath)?;
         if edge.segment >= sp.segment_count() {
             return None;
@@ -585,7 +585,7 @@ impl FreePoint {
     /// Where the point is now. None when its segment or an anchor is gone or the point is not
     /// [`Self::valid`].
     pub fn position(&self, doc: &Document) -> Option<Point> {
-        use vectorcraft_geom::kurbo::ParamCurve;
+        use vansoncraft_geom::kurbo::ParamCurve;
         if !self.valid() {
             return None;
         }
@@ -915,7 +915,7 @@ impl Dimension {
 
 /// Accept circular paths (including imported circles), reject ellipses and arbitrary closed shapes.
 pub fn circle(doc: &Document, id: NodeId) -> Option<(Point, f64)> {
-    use vectorcraft_geom::kurbo::ParamCurve;
+    use vansoncraft_geom::kurbo::ParamCurve;
     let path = doc.node(id)?.path_data()?;
     let sp = path.subpaths.first()?;
     if path.subpaths.len() != 1 || !sp.closed || !(2..=64).contains(&sp.segment_count()) {
@@ -939,7 +939,7 @@ pub fn circle(doc: &Document, id: NodeId) -> Option<(Point, f64)> {
 
 /// A curved segment that follows one circle (a perfect arc): its centre and radius.
 pub fn arc(doc: &Document, edge: &SegmentRef) -> Option<(Point, f64)> {
-    use vectorcraft_geom::kurbo::ParamCurve;
+    use vansoncraft_geom::kurbo::ParamCurve;
     let sp = doc.node(edge.node)?.path_data()?.subpaths.get(edge.subpath)?;
     if edge.segment >= sp.segment_count() || sp.segment_is_line(edge.segment) {
         return None;

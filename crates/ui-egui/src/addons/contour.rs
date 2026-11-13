@@ -3,7 +3,7 @@
 //! active. Everything acts through `addon.contour.set` and Expand Appearance.
 
 use serde_json::json;
-use vectorcraft_tools::addons::contour;
+use vansoncraft_tools::addons::contour;
 
 use crate::menus::Item;
 

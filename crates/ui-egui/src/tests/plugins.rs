@@ -3,23 +3,23 @@
 //! `.wasm` files through File › Open.
 
 use serde_json::{Value, json};
-use vectorcraft_engine::Session;
-use vectorcraft_plugins::wat as tpl;
+use vansoncraft_engine::Session;
+use vansoncraft_plugins::wat as tpl;
 
 use crate::state::Dialog;
-use crate::{VectorcraftApp, dialogs, io, menus, theme};
+use crate::{VansoncraftApp, dialogs, io, menus, theme};
 
 const DESATURATE: &[u8] = include_bytes!("../../../plugins/tests/fixtures/desaturate.wasm");
-const DESATURATE_ID: &str = "org.vectorcraft.example.desaturate";
+const DESATURATE_ID: &str = "org.vansoncraft.example.desaturate";
 
-fn app() -> VectorcraftApp {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+fn app() -> VansoncraftApp {
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 200, "height": 200})).unwrap();
     app
 }
 
 /// One headless frame of the dialog layer.
-fn frame(app: &mut VectorcraftApp) {
+fn frame(app: &mut VansoncraftApp) {
     let ctx = egui::Context::default();
     theme::install_fonts(&ctx);
     theme::apply(&ctx, Default::default());
@@ -30,7 +30,7 @@ fn frame(app: &mut VectorcraftApp) {
 /// Shows the open install approval in one window, frame after frame a quarter of a second apart,
 /// until its OK takes input ([`dialogs::plugin::APPROVAL_DELAY`]), as a person sees it before
 /// pressing OK.
-pub(super) fn show_approval(app: &mut VectorcraftApp) {
+pub(super) fn show_approval(app: &mut VansoncraftApp) {
     let ctx = egui::Context::default();
     theme::install_fonts(&ctx);
     theme::apply(&ctx, Default::default());
@@ -45,14 +45,14 @@ pub(super) fn show_approval(app: &mut VectorcraftApp) {
     panic!("the approval's OK never took input");
 }
 
-pub(super) type Window = egui_kittest::Harness<'static, VectorcraftApp>;
+pub(super) type Window = egui_kittest::Harness<'static, VansoncraftApp>;
 
 /// The dialog layer of `app` in a window, each frame drawn at the time [`at`] gives it. Building it
 /// draws frames at times of its own, so a test opens the dialog after.
-pub(super) fn window(app: VectorcraftApp) -> Window {
+pub(super) fn window(app: VansoncraftApp) -> Window {
     let mut fonts = false;
     egui_kittest::Harness::builder().with_size(egui::vec2(900.0, 800.0)).build_ui_state(
-        move |ui, app: &mut VectorcraftApp| {
+        move |ui, app: &mut VansoncraftApp| {
             if !std::mem::replace(&mut fonts, true) {
                 theme::install_fonts(ui.ctx());
                 return;
@@ -83,19 +83,19 @@ pub(super) fn click_ok(h: &mut Window, time: f64) {
 }
 
 /// The approval is open and plug-in `id` neither installed nor granted.
-pub(super) fn waiting(app: &VectorcraftApp, id: &str) -> bool {
+pub(super) fn waiting(app: &VansoncraftApp, id: &str) -> bool {
     app.ui.dialog.as_ref().is_some_and(|d| d.kind == dialogs::plugin::INSTALL_KIND)
-        && vectorcraft_plugins::registry::get(id).is_none()
-        && vectorcraft_plugins::registry::granted(id).is_none()
+        && vansoncraft_plugins::registry::get(id).is_none()
+        && vansoncraft_plugins::registry::granted(id).is_none()
 }
 
-fn red_rect(app: &mut VectorcraftApp) -> vectorcraft_doc::NodeId {
+fn red_rect(app: &mut VansoncraftApp) -> vansoncraft_doc::NodeId {
     let id = app.run("shape.rectangle", json!({"x": 10, "y": 10, "width": 40, "height": 40})).unwrap()["id"].as_u64().unwrap();
     app.run("paint.setFill", json!({"color": "#ff0000"})).unwrap();
-    vectorcraft_doc::NodeId(id)
+    vansoncraft_doc::NodeId(id)
 }
 
-fn fill_rgb(app: &VectorcraftApp, id: vectorcraft_doc::NodeId) -> [f32; 3] {
+fn fill_rgb(app: &VansoncraftApp, id: vansoncraft_doc::NodeId) -> [f32; 3] {
     app.session.doc().unwrap().doc.node(id).unwrap().appearance.fill_paint().color().unwrap().to_rgb_uncalibrated()
 }
 
@@ -109,7 +109,7 @@ fn plugins_are_listed_in_the_object_and_effect_menus() {
     let before = menus::plugin_revision();
     io::open_bytes(&mut app, "desaturate.wasm", DESATURATE, None).unwrap();
     let effect = tpl::module(&tpl::manifest("test.ui.echo", "effect", r#"{"wiggle":{"type":"bool"}}"#), tpl::ECHO, "", 1);
-    app.run("plugin.install", json!({"dataBase64": vectorcraft_format::base64_encode(&wat::parse_str(effect).unwrap())})).unwrap();
+    app.run("plugin.install", json!({"dataBase64": vansoncraft_format::base64_encode(&wat::parse_str(effect).unwrap())})).unwrap();
     assert_ne!(menus::plugin_revision(), before, "the native menu is rebuilt");
     let entries = menus::menu_entries(&app);
     let filter = entry(&entries, &["Object", "Plug-ins"], "Desaturate…").expect("filter listed");
@@ -131,7 +131,7 @@ fn plugins_are_listed_in_the_object_and_effect_menus() {
 #[test]
 fn filter_dialog_previews_and_commits_one_undo_step() {
     let mut app = app();
-    app.run("plugin.install", json!({"dataBase64": vectorcraft_format::base64_encode(DESATURATE)})).unwrap();
+    app.run("plugin.install", json!({"dataBase64": vansoncraft_format::base64_encode(DESATURATE)})).unwrap();
     let id = red_rect(&mut app);
     let undo = app.session.doc().unwrap().history.undo.len();
     menus::invoke(&mut app, "plugin.dialog", json!({"id": DESATURATE_ID}));
@@ -167,7 +167,7 @@ fn plugin_effects_open_the_effect_dialog_with_their_schema() {
     let mut app = app();
     let src =
         tpl::module(&tpl::manifest("test.ui.fx", "effect", r#"{"mode":{"type":"choice","options":["a","b"],"default":"b"}}"#), tpl::ECHO, "", 1);
-    app.run("plugin.install", json!({"dataBase64": vectorcraft_format::base64_encode(&wat::parse_str(src).unwrap())})).unwrap();
+    app.run("plugin.install", json!({"dataBase64": vansoncraft_format::base64_encode(&wat::parse_str(src).unwrap())})).unwrap();
     let id = red_rect(&mut app);
     app.run("effect.dialog", json!({"effect": "plugin.test.ui.fx"})).unwrap();
     let d: &Dialog = app.ui.dialog.as_ref().unwrap();
@@ -203,12 +203,12 @@ fn installing_a_plugin_that_lists_permissions_asks_first() {
     // hold them, though not control characters, which its version may.
     let name = "Tidy\u{202E}fdp.exe\u{2066}";
     let bytes = asking(id, name, r#"["doc.read","doc.write"]"#);
-    let data = vectorcraft_format::base64_encode(&bytes);
+    let data = vansoncraft_format::base64_encode(&bytes);
     let r = app.run("ui.installPlugin", json!({"dataBase64": data, "name": "tidy.wasm"})).unwrap();
     assert_eq!(r["pending"], dialogs::plugin::INSTALL_KIND);
     let pending = app.pending_plugin_install.as_ref().unwrap();
     assert_eq!(pending.message, "Install “Tidy\\u{202E}fdp.exe\\u{2066}”, which asks for these permissions?");
-    let hash = vectorcraft_plugins::permissions::sha256_hex(&bytes);
+    let hash = vansoncraft_plugins::permissions::sha256_hex(&bytes);
     assert_eq!(pending.params["hash"], json!(hash), "OK installs the module shown");
     let detail = pending.detail.clone();
     assert_eq!(
@@ -218,9 +218,9 @@ fn installing_a_plugin_that_lists_permissions_asks_first() {
         )
     );
     assert!(!detail.chars().chain(pending.message.chars()).any(|c| matches!(c, '\u{202E}' | '\u{2066}' | '\t' | '\u{0007}')));
-    assert!(vectorcraft_plugins::registry::get(id).is_none(), "not before the user agrees");
+    assert!(vansoncraft_plugins::registry::get(id).is_none(), "not before the user agrees");
     dialogs::cancel(&mut app);
-    assert!(vectorcraft_plugins::registry::get(id).is_none(), "Cancel installs nothing");
+    assert!(vansoncraft_plugins::registry::get(id).is_none(), "Cancel installs nothing");
     assert!(app.pending_plugin_install.is_none(), "Cancel drops what it asked about");
     // File › Open asks too, and OK installs it with what it lists granted.
     io::open_bytes(&mut app, "tidy.wasm", &bytes, None).unwrap();
@@ -228,25 +228,25 @@ fn installing_a_plugin_that_lists_permissions_asks_first() {
     show_approval(&mut app);
     dialogs::confirm(&mut app).unwrap();
     assert!(app.ui.dialog.is_none());
-    assert!(vectorcraft_plugins::registry::get(id).is_some());
-    assert_eq!(vectorcraft_plugins::registry::granted(id).map(|g| g.hash), Some(hash));
+    assert!(vansoncraft_plugins::registry::get(id).is_some());
+    assert_eq!(vansoncraft_plugins::registry::granted(id).map(|g| g.hash), Some(hash));
     // The same module again: installed without asking.
     app.run("ui.installPlugin", json!({"dataBase64": data})).unwrap();
     assert!(app.ui.dialog.is_none(), "the same bytes don't ask again");
     // Other bytes with the same permissions ask for them, from both ways in; Cancel keeps the one
     // installed.
     let again = asking(id, "Tidy 2", r#"["doc.write","doc.read"]"#);
-    let r = app.run("ui.installPlugin", json!({"dataBase64": vectorcraft_format::base64_encode(&again)})).unwrap();
+    let r = app.run("ui.installPlugin", json!({"dataBase64": vansoncraft_format::base64_encode(&again)})).unwrap();
     assert_eq!(r["pending"], dialogs::plugin::INSTALL_KIND, "other bytes ask again");
     assert_eq!(app.pending_plugin_install.as_ref().unwrap().message, "Install “Tidy 2”, which asks for these permissions?");
     dialogs::cancel(&mut app);
-    assert_eq!(vectorcraft_plugins::registry::get(id).map(|p| p.manifest().name.clone()), Some(name.into()), "Cancel keeps the one installed");
+    assert_eq!(vansoncraft_plugins::registry::get(id).map(|p| p.manifest().name.clone()), Some(name.into()), "Cancel keeps the one installed");
     io::open_bytes(&mut app, "tidy2.wasm", &again, None).unwrap();
     assert_eq!(app.ui.dialog.as_ref().map(|d| d.kind.as_str()), Some(dialogs::plugin::INSTALL_KIND), "File › Open asks too");
     // The same dialog says it takes the installed one's place, and OK replaces it; Cancel keeps the
     // one installed and records no grant.
     let pending = app.pending_plugin_install.as_ref().unwrap();
-    let again_hash = vectorcraft_plugins::permissions::sha256_hex(&again);
+    let again_hash = vansoncraft_plugins::permissions::sha256_hex(&again);
     assert!(pending.detail.contains(&format!("File SHA-256: {again_hash}")), "{}", pending.detail);
     assert!(
         pending.detail.ends_with("\n\nThis file is not the plug-in installed before with this ID. It gets the settings and cache kept for that ID."),
@@ -255,27 +255,27 @@ fn installing_a_plugin_that_lists_permissions_asks_first() {
     );
     assert_eq!(pending.params["replace"], json!(true), "OK replaces the one installed");
     dialogs::cancel(&mut app);
-    assert_eq!(vectorcraft_plugins::registry::get(id).map(|p| p.manifest().name.clone()), Some(name.into()), "Cancel keeps the one installed");
-    assert_ne!(vectorcraft_plugins::registry::granted(id).map(|g| g.hash), Some(again_hash), "Cancel records no grant");
-    app.run("ui.installPlugin", json!({"dataBase64": vectorcraft_format::base64_encode(&again)})).unwrap();
+    assert_eq!(vansoncraft_plugins::registry::get(id).map(|p| p.manifest().name.clone()), Some(name.into()), "Cancel keeps the one installed");
+    assert_ne!(vansoncraft_plugins::registry::granted(id).map(|g| g.hash), Some(again_hash), "Cancel records no grant");
+    app.run("ui.installPlugin", json!({"dataBase64": vansoncraft_format::base64_encode(&again)})).unwrap();
     show_approval(&mut app);
     dialogs::confirm(&mut app).unwrap();
     assert!(app.ui.dialog.is_none(), "one question");
-    assert_eq!(vectorcraft_plugins::registry::get(id).map(|p| p.manifest().name.clone()), Some("Tidy 2".into()));
-    let new_hash = vectorcraft_plugins::permissions::sha256_hex(&again);
-    assert_eq!(vectorcraft_plugins::registry::granted(id).map(|g| g.hash), Some(new_hash), "OK records the new module's hash");
+    assert_eq!(vansoncraft_plugins::registry::get(id).map(|p| p.manifest().name.clone()), Some("Tidy 2".into()));
+    let new_hash = vansoncraft_plugins::permissions::sha256_hex(&again);
+    assert_eq!(vansoncraft_plugins::registry::granted(id).map(|g| g.hash), Some(new_hash), "OK records the new module's hash");
     // One that asks for another permission asks again.
     let more = asking(id, "Tidy 3", r#"["doc.read","doc.write","state"]"#);
-    let r = app.run("ui.installPlugin", json!({"dataBase64": vectorcraft_format::base64_encode(&more)})).unwrap();
+    let r = app.run("ui.installPlugin", json!({"dataBase64": vansoncraft_format::base64_encode(&more)})).unwrap();
     assert_eq!(r["pending"], dialogs::plugin::INSTALL_KIND);
     assert!(app.pending_plugin_install.as_ref().unwrap().detail.contains("• Keep data of its own with the document"));
     dialogs::cancel(&mut app);
-    assert_eq!(vectorcraft_plugins::registry::get(id).map(|p| p.manifest().name.clone()), Some("Tidy 2".into()), "Cancel keeps the one installed");
+    assert_eq!(vansoncraft_plugins::registry::get(id).map(|p| p.manifest().name.clone()), Some("Tidy 2".into()), "Cancel keeps the one installed");
     // OK keeps the `replace` it was asked with: `false` leaves the installed one in place.
-    app.run("ui.installPlugin", json!({"dataBase64": vectorcraft_format::base64_encode(&more), "replace": false})).unwrap();
+    app.run("ui.installPlugin", json!({"dataBase64": vansoncraft_format::base64_encode(&more), "replace": false})).unwrap();
     show_approval(&mut app);
     let _ = dialogs::confirm(&mut app);
-    assert_eq!(vectorcraft_plugins::registry::get(id).map(|p| p.manifest().name.clone()), Some("Tidy 2".into()), "replace: false is kept");
+    assert_eq!(vansoncraft_plugins::registry::get(id).map(|p| p.manifest().name.clone()), Some("Tidy 2".into()), "replace: false is kept");
     app.run("plugin.remove", json!({"id": id})).unwrap();
 }
 
@@ -286,7 +286,7 @@ fn installing_a_plugin_that_lists_permissions_asks_first() {
 fn the_install_approval_takes_ok_only_once_its_question_was_shown_for_a_moment() {
     use egui_kittest::kittest::Queryable;
     let id = "test.ui.approval.delay";
-    let module = json!({"dataBase64": vectorcraft_format::base64_encode(&asking(id, "Delay", r#"["doc.read"]"#))});
+    let module = json!({"dataBase64": vansoncraft_format::base64_encode(&asking(id, "Delay", r#"["doc.read"]"#))});
     let mut h = window(app());
     h.state_mut().run("ui.installPlugin", module.clone()).unwrap();
     assert_eq!(dialogs::confirm(h.state_mut()).unwrap(), json!({"pending": dialogs::plugin::INSTALL_KIND}), "not drawn yet");
@@ -311,7 +311,7 @@ fn the_install_approval_takes_ok_only_once_its_question_was_shown_for_a_moment()
     assert!(ok_enabled(&h), "enabled once shown for the delay");
     click_ok(&mut h, 10.6);
     assert!(h.state().ui.dialog.is_none(), "{}", h.state().ui.status);
-    assert!(vectorcraft_plugins::registry::get(id).is_some());
+    assert!(vansoncraft_plugins::registry::get(id).is_some());
     h.state_mut().run("plugin.remove", json!({"id": id})).unwrap();
 
     h.state_mut().run("ui.installPlugin", module).unwrap();
@@ -320,7 +320,7 @@ fn the_install_approval_takes_ok_only_once_its_question_was_shown_for_a_moment()
     h.get_by_label("Cancel").click();
     at(&mut h, 20.0);
     assert!(h.state().ui.dialog.is_none() && h.state().pending_plugin_install.is_none(), "Cancel doesn't wait");
-    assert!(vectorcraft_plugins::registry::get(id).is_none());
+    assert!(vansoncraft_plugins::registry::get(id).is_none());
 }
 
 /// The wait starts over for each question: one that takes the place of the question shown just
@@ -329,7 +329,7 @@ fn the_install_approval_takes_ok_only_once_its_question_was_shown_for_a_moment()
 #[test]
 fn the_install_approval_waits_again_for_a_new_question_and_after_the_focus_comes_back() {
     let (a, b) = ("test.ui.approval.swap.a", "test.ui.approval.swap.b");
-    let module = |id: &str| json!({"dataBase64": vectorcraft_format::base64_encode(&asking(id, "Same", r#"["doc.read"]"#))});
+    let module = |id: &str| json!({"dataBase64": vansoncraft_format::base64_encode(&asking(id, "Same", r#"["doc.read"]"#))});
     let mut h = window(app());
     h.state_mut().run("ui.installPlugin", module(a)).unwrap();
     at(&mut h, 10.0);
@@ -340,7 +340,7 @@ fn the_install_approval_waits_again_for_a_new_question_and_after_the_focus_comes
     dialogs::cancel(h.state_mut());
     h.state_mut().run("ui.installPlugin", module(b)).unwrap();
     click_ok(&mut h, 10.7);
-    assert!(waiting(h.state(), b) && vectorcraft_plugins::registry::get(a).is_none(), "the click approves neither");
+    assert!(waiting(h.state(), b) && vansoncraft_plugins::registry::get(a).is_none(), "the click approves neither");
     assert!(!ok_enabled(&h));
     at(&mut h, 11.19);
     assert!(!ok_enabled(&h));
@@ -365,7 +365,7 @@ fn the_install_approval_waits_again_for_a_new_question_and_after_the_focus_comes
     at(&mut h, 12.5);
     click_ok(&mut h, 12.6);
     assert!(h.state().ui.dialog.is_none(), "{}", h.state().ui.status);
-    assert!(vectorcraft_plugins::registry::get(b).is_some() && vectorcraft_plugins::registry::get(a).is_none());
+    assert!(vansoncraft_plugins::registry::get(b).is_some() && vansoncraft_plugins::registry::get(a).is_none());
     h.state_mut().run("plugin.remove", json!({"id": b})).unwrap();
 }
 
@@ -376,7 +376,7 @@ fn a_press_on_the_install_approval_from_before_ok_took_input_approves_nothing() 
     use egui_kittest::kittest::Queryable;
     let id = "test.ui.approval.held";
     let mut h = window(app());
-    let module = json!({"dataBase64": vectorcraft_format::base64_encode(&asking(id, "Held", r#"["doc.read"]"#))});
+    let module = json!({"dataBase64": vansoncraft_format::base64_encode(&asking(id, "Held", r#"["doc.read"]"#))});
     h.state_mut().run("ui.installPlugin", module).unwrap();
     at(&mut h, 10.0);
     at(&mut h, 10.0);
@@ -391,7 +391,7 @@ fn a_press_on_the_install_approval_from_before_ok_took_input_approves_nothing() 
     assert!(waiting(h.state(), id), "the press began before OK took input");
     click_ok(&mut h, 10.8);
     assert!(h.state().ui.dialog.is_none(), "{}", h.state().ui.status);
-    assert!(vectorcraft_plugins::registry::get(id).is_some());
+    assert!(vansoncraft_plugins::registry::get(id).is_some());
     h.state_mut().run("plugin.remove", json!({"id": id})).unwrap();
 }
 
@@ -402,7 +402,7 @@ fn a_later_press_on_the_install_approval_keeps_an_early_press_from_approving() {
     use egui_kittest::kittest::Queryable;
     let id = "test.ui.approval.held.two";
     let mut h = window(app());
-    let module = json!({"dataBase64": vectorcraft_format::base64_encode(&asking(id, "Two", r#"["doc.read"]"#))});
+    let module = json!({"dataBase64": vansoncraft_format::base64_encode(&asking(id, "Two", r#"["doc.read"]"#))});
     h.state_mut().run("ui.installPlugin", module).unwrap();
     at(&mut h, 10.0);
     at(&mut h, 10.0);
@@ -437,7 +437,7 @@ fn a_later_press_on_the_install_approval_keeps_an_early_press_from_approving() {
 fn a_press_held_from_the_question_before_approves_nothing() {
     use egui_kittest::kittest::Queryable;
     let (a, b) = ("test.ui.approval.carried.a", "test.ui.approval.carried.b");
-    let module = |id: &str| json!({"dataBase64": vectorcraft_format::base64_encode(&asking(id, "Carried", r#"["doc.read"]"#))});
+    let module = |id: &str| json!({"dataBase64": vansoncraft_format::base64_encode(&asking(id, "Carried", r#"["doc.read"]"#))});
     let mut h = window(app());
     h.state_mut().run("ui.installPlugin", module(a)).unwrap();
     at(&mut h, 10.0);
@@ -457,10 +457,10 @@ fn a_press_held_from_the_question_before_approves_nothing() {
     assert!(ok_enabled(&h));
     h.input_mut().events.push(button(false));
     at(&mut h, 11.25);
-    assert!(waiting(h.state(), b) && vectorcraft_plugins::registry::get(a).is_none(), "the press began on the question before");
+    assert!(waiting(h.state(), b) && vansoncraft_plugins::registry::get(a).is_none(), "the press began on the question before");
     click_ok(&mut h, 11.4);
     assert!(h.state().ui.dialog.is_none(), "{}", h.state().ui.status);
-    assert!(vectorcraft_plugins::registry::get(b).is_some());
+    assert!(vansoncraft_plugins::registry::get(b).is_some());
     h.state_mut().run("plugin.remove", json!({"id": b})).unwrap();
 }
 
@@ -472,7 +472,7 @@ fn a_key_held_on_the_install_approval_from_before_ok_took_input_approves_nothing
     for (n, key) in [egui::Key::Enter, egui::Key::Space].into_iter().enumerate() {
         let id = format!("test.ui.approval.key.{n}");
         let mut h = window(app());
-        let module = json!({"dataBase64": vectorcraft_format::base64_encode(&asking(&id, "Key", r#"["doc.read"]"#))});
+        let module = json!({"dataBase64": vansoncraft_format::base64_encode(&asking(&id, "Key", r#"["doc.read"]"#))});
         h.state_mut().run("ui.installPlugin", module).unwrap();
         at(&mut h, 10.0);
         at(&mut h, 10.0);
@@ -502,7 +502,7 @@ fn a_key_held_on_the_install_approval_from_before_ok_took_input_approves_nothing
 fn the_install_approval_waits_again_when_the_focus_leaves_and_comes_back_between_frames() {
     let id = "test.ui.approval.blink";
     let mut h = window(app());
-    let module = json!({"dataBase64": vectorcraft_format::base64_encode(&asking(id, "Blink", r#"["doc.read"]"#))});
+    let module = json!({"dataBase64": vansoncraft_format::base64_encode(&asking(id, "Blink", r#"["doc.read"]"#))});
     h.state_mut().run("ui.installPlugin", module).unwrap();
     at(&mut h, 10.0);
     at(&mut h, 10.0);
@@ -529,13 +529,13 @@ fn installing_a_plugin_over_another_module_asks_first() {
     let mut app = app();
     let id = "test.ui.replaces";
     let plain = |output: &str| wat::parse_str(tpl::returning(&format!(r#"{{"id":"{id}","name":"Plain","kind":"filter"}}"#), output)).unwrap();
-    let module = |wasm: &[u8]| json!({"dataBase64": vectorcraft_format::base64_encode(wasm)});
+    let module = |wasm: &[u8]| json!({"dataBase64": vansoncraft_format::base64_encode(wasm)});
     let takes_place = "This file is not the plug-in installed before with this ID. It gets the settings and cache kept for that ID.";
     app.run("ui.installPlugin", module(&plain(r#"{"objects":[]}"#))).unwrap();
     assert!(app.ui.dialog.is_none(), "nothing to take the place of");
 
     let other = plain(r#"{"objects":[],"error":null}"#);
-    let other_hash = vectorcraft_plugins::permissions::sha256_hex(&other);
+    let other_hash = vansoncraft_plugins::permissions::sha256_hex(&other);
     let r = app.run("ui.installPlugin", module(&other)).unwrap();
     assert_eq!(r, json!({"pending": dialogs::plugin::INSTALL_KIND}));
     let pending = app.pending_plugin_install.as_ref().unwrap();
@@ -546,11 +546,11 @@ fn installing_a_plugin_over_another_module_asks_first() {
     show_approval(&mut app);
     dialogs::confirm(&mut app).unwrap();
     assert!(app.ui.dialog.is_none());
-    assert_eq!(vectorcraft_plugins::registry::get(id).map(|p| p.hash().to_string()), Some(other_hash));
+    assert_eq!(vansoncraft_plugins::registry::get(id).map(|p| p.hash().to_string()), Some(other_hash));
 
     let manifest = format!(r#"{{"id":"{id}","name":"Heavy","kind":"filter","budget":"heavy"}}"#);
     let heavy = wat::parse_str(tpl::spinning(&manifest, 1, r#"{"objects":[]}"#)).unwrap();
-    let heavy_hash = vectorcraft_plugins::permissions::sha256_hex(&heavy);
+    let heavy_hash = vansoncraft_plugins::permissions::sha256_hex(&heavy);
     let r = app.run("ui.installPlugin", module(&heavy)).unwrap();
     assert_eq!(r["pending"], dialogs::plugin::INSTALL_KIND);
     let pending = app.pending_plugin_install.as_ref().unwrap();
@@ -558,7 +558,7 @@ fn installing_a_plugin_over_another_module_asks_first() {
     assert_eq!(pending.params["replace"], json!(true), "OK replaces the one installed");
     show_approval(&mut app);
     dialogs::confirm(&mut app).unwrap();
-    assert_eq!(vectorcraft_plugins::registry::get(id).map(|p| p.hash().to_string()), Some(heavy_hash));
+    assert_eq!(vansoncraft_plugins::registry::get(id).map(|p| p.hash().to_string()), Some(heavy_hash));
     app.run("plugin.remove", json!({"id": id})).unwrap();
 }
 
@@ -573,7 +573,7 @@ fn commands_plugin(id: &str) -> Vec<u8> {
     wat::parse_str(tpl::when_given(&manifest, tpl::Given::Params, r#""command":"grow""#, triangle)).unwrap()
 }
 
-fn objects(app: &VectorcraftApp) -> usize {
+fn objects(app: &VansoncraftApp) -> usize {
     app.session.doc().unwrap().doc.layers.iter().map(|l| l.children().map_or(0, |c| c.len())).sum()
 }
 
@@ -585,7 +585,7 @@ fn plugin_commands_are_menu_items_and_shortcut_entries() {
     let mut app = app();
     let id = "test.ui.cmds";
     let (grow, size) = ("plugin.test.ui.cmds.grow", "plugin.test.ui.cmds.size");
-    app.run("plugin.install", json!({"dataBase64": vectorcraft_format::base64_encode(&commands_plugin(id))})).unwrap();
+    app.run("plugin.install", json!({"dataBase64": vansoncraft_format::base64_encode(&commands_plugin(id))})).unwrap();
     let entries = menus::menu_entries(&app);
     let under = ["Object", "Plug-ins", "Cmd Test"];
     let item = entry(&entries, &under, "Grow").expect("Grow is listed");
@@ -624,8 +624,8 @@ fn plugin_commands_are_menu_items_and_shortcut_entries() {
 fn a_shortcut_runs_a_plugin_command() {
     let mut app = app();
     let id = "test.ui.cmds.keys";
-    let grow = vectorcraft_engine::cmd::plugin::command_id(id, "grow");
-    app.run("plugin.install", json!({"dataBase64": vectorcraft_format::base64_encode(&commands_plugin(id))})).unwrap();
+    let grow = vansoncraft_engine::cmd::plugin::command_id(id, "grow");
+    app.run("plugin.install", json!({"dataBase64": vansoncraft_format::base64_encode(&commands_plugin(id))})).unwrap();
     crate::keymap::set_override(&mut app.ui.shortcut_overrides, &grow, "Cmd+Alt+Shift+F9");
     crate::shortcut_editor::sync(&app.ui);
     assert_eq!(crate::shortcut_editor::command_for_key("Cmd+Alt+Shift+F9"), Some(grow.as_str()));
@@ -656,23 +656,23 @@ fn ui_install_plugin_takes_no_grant_or_heavy_budget_from_its_params() {
     let id = "test.ui.approval.params";
     let manifest = format!(r#"{{"id":"{id}","name":"Asks","kind":"filter","permissions":["doc.read"]}}"#);
     let asks = wat::parse_str(tpl::returning(&manifest, r#"{"objects":[]}"#)).unwrap();
-    let given = |wasm: &[u8]| json!({"dataBase64": vectorcraft_format::base64_encode(wasm), "grant": ["doc.read", "doc.write"], "allowHeavy": true});
+    let given = |wasm: &[u8]| json!({"dataBase64": vansoncraft_format::base64_encode(wasm), "grant": ["doc.read", "doc.write"], "allowHeavy": true});
     let r = app.run("ui.installPlugin", given(&asks)).unwrap();
     assert_eq!(r["pending"], dialogs::plugin::INSTALL_KIND);
-    assert!(vectorcraft_plugins::registry::get(id).is_none() && vectorcraft_plugins::registry::granted(id).is_none());
+    assert!(vansoncraft_plugins::registry::get(id).is_none() && vansoncraft_plugins::registry::granted(id).is_none());
     let pending = app.pending_plugin_install.as_ref().unwrap();
     assert_eq!(pending.approval.permissions, ["doc.read"], "the permissions the manifest lists");
     assert_eq!(pending.params["grant"], json!(["doc.read"]));
     assert!(!pending.approval.heavy && pending.params.get("allowHeavy").is_none(), "no heavy budget was asked about");
     dialogs::cancel(&mut app);
-    assert!(vectorcraft_plugins::registry::get(id).is_none());
+    assert!(vansoncraft_plugins::registry::get(id).is_none());
 
     let heavy_id = "test.ui.approval.params.heavy";
     let manifest = format!(r#"{{"id":"{heavy_id}","name":"Heavy","kind":"filter","budget":"heavy"}}"#);
     let heavy = wat::parse_str(tpl::spinning(&manifest, 1, r#"{"objects":[]}"#)).unwrap();
     let r = app.run("ui.installPlugin", given(&heavy)).unwrap();
     assert_eq!(r["pending"], dialogs::plugin::INSTALL_KIND, "allowHeavy skips no question");
-    assert!(vectorcraft_plugins::registry::get(heavy_id).is_none());
+    assert!(vansoncraft_plugins::registry::get(heavy_id).is_none());
     dialogs::cancel(&mut app);
 
     let plain_id = "test.ui.approval.params.plain";
@@ -680,8 +680,8 @@ fn ui_install_plugin_takes_no_grant_or_heavy_budget_from_its_params() {
     let plain = wat::parse_str(tpl::returning(&manifest, r#"{"objects":[]}"#)).unwrap();
     let r = app.run("ui.installPlugin", given(&plain)).unwrap();
     assert!(r.get("pending").is_none() && app.ui.dialog.is_none(), "{r}");
-    assert!(vectorcraft_plugins::registry::get(plain_id).is_some());
-    assert!(vectorcraft_plugins::registry::granted(plain_id).is_none(), "the grant it was given isn't recorded");
+    assert!(vansoncraft_plugins::registry::get(plain_id).is_some());
+    assert!(vansoncraft_plugins::registry::granted(plain_id).is_none(), "the grant it was given isn't recorded");
     app.run("plugin.remove", json!({"id": plain_id})).unwrap();
 }
 
@@ -694,13 +694,13 @@ fn an_action_step_cannot_grant_a_plugin_its_permissions() {
     let id = "test.ui.approval.action";
     let manifest = format!(r#"{{"id":"{id}","name":"Asks","kind":"filter","permissions":["doc.read"]}}"#);
     let wasm = wat::parse_str(tpl::returning(&manifest, r#"{"objects":[]}"#)).unwrap();
-    let step = json!({"dataBase64": vectorcraft_format::base64_encode(&wasm), "grant": ["doc.read"]});
+    let step = json!({"dataBase64": vansoncraft_format::base64_encode(&wasm), "grant": ["doc.read"]});
     app.ui.action_sets = vec![ActionSet::new("Test", vec![Action::new("Install", vec![("plugin.install".into(), step)])])];
     for speed in [PlaybackSpeed::Accelerated, PlaybackSpeed::Step] {
         app.ui.action_playback.speed = speed;
         let e = play(&mut app, 0, 0).unwrap_err();
         assert!(e.contains("take effect only in a session started with --allow-plugin-grants"), "{e}");
-        assert!(vectorcraft_plugins::registry::get(id).is_none() && vectorcraft_plugins::registry::granted(id).is_none());
+        assert!(vansoncraft_plugins::registry::get(id).is_none() && vansoncraft_plugins::registry::granted(id).is_none());
     }
 }
 
@@ -711,12 +711,12 @@ fn installing_a_plugin_that_reports_progress_says_so() {
     let id = "test.ui.permissions.progress";
     let manifest = format!(r#"{{"id":"{id}","name":"Count","kind":"filter","api":2,"permissions":["doc.read","progress"]}}"#);
     let bytes = wat::parse_str(tpl::reporting(&manifest, "(call $vc_progress (i64.const 1) (i64.const 2))", r#"{"objects":[]}"#)).unwrap();
-    let r = app.run("ui.installPlugin", json!({"dataBase64": vectorcraft_format::base64_encode(&bytes)})).unwrap();
+    let r = app.run("ui.installPlugin", json!({"dataBase64": vansoncraft_format::base64_encode(&bytes)})).unwrap();
     assert_eq!(r["pending"], dialogs::plugin::INSTALL_KIND);
     let detail = app.pending_plugin_install.as_ref().unwrap().detail.clone();
     assert!(detail.ends_with("• Read the objects it is given\n• Show its progress, see Cancel and write log lines"), "{detail}");
     show_approval(&mut app);
     dialogs::confirm(&mut app).unwrap();
-    assert_eq!(vectorcraft_plugins::registry::granted(id).map(|g| g.permissions.len()), Some(2));
+    assert_eq!(vansoncraft_plugins::registry::granted(id).map(|g| g.permissions.len()), Some(2));
     app.run("plugin.remove", json!({"id": id})).unwrap();
 }

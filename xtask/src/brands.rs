@@ -1,6 +1,8 @@
-//! `cargo xtask brands`: no other vendor's product or company names in what users and agents read.
+//! `cargo xtask brands`: no other vendor's product or company names in what users and agents read,
+//! and none of the names of the project VansonCraft is based on (VectorCraft, formerly DrawCraft,
+//! by the ArtCraft team): VansonCraft is an independent app and must not present itself as theirs.
 //!
-//! VectorCraft names its own features; where a comparison is needed, text says "the reference
+//! VansonCraft names its own features; where a comparison is needed, text says "the reference
 //! app". Scanned:
 //! * string literals in Rust sources (command labels and params docs, `UI_COMMANDS`, menus, panels,
 //!   MCP tool definitions…). Comments and test code (`tests*.rs`, `*_tests.rs`, `tests/` and
@@ -10,9 +12,10 @@
 //! * every text file under `packaging/`, and under `docs/` except Markdown pages: Markdown docs
 //!   (like `README.md` and `ROADMAP.md`) may name the reference app and compare against it.
 //!
-//! A line that has to keep an old name (an alias that old files or preferences still use) or a
-//! name another project defines (a shared MIME type) says `brand-ok` in a comment on that line or,
-//! in a file listed in `MARK_ABOVE`, on a `#` comment line just above it.
+//! A line that has to keep an old name (an alias that old files or preferences still use, the
+//! plain-text attribution the upstream licence asks for) or a name another project defines (a
+//! shared MIME type) says `brand-ok` in a comment on that line or, in a file listed in
+//! `MARK_ABOVE`, on a `#` comment line just above it.
 
 use std::path::Path;
 
@@ -32,6 +35,13 @@ const DENY: &[&str] = &[
     "myriad",
     "pantone",
     "aicb",
+    // The upstream project's names (see the module docs): not this app's.
+    "vectorcraft",
+    "drawcraft",
+    "artcraft",
+    "getartcraft",
+    "storyteller",
+    "storytold",
 ];
 
 /// Marks a line that keeps a legacy name on purpose.
@@ -45,7 +55,7 @@ const CURSOR_MANIFEST: &str = "crates/tools/src/cursors.toml";
 
 /// Packaging files whose comments take whole lines (a desktop entry has no end-of-line comments):
 /// in these, a `#` line marked `brand-ok` also covers the line just below it.
-const MARK_ABOVE: &[&str] = &["packaging/linux/ai.storyteller.vectorcraft.desktop"];
+const MARK_ABOVE: &[&str] = &["packaging/linux/io.github.vansyson1308.vansoncraft.desktop"];
 
 /// A denied name found in a file.
 #[derive(Debug, PartialEq)]
@@ -368,7 +378,7 @@ line Pantone"; }
         assert_eq!(kind_of("crates/engine/tests/command_sweep.rs"), None);
         assert_eq!(kind_of(SELF), None);
         assert_eq!(kind_of("crates/ui-egui/Cargo.toml"), Some(Kind::Manifest));
-        assert_eq!(kind_of("docs/brand/LICENSE-brand.txt"), Some(Kind::Text));
+        assert_eq!(kind_of("docs/images/README.txt"), Some(Kind::Text));
         assert_eq!(kind_of("packaging/linux/nfpm.yaml"), Some(Kind::Text));
         assert_eq!(kind_of(CURSOR_MANIFEST), Some(Kind::Text));
         for skipped in ["README.md", "ROADMAP.md", "CLAUDE.md", "AGENTS.md", ".github/workflows/release.yml", "ASSETS.md", "docs/mcp.md"] {

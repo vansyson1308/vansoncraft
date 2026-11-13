@@ -1,11 +1,11 @@
-//! Ruler guides in `.vectorcraft` files of every version: the saved `guides` list becomes ruler
+//! Ruler guides in `.vansoncraft` files of every version: the saved `guides` list becomes ruler
 //! guide nodes on their layers when a file opens, and is written back as the same list.
 
 use serde::Deserialize;
 use serde_json::{Value, json};
-use vectorcraft_doc::{Document, LayerColor, Node, NodeId};
-use vectorcraft_format::{MIN_VERSION, SaveOptions, VERSION, load, save_with};
-use vectorcraft_testkit::fixtures;
+use vansoncraft_doc::{Document, LayerColor, Node, NodeId};
+use vansoncraft_format::{MIN_VERSION, SaveOptions, VERSION, load, save_with};
+use vansoncraft_testkit::fixtures;
 
 fn json_of(bytes: &[u8]) -> Value {
     serde_json::from_slice(bytes).unwrap()
@@ -119,13 +119,13 @@ struct OldGuide {
 #[test]
 fn an_older_guide_entry_reads_the_saved_guides() {
     let (mut d, bottom, sub, _, board) = doc();
-    let mut g = vectorcraft_doc::Guide::new(true, 15.0);
+    let mut g = vansoncraft_doc::Guide::new(true, 15.0);
     g.layer = Some(sub);
     g.name = Some("Fold".into());
     g.locked = true;
     g.hidden = true;
     d.add_ruler_guide(&g);
-    d.add_ruler_guide(&vectorcraft_doc::Guide { layer: Some(bottom), artboard: Some(board), ..vectorcraft_doc::Guide::new(false, 25.0) });
+    d.add_ruler_guide(&vansoncraft_doc::Guide { layer: Some(bottom), artboard: Some(board), ..vansoncraft_doc::Guide::new(false, 25.0) });
     for version in MIN_VERSION..=VERSION {
         let v = json_of(&save_v(&d, version));
         let entries = v["document"]["guides"].as_array().unwrap();

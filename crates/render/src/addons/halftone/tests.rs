@@ -2,10 +2,10 @@
 //! change, and refused past the caps.
 
 use serde_json::{Value, json};
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::{Appearance, Document, Effect, Node};
-use vectorcraft_effects::addons::halftone::HALFTONE;
-use vectorcraft_geom::{Affine, Rect, shapes};
+use vansoncraft_color::{Color, Paint};
+use vansoncraft_doc::{Appearance, Document, Effect, Node};
+use vansoncraft_effects::addons::halftone::HALFTONE;
+use vansoncraft_geom::{Affine, Rect, shapes};
 
 use super::{SAMPLED, art};
 use crate::{RenderOptions, Renderer};

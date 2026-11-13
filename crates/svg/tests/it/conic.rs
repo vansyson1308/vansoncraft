@@ -3,11 +3,11 @@
 //! image, with a warning; read back, the SVG looks as the canvas paints the gradient, its seam
 //! still sharp.
 
-use vectorcraft_color::{Color, Gradient, GradientGeom, GradientKind, GradientMethod, GradientPaint, GradientStop, Paint};
-use vectorcraft_doc::{Appearance, Document, Node, NodeId};
-use vectorcraft_geom::{Point, Rect, shapes};
-use vectorcraft_svg::{ExportOptions, export_full, import};
-use vectorcraft_testkit::raster::{assert_similar, render_artboard};
+use vansoncraft_color::{Color, Gradient, GradientGeom, GradientKind, GradientMethod, GradientPaint, GradientStop, Paint};
+use vansoncraft_doc::{Appearance, Document, Node, NodeId};
+use vansoncraft_geom::{Point, Rect, shapes};
+use vansoncraft_svg::{ExportOptions, export_full, import};
+use vansoncraft_testkit::raster::{assert_similar, render_artboard};
 
 /// `gradient` (white to black when `None`), sweeping clockwise from the right around (100, 80).
 fn conic(gradient: Option<Gradient>) -> Paint {
@@ -75,7 +75,7 @@ fn a_conic_that_wedges_cannot_draw_is_an_image() {
 /// warning.
 #[test]
 fn a_conic_on_characters_is_written_linear() {
-    use vectorcraft_doc::{CharStyle, NodeKind, TextObject};
+    use vansoncraft_doc::{CharStyle, NodeKind, TextObject};
     let st = CharStyle { fill: conic(None), size: 48.0, ..CharStyle::default() };
     let d = doc_with(Node::new(NodeId(0), NodeKind::Text(Box::new(TextObject::point(Point::new(20.0, 80.0), "Sweep", st)))));
     let o = export_full(&d, &ExportOptions::default(), None);

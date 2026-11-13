@@ -63,11 +63,11 @@ impl Reuse {
         let pattern = |p: &Paint| matches!(p, Paint::Pattern { .. });
         let text_patterns = matches!(&n.kind, NodeKind::Text(t) if t.runs.iter().any(|r| pattern(&r.style.fill) || pattern(&r.style.stroke)));
         let unlinked_mask = n.extras().mask.as_ref().is_some_and(|m| !m.linked);
-        if depth > MAX_SYMBOL_NEST || text_patterns || unlinked_mask || vectorcraft_doc::pattern::uses_pattern(n, None) {
+        if depth > MAX_SYMBOL_NEST || text_patterns || unlinked_mask || vansoncraft_doc::pattern::uses_pattern(n, None) {
             *self = Self::NONE;
             return;
         }
-        let effects = |fx: &[vectorcraft_doc::Effect]| fx.iter().any(|e| e.visible);
+        let effects = |fx: &[vansoncraft_doc::Effect]| fx.iter().any(|e| e.visible);
         if effects(&n.appearance.effects) || n.appearance.items.iter().any(|i| effects(i.effects())) {
             (self.turns, self.scales) = (false, false);
         }
@@ -121,7 +121,7 @@ impl Reuse {
     }
 }
 
-/// Are `children` the pieces of a raster mesh warp ([`vectorcraft_doc::live::mesh_warp_image`]):
+/// Are `children` the pieces of a raster mesh warp ([`vansoncraft_doc::live::mesh_warp_image`]):
 /// more than one, each a clip group of a triangle and one and the same image?
 fn image_pieces(children: &[std::sync::Arc<Node>]) -> bool {
     let mut first: Option<(&str, u32, u32)> = None;
@@ -140,7 +140,7 @@ fn image_pieces(children: &[std::sync::Arc<Node>]) -> bool {
 /// leaves on the page by `m` first, so it stays there. That is every pattern paint's placement
 /// and the art of unlinked opacity masks.
 fn pin_to_page(n: &mut Node, m: Affine) {
-    vectorcraft_doc::pattern::transform_pattern_paints(n, m);
+    vansoncraft_doc::pattern::transform_pattern_paints(n, m);
     if let Some(mask) = n.extras_if_any().and_then(|e| e.mask.as_deref_mut()) {
         let linked = mask.linked;
         let art = std::sync::Arc::make_mut(&mut mask.art);
@@ -170,7 +170,7 @@ pub(super) const MASK: &str = "maskUnits=\"userSpaceOnUse\" color-interpolation=
 
 /// Attribute of an exported opacity mask listing its options that differ from the defaults
 /// (clipping, not inverted): `noclip`, `invert`.
-pub(crate) const MASK_FLAGS: &str = "data-vectorcraft-mask";
+pub(crate) const MASK_FLAGS: &str = "data-vansoncraft-mask";
 
 impl Writer<'_> {
     /// Paint a shape (`d`) with a node's appearance stack. `paths` is the same shape in document
@@ -279,7 +279,7 @@ impl Writer<'_> {
                             p.extend(opacity);
                             p.extend(blend);
                             let reach =
-                                if outline.elements().is_empty() { b } else { b.union(vectorcraft_geom::kurbo::Shape::bounding_box(&outline)) };
+                                if outline.elements().is_empty() { b } else { b.union(vansoncraft_geom::kurbo::Shape::bounding_box(&outline)) };
                             self.raster_paint(g, b, reach, &[clip], FillRule::NonZero, &p, &side, false);
                         }
                         (WrittenShape::Fill(outlines), Some((g, b))) if s.path_gradient().is_none() => {
@@ -289,7 +289,7 @@ impl Writer<'_> {
                             let reach = outlines
                                 .iter()
                                 .filter(|o| !o.elements().is_empty())
-                                .fold(b, |r, o| r.union(vectorcraft_geom::kurbo::Shape::bounding_box(o)));
+                                .fold(b, |r, o| r.union(vansoncraft_geom::kurbo::Shape::bounding_box(o)));
                             self.raster_paint(g, b, reach, &clip, FillRule::NonZero, &p, &side, false);
                         }
                         (WrittenShape::Stroke { width }, _) => {
@@ -370,7 +370,7 @@ impl Writer<'_> {
 
     /// An object with an opacity mask: `<g mask="url(#…)">` around the unmasked object. The mask
     /// art goes in `<defs>`; no-clip adds a white backdrop and invert a colour-inverting filter.
-    fn masked(&mut self, n: &Node, m: &vectorcraft_doc::OpacityMask) {
+    fn masked(&mut self, n: &Node, m: &vansoncraft_doc::OpacityMask) {
         if self.tiny() {
             self.warn(TINY_MASKS);
             let mut bare = n.clone();
@@ -444,7 +444,7 @@ impl Writer<'_> {
     }
 
     /// [`Self::region_attrs`] with the document's symbol boxes and the symbols' art reach so far.
-    fn region_of(&self, symbols: &vectorcraft_doc::SymbolBoxes, art_reach: &mut HashMap<String, f64>, nodes: &[&Node]) -> String {
+    fn region_of(&self, symbols: &vansoncraft_doc::SymbolBoxes, art_reach: &mut HashMap<String, f64>, nodes: &[&Node]) -> String {
         let mut painted: Option<Rect> = None;
         for n in nodes {
             let Some(v) = n.visual_bounds_with(symbols) else { continue };
@@ -475,27 +475,27 @@ impl Writer<'_> {
     /// type, or nest deeper than [`MAX_REACH_DEPTH`].
     fn paint_reach(
         &self,
-        symbols: &vectorcraft_doc::SymbolBoxes,
+        symbols: &vansoncraft_doc::SymbolBoxes,
         art_reach: &mut HashMap<String, f64>,
         n: &Node,
         b: Rect,
         depth: u32,
     ) -> Option<f64> {
-        use vectorcraft_effects::RasterFx;
+        use vansoncraft_effects::RasterFx;
         // Type draws past its measured box in a reader's own font.
         if matches!(n.kind, NodeKind::Text(_)) {
             return None;
         }
         // An Outer Glow's silhouette grows by a quarter of a pixel of the document's raster grid first.
         let grow = 18.0 / self.doc.raster_ppi();
-        let reach = |effects: &[vectorcraft_doc::Effect]| -> f64 {
-            vectorcraft_effects::raster_effects(effects)
+        let reach = |effects: &[vansoncraft_doc::Effect]| -> f64 {
+            vansoncraft_effects::raster_effects(effects)
                 .iter()
                 .map(|f| f.outset(b) + if matches!(f, RasterFx::OuterGlow { .. }) { grow } else { 0.0 })
                 .sum()
         };
         let items = n.appearance.items.iter().map(|i| reach(i.effects())).fold(0.0, f64::max);
-        let brush = if vectorcraft_brush::has_brush(n) {
+        let brush = if vansoncraft_brush::has_brush(n) {
             let w =
                 n.appearance.items.iter().filter_map(|i| if let AppearanceItem::Stroke(s) = i { Some(s.width) } else { None }).fold(1.0, f64::max);
             16.0 * w + 8.0
@@ -503,11 +503,11 @@ impl Writer<'_> {
             0.0
         };
         let own = reach(&n.appearance.effects) + items + brush;
-        if vectorcraft_doc::live::is_live(n) {
+        if vansoncraft_doc::live::is_live(n) {
             if depth >= MAX_REACH_DEPTH {
                 return None;
             }
-            let g = vectorcraft_effects::expand_live_deep(Some(self.doc), n);
+            let g = vansoncraft_effects::expand_live_deep(Some(self.doc), n);
             let Some(gb) = g.visual_bounds_with(symbols) else { return Some(own) };
             let past = [b.x0 - gb.x0, b.y0 - gb.y0, gb.x1 - b.x1, gb.y1 - b.y1].into_iter().fold(0.0, f64::max);
             return Some(own + past + self.paint_reach(symbols, art_reach, &g, gb, depth + 1)?);
@@ -711,7 +711,7 @@ impl Writer<'_> {
                 self.def(1, &format!("<clipPath id=\"{cid}\">"));
                 // The region every output clips to; with nothing to clip by, an empty clip path
                 // hides the clipped art.
-                if let Some((bp, rule)) = vectorcraft_effects::clip_outline(clip) {
+                if let Some((bp, rule)) = vansoncraft_effects::clip_outline(clip) {
                     let d = self.path_d(&PathData::from_bezpath(&bp), self.xf);
                     let r = if rule == FillRule::EvenOdd { " clip-rule=\"evenodd\"" } else { "" };
                     self.def(2, &format!("<path d=\"{d}\"{r}/>"));
@@ -815,9 +815,9 @@ impl Writer<'_> {
                 // the export holds at most `MAX_SYMBOL_NODES` objects: an instance that would take
                 // it past that is left out, as the canvas leaves it out.
                 if let Some(map) = doc.symbol_slice_map(symbol, self.xf * *xf).filter(|_| !inline) {
-                    let art = vectorcraft_brush::instance_art(&sym.art, n);
+                    let art = vansoncraft_brush::instance_art(&sym.art, n);
                     let most = map.most_placed(&art, doc);
-                    let Some(art) = vectorcraft_doc::charge_symbol_art(&mut self.symbol_nodes, most, || {
+                    let Some(art) = vansoncraft_doc::charge_symbol_art(&mut self.symbol_nodes, most, || {
                         let a = map.place(&art, doc);
                         let c = a.count_with_masks() as u64;
                         (a, c)
@@ -846,7 +846,7 @@ impl Writer<'_> {
                 }
                 // An instance of its own: the (stained) art moved by the instance, its pattern
                 // paints and unlinked masks left in place as on the canvas.
-                let mut art = vectorcraft_brush::instance_art(&sym.art, n);
+                let mut art = vansoncraft_brush::instance_art(&sym.art, n);
                 let moved = self.instance_xf * *xf;
                 if moved.determinant().abs() > 1e-12 {
                     pin_to_page(&mut art, moved.inverse());
@@ -873,7 +873,7 @@ impl Writer<'_> {
             | NodeKind::Repeat(_)
             | NodeKind::PlacedDocument(_)
             | NodeKind::Intertwine { .. } => {
-                let g = vectorcraft_effects::expand_live_deep(Some(self.doc), n);
+                let g = vansoncraft_effects::expand_live_deep(Some(self.doc), n);
                 self.share_images(&g);
                 self.node_body(&g);
             }
@@ -883,9 +883,9 @@ impl Writer<'_> {
     /// The id of the `<symbol>` def instance `inst` (transform `xf`) can `<use>`, written on first
     /// use. `None` when the instance needs its own copy of the art: stained by its fill, or moved
     /// by a transform under which the def would not look as the canvas paints it ([`Reuse`]).
-    fn symbol_use(&mut self, sym: &vectorcraft_doc::Symbol, inst: &Node, xf: Affine) -> Option<String> {
+    fn symbol_use(&mut self, sym: &vansoncraft_doc::Symbol, inst: &Node, xf: Affine) -> Option<String> {
         // SVG Tiny has no `<symbol>`.
-        if self.tiny() || vectorcraft_brush::stain(inst).is_some() || !inst.extras().symbol_overrides.is_empty() {
+        if self.tiny() || vansoncraft_brush::stain(inst).is_some() || !inst.extras().symbol_overrides.is_empty() {
             return None;
         }
         if !self.symbols.contains_key(&sym.name) {
@@ -900,7 +900,7 @@ impl Writer<'_> {
         // the instance's own art, which leaves out the instances that don't fit.
         if let Some(id) = def.id.clone() {
             let nodes = def.nodes;
-            if nodes > 0 && vectorcraft_doc::charge_symbol_art(&mut self.symbol_nodes, nodes, || ((), nodes)).is_none() {
+            if nodes > 0 && vansoncraft_doc::charge_symbol_art(&mut self.symbol_nodes, nodes, || ((), nodes)).is_none() {
                 return None;
             }
             return Some(id);
@@ -947,7 +947,7 @@ pub(super) fn doc_path(paths: &[&PathData]) -> BezPath {
 /// Does `n` paint opaquely wherever it paints (no transparency, blending, masks or effects in
 /// it)? Anything this can't tell is taken as not.
 fn paints_opaque(n: &Node) -> bool {
-    use vectorcraft_doc::{AppearanceItem, NodeKind};
+    use vansoncraft_doc::{AppearanceItem, NodeKind};
     let paint = |p: &Paint| match p {
         Paint::None | Paint::Solid { .. } => true,
         Paint::Gradient(g) => g.gradient.stops.iter().all(|s| s.opacity >= 1.0),

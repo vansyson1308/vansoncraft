@@ -5,9 +5,9 @@ use std::collections::HashSet;
 use std::rc::Rc;
 use std::sync::{Arc, OnceLock};
 
-use vectorcraft_geom::hit::{fill_contains, stroke_contains};
-use vectorcraft_geom::kurbo::ParamCurveNearest;
-use vectorcraft_geom::{BezPath, FillRule, PathData, PathSeg, Point, Rect};
+use vansoncraft_geom::hit::{fill_contains, stroke_contains};
+use vansoncraft_geom::kurbo::ParamCurveNearest;
+use vansoncraft_geom::{BezPath, FillRule, PathData, PathSeg, Point, Rect};
 
 use crate::{AppearanceItem, Document, Node, NodeId, NodeKind, StrokeAlign, SymbolBoxes};
 
@@ -134,8 +134,8 @@ struct EvaluatedLive {
     node: Node,
     symbols: Vec<(String, Arc<Node>)>,
     patterns: Vec<crate::PatternDef>,
-    swatches: crate::Shared<Vec<vectorcraft_color::Swatch>>,
-    swatch_groups: crate::Shared<Vec<vectorcraft_color::SwatchGroup>>,
+    swatches: crate::Shared<Vec<vansoncraft_color::Swatch>>,
+    swatch_groups: crate::Shared<Vec<vansoncraft_color::SwatchGroup>>,
     inputs: u64,
     art: Rc<Vec<Node>>,
     size: usize,
@@ -569,10 +569,10 @@ fn clip_contains(clip: &Node, p: Point) -> bool {
 
 /// The regions `clip` clips to ([`Node::clip_shapes`]), text counted by its frame as in
 /// [`clip_contains`].
-fn clip_regions(clip: &Node) -> Vec<(vectorcraft_geom::BezPath, vectorcraft_geom::FillRule)> {
+fn clip_regions(clip: &Node) -> Vec<(vansoncraft_geom::BezPath, vansoncraft_geom::FillRule)> {
     let frame = |n: &Node| {
         let b = n.geometric_bounds()?;
-        Some(Node::path(n.id, vectorcraft_geom::shapes::rectangle(b), Default::default()))
+        Some(Node::path(n.id, vansoncraft_geom::shapes::rectangle(b), Default::default()))
     };
     clip.clip_shapes(Some(&frame))
 }
@@ -604,12 +604,12 @@ fn may_hit(parent: &Node, i: usize, c: &Node, p: Point, opt: HitOptions, symbols
 /// members takes milliseconds to do on every click and hover. The box only rules points out, and it
 /// is at least as large, so the same objects are hit.
 ///
-/// [`PathData::control_bounds`]: vectorcraft_geom::PathData::control_bounds
+/// [`PathData::control_bounds`]: vansoncraft_geom::PathData::control_bounds
 fn cull_reach(c: &Node, symbols: &SymbolBoxes) -> Option<Rect> {
     let control = match &c.kind {
         NodeKind::Path { path, .. } => path.control_bounds(),
         NodeKind::Compound { children, .. } if children.iter().all(|m| m.path_data().is_some()) => {
-            children.iter().filter_map(|m| m.path_data().and_then(vectorcraft_geom::PathData::control_bounds)).reduce(|a, b| a.union(b))
+            children.iter().filter_map(|m| m.path_data().and_then(vansoncraft_geom::PathData::control_bounds)).reduce(|a, b| a.union(b))
         }
         _ => return c.reach_bounds_with(symbols),
     };
@@ -621,9 +621,9 @@ fn cull_reach(c: &Node, symbols: &SymbolBoxes) -> Option<Rect> {
 /// path: those whose control points' box, grown by `tol`, holds `p` (edges included). A member
 /// outside that box is farther than `tol` from `p` and winds zero times round it, so this path's
 /// outline and fill answer a click as the whole compound path's do, without assembling it.
-fn compound_members_near(children: &[std::sync::Arc<Node>], p: Point, tol: f64) -> vectorcraft_geom::BezPath {
+fn compound_members_near(children: &[std::sync::Arc<Node>], p: Point, tol: f64) -> vansoncraft_geom::BezPath {
     let near = |b: Rect| b.x0 - tol <= p.x && p.x <= b.x1 + tol && b.y0 - tol <= p.y && p.y <= b.y1 + tol;
-    let mut bp = vectorcraft_geom::BezPath::new();
+    let mut bp = vansoncraft_geom::BezPath::new();
     for pd in children.iter().filter_map(|m| m.path_data()) {
         if pd.control_bounds().is_some_and(near) {
             bp.extend(pd.to_bezpath());
@@ -745,7 +745,7 @@ fn hit_order<'a>(parent: &Node, children: &'a [std::sync::Arc<Node>], p: Point) 
 /// A click on the strokes of a path or compound path `n` along `bp`: what any visible stroke
 /// paints there (arrowheads, alignment, width profile, projecting caps, miter spikes), else its
 /// outline within the tolerance. Outline mode hits the outline only.
-fn hit_stroke(n: &Node, bp: &vectorcraft_geom::BezPath, rule: vectorcraft_geom::FillRule, p: Point, opt: HitOptions) -> Option<HitKind> {
+fn hit_stroke(n: &Node, bp: &vansoncraft_geom::BezPath, rule: vansoncraft_geom::FillRule, p: Point, opt: HitOptions) -> Option<HitKind> {
     if !opt.outline && n.appearance.stroke_hit(bp, rule, p, opt.tol) {
         return Some(HitKind::Stroke);
     }
@@ -775,9 +775,9 @@ fn near_path_body(path: &PathData, p: Point, radius: f64, decoration_reach: f64)
             {
                 continue;
             }
-            let seg = if sp.segment_is_line(i) { PathSeg::Line(vectorcraft_geom::kurbo::Line::new(c.p0, c.p3)) } else { PathSeg::Cubic(c) };
+            let seg = if sp.segment_is_line(i) { PathSeg::Line(vansoncraft_geom::kurbo::Line::new(c.p0, c.p3)) } else { PathSeg::Cubic(c) };
             if seg.nearest(p, 1e-9).distance_sq <= radius_sq {
-                if vectorcraft_geom::bez::has_length(&seg) {
+                if vansoncraft_geom::bez::has_length(&seg) {
                     return Some((true, near_decoration));
                 }
                 // A zero-length segment can still hit as an outline, though a painted stroke
@@ -864,7 +864,7 @@ fn hit_leaf(n: &Node, p: Point, opt: HitOptions, symbols: &SymbolBoxes) -> Optio
             // `stroke_contains`'s box check: the box of the members near `p` is smaller than the
             // whole path's, and its far edges would turn away points exactly `tol` away.)
             let near = compound_members_near(children, p, opt.tol);
-            if vectorcraft_geom::hit::distance_to_outline(&near, p) <= opt.tol {
+            if vansoncraft_geom::hit::distance_to_outline(&near, p) <= opt.tol {
                 return Some(HitKind::Outline);
             }
             (!opt.outline && !opt.path_only && fill_contains(&near, *rule, p)).then_some(HitKind::Fill)
@@ -879,7 +879,7 @@ fn hit_leaf(n: &Node, p: Point, opt: HitOptions, symbols: &SymbolBoxes) -> Optio
         // own fills and strokes paint ([`image_paint`]) except in outline mode.
         NodeKind::Image(im) => {
             if opt.path_only || (opt.outline && !symbols.document().setup.outline_images) {
-                use vectorcraft_geom::kurbo::Shape;
+                use vansoncraft_geom::kurbo::Shape;
                 let mut frame = Rect::new(0.0, 0.0, f64::from(im.width), f64::from(im.height)).to_path(0.1);
                 frame.apply_affine(im.xf);
                 if stroke_contains(&frame, 0.0, opt.tol, p) {
@@ -918,7 +918,7 @@ fn hit_leaf(n: &Node, p: Point, opt: HitOptions, symbols: &SymbolBoxes) -> Optio
             if opt.outline {
                 return stroke_contains(&m.lines().to_bezpath(), 0.0, opt.tol, p).then_some(HitKind::Outline);
             }
-            (!opt.path_only && fill_contains(&bp, vectorcraft_geom::FillRule::NonZero, p)).then_some(HitKind::Fill)
+            (!opt.path_only && fill_contains(&bp, vansoncraft_geom::FillRule::NonZero, p)).then_some(HitKind::Fill)
         }
         _ => None,
     }
@@ -929,11 +929,11 @@ fn hit_leaf(n: &Node, p: Point, opt: HitOptions, symbols: &SymbolBoxes) -> Optio
 /// type on a path's path, drawn through `n`'s perspective projection if it has one.
 fn on_type_path(n: &Node, t: &crate::TextObject, p: Point, tol: f64) -> bool {
     use crate::TextKind;
-    use vectorcraft_geom::kurbo::ParamCurveNearest;
+    use vansoncraft_geom::kurbo::ParamCurveNearest;
     let h = n.projection();
     let project = |q: Point| h.as_ref().and_then(|h| h.apply(q)).unwrap_or(q);
     // A homography keeps straight lines straight: a baseline's ends are enough.
-    let near = |(a, b): (Point, Point)| vectorcraft_geom::Line::new(project(t.xf * a), project(t.xf * b)).nearest(p, 1e-9).distance_sq <= tol * tol;
+    let near = |(a, b): (Point, Point)| vansoncraft_geom::Line::new(project(t.xf * a), project(t.xf * b)).nearest(p, 1e-9).distance_sq <= tol * tol;
     if t.baselines().any(near) {
         return true;
     }
@@ -977,7 +977,7 @@ fn hit_any(n: &Node, p: Point, opt: HitOptions, symbols: &SymbolBoxes) -> Option
 struct InstanceArt {
     art: Node,
     map: Option<crate::NineSliceMap>,
-    xf: vectorcraft_geom::Affine,
+    xf: vansoncraft_geom::Affine,
 }
 
 impl InstanceArt {
@@ -999,7 +999,7 @@ impl InstanceArt {
     /// map of an object around `n` that is moved as one piece, or else the map of the 9-slice cell
     /// `n` lies in ([`crate::NineSliceMap::one_cell`]). `None` when `n` is placed through the guides
     /// object by object.
-    fn whole(&self, n: &Node, doc: &Document, whole: Option<vectorcraft_geom::Affine>) -> Option<vectorcraft_geom::Affine> {
+    fn whole(&self, n: &Node, doc: &Document, whole: Option<vansoncraft_geom::Affine>) -> Option<vansoncraft_geom::Affine> {
         whole.or_else(|| self.map.as_ref()?.one_cell(n, doc))
     }
 
@@ -1007,7 +1007,7 @@ impl InstanceArt {
     /// `whole` when an object around it is moved as one piece ([`Self::whole`]). `None` when
     /// placing it through the guides could make more than [`crate::MAX_SYMBOL_NODES`] objects, as
     /// [`Document::place_symbol_art`] refuses it.
-    fn place(&self, n: &Node, doc: &Document, whole: Option<vectorcraft_geom::Affine>) -> Option<Node> {
+    fn place(&self, n: &Node, doc: &Document, whole: Option<vansoncraft_geom::Affine>) -> Option<Node> {
         match (&self.map, whole) {
             (_, Some(a)) => Some(moved(n, a)),
             (Some(m), None) => (m.most_placed(n, doc) <= crate::MAX_SYMBOL_NODES).then(|| m.place(n, doc)),
@@ -1018,7 +1018,7 @@ impl InstanceArt {
     /// Object `n` of the art placed on the canvas without clip groups
     /// ([`crate::NineSliceMap::place_unclipped`]), as [`Self::place`] places it and within the
     /// same limit ([`Document::place_symbol_art_unclipped`]).
-    fn place_unclipped(&self, n: &Node, doc: &Document, whole: Option<vectorcraft_geom::Affine>) -> Option<Node> {
+    fn place_unclipped(&self, n: &Node, doc: &Document, whole: Option<vansoncraft_geom::Affine>) -> Option<Node> {
         match (&self.map, whole) {
             (_, Some(a)) => Some(moved(n, a)),
             (Some(m), None) => (m.most_placed_unclipped(n, doc) <= crate::MAX_SYMBOL_NODES).then(|| m.place_unclipped(n, doc)),
@@ -1028,7 +1028,7 @@ impl InstanceArt {
 }
 
 /// `n` transformed by `xf`, its strokes at their own weight.
-fn moved(n: &Node, xf: vectorcraft_geom::Affine) -> Node {
+fn moved(n: &Node, xf: vansoncraft_geom::Affine) -> Node {
     let mut out = n.clone();
     out.transform(xf, false);
     out
@@ -1053,13 +1053,13 @@ pub fn symbol_part_at(doc: &Document, inst: &Node, p: Point, opt: HitOptions) ->
         symbols: &'a SymbolBoxes<'a>,
     }
     impl Find<'_> {
-        fn hit(&self, n: &Node, whole: Option<vectorcraft_geom::Affine>) -> bool {
+        fn hit(&self, n: &Node, whole: Option<vansoncraft_geom::Affine>) -> bool {
             self.art.place(n, self.doc, whole).is_some_and(|n| hit_any(&n, self.p, self.opt, self.symbols).is_some())
         }
         fn skips_guide(&self, n: &Node) -> bool {
             self.opt.skip_guides && matches!(n.kind, NodeKind::Path { guide: true, .. })
         }
-        fn find(&self, n: &Node, path: &mut Vec<u32>, whole: Option<vectorcraft_geom::Affine>) -> bool {
+        fn find(&self, n: &Node, path: &mut Vec<u32>, whole: Option<vansoncraft_geom::Affine>) -> bool {
             if !n.visible || n.locked || n.is_template() || self.skips_guide(n) {
                 return false;
             }
@@ -1142,7 +1142,7 @@ pub fn symbol_part_outline(doc: &Document, inst: &Node, path: &[u32]) -> Option<
 
 /// [`symbol_part_outline`] for placed object `n`, cut to `limit` when there is one.
 fn outline_within(n: &Node, limit: Option<Rect>, out: &mut BezPath) {
-    use vectorcraft_geom::kurbo::Shape;
+    use vansoncraft_geom::kurbo::Shape;
     if let Some(pd) = n.path_data() {
         match limit {
             Some(r) => push_cut(out, &pd.to_bezpath(), r),
@@ -1181,9 +1181,9 @@ fn meet(a: Option<Rect>, b: Option<Rect>) -> Option<Rect> {
 
 /// The parts of path `p`, flattened to lines, that lie inside `r`, appended to `out`.
 fn push_cut(out: &mut BezPath, p: &BezPath, r: Rect) {
-    use vectorcraft_geom::kurbo::PathEl;
+    use vansoncraft_geom::kurbo::PathEl;
     let (mut at, mut start, mut last) = (Point::ZERO, Point::ZERO, None::<Point>);
-    vectorcraft_geom::kurbo::flatten(p.iter(), 0.1, |el| {
+    vansoncraft_geom::kurbo::flatten(p.iter(), 0.1, |el| {
         let to = match el {
             PathEl::MoveTo(q) => {
                 (at, start, last) = (q, q, None);
@@ -1302,14 +1302,14 @@ fn marquee_with(doc: &Document, r: Rect, scope: Option<NodeId>, leaves: bool, wh
     /// compound paths, layers and groups are touched by their box.
     fn touches(n: &Node, s: &SymbolBoxes, r: Rect, scope: Option<NodeId>, whole_compounds: bool) -> bool {
         match &n.kind {
-            NodeKind::Path { path, .. } => vectorcraft_geom::hit::intersects_rect(path, r),
+            NodeKind::Path { path, .. } => vansoncraft_geom::hit::intersects_rect(path, r),
             NodeKind::Layer { children, .. } | NodeKind::Group { children, .. } | NodeKind::Intertwine { children } => {
                 marquee_in(n, r).is_some_and(|r| {
                     children.iter().enumerate().any(|(i, c)| c.visible && !shaper_hides(n, i, scope) && touches(c, s, r, scope, whole_compounds))
                 })
             }
             NodeKind::Compound { children, .. } if whole_compounds => {
-                children.iter().filter_map(|c| c.path_data()).any(|path| vectorcraft_geom::hit::intersects_rect(path, r))
+                children.iter().filter_map(|c| c.path_data()).any(|path| vansoncraft_geom::hit::intersects_rect(path, r))
             }
             NodeKind::Compound { children, .. } => children.iter().any(|c| c.visible && touches(c, s, r, scope, whole_compounds)),
             NodeKind::Repeat(spec) => spec.expand(Some(s.document())).iter().any(|copy| touches(copy, s, r, scope, whole_compounds)),
@@ -1368,13 +1368,13 @@ fn marquee_in(parent: &Node, r: Rect) -> Option<Rect> {
 /// clips to ([`clip_regions`]), or `None` when `r` meets none of those regions. Within those
 /// bounds, art outside a region that is not a rectangle still counts.
 fn marquee_in_clip(clip: &Node, r: Rect) -> Option<Rect> {
-    use vectorcraft_geom::kurbo::Shape;
+    use vansoncraft_geom::kurbo::Shape;
     let regions = clip_regions(clip);
     // The edge of a region is its outline with each open subpath closed, as `fill_contains` fills it.
-    let meets = |(bp, rule): &(vectorcraft_geom::BezPath, vectorcraft_geom::FillRule)| {
-        let mut edge = vectorcraft_geom::PathData::from_bezpath(bp);
+    let meets = |(bp, rule): &(vansoncraft_geom::BezPath, vansoncraft_geom::FillRule)| {
+        let mut edge = vansoncraft_geom::PathData::from_bezpath(bp);
         edge.subpaths.iter_mut().for_each(|sp| sp.closed = true);
-        fill_contains(bp, *rule, r.center()) || vectorcraft_geom::hit::intersects_rect(&edge, r)
+        fill_contains(bp, *rule, r.center()) || vansoncraft_geom::hit::intersects_rect(&edge, r)
     };
     if !regions.iter().any(meets) {
         return None;

@@ -5,8 +5,8 @@
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_geom::{Point, Rect, shapes};
+use vansoncraft_color::{Color, Paint};
+use vansoncraft_geom::{Point, Rect, shapes};
 
 use crate::{Appearance, CharStyle, Node, NodeId, NodeKind, TextObject};
 

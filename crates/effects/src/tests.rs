@@ -1,6 +1,6 @@
 use serde_json::{Value, json};
-use vectorcraft_doc::Effect;
-use vectorcraft_geom::{Affine, PathData, Point, Rect, Shape, SubPath, shapes};
+use vansoncraft_doc::Effect;
+use vansoncraft_geom::{Affine, PathData, Point, Rect, Shape, SubPath, shapes};
 
 use super::*;
 
@@ -137,7 +137,7 @@ fn geometry_effects_are_deterministic() {
 /// effects that do not reshape it.
 #[test]
 fn nine_slice_painted_effects_are_raster_effects() {
-    for id in vectorcraft_doc::PAINTED_EFFECTS {
+    for id in vansoncraft_doc::PAINTED_EFFECTS {
         assert!(is_raster(id) && !is_geometry(id), "{id}");
     }
 }
@@ -331,7 +331,7 @@ fn stacked_transform_copies_stay_within_the_anchor_budget() {
 fn stacked_transform_copies_stay_within_the_image_budget() {
     use std::sync::Arc;
 
-    use vectorcraft_doc::{ImageObject, NodeId};
+    use vansoncraft_doc::{ImageObject, NodeId};
     let id = NodeId(9);
     let image = || {
         Node::new(
@@ -371,7 +371,7 @@ fn stacked_transform_copies_stay_within_the_image_budget() {
 
 /// A 40 × 40 px image placed at (0, 0) at one point a pixel, with id `id`.
 fn warp_test_image(id: u64) -> std::sync::Arc<Node> {
-    use vectorcraft_doc::{ImageObject, NodeId};
+    use vansoncraft_doc::{ImageObject, NodeId};
     let im = ImageObject { key: "k".into(), width: 40, height: 40, xf: Affine::IDENTITY, link: None, placement: Default::default(), pixels: None };
     std::sync::Arc::new(Node::new(NodeId(id), NodeKind::Image(Box::new(im))))
 }
@@ -393,9 +393,9 @@ fn warped_images_stay_within_the_object_budget() {
     use std::rc::Rc;
     use std::sync::Arc;
 
-    use vectorcraft_doc::NodeId;
+    use vansoncraft_doc::NodeId;
     let lift: crate::reshape::WarpMap = Rc::new(|p: Point| Point::new(p.x, p.y - p.x * 0.1));
-    let cost = vectorcraft_doc::live::mesh_warp_cost(crate::reshape::WARP_IMAGE_CELLS);
+    let cost = vansoncraft_doc::live::mesh_warp_cost(crate::reshape::WARP_IMAGE_CELLS);
     let none = std::collections::HashSet::new();
     let k = || std::collections::BTreeSet::from(["k".to_string()]);
     let warp = |art: &mut Node, warps: usize| {
@@ -447,7 +447,7 @@ fn warped_images_keep_document_keys_and_hidden_images_apart() {
     use std::rc::Rc;
     use std::sync::Arc;
 
-    use vectorcraft_doc::NodeId;
+    use vansoncraft_doc::NodeId;
     let lift: crate::reshape::WarpMap = Rc::new(|p: Point| Point::new(p.x, p.y - p.x * 0.1));
     let none = std::collections::HashSet::new();
     let mut warped = crate::reshape::WarpedImages::new();
@@ -465,7 +465,7 @@ fn warped_images_keep_document_keys_and_hidden_images_apart() {
     let square = Arc::new(Node::path(NodeId(4), shapes::rectangle(Rect::new(0.0, 0.0, 10.0, 10.0)), Appearance::default()));
     let mut hidden = (*warp_test_image(5)).clone();
     hidden.visible = false;
-    let mut layer = Node::layer(NodeId(6), "Layer 1", vectorcraft_doc::LayerColor::Preset(0));
+    let mut layer = Node::layer(NodeId(6), "Layer 1", vansoncraft_doc::LayerColor::Preset(0));
     if let Some(children) = layer.children_mut() {
         *children = vec![square, Arc::new(hidden)];
     }
@@ -504,7 +504,7 @@ fn warped_images_keep_document_keys_and_hidden_images_apart() {
 fn an_image_whose_frame_passes_the_budget_stays_whole() {
     use std::sync::Arc;
 
-    use vectorcraft_doc::NodeId;
+    use vansoncraft_doc::NodeId;
     let clipped = || {
         let mut frame = Node::path(NodeId(1), shapes::rectangle(Rect::new(0.0, 0.0, 40.0, 40.0)), Appearance::default());
         if let NodeKind::Path { clipping, .. } = &mut frame.kind {
@@ -525,7 +525,7 @@ fn an_image_whose_frame_passes_the_budget_stays_whole() {
 }
 
 /// The first image under `n` (the first piece of a cut image).
-fn first_image(n: &Node) -> Option<vectorcraft_doc::ImageObject> {
+fn first_image(n: &Node) -> Option<vansoncraft_doc::ImageObject> {
     let mut first = None;
     n.walk(&mut |c| {
         if first.is_none()
@@ -588,13 +588,13 @@ fn effects_after_a_warp_reshape_an_images_frame_and_not_its_pieces() {
     for (art, by) in [(&art, 0.0), (&moved, 100.0)] {
         let piece = first_image(art).unwrap();
         for p in [Point::new(0.0, 0.0), Point::new(4.0, 0.0), Point::new(4.0, 4.0)] {
-            let want = f2(f1(p)) + vectorcraft_geom::Vec2::new(by, 0.0);
+            let want = f2(f1(p)) + vansoncraft_geom::Vec2::new(by, 0.0);
             assert!((piece.xf * p).distance(want) < 1e-6, "{p:?}: {:?} {want:?}", piece.xf * p);
         }
     }
 }
 
-/// A warp with no version (VectorCraft's earlier map) bends an image's pixels with that map, as it
+/// A warp with no version (VansonCraft's earlier map) bends an image's pixels with that map, as it
 /// bends the frame.
 #[test]
 fn an_images_pixels_take_the_map_their_warps_version_names() {
@@ -626,8 +626,8 @@ fn an_images_pixels_take_the_map_their_warps_version_names() {
 fn a_nested_groups_gradient_follows_its_warped_image() {
     use std::sync::Arc;
 
-    use vectorcraft_color::{Color, Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop, Paint};
-    use vectorcraft_doc::{Appearance, AppearanceItem, FillLayer, NodeId};
+    use vansoncraft_color::{Color, Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop, Paint};
+    use vansoncraft_doc::{Appearance, AppearanceItem, FillLayer, NodeId};
     let stops = vec![GradientStop::new(0.0, Color::rgb(1.0, 0.0, 0.0)), GradientStop::new(1.0, Color::rgb(0.0, 0.0, 1.0))];
     let geom = GradientGeom { start: (5.0, 20.0).into(), end: (35.0, 20.0).into(), aspect: 1.0, focal: None };
     let placed = Paint::Gradient(Box::new(GradientPaint { geom: Some(geom), ..GradientPaint::new(Gradient::new(GradientKind::Linear, stops)) }));
@@ -668,7 +668,7 @@ fn a_nested_groups_gradient_follows_its_warped_image() {
 fn an_image_under_a_geometry_effect_keeps_its_color_and_smoothing() {
     let mut n = (*warp_test_image(1)).clone();
     n.appearance.effects = vec![fx("distort.roughen", json!({"size": 5, "detail": 10}))];
-    n.extras_mut().colorize = Some(Box::new(vectorcraft_color::Paint::solid(vectorcraft_color::Color::rgb(1.0, 0.0, 0.0))));
+    n.extras_mut().colorize = Some(Box::new(vansoncraft_color::Paint::solid(vansoncraft_color::Color::rgb(1.0, 0.0, 0.0))));
     n.extras_mut().pixelated = true;
     let art = crate::reshape::reshape(None, &n, None).unwrap();
     let mut seen = vec![];
@@ -769,7 +769,7 @@ fn a_path_past_the_anchor_budget_still_takes_effects() {
 fn stacked_effects_on_art_stay_within_the_anchor_budget() {
     use std::sync::Arc;
 
-    use vectorcraft_doc::NodeId;
+    use vansoncraft_doc::NodeId;
     let id = NodeId(9);
     let leaf = |x: f64| Arc::new(Node::path(id, shapes::rectangle(Rect::new(x, 0.0, x + 100.0, 100.0)), Appearance::default()));
     let mut art = Node::group(id, (0..10).map(|k| leaf(k as f64 * 120.0)).collect());
@@ -793,10 +793,10 @@ fn stacked_effects_on_art_stay_within_the_anchor_budget() {
 fn art_past_the_budget_keeps_its_own_gradients_in_place() {
     use std::sync::Arc;
 
-    use vectorcraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop};
-    use vectorcraft_doc::{AppearanceItem, FillLayer, NodeId, color::Paint};
+    use vansoncraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop};
+    use vansoncraft_doc::{AppearanceItem, FillLayer, NodeId, color::Paint};
     let id = NodeId(9);
-    let stops = vec![GradientStop::new(0.0, vectorcraft_color::Color::BLACK), GradientStop::new(1.0, vectorcraft_color::Color::WHITE)];
+    let stops = vec![GradientStop::new(0.0, vansoncraft_color::Color::BLACK), GradientStop::new(1.0, vansoncraft_color::Color::WHITE)];
     let geom = GradientGeom { start: (0.0, 50.0).into(), end: (100.0, 50.0).into(), aspect: 1.0, focal: None };
     let placed = Paint::Gradient(Box::new(GradientPaint { geom: Some(geom), ..GradientPaint::new(Gradient::new(GradientKind::Linear, stops)) }));
     let circle = || Arc::new(Node::path(id, shapes::ellipse(Rect::new(0.0, 0.0, 100.0, 100.0)), Appearance::default()));
@@ -843,9 +843,9 @@ fn art_past_the_budget_keeps_its_own_gradients_in_place() {
 fn a_hidden_path_past_the_budget_leaves_a_layers_gradients_free_to_move() {
     use std::sync::Arc;
 
-    use vectorcraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop};
-    use vectorcraft_doc::{AppearanceItem, FillLayer, LayerColor, NodeId, NodeKind, color::Paint};
-    let stops = vec![GradientStop::new(0.0, vectorcraft_color::Color::BLACK), GradientStop::new(1.0, vectorcraft_color::Color::WHITE)];
+    use vansoncraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, GradientStop};
+    use vansoncraft_doc::{AppearanceItem, FillLayer, LayerColor, NodeId, NodeKind, color::Paint};
+    let stops = vec![GradientStop::new(0.0, vansoncraft_color::Color::BLACK), GradientStop::new(1.0, vansoncraft_color::Color::WHITE)];
     let geom = GradientGeom { start: (0.0, 50.0).into(), end: (100.0, 50.0).into(), aspect: 1.0, focal: None };
     let placed = Paint::Gradient(Box::new(GradientPaint { geom: Some(geom), ..GradientPaint::new(Gradient::new(GradientKind::Linear, stops)) }));
     let end = |ap: &Appearance| match ap.fill_paint() {
@@ -892,8 +892,8 @@ fn a_hidden_path_past_the_budget_leaves_a_layers_gradients_free_to_move() {
 fn edited_freeform_points_follow_a_transform_effect_and_free_distort() {
     use std::sync::Arc;
 
-    use vectorcraft_color::{Color, Freeform, FreeformPoint, Gradient, GradientKind, GradientPaint};
-    use vectorcraft_doc::{AppearanceItem, FillLayer, NodeId, color::Paint};
+    use vansoncraft_color::{Color, Freeform, FreeformPoint, Gradient, GradientKind, GradientPaint};
+    use vansoncraft_doc::{AppearanceItem, FillLayer, NodeId, color::Paint};
     let mut ramp = GradientPaint::new(Gradient { kind: GradientKind::Freeform, ..Gradient::default() });
     let pt = |x: f64, c| FreeformPoint::new(Point::new(x, 50.0), c);
     ramp.set_freeform(Freeform { points: vec![pt(0.0, Color::BLACK), pt(100.0, Color::WHITE)], ..Default::default() });
@@ -978,7 +978,7 @@ fn transform_copies_before_offset_path_evaluates_without_ram_spike() {
 #[test]
 fn reshape_leaves_within_optimizes_transform_before_terminal_offset_path() {
     use std::sync::Arc;
-    use vectorcraft_doc::{Appearance, Node, NodeId};
+    use vansoncraft_doc::{Appearance, Node, NodeId};
 
     let id = NodeId(10);
     let leaf = |x: f64| Arc::new(Node::path(id, shapes::rectangle(Rect::new(x, 0.0, x + 20.0, 20.0)), Appearance::default()));
@@ -1003,7 +1003,7 @@ fn reshape_leaves_within_optimizes_transform_before_terminal_offset_path() {
 #[test]
 fn reshape_leaves_within_preserves_order_when_not_terminal_or_not_style_safe() {
     use std::sync::Arc;
-    use vectorcraft_doc::{Appearance, Node, NodeId, NodeKind};
+    use vansoncraft_doc::{Appearance, Node, NodeId, NodeKind};
 
     let id = NodeId(11);
     // 1. EvenOdd fill rule: preserving order causes Transform copies to union in Offset Path into 1 subpath.
@@ -1060,7 +1060,7 @@ fn transform_copies_stop_before_they_overflow() {
 fn transform_on_a_group_moves_and_copies_its_images() {
     use std::sync::Arc;
 
-    use vectorcraft_doc::{Appearance, ImageObject, Node, NodeId, NodeKind};
+    use vansoncraft_doc::{Appearance, ImageObject, Node, NodeId, NodeKind};
     let id = NodeId(9);
     let sq = Node::path(id, square(), Appearance::default());
     let image = Node::new(
@@ -1113,7 +1113,7 @@ fn transform_on_a_group_moves_and_copies_its_images() {
 fn transform_on_a_group_moves_and_copies_its_symbol_instances() {
     use std::sync::Arc;
 
-    use vectorcraft_doc::{Appearance, Node, NodeId, NodeKind};
+    use vansoncraft_doc::{Appearance, Node, NodeId, NodeKind};
     let id = NodeId(9);
     let instance = || Node::new(id, NodeKind::SymbolInstance { symbol: "s".into(), xf: Affine::translate((5.0, 40.0)) });
     let xs = |art: &Node| {
@@ -1136,7 +1136,7 @@ fn transform_on_a_group_moves_and_copies_its_symbol_instances() {
 fn images_and_symbol_instances_share_the_copy_budget() {
     use std::sync::Arc;
 
-    use vectorcraft_doc::{ImageObject, NodeId};
+    use vansoncraft_doc::{ImageObject, NodeId};
     let id = NodeId(9);
     let image = Node::new(
         id,
@@ -1166,7 +1166,7 @@ fn images_and_symbol_instances_share_the_copy_budget() {
 fn transform_copies_of_images_stop_at_the_reach_limit() {
     use std::sync::Arc;
 
-    use vectorcraft_doc::{ImageObject, NodeId};
+    use vansoncraft_doc::{ImageObject, NodeId};
     let id = NodeId(9);
     let image = Node::new(
         id,
@@ -1280,7 +1280,7 @@ fn zigzag_spaces_ridges_evenly_along_a_straight_line() {
 /// follows a cosine, even where the ridges are much taller than they are apart.
 #[test]
 fn zigzag_smooth_is_a_wave() {
-    use vectorcraft_geom::kurbo::ParamCurve;
+    use vansoncraft_geom::kurbo::ParamCurve;
     let line = PathData::single(SubPath::polyline(&[Point::new(0.0, 0.0), Point::new(100.0, 0.0)], false));
     for size in [3.0, 30.0] {
         let out = run("distort.zigZag", json!({"ridges": 9, "points": "smooth", "size": size}), &line);
@@ -1321,12 +1321,12 @@ fn zigzag_on_a_circle_is_regular() {
 /// #1554 on an uneven curve: the ridges divide its length, not its parameter, into equal parts.
 #[test]
 fn zigzag_spaces_ridges_by_length_on_an_uneven_curve() {
-    use vectorcraft_geom::kurbo::{ParamCurve, ParamCurveArclen, ParamCurveNearest};
+    use vansoncraft_geom::kurbo::{ParamCurve, ParamCurveArclen, ParamCurveNearest};
     let (a, b) = (Point::new(0.0, 0.0), Point::new(300.0, 0.0));
     let curve = PathData::single(SubPath::new(
         vec![
-            vectorcraft_geom::Anchor::with_handles(a, a, Point::new(10.0, 40.0)),
-            vectorcraft_geom::Anchor::with_handles(b, Point::new(100.0, 200.0), b),
+            vansoncraft_geom::Anchor::with_handles(a, a, Point::new(10.0, 40.0)),
+            vansoncraft_geom::Anchor::with_handles(b, Point::new(100.0, 200.0), b),
         ],
         false,
     ));
@@ -1350,7 +1350,7 @@ fn offset_path_grows_and_shrinks() {
 
 #[test]
 fn outline_stroke_uses_context_stroke() {
-    let st = vectorcraft_doc::StrokeLayer::new(vectorcraft_color::Paint::solid(vectorcraft_color::Color::BLACK), 10.0);
+    let st = vansoncraft_doc::StrokeLayer::new(vansoncraft_color::Paint::solid(vansoncraft_color::Color::BLACK), 10.0);
     let ctx = GeomContext { stroke: Some(&st), ..Default::default() };
     let out = apply_geometry_with(&[fx("path.outlineStroke", json!({}))], &square(), Rect::new(0.0, 0.0, 100.0, 100.0), &ctx);
     let b = out.bounds().unwrap();
@@ -1399,7 +1399,7 @@ fn round_corners_replaces_corners() {
 /// A D: a straight back, a curved bowl, and two corners where the bowl meets the straight
 /// sides (the anchors there carry the bowl's handles).
 fn d_shape() -> PathData {
-    use vectorcraft_geom::Anchor;
+    use vansoncraft_geom::Anchor;
     let p = Point::new;
     PathData::new(vec![SubPath::new(
         vec![
@@ -1420,7 +1420,7 @@ fn round_corners_also_rounds_where_a_curve_meets_a_line() {
     assert_eq!(out.anchor_count(), 8);
     assert!(all_finite(&out));
     // Every cut leaves both sides smoothly: no corner is left anywhere.
-    assert!(vectorcraft_geom::corners::path_corners(&out).is_empty(), "{out:?}");
+    assert!(vansoncraft_geom::corners::path_corners(&out).is_empty(), "{out:?}");
     let (before, after) = (d.to_bezpath().area().abs(), out.to_bezpath().area().abs());
     assert!(after < before && after > before - 4.0 * 8.0 * 8.0, "{before} -> {after}");
     // The cut at a curve-line corner meets the straight side 8 from the corner.
@@ -1432,7 +1432,7 @@ fn round_corners_also_rounds_where_a_curve_meets_a_line() {
 fn round_corners_keeps_straight_corners_as_they_were() {
     // The D's straight corners are rounded as before, next to the new cuts: same anchors, same
     // quarter-circle handles, and the path still starts at its first corner's rounding.
-    use vectorcraft_geom::Anchor;
+    use vansoncraft_geom::Anchor;
     let p = Point::new;
     let k = 8.0 * shapes::KAPPA;
     let out = stylize::round_corners(&d_shape(), 8.0);
@@ -1488,11 +1488,11 @@ fn scribble_does_not_cross_holes() {
     let out = run("stylize.scribble", params, &u).to_bezpath();
     for x in [40.0, 50.0, 60.0] {
         for y in [12.5, 32.5, 52.5] {
-            assert_eq!(vectorcraft_geom::kurbo::Shape::winding(&out, Point::new(x, y)), 0, "scribble covers the notch at ({x}, {y})");
+            assert_eq!(vansoncraft_geom::kurbo::Shape::winding(&out, Point::new(x, y)), 0, "scribble covers the notch at ({x}, {y})");
         }
     }
     // The bar below the notch is still hatched.
-    assert_ne!(vectorcraft_geom::kurbo::Shape::winding(&out, Point::new(50.0, 82.5)), 0);
+    assert_ne!(vansoncraft_geom::kurbo::Shape::winding(&out, Point::new(50.0, 82.5)), 0);
 }
 
 #[test]
@@ -1595,7 +1595,7 @@ fn raster_effects_parse_and_outset() {
     assert_eq!(r.len(), 5);
     match &r[0] {
         RasterFx::DropShadow { mode, opacity, dx, dy, blur, color, darkness } => {
-            assert_eq!(*mode, vectorcraft_doc::color::BlendMode::Multiply);
+            assert_eq!(*mode, vansoncraft_doc::color::BlendMode::Multiply);
             assert!(close(*opacity as f64, 0.5, 1e-6));
             assert_eq!((*dx, *dy, *blur), (10.0, -4.0, 6.0));
             assert_eq!(color.to_rgb(), [1.0, 0.0, 0.0]);
@@ -1604,8 +1604,8 @@ fn raster_effects_parse_and_outset() {
         other => panic!("{other:?}"),
     }
     assert!(matches!(r[2], RasterFx::InnerGlow { center: true, .. }));
-    assert!(close(outset(&list, vectorcraft_geom::Rect::ZERO), 10.0 + 9.0, 1e-9));
-    assert_eq!(outset(&[], vectorcraft_geom::Rect::ZERO), 0.0);
+    assert!(close(outset(&list, vansoncraft_geom::Rect::ZERO), 10.0 + 9.0, 1e-9));
+    assert_eq!(outset(&[], vansoncraft_geom::Rect::ZERO), 0.0);
 }
 
 #[test]
@@ -1668,7 +1668,7 @@ fn rasterize_compose_leaves_the_raster_alone_when_the_sizes_do_not_fit() {
 
 #[test]
 fn blend_mode_names() {
-    use vectorcraft_doc::color::BlendMode;
+    use vansoncraft_doc::color::BlendMode;
     assert_eq!(raster::blend_mode("Color-Burn"), BlendMode::ColorBurn);
     assert_eq!(raster::blend_mode("screen"), BlendMode::Screen);
     assert_eq!(raster::blend_mode("???"), BlendMode::Normal);
@@ -1706,7 +1706,7 @@ fn bench_catalog_lookup() {
 #[test]
 fn a_repeat_of_a_symbol_whose_art_is_a_repeat_shares_the_instance_budget() {
     use std::sync::Arc;
-    use vectorcraft_doc::{Document, NodeId, RepeatKind, RepeatSpec, Symbol};
+    use vansoncraft_doc::{Document, NodeId, RepeatKind, RepeatSpec, Symbol};
     let unit = || {
         Arc::new(Node::path(
             NodeId(0),

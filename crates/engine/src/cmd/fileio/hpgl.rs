@@ -1,11 +1,11 @@
-//! HP-GL for every path that writes plot files (`vectorcraft_cad::hpgl`): `document.export {format:
+//! HP-GL for every path that writes plot files (`vansoncraft_cad::hpgl`): `document.export {format:
 //! hpgl}` and Export As (one plot of an artboard, or one per artboard with Use Artboards), with the
 //! options parsed from the params.
 
 use serde_json::Value;
-use vectorcraft_cad::hpgl::write::{DEFAULT_TOLERANCE, MAX_PENS, TOLERANCE_RANGE};
-use vectorcraft_cad::hpgl::{HpglOptions, Origin, Version};
-use vectorcraft_doc::Document;
+use vansoncraft_cad::hpgl::write::{DEFAULT_TOLERANCE, MAX_PENS, TOLERANCE_RANGE};
+use vansoncraft_cad::hpgl::{HpglOptions, Origin, Version};
+use vansoncraft_doc::Document;
 
 use super::super::{Result, bad, number_or, switch_or, text_param};
 use super::{ArtboardPick, Encoded, FormatOption};
@@ -107,7 +107,7 @@ pub(super) fn encode(doc: &Document, p: &Value, use_artboards: Option<bool>) -> 
         .iter()
         .map(|&b| doc.artboards.get(b).map(|a| a.rect).ok_or_else(|| bad(C, format!("no artboard {}", b + 1))))
         .collect::<Result<Vec<_>>>()?;
-    let plots = vectorcraft_cad::hpgl::export_regions(doc, &opts, &regions).map_err(|e| bad(C, e))?;
+    let plots = vansoncraft_cad::hpgl::export_regions(doc, &opts, &regions).map_err(|e| bad(C, e))?;
     let mut enc = Encoded::default();
     for (b, out) in boards.into_iter().zip(plots) {
         enc.files.push((Some(b), out.bytes));
@@ -120,7 +120,7 @@ pub(super) fn encode(doc: &Document, p: &Value, use_artboards: Option<bool>) -> 
     if enc.files.is_empty() {
         return Err(bad(C, "the document has no artboard"));
     }
-    let regions: Vec<vectorcraft_geom::Rect> = enc.files.iter().filter_map(|(b, _)| b.and_then(|b| doc.artboards.get(b))).map(|a| a.rect).collect();
+    let regions: Vec<vansoncraft_geom::Rect> = enc.files.iter().filter_map(|(b, _)| b.and_then(|b| doc.artboards.get(b))).map(|a| a.rect).collect();
     enc.warnings.extend(crate::cmd::fonts::export_overflow_warning(doc, &doc.layers, Some(&regions)));
     Ok(enc)
 }

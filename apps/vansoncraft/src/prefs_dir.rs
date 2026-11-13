@@ -1,0 +1,97 @@
+//! Where VansonCraft keeps its settings, `ui.json`, and next to it folders of the user's own
+//! (Swatches, Graphic Styles, Fonts, Data Recovery, logs). The desktop app and `vansoncraft-cli`
+//! (which shares this file) read the same Fonts folder.
+
+use std::path::PathBuf;
+
+#[path = "profile.rs"]
+mod profile;
+
+pub use profile::{Profile, adopt_earlier_profile};
+
+/// The settings file `ui.json` of `profile`: in a folder named after it in ~/Library/Application
+/// Support (macOS) or %APPDATA% (Windows), or its lower-case name in $XDG_CONFIG_HOME or ~/.config
+/// (Linux and BSD).
+pub fn prefs_path_for(profile: Profile) -> Option<PathBuf> {
+    profile::prefs_path(profile)
+}
+
+/// Have the font scans read VansonCraft's own Fonts folder, next to the settings, which
+/// `text.addFontFiles` copies font files into. The folder is set whether or not
+/// `VANSONCRAFT_NO_PREFS` is set, as the Swatches and Graphic Styles folders are.
+pub fn install_fonts() {
+    if let Some(dir) = prefs_path_for(Profile::Current).and_then(|p| Some(p.parent()?.join("Fonts"))) {
+        vansoncraft_text::set_app_font_dir(dir);
+    }
+}
+
+/// The folder `name` next to the settings, for what the user keeps: none in a run without
+/// preferences (`VANSONCRAFT_NO_PREFS`), which keeps nothing.
+fn store_dir(name: &str) -> Option<PathBuf> {
+    if std::env::var_os("VANSONCRAFT_NO_PREFS").is_some() {
+        return None;
+    }
+    Some(prefs_path_for(Profile::Current)?.parent()?.join(name))
+}
+
+/// Register the ICC profiles `color.loadProfile` kept in the `Color Profiles` folder (#2174), and
+/// keep the ones loaded from now on there. Before anything names a profile.
+pub fn attach_profile_store(session: &mut vansoncraft_engine::Session) {
+    if let Some(dir) = store_dir("Color Profiles") {
+        session.attach_profile_store(dir);
+    }
+}
+
+/// Make Edit › Color Settings kept in `Color Settings.json` the active ones (#6335), and keep them
+/// there when they change. After [`attach_profile_store`]: they may name a loaded profile.
+pub fn attach_color_settings(session: &mut vansoncraft_engine::Session) {
+    if let Some(path) = store_dir("Color Settings.json") {
+        session.attach_color_settings(path);
+    }
+}
+
+/// Install the plug-ins Install Plug-in kept in the `Plug-ins` folder (#2541), and keep the ones
+/// installed from now on there.
+pub fn attach_plugin_store(session: &mut vansoncraft_engine::Session) {
+    if let Some(dir) = store_dir("Plug-ins") {
+        session.attach_plugin_store(dir);
+    }
+}
+
+/// Have File › Scripts and `script.listInstalled` list the scripts of the `Scripts` folder. The
+/// folder is only read: the user makes it.
+pub fn attach_scripts_dir(session: &mut vansoncraft_engine::Session) {
+    if let Some(dir) = store_dir("Scripts") {
+        session.attach_scripts_dir(dir);
+    }
+}
+
+/// Take the saved PDF presets from the `PDF Presets` folder (#2168), and keep the ones saved from
+/// now on there. After the preferences were restored: the folder is the one place the presets live.
+pub fn attach_pdf_preset_store(session: &mut vansoncraft_engine::Session) {
+    if let Some(dir) = store_dir("PDF Presets") {
+        session.attach_pdf_preset_store(dir);
+    }
+}
+
+/// Keep the custom dictionary (Edit › Spelling › Add, Edit Custom Dictionary) in the
+/// `Custom Dictionary.txt` file next to the settings, one word per line, and take in its words.
+pub fn attach_custom_dictionary(session: &mut vansoncraft_engine::Session) {
+    if let Some(path) = store_dir("Custom Dictionary.txt") {
+        session.attach_custom_dictionary(path);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_font_scans_read_the_fonts_folder_next_to_the_settings() {
+        install_fonts();
+        let fonts = prefs_path_for(Profile::Current).and_then(|p| Some(p.parent()?.join("Fonts")));
+        assert!(fonts.is_some(), "a home folder to keep the settings in");
+        assert_eq!(vansoncraft_text::app_font_dir().map(std::path::Path::to_path_buf), fonts);
+        assert!(vansoncraft_text::system_font_dirs().contains(&fonts.unwrap_or_default()));
+    }
+}

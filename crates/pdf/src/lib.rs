@@ -1,4 +1,4 @@
-//! VectorCraft PDF export and import.
+//! VansonCraft PDF export and import.
 //!
 //! - [`export`] writes one PDF page per artboard with `krilla`: vector paths (fills, strokes with
 //!   caps/joins/miter/dashes, inside/outside alignment as clips, non-zero/even-odd; arrowheads,
@@ -73,7 +73,7 @@ mod streams;
 mod surface;
 mod syntax;
 
-pub use editing::{EDITING_FILE, Editing, LEGACY_EDITING_FILE, editing, editing_with};
+pub use editing::{EDITING_FILE, Editing, FORMER_EDITING_FILE, LEGACY_EDITING_FILE, editing, editing_with};
 pub use encrypt::Encryption;
 pub use export::{check_page_sizes, export, export_with_report, page_areas};
 pub use file_info::{FileInfo, file_info};
@@ -95,7 +95,7 @@ pub use presets::*;
 pub use print::*;
 pub use settings::*;
 
-use vectorcraft_doc::Document;
+use vansoncraft_doc::Document;
 
 /// Export options: the Save PDF settings plus what one export run decides (pages, title, date).
 #[derive(Clone, Debug, Default)]
@@ -111,7 +111,7 @@ pub struct PdfOptions {
     pub created: Option<i64>,
     /// Modification date as Unix seconds (UTC); `None` = the creation date.
     pub modified: Option<i64>,
-    /// The native document (`.vectorcraft` bytes) Preserve Editing embeds.
+    /// The native document (`.vansoncraft` bytes) Preserve Editing embeds.
     pub native: Option<Vec<u8>>,
     /// The editing copy of the art for every page's `PieceInfo`, as a `.ai` file carries it.
     pub private_data: Option<PrivateData>,
@@ -226,7 +226,7 @@ pub enum PdfError {
     Unsupported(String),
     #[error("PDF writer error: {0}")]
     Write(String),
-    /// The caller asked for the export to stop ([`vectorcraft_doc::cancel`]).
+    /// The caller asked for the export to stop ([`vansoncraft_doc::cancel`]).
     #[error("cancelled")]
     Cancelled,
     #[error("cannot read PDF: {0}")]

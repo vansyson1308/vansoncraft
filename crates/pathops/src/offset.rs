@@ -1,7 +1,7 @@
 //! Offset Path and Outline Stroke.
 
 use kurbo::{BezPath, PathEl, Stroke, StrokeOpts};
-use vectorcraft_geom::{FillRule, PathData, SubPath};
+use vansoncraft_geom::{FillRule, PathData, SubPath};
 
 pub use kurbo::{Cap, Join};
 
@@ -716,7 +716,7 @@ mod tests {
 
     fn outline_max_deviation(a: &BezPath, b: &BezPath) -> f64 {
         use kurbo::ParamCurve;
-        use vectorcraft_geom::Point;
+        use vansoncraft_geom::Point;
         let pa = PathData::from_bezpath(a);
         let pb = PathData::from_bezpath(b);
         let mut worst: f64 = 0.0;
@@ -739,14 +739,14 @@ mod tests {
         let join = Join::Round;
         let miter = 4.0;
         // Dense colinear spine: compact outline should match the uncompacted one closely.
-        let dense: Vec<vectorcraft_geom::Point> = (0..=40).map(|i| vectorcraft_geom::Point::new(i as f64 * 2.5, 50.0)).collect();
+        let dense: Vec<vansoncraft_geom::Point> = (0..=40).map(|i| vansoncraft_geom::Point::new(i as f64 * 2.5, 50.0)).collect();
         let dense_path = PathData::single(SubPath::polyline(&dense, false));
         let dense_bez = dense_path.to_bezpath();
         let compact = stroke_bez(&dense_bez, width, cap, join, miter);
         let raw = stroke_bez_without_spine_compact(&dense_bez, width, cap, join, miter);
         assert!(outline_max_deviation(&compact, &raw) <= 1e-3, "colinear compaction must not refit the stroke outline");
         let sparse =
-            PathData::single(SubPath::polyline(&[vectorcraft_geom::Point::new(0.0, 50.0), vectorcraft_geom::Point::new(100.0, 50.0)], false));
+            PathData::single(SubPath::polyline(&[vansoncraft_geom::Point::new(0.0, 50.0), vansoncraft_geom::Point::new(100.0, 50.0)], false));
         let sparse_outline = outline_stroke(&sparse, width, cap, join, miter);
         let compact_region = stroke_region(&[compact]);
         assert!(
@@ -754,10 +754,10 @@ mod tests {
             "compacted colinear spine should outline like the endpoints alone"
         );
         // Sampled arc: only redundant vertices are removed; outline must track the raw stroke.
-        let arc: Vec<vectorcraft_geom::Point> = (0..=32)
+        let arc: Vec<vansoncraft_geom::Point> = (0..=32)
             .map(|i| {
                 let t = i as f64 / 32.0 * std::f64::consts::PI;
-                vectorcraft_geom::Point::new(50.0 + 50.0 * t.cos(), 50.0 + 8.0 * t.sin())
+                vansoncraft_geom::Point::new(50.0 + 50.0 * t.cos(), 50.0 + 8.0 * t.sin())
             })
             .collect();
         let arc_bez = PathData::single(SubPath::polyline(&arc, false)).to_bezpath();
@@ -802,7 +802,7 @@ mod tests {
         let mut dense_non_finite = PathData::from_bezpath(&bp);
         dense_non_finite
             .subpaths
-            .push(SubPath::polyline(&[vectorcraft_geom::Point::new(f64::NAN, 0.0), vectorcraft_geom::Point::new(10.0, 10.0)], true));
+            .push(SubPath::polyline(&[vansoncraft_geom::Point::new(f64::NAN, 0.0), vansoncraft_geom::Point::new(10.0, 10.0)], true));
         assert_eq!(try_offset_path(&dense_non_finite, 5.0, Join::Round, 4.0), Err(PathOpsError::NonFinite));
         assert!(offset_path(&dense_non_finite, 5.0, Join::Round, 4.0).is_empty());
     }

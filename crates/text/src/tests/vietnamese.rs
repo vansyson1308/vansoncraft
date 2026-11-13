@@ -7,7 +7,7 @@
 use kurbo::{Point, Rect, Shape};
 use skrifa::MetadataProvider;
 use unicode_segmentation::UnicodeSegmentation;
-use vectorcraft_doc::{CharStyle, TextObject};
+use vansoncraft_doc::{CharStyle, TextObject};
 use write_fonts::FontBuilder;
 use write_fonts::types::Tag;
 

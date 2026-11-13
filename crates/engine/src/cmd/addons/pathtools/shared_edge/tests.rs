@@ -2,9 +2,9 @@
 //! params refused, the tool's click through the session, and only the add-on's commands affected.
 
 use serde_json::{Value, json};
-use vectorcraft_doc::NodeId;
-use vectorcraft_geom::{PathData, Point};
-use vectorcraft_tools::{Mods, PointerEvent, PointerKind};
+use vansoncraft_doc::NodeId;
+use vansoncraft_geom::{PathData, Point};
+use vansoncraft_tools::{Mods, PointerEvent, PointerKind};
 
 use crate::{Session, ViewInfo};
 

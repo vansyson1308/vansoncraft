@@ -1,15 +1,15 @@
 use std::sync::Arc;
 
 use serde_json::json;
-use vectorcraft_doc::NodeKind;
-use vectorcraft_engine::Session;
+use vansoncraft_doc::NodeKind;
+use vansoncraft_engine::Session;
 
 use crate::tests_labels::painted_text;
-use crate::{VectorcraftApp, menus};
+use crate::{VansoncraftApp, menus};
 
 /// An app with one image open and selected: 12 × 10 pixels, white, a near-white ring one pixel in
 /// (13.7 % from white) and a red block inside it.
-fn app() -> VectorcraftApp {
+fn app() -> VansoncraftApp {
     let img = image::RgbaImage::from_fn(12, 10, |x, y| {
         image::Rgba(if (3..9).contains(&x) && (3..7).contains(&y) {
             [200, 0, 0, 255]
@@ -21,26 +21,26 @@ fn app() -> VectorcraftApp {
     });
     let mut png = Vec::new();
     img.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
-    app.run("document.open", json!({"name": "art.png", "dataBase64": vectorcraft_format::base64_encode(&png)})).unwrap();
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
+    app.run("document.open", json!({"name": "art.png", "dataBase64": vansoncraft_format::base64_encode(&png)})).unwrap();
     app.run("select.all", json!({})).unwrap();
     app
 }
 
 /// The selected image's pixel key and bytes.
-fn image(app: &VectorcraftApp) -> (String, Arc<Vec<u8>>) {
+fn image(app: &VansoncraftApp) -> (String, Arc<Vec<u8>>) {
     let st = app.session.doc().unwrap();
     let Some(NodeKind::Image(im)) = st.selection.objects.first().and_then(|id| st.doc.node(*id)).map(|n| &n.kind) else { panic!("an image") };
     (im.key.clone(), st.doc.images[&im.key].bytes.clone())
 }
 
 /// The alpha of the selected image's pixels at the corner, on the ring and in the block.
-fn alphas(app: &VectorcraftApp) -> [u8; 3] {
+fn alphas(app: &VansoncraftApp) -> [u8; 3] {
     let px = image::load_from_memory(&image(app).1).unwrap().to_rgba8();
     [(0, 0), (1, 1), (4, 4)].map(|(x, y)| px.get_pixel(x, y).0[3])
 }
 
-fn open(app: &mut VectorcraftApp) {
+fn open(app: &mut VansoncraftApp) {
     let entries = menus::menu_entries(app);
     let item = entries.iter().find(|e| e.path == ["Object", "Plug-ins", "Image Tools"] && e.label == "Remove Background…").unwrap();
     assert!(item.enabled);
@@ -48,11 +48,11 @@ fn open(app: &mut VectorcraftApp) {
     menus::invoke(app, &id, p);
 }
 
-fn show(app: &mut VectorcraftApp) -> String {
+fn show(app: &mut VansoncraftApp) -> String {
     painted_text(app, |app, ui| crate::dialogs::show(app, ui.ctx()))
 }
 
-fn set(app: &mut VectorcraftApp, key: &str, v: serde_json::Value) {
+fn set(app: &mut VansoncraftApp, key: &str, v: serde_json::Value) {
     crate::dialogs::set_field(app.ui.dialog.as_mut().unwrap(), key.into(), v);
 }
 
@@ -62,7 +62,7 @@ fn set(app: &mut VectorcraftApp, key: &str, v: serde_json::Value) {
 fn properties_and_the_control_bar_remove_the_background_at_once() {
     use crate::tests_removeanchors::{at, click_control, control_frame, has, properties_frame};
     let mut app = app();
-    let steps = |app: &VectorcraftApp| app.session.doc().unwrap().history.undo.len();
+    let steps = |app: &VansoncraftApp| app.session.doc().unwrap().history.undo.len();
     let n = steps(&app);
     assert!(has(&properties_frame(&mut app, 280.0), "Remove Background"), "Properties offers it");
     let ctx = egui::Context::default();
@@ -83,7 +83,7 @@ fn properties_and_the_control_bar_remove_the_background_at_once() {
 #[test]
 fn remove_background_previews_cancels_and_runs_on_ok() {
     let mut app = app();
-    let steps = |app: &VectorcraftApp| app.session.doc().unwrap().history.undo.len();
+    let steps = |app: &VansoncraftApp| app.session.doc().unwrap().history.undo.len();
     let (start, n) = (image(&app), steps(&app));
 
     open(&mut app);

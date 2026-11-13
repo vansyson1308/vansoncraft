@@ -1,11 +1,11 @@
 //! Original synthetic geometry for the deletion half of #3380; no external fixtures.
 
 use serde_json::json;
-use vectorcraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, Paint};
-use vectorcraft_doc::{Appearance, NodeId, NodeKind};
-use vectorcraft_engine::Session;
-use vectorcraft_geom::{Affine, Anchor, PathData, Rect, SubPath};
-use vectorcraft_testkit::{invariants::check_session, raster::render_artboard};
+use vansoncraft_color::{Gradient, GradientGeom, GradientKind, GradientPaint, Paint};
+use vansoncraft_doc::{Appearance, NodeId, NodeKind};
+use vansoncraft_engine::Session;
+use vansoncraft_geom::{Affine, Anchor, PathData, Rect, SubPath};
+use vansoncraft_testkit::{invariants::check_session, raster::render_artboard};
 
 /// Create the same rectangle for the edited path and its stacking-order neighbors.
 fn rectangle(s: &mut Session) -> NodeId {
@@ -35,7 +35,7 @@ fn deleting_opposite_rectangle_segments_makes_independent_styled_objects_and_und
             n.opacity = 0.65;
             n.transform(Affine::translate((12.0, 8.0)) * Affine::rotate(0.23) * Affine::scale_non_uniform(1.1, 0.8), true);
             n.appearance =
-                Appearance::basic(vectorcraft_color::Paint::None, vectorcraft_color::Paint::solid(vectorcraft_color::Color::rgb(0.2, 0.4, 0.8)), 4.0)
+                Appearance::basic(vansoncraft_color::Paint::None, vansoncraft_color::Paint::solid(vansoncraft_color::Color::rgb(0.2, 0.4, 0.8)), 4.0)
                     .into();
         }
         s.execute("select.segments", &json!({"id": id.0, "segments": [[0, 1], [0, 3]]})).unwrap();

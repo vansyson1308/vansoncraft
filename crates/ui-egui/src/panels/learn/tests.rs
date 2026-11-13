@@ -2,21 +2,21 @@ use std::collections::HashSet;
 
 use egui::accesskit::Node;
 use serde_json::json;
-use vectorcraft_engine::Session;
+use vansoncraft_engine::Session;
 
 use super::{ID, Tab, View, catalog, show};
-use crate::VectorcraftApp;
+use crate::VansoncraftApp;
 use crate::tests_labels::painted_text;
 
 const SCREEN: egui::Rect = egui::Rect::from_min_max(egui::Pos2::ZERO, egui::pos2(1400.0, 800.0));
 
-fn app() -> VectorcraftApp {
+fn app() -> VansoncraftApp {
     crate::i18n::set_current(crate::i18n::Lang::EN);
-    VectorcraftApp::new(Session::new(), Default::default())
+    VansoncraftApp::new(Session::new(), Default::default())
 }
 
 /// One frame of `draw` with screen-reader nodes on → the nodes.
-fn frame(app: &mut VectorcraftApp, ctx: &egui::Context, events: Vec<egui::Event>, draw: fn(&mut VectorcraftApp, &mut egui::Ui)) -> Vec<Node> {
+fn frame(app: &mut VansoncraftApp, ctx: &egui::Context, events: Vec<egui::Event>, draw: fn(&mut VansoncraftApp, &mut egui::Ui)) -> Vec<Node> {
     let mut out = ctx.run_ui(egui::RawInput { events, screen_rect: Some(SCREEN), ..Default::default() }, |ui| draw(app, ui));
     out.textures_delta.clear();
     out.platform_output.accesskit_update.map(|u| u.nodes.into_iter().map(|(_, n)| n).collect()).unwrap_or_default()
@@ -34,7 +34,7 @@ fn center_where(nodes: &[Node], pick: impl Fn(&str) -> bool) -> Option<egui::Pos
 }
 
 /// Click the node labeled `name` in what `draw` draws.
-fn click(app: &mut VectorcraftApp, ctx: &egui::Context, name: &str, draw: fn(&mut VectorcraftApp, &mut egui::Ui)) {
+fn click(app: &mut VansoncraftApp, ctx: &egui::Context, name: &str, draw: fn(&mut VansoncraftApp, &mut egui::Ui)) {
     frame(app, ctx, vec![], draw);
     let at = center(&frame(app, ctx, vec![], draw), name).unwrap_or_else(|| panic!("{name} is drawn"));
     let press = |pressed| egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
@@ -49,11 +49,11 @@ fn context() -> egui::Context {
     ctx
 }
 
-fn app_bar(app: &mut VectorcraftApp, ui: &mut egui::Ui) {
+fn app_bar(app: &mut VansoncraftApp, ui: &mut egui::Ui) {
     crate::chrome::app_bar(app, ui);
 }
 
-fn shown(app: &VectorcraftApp) -> bool {
+fn shown(app: &VansoncraftApp) -> bool {
     crate::panel_docking::showing(&app.ui, ID)
 }
 
@@ -73,11 +73,11 @@ fn the_catalog_is_valid() {
             for step in tutorial.steps {
                 assert!(step.text.ends_with('.'), "{}: {:?}", tutorial.id, step.text);
                 if let Some(tool) = step.tool {
-                    assert!(vectorcraft_tools::catalog::tool_info(tool).is_some(), "{}: no tool {tool}", tutorial.id);
+                    assert!(vansoncraft_tools::catalog::tool_info(tool).is_some(), "{}: no tool {tool}", tutorial.id);
                 }
                 if let Some(cmd) = step.command {
                     let known =
-                        crate::menus::UI_COMMANDS.iter().any(|c| c.0 == cmd) || vectorcraft_engine::cmd::command_specs().iter().any(|c| c.id == cmd);
+                        crate::menus::UI_COMMANDS.iter().any(|c| c.0 == cmd) || vansoncraft_engine::cmd::command_specs().iter().any(|c| c.id == cmd);
                     assert!(known, "{}: no command {cmd}", tutorial.id);
                 }
             }

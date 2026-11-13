@@ -16,14 +16,14 @@ impl Document {
     /// each.
     pub fn bounds_of_with(&self, ids: &[NodeId], visual: bool, symbols: &crate::SymbolBoxes) -> Option<Rect> {
         ids.iter().filter_map(|id| self.node(*id)).fold(None, |acc, n| {
-            vectorcraft_geom::union_opt(acc, if visual { n.visual_bounds_with(symbols) } else { n.geometric_bounds_with(symbols) })
+            vansoncraft_geom::union_opt(acc, if visual { n.visual_bounds_with(symbols) } else { n.geometric_bounds_with(symbols) })
         })
     }
 
     /// Visual bounds of all art, with symbol instances measured by their art.
     pub fn art_bounds(&self) -> Option<Rect> {
         let symbols = self.symbol_boxes();
-        self.layers.iter().fold(None, |acc, l| vectorcraft_geom::union_opt(acc, l.visual_bounds_with(&symbols)))
+        self.layers.iter().fold(None, |acc, l| vansoncraft_geom::union_opt(acc, l.visual_bounds_with(&symbols)))
     }
 
     /// Artboard index containing point `p` (topmost = last), its edges included
@@ -119,7 +119,7 @@ impl Document {
                 NodeKind::Path { path, .. } => path.control_bounds()?,
                 NodeKind::Compound { children, .. } => children.iter().try_fold(None, |acc, m| {
                     let NodeKind::Path { path, .. } = &m.kind else { return None };
-                    Some(vectorcraft_geom::union_opt(acc, path.control_bounds()))
+                    Some(vansoncraft_geom::union_opt(acc, path.control_bounds()))
                 })??,
                 _ => return None,
             };

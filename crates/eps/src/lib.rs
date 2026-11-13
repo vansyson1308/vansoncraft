@@ -50,8 +50,8 @@ pub use import::{
 pub use legacy_ai::{HiddenObjects, LegacyAiOptions, LegacyAiOutput, export_legacy_ai, writes_image_mask};
 pub use print::{PrintJob, PrintPage, print};
 
-use vectorcraft_doc::Document;
-use vectorcraft_geom::{Point, Rect};
+use vansoncraft_doc::Document;
+use vansoncraft_geom::{Point, Rect};
 
 /// The PostScript language level the file needs.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
@@ -225,8 +225,8 @@ pub fn export(doc: &Document, opts: &EpsOptions, preview: Option<&Raster>, thumb
         return Err("the export region is not finite".into());
     }
     // Type in the document's composite fonts is drawn in them, whether or not an app has the document open.
-    let _lent = vectorcraft_text::FontDb::global().lend_composite_fonts(&doc.composite_fonts);
-    let baked = vectorcraft_effects::bake_document(doc);
+    let _lent = vansoncraft_text::FontDb::global().lend_composite_fonts(&doc.composite_fonts);
+    let baked = vansoncraft_effects::bake_document(doc);
     let doc = baked.as_ref().unwrap_or(doc);
     let page = scene::Scene::new(doc, opts).run();
     let mut warnings = page.warnings;
@@ -252,10 +252,16 @@ pub fn export(doc: &Document, opts: &EpsOptions, preview: Option<&Raster>, thumb
     Ok(EpsOutput { bytes, warnings })
 }
 
-/// Comment lines that start a data section the file carries (`%VectorCraft_BeginData: <name>`)
+/// Comment lines that start a data section the file carries (`%VansonCraft_BeginData: <name>`)
 /// and end it; between them, ASCII85 lines after `% `.
-const BEGIN_DATA: &str = "%VectorCraft_BeginData: ";
-const END_DATA: &str = "%VectorCraft_EndData";
+const BEGIN_DATA: &str = "%VansonCraft_BeginData: ";
+const END_DATA: &str = "%VansonCraft_EndData";
+/// The same comments in EPS files written before the project took the name VansonCraft: still
+/// read, never written.
+const FORMER_BEGIN_DATA: &str = "%VectorCraft_BeginData: "; // brand-ok: files saved before the rename
+const FORMER_END_DATA: &str = "%VectorCraft_EndData"; // brand-ok: files saved before the rename
+/// The (start, end) comments a data section is read between.
+const DATA_MARKERS: [(&str, &str); 2] = [(BEGIN_DATA, END_DATA), (FORMER_BEGIN_DATA, FORMER_END_DATA)];
 /// The data sections.
 const NATIVE: &str = "native";
 const THUMBNAIL: &str = "thumbnail";
@@ -266,10 +272,10 @@ const MAX_NATIVE: u64 = 1 << 30;
 /// language level, data, and the spot colours `custom` with their CMYK equivalents.
 pub(crate) fn comments(s: &mut String, title: &str, created: Option<i64>, level: Level, custom: &[(String, [f32; 4])]) {
     use std::fmt::Write;
-    let _ = writeln!(s, "%%Creator: VectorCraft {}", env!("CARGO_PKG_VERSION"));
+    let _ = writeln!(s, "%%Creator: VansonCraft {}", env!("CARGO_PKG_VERSION"));
     let _ = writeln!(s, "%%Title: {}", ps::string(title));
     if let Some(t) = created {
-        let [y, mo, d, h, mi, se] = vectorcraft_doc::metadata::civil(t);
+        let [y, mo, d, h, mi, se] = vansoncraft_doc::metadata::civil(t);
         let _ = writeln!(s, "%%CreationDate: ({y:04}-{mo:02}-{d:02} {h:02}:{mi:02}:{se:02} UTC)");
     }
     let _ = writeln!(s, "%%LanguageLevel: {}", level.id());
@@ -337,10 +343,19 @@ fn data_section(s: &mut String, name: &str, bytes: &[u8]) {
 fn read_data(ps: &[u8], name: &str) -> Option<Vec<u8>> {
     let text = String::from_utf8_lossy(ps);
     let mut lines = text.lines();
-    lines.find(|l| l.strip_prefix(BEGIN_DATA).is_some_and(|n| n.trim() == name))?;
+    let mut end = END_DATA;
+    lines.find(|l| {
+        DATA_MARKERS.iter().any(|(begin, stop)| {
+            let found = l.strip_prefix(begin).is_some_and(|n| n.trim() == name);
+            if found {
+                end = stop;
+            }
+            found
+        })
+    })?;
     let mut encoded = String::new();
     for l in lines {
-        if l.starts_with(END_DATA) {
+        if l.starts_with(end) {
             return ps::ascii85_decode(&encoded);
         }
         encoded.push_str(l.strip_prefix('%').unwrap_or(l));
@@ -416,8 +431,8 @@ pub fn native(bytes: &[u8]) -> Option<Vec<u8>> {
 
 /// Does the EPS file carry a native document (readable or not)?
 pub fn has_native(bytes: &[u8]) -> bool {
-    let marker = format!("{BEGIN_DATA}{NATIVE}");
-    sections(bytes).is_some_and(|(ps, _)| ps.windows(marker.len()).any(|w| w == marker.as_bytes()))
+    let markers = DATA_MARKERS.map(|(begin, _)| format!("{begin}{NATIVE}"));
+    sections(bytes).is_some_and(|(ps, _)| markers.iter().any(|m| ps.windows(m.len()).any(|w| w == m.as_bytes())))
 }
 
 /// The PNG thumbnail an EPS file written by [`export`] carries, if any.

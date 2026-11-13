@@ -132,9 +132,9 @@ pub(super) fn filter_names(filters: &[Arc<usvg::filter::Filter>]) -> String {
 
 /// Inkscape's pages (`<inkscape:page>` in its `<sodipodi:namedview>`, in user units) as artboards
 /// through `user` (user units → document points), named by their labels; `None` without any.
-pub(super) fn inkscape_pages(xml: &roxmltree::Document, user: Affine) -> Option<Vec<vectorcraft_doc::Artboard>> {
+pub(super) fn inkscape_pages(xml: &roxmltree::Document, user: Affine) -> Option<Vec<vansoncraft_doc::Artboard>> {
     let num = |n: roxmltree::Node, a: &str| n.attribute(a).and_then(|v| v.trim().parse::<f64>().ok()).filter(|v| v.is_finite());
-    let pages: Vec<vectorcraft_doc::Artboard> = xml
+    let pages: Vec<vansoncraft_doc::Artboard> = xml
         .descendants()
         .filter(|n| n.is_element() && n.tag_name().name() == "page" && n.tag_name().namespace() == Some(INKSCAPE))
         .filter_map(|p| {
@@ -146,7 +146,7 @@ pub(super) fn inkscape_pages(xml: &roxmltree::Document, user: Affine) -> Option<
         })
         .take(1000)
         .enumerate()
-        .map(|(i, (p, r))| vectorcraft_doc::Artboard {
+        .map(|(i, (p, r))| vansoncraft_doc::Artboard {
             id: i as u32 + 1,
             name: p.attribute((INKSCAPE, "label")).filter(|l| !l.trim().is_empty()).map_or_else(|| format!("Artboard {}", i + 1), str::to_string),
             rect: r,

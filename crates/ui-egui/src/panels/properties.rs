@@ -2,18 +2,18 @@
 
 use egui::Ui;
 use serde_json::json;
-use vectorcraft_color::{Color, Paint};
-use vectorcraft_doc::{LiveCorners, LiveShape, NodeKind, Unit, WidthProfile};
-use vectorcraft_engine::cmd::newdoc;
+use vansoncraft_color::{Color, Paint};
+use vansoncraft_doc::{LiveCorners, LiveShape, NodeKind, Unit, WidthProfile};
+use vansoncraft_engine::cmd::newdoc;
 
 use super::{first_selected, pstate, set_pstate};
 use crate::theme::Tokens;
 use crate::widgets::{self, dim_label, divider, section_header};
-use crate::{VectorcraftApp, icons};
+use crate::{VansoncraftApp, icons};
 
 /// The panel for what is selected: the selection's kind as its heading, then its sections (Edit
 /// Artboards' with the Artboard tool, the document's with nothing selected).
-pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn show(app: &mut VansoncraftApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let Some(st) = app.session.active() else {
         dim_label(ui, tl!("No document open"));
@@ -193,8 +193,8 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
 
 /// Whether Merge Live Paint can take the selection: a Live Paint group among the selected objects
 /// and nothing Live Paint refuses (type, images and the rest; `livePaint.merge` refuses them too).
-fn can_merge_live_paint(app: &VectorcraftApp) -> bool {
-    use vectorcraft_tools::builder::{is_live_paint, live_paint_takes};
+fn can_merge_live_paint(app: &VansoncraftApp) -> bool {
+    use vansoncraft_tools::builder::{is_live_paint, live_paint_takes};
     app.session.active().is_some_and(|st| {
         let nodes = || st.selection.objects.iter().filter_map(|id| st.doc.node(*id));
         nodes().any(is_live_paint) && nodes().all(live_paint_takes)
@@ -206,7 +206,7 @@ fn can_merge_live_paint(app: &VectorcraftApp) -> bool {
 /// control while the Direct Selection tool is chosen and a corner of an object is selected
 /// (<https://helpx.adobe.com/illustrator/desktop/get-started/learn-the-basics/properties-panel-overview.html>).
 /// A live rectangle's and a live polygon's own rows already set the selected corners.
-fn corner_rows(app: &mut VectorcraftApp, ui: &mut Ui) {
+fn corner_rows(app: &mut VansoncraftApp, ui: &mut Ui) {
     if app.session.tool_id() != "directSelection" {
         return;
     }
@@ -222,12 +222,12 @@ fn corner_rows(app: &mut VectorcraftApp, ui: &mut Ui) {
     }
     let n = n.clone();
     let kind = super::corner_style(app, &n).1;
-    let kinds: Vec<&str> = vectorcraft_geom::shapes::CornerKind::ALL.iter().map(|k| crate::dialogs::corners::kind_label(*k)).collect();
+    let kinds: Vec<&str> = vansoncraft_geom::shapes::CornerKind::ALL.iter().map(|k| crate::dialogs::corners::kind_label(*k)).collect();
     let fw = super::field_width(ui);
     egui::Grid::new("props-corners").num_columns(2).spacing([6.0, 6.0]).show(ui, |ui| {
         dim_label(ui, tl!("Corner:"));
         let picked = widgets::dropdown_names(ui, ("props-corners", "kind"), kind.map_or("", crate::dialogs::corners::kind_label), &kinds, fw);
-        if let Some(k) = picked.and_then(|i| vectorcraft_geom::shapes::CornerKind::ALL.get(i)) {
+        if let Some(k) = picked.and_then(|i| vansoncraft_geom::shapes::CornerKind::ALL.get(i)) {
             app.run("object.setLiveShape", json!({"kind": k})).ok();
         }
         ui.end_row();
@@ -240,7 +240,7 @@ fn corner_rows(app: &mut VectorcraftApp, ui: &mut Ui) {
 /// Start Global Edit (Stop Global Edit while it is on) with the Global Edit Options beside it, in
 /// Quick Actions as the help page places them
 /// (<https://helpx.adobe.com/illustrator/desktop/manage-objects/edit-objects/edit-similar-objects.html>).
-fn global_edit_row(app: &mut VectorcraftApp, ui: &mut Ui) {
+fn global_edit_row(app: &mut VansoncraftApp, ui: &mut Ui) {
     let on = app.session.active().is_some_and(|d| d.global_edit.is_some());
     if !crate::menus::enabled(app, "select.globalEdit") {
         return;
@@ -268,10 +268,10 @@ pub(crate) fn global_edit_options_open(options: &egui::Response, on: bool) -> Op
 /// The Global Edit Options: what else similar objects must share (Match), where they may lie (On
 /// Artboards) and how many objects that takes now. The Control bar's Global Edit Options dropdown
 /// shows them too.
-pub(crate) fn global_edit_options(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub(crate) fn global_edit_options(app: &mut VansoncraftApp, ui: &mut Ui) {
     ui.set_min_width(220.0);
     let o = app.session.global_edit_options.clone();
-    let set = |app: &mut VectorcraftApp, p: serde_json::Value| crate::menus::invoke(app, "select.globalEditOptions", p);
+    let set = |app: &mut VansoncraftApp, p: serde_json::Value| crate::menus::invoke(app, "select.globalEditOptions", p);
     widgets::subheader(ui, tl!("Match"));
     if widgets::check(ui, tl!("Appearance"), o.appearance, true) {
         set(app, json!({ "appearance": !o.appearance }));
@@ -304,11 +304,11 @@ pub(crate) fn global_edit_results(n: usize) -> String {
 
 /// The cached Results count: the (document, revision, options, one selected object) it was
 /// found for, and the count.
-type GlobalEditCount = Option<((u64, u64, vectorcraft_engine::cmd::globaledit::Options, Option<u64>), usize)>;
+type GlobalEditCount = Option<((u64, u64, vansoncraft_engine::cmd::globaledit::Options, Option<u64>), usize)>;
 
 /// How many objects Start Global Edit would take now (the options' Results line), cached per
 /// document revision, options and selected object, as finding them walks the whole document.
-fn global_edit_count(app: &VectorcraftApp, ctx: &egui::Context) -> usize {
+fn global_edit_count(app: &VansoncraftApp, ctx: &egui::Context) -> usize {
     let Some(st) = app.session.active() else { return 0 };
     let selected = match st.selection.objects.as_slice() {
         [id] => Some(id.0),
@@ -318,7 +318,7 @@ fn global_edit_count(app: &VectorcraftApp, ctx: &egui::Context) -> usize {
     match pstate::<GlobalEditCount>(ctx, "props-global-edit-count") {
         Some((k, count)) if k == key => count,
         _ => {
-            let count = vectorcraft_engine::cmd::globaledit::match_count(&app.session);
+            let count = vansoncraft_engine::cmd::globaledit::match_count(&app.session);
             set_pstate::<GlobalEditCount>(ctx, "props-global-edit-count", Some((key, count)));
             count
         }
@@ -331,7 +331,7 @@ fn global_edit_count(app: &VectorcraftApp, ctx: &egui::Context) -> usize {
 /// and edit the masked content", <https://www.adobe.com/learn/illustrator/web/crop-using-masks>):
 /// they select its clipping path or its clipped art for the selection tools, as Object › Clipping
 /// Mask does. Edit Contents only when the group clips something.
-fn clip_group_buttons(app: &mut VectorcraftApp, ui: &mut Ui, has_contents: bool) {
+fn clip_group_buttons(app: &mut VansoncraftApp, ui: &mut Ui, has_contents: bool) {
     let w = (ui.available_width() - 6.0) / 2.0;
     ui.horizontal(|ui| {
         if widgets::flat_button(ui, tl!("Edit Clipping Path"), w).clicked() {
@@ -345,7 +345,7 @@ fn clip_group_buttons(app: &mut VectorcraftApp, ui: &mut Ui, has_contents: bool)
 
 /// The one selected image: its file (or Embedded), colour mode and resolution, and the Links
 /// panel's actions for it.
-fn image_section(app: &mut VectorcraftApp, ui: &mut Ui) {
+fn image_section(app: &mut VansoncraftApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let Some(i) = crate::place::selected_image_info(app) else { return };
     let (name, details) = crate::place::image_summary(i);
@@ -369,7 +369,7 @@ fn image_section(app: &mut VectorcraftApp, ui: &mut Ui) {
 
 /// The one selected Image Trace object: its preset (choosing another traces it again with that
 /// one), view, a button to reveal the tracing controls, Expand and Release.
-fn trace_section(app: &mut VectorcraftApp, ui: &mut Ui, preset: &str, view: vectorcraft_doc::TraceView) {
+fn trace_section(app: &mut VansoncraftApp, ui: &mut Ui, preset: &str, view: vansoncraft_doc::TraceView) {
     section_header(ui, tl!("Image Trace"));
     ui.horizontal(|ui| {
         dim_label(ui, tl!("Preset:"));
@@ -399,7 +399,7 @@ struct ObjectsOnPathSelection {
 
 /// The selection as Objects on Path groups ([`ObjectsOnPathSelection`]), when every selected
 /// object is one.
-fn selected_objects_on_path(app: &VectorcraftApp) -> Option<ObjectsOnPathSelection> {
+fn selected_objects_on_path(app: &VansoncraftApp) -> Option<ObjectsOnPathSelection> {
     let st = app.session.active()?;
     let mut out: Option<ObjectsOnPathSelection> = None;
     for id in &st.selection.objects {
@@ -426,10 +426,10 @@ fn selected_objects_on_path(app: &VectorcraftApp) -> Option<ObjectsOnPathSelecti
 /// (<https://helpx.adobe.com/illustrator/using/objects-on-path.html>). A change goes to every
 /// selected group in one undo step (`object.objectsOnPath.options`). Where the groups differ, no
 /// Pivot square is chosen and Rotate is blank.
-fn objects_on_path_section(app: &mut VectorcraftApp, ui: &mut Ui, oop: &ObjectsOnPathSelection) {
+fn objects_on_path_section(app: &mut VansoncraftApp, ui: &mut Ui, oop: &ObjectsOnPathSelection) {
     section_header(ui, tl!("Objects on Path Options"));
     let fw = super::field_width(ui);
-    let set = |app: &mut VectorcraftApp, mut p: serde_json::Value| {
+    let set = |app: &mut VansoncraftApp, mut p: serde_json::Value| {
         p["ids"] = json!(oop.ids);
         if let Err(e) = app.run("object.objectsOnPath.options", p) {
             app.status(e);
@@ -456,7 +456,7 @@ fn objects_on_path_section(app: &mut VectorcraftApp, ui: &mut Ui, oop: &ObjectsO
 
 /// Whether the selection uses more than one colour (`recolor.colors`), which offers the Recolor
 /// quick action; cached per document revision.
-fn multi_color(app: &mut VectorcraftApp, ctx: &egui::Context) -> bool {
+fn multi_color(app: &mut VansoncraftApp, ctx: &egui::Context) -> bool {
     let Some(st) = app.session.active() else { return false };
     let key = (st.uid, st.revision);
     match pstate::<Option<((u64, u64), bool)>>(ctx, "props-multi-color") {
@@ -479,7 +479,7 @@ fn multi_color(app: &mut VectorcraftApp, ctx: &egui::Context) -> bool {
 /// section with its name, which can be edited to rename it, the Artboard Options icon, its Fill
 /// (background color, also for every selected artboard), New Artboard and Delete Artboard; and
 /// Quick Actions: Rearrange All (#681) and Exit back to the Selection tool (#530).
-fn artboard_sections(app: &mut VectorcraftApp, ui: &mut Ui) {
+fn artboard_sections(app: &mut VansoncraftApp, ui: &mut Ui) {
     let n = app.session.active().map_or(0, |d| d.doc.artboards.len());
     let i = super::artboards::selected(app, n);
     if let Some(ab) = app.session.active().and_then(|d| d.doc.artboards.get(i)).cloned() {
@@ -529,7 +529,7 @@ fn artboard_sections(app: &mut VectorcraftApp, ui: &mut Ui) {
 }
 
 /// Rearrange All (#681): opens Rearrange All Artboards; disabled with fewer than two artboards.
-fn rearrange_button(app: &mut VectorcraftApp, ui: &mut Ui, artboards: usize, w: f32) {
+fn rearrange_button(app: &mut VansoncraftApp, ui: &mut Ui, artboards: usize, w: f32) {
     if ui.add_enabled_ui(artboards > 1, |ui| widgets::flat_button(ui, tl!("Rearrange All"), w)).inner.clicked() {
         super::artboards::open_rearrange(app);
     }
@@ -546,7 +546,7 @@ fn turned(landscape: bool, pw: f64, ph: f64) -> (f64, f64) {
 /// bar. A preset sizes each selected artboard in its own orientation; an orientation swaps the
 /// width and height of each selected artboard that is not square and not already in it. Each
 /// top-left corner stays put.
-pub(crate) fn artboard_size_row(app: &mut VectorcraftApp, ui: &mut Ui, i: usize, w: f64, h: f64) {
+pub(crate) fn artboard_size_row(app: &mut VansoncraftApp, ui: &mut Ui, i: usize, w: f64, h: f64) {
     let Some(choice) = artboard_size_controls(app, ui, w, h) else { return };
     let scale_art = super::artboards::scale_art(app);
     let indices = super::artboards::resized_with(app, i);
@@ -575,14 +575,14 @@ impl ArtboardSizeChoice {
 }
 
 /// Shared existing presets/orientation UI. Dialogs keep the chosen size in their draft until OK.
-pub(crate) fn artboard_size_controls(app: &VectorcraftApp, ui: &mut Ui, w: f64, h: f64) -> Option<ArtboardSizeChoice> {
+pub(crate) fn artboard_size_controls(app: &VansoncraftApp, ui: &mut Ui, w: f64, h: f64) -> Option<ArtboardSizeChoice> {
     artboard_size_controls_inner(app, ui, w, h, None).0
 }
 
 /// The dialog's shared preset/orientation picker with optional artwork and selection fits.
 /// The second return value is a chosen Fit: false for all artwork, true for selected artwork.
 pub(crate) fn artboard_size_controls_with_fit(
-    app: &VectorcraftApp,
+    app: &VansoncraftApp,
     ui: &mut Ui,
     w: f64,
     h: f64,
@@ -593,7 +593,7 @@ pub(crate) fn artboard_size_controls_with_fit(
 
 /// Properties and Control keep their ordinary picker; Artboard Options adds two Fit entries.
 fn artboard_size_controls_inner(
-    app: &VectorcraftApp,
+    app: &VansoncraftApp,
     ui: &mut Ui,
     w: f64,
     h: f64,
@@ -653,7 +653,7 @@ fn artboard_size_controls_inner(
 /// Artboard `i`'s Fill, its background `color`: the chip shows it (the None paint when the artboard
 /// has none) and a click on it opens the Color Picker for the artboard. The list sets None, White or
 /// Black (in the document's color mode) or opens the Color Picker.
-fn artboard_fill_row(app: &mut VectorcraftApp, ui: &mut Ui, i: usize, color: Option<Color>) {
+fn artboard_fill_row(app: &mut VansoncraftApp, ui: &mut Ui, i: usize, color: Option<Color>) {
     let fills = super::artboards::fill_colors(app);
     let shown = super::artboards::fill_name(app, color);
     let mut options = super::artboards::FILLS.to_vec();
@@ -686,7 +686,7 @@ fn artboard_fill_row(app: &mut VectorcraftApp, ui: &mut Ui, i: usize, color: Opt
 
 /// The panel's heading: what the sections are for (the artboards with the Artboard tool, the
 /// selected ruler guides, the document with nothing selected), else the selection's kind.
-fn heading(first: Option<&vectorcraft_doc::Node>, n_sel: usize, editing_artboards: bool, guides: bool) -> String {
+fn heading(first: Option<&vansoncraft_doc::Node>, n_sel: usize, editing_artboards: bool, guides: bool) -> String {
     match (first, n_sel) {
         _ if editing_artboards => tl!("Artboard").to_string(),
         (None, _) if guides => tl!("Guides").to_string(),
@@ -699,13 +699,13 @@ fn heading(first: Option<&vectorcraft_doc::Node>, n_sel: usize, editing_artboard
 
 /// Ruler guides selected on their own: a Transform section with the X of the vertical ones and
 /// the Y of the horizontal ones, which move them, as the Transform panel shows them (#1597).
-fn guide_sections(app: &mut VectorcraftApp, ui: &mut Ui, guides: (Option<f64>, Option<f64>)) {
+fn guide_sections(app: &mut VansoncraftApp, ui: &mut Ui, guides: (Option<f64>, Option<f64>)) {
     section_header(ui, tl!("Transform"));
     let fw = super::field_width(ui);
     super::transform::guide_fields(app, ui, guides, fw);
 }
 
-fn document_sections(app: &mut VectorcraftApp, ui: &mut Ui) {
+fn document_sections(app: &mut VansoncraftApp, ui: &mut Ui) {
     let units = app.session.general_unit();
     section_header(ui, tl!("Document"));
     ui.horizontal(|ui| {
@@ -791,7 +791,7 @@ fn document_sections(app: &mut VectorcraftApp, ui: &mut Ui) {
     });
 }
 
-pub fn transform_section(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn transform_section(app: &mut VansoncraftApp, ui: &mut Ui) {
     if app.session.active().is_none() {
         return;
     }
@@ -885,7 +885,7 @@ pub fn transform_section(app: &mut VectorcraftApp, ui: &mut Ui) {
     }
 }
 
-fn appearance_section(app: &mut VectorcraftApp, ui: &mut Ui) {
+fn appearance_section(app: &mut VansoncraftApp, ui: &mut Ui) {
     let Some(n) = first_selected(app) else { return };
     section_header(ui, tl!("Appearance"));
     fill_stroke_rows(app, ui);
@@ -925,7 +925,7 @@ fn appearance_section(app: &mut VectorcraftApp, ui: &mut Ui) {
 /// (<https://helpx.adobe.com/illustrator/desktop/get-started/learn-the-basics/properties-panel-overview.html>):
 /// with one effect applied, its name and an icon that removes it (`effect.remove`); with several,
 /// the icon opens the Appearance panel to remove them there. Nothing without effects.
-fn effect_delete(app: &mut VectorcraftApp, ui: &mut Ui, id: vectorcraft_doc::NodeId, effects: &[(Option<usize>, usize, &str)]) {
+fn effect_delete(app: &mut VansoncraftApp, ui: &mut Ui, id: vansoncraft_doc::NodeId, effects: &[(Option<usize>, usize, &str)]) {
     match effects {
         [] => {}
         [(item, k, effect)] => {
@@ -949,7 +949,7 @@ fn effect_delete(app: &mut VectorcraftApp, ui: &mut Ui, id: vectorcraft_doc::Nod
 /// The stroke's Variable Width Profile (the Control bar's list), shown while the Width tool is in
 /// use or the stroke has a variable width, as the Properties panel overview places it
 /// (<https://helpx.adobe.com/illustrator/desktop/get-started/learn-the-basics/properties-panel-overview.html>).
-fn width_profile_row(app: &mut VectorcraftApp, ui: &mut Ui) {
+fn width_profile_row(app: &mut VansoncraftApp, ui: &mut Ui) {
     let stroke = super::current_stroke(app);
     let profile = stroke.as_ref().and_then(|s| s.profile.as_ref());
     if app.session.tool_id() != "width" && WidthProfile::id_of(profile) == "uniform" {
@@ -966,7 +966,7 @@ fn width_profile_row(app: &mut VectorcraftApp, ui: &mut Ui) {
 /// The Fill and Stroke rows, with the Control bar's widgets: the chips (a click opens the
 /// swatches, Shift-click the mixer), the Stroke link that opens the Stroke panel as a popover
 /// and the weight spinner with its presets. With nothing selected they set up the next object.
-fn fill_stroke_rows(app: &mut VectorcraftApp, ui: &mut Ui) {
+fn fill_stroke_rows(app: &mut VansoncraftApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let weight = super::stroke::shown_weight(app, super::current_stroke(app).as_ref(), &super::stroke_mixed(app, ui.ctx()));
     let fw = super::field_width(ui);
@@ -982,7 +982,7 @@ fn fill_stroke_rows(app: &mut VectorcraftApp, ui: &mut Ui) {
     });
 }
 
-pub fn type_sections(app: &mut VectorcraftApp, ui: &mut Ui) {
+pub fn type_sections(app: &mut VansoncraftApp, ui: &mut Ui) {
     let Some(n) = first_selected(app) else {
         dim_label(ui, tl!("Select a text object"));
         return;

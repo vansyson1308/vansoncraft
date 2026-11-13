@@ -15,14 +15,14 @@
 //! Stop ends the run and puts back everything it did.
 
 use serde_json::{Value, json};
-use vectorcraft_engine::cmd::scripts::{RUN_EXTS, TOO_LARGE, runs};
-use vectorcraft_engine::script::dialogs::{MAX_PROMPT_BYTES, cut_to, shown_text};
-use vectorcraft_engine::script::{DialogAnswer, ScriptDialog};
+use vansoncraft_engine::cmd::scripts::{RUN_EXTS, TOO_LARGE, runs};
+use vansoncraft_engine::script::dialogs::{MAX_PROMPT_BYTES, cut_to, shown_text};
+use vansoncraft_engine::script::{DialogAnswer, ScriptDialog};
 
 use super::{DialogAction, DialogSpec};
 use crate::state::Dialog;
 use crate::theme::{self, Tokens};
-use crate::{FilePick, VectorcraftApp, widgets};
+use crate::{FilePick, VansoncraftApp, widgets};
 
 /// The dialog kind of the warning before a script runs.
 pub const KIND: &str = "scriptRun";
@@ -82,12 +82,12 @@ pub(super) const CLOSE_SPEC: DialogSpec = DialogSpec {
 };
 
 /// A file the web's picker delivered: its name and bytes, or `None` for a file over
-/// [`vectorcraft_engine::script::MAX_SOURCE_BYTES`], which is not read.
+/// [`vansoncraft_engine::script::MAX_SOURCE_BYTES`], which is not read.
 pub type ScriptInbox = std::sync::Arc<std::sync::Mutex<Vec<(String, Option<Vec<u8>>)>>>;
 
 /// Shows the warning for the next script the web's picker delivered, once no dialog is open. A
 /// picker that was canceled delivers nothing.
-pub(crate) fn drain(app: &mut VectorcraftApp) {
+pub(crate) fn drain(app: &mut VansoncraftApp) {
     if app.ui.dialog.is_some() {
         return;
     }
@@ -103,7 +103,7 @@ pub(crate) fn drain(app: &mut VectorcraftApp) {
 }
 
 /// `ui.runScript`: the script at `path` or given as `source`; without either, pick a file.
-pub(crate) fn command(app: &mut VectorcraftApp, p: &Value) -> Result<Value, String> {
+pub(crate) fn command(app: &mut VansoncraftApp, p: &Value) -> Result<Value, String> {
     if p.get("path").is_some() || p.get("source").is_some() {
         return chosen(app, p.clone());
     }
@@ -117,7 +117,7 @@ pub(crate) fn command(app: &mut VectorcraftApp, p: &Value) -> Result<Value, Stri
 }
 
 /// A script was chosen: `params` are `script.run`'s. It runs after the warning, when that is on.
-pub(crate) fn chosen(app: &mut VectorcraftApp, params: Value) -> Result<Value, String> {
+pub(crate) fn chosen(app: &mut VansoncraftApp, params: Value) -> Result<Value, String> {
     let path = params.get("path").and_then(Value::as_str);
     if path.is_some_and(|path| !runs(path)) {
         return Err("Choose a .js or .jsx script".into());
@@ -125,12 +125,12 @@ pub(crate) fn chosen(app: &mut VectorcraftApp, params: Value) -> Result<Value, S
     if !app.session.prefs.show_external_script_warning {
         return app.run("script.run", params);
     }
-    let name = params.get("name").and_then(Value::as_str).or(path).map_or_else(|| "script".to_string(), vectorcraft_engine::cmd::fileio::file_name);
+    let name = params.get("name").and_then(Value::as_str).or(path).map_or_else(|| "script".to_string(), vansoncraft_engine::cmd::fileio::file_name);
     app.ui.dialog = Some(Dialog::new(KIND, json!({"name": name, "script": params, "dontShow": false})));
     Ok(Value::Null)
 }
 
-fn body(_: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
+fn body(_: &mut VansoncraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
     let t = Tokens::get(ui.ctx());
     ui.label(egui::RichText::new(d.fields.get("name").and_then(Value::as_str).unwrap_or_default()).font(theme::semibold(12.5)).color(t.text_strong));
     ui.add_space(4.0);
@@ -143,7 +143,7 @@ fn body(_: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
     false
 }
 
-fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
+fn confirm(app: &mut VansoncraftApp, d: &Dialog) -> Result<Value, String> {
     if d.fields.get("dontShow").and_then(Value::as_bool).unwrap_or(false) {
         app.run("prefs.set", json!({"key": "showExternalScriptWarning", "value": false}))?;
     }
@@ -152,13 +152,13 @@ fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
     app.run("script.run", script)
 }
 
-fn growth_confirm(app: &mut VectorcraftApp, _: &Dialog) -> Result<Value, String> {
+fn growth_confirm(app: &mut VansoncraftApp, _: &Dialog) -> Result<Value, String> {
     app.ui.dialog = None;
     app.session.script_continue();
     Ok(Value::Null)
 }
 
-fn close_confirm(app: &mut VectorcraftApp, _: &Dialog) -> Result<Value, String> {
+fn close_confirm(app: &mut VansoncraftApp, _: &Dialog) -> Result<Value, String> {
     app.ui.dialog = None;
     if app.session.script_abandon() {
         let error = app.session.script_failure_text().unwrap_or_default();
@@ -170,7 +170,7 @@ fn close_confirm(app: &mut VectorcraftApp, _: &Dialog) -> Result<Value, String> 
 
 /// Quitting while a script runs asks whether to stop it, also over the script's own dialog, which
 /// Cancel shows again as it was. Any other open dialog stays, and quitting asks nothing yet.
-pub(crate) fn ask_to_close(app: &mut VectorcraftApp) {
+pub(crate) fn ask_to_close(app: &mut VansoncraftApp) {
     let notice = app.ui.dialog.take_if(|d| d.kind == NOTICE_KIND);
     if app.ui.dialog.is_some() {
         return;
@@ -185,7 +185,7 @@ pub(crate) fn ask_to_close(app: &mut VectorcraftApp) {
 /// Closes the question quitting asks once the run it asks about has ended, and forgets the
 /// script's dialog it was asked over once the run no longer waits at that dialog, so Cancel does
 /// not show it again.
-pub(crate) fn settle_close(app: &mut VectorcraftApp) {
+pub(crate) fn settle_close(app: &mut VansoncraftApp) {
     if !app.ui.dialog.as_ref().is_some_and(|d| d.kind == CLOSE_KIND) {
         return;
     }
@@ -199,7 +199,7 @@ pub(crate) fn settle_close(app: &mut VectorcraftApp) {
 }
 
 /// Shows the dialog the running script waits at.
-pub(crate) fn open_notice(app: &mut VectorcraftApp, d: &ScriptDialog) {
+pub(crate) fn open_notice(app: &mut VansoncraftApp, d: &ScriptDialog) {
     let fields = json!({
         "kind": d.kind.id(),
         "message": d.message,
@@ -233,7 +233,7 @@ fn answer_button(ui: &mut egui::Ui, label: &str, default: bool) -> bool {
     if default { widgets::primary_button_enabled(ui, label, true).clicked() } else { widgets::secondary_button(ui, label).clicked() }
 }
 
-fn notice_body(_: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> DialogAction {
+fn notice_body(_: &mut VansoncraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> DialogAction {
     let t = Tokens::get(ui.ctx());
     let kind = d.str("kind");
     let message = shown_text(&d.str("message"), true);
@@ -285,13 +285,13 @@ fn notice_body(_: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> Dia
 }
 
 /// Gives the running script the dialog's `answer`, or the default button's.
-fn notice_confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
+fn notice_confirm(app: &mut VansoncraftApp, d: &Dialog) -> Result<Value, String> {
     let answer = d.fields.get("answer").and_then(Value::as_str).unwrap_or(default_answer(d));
     give(app, d, answer)
 }
 
 /// Escape or Cancel: Cancel for a prompt, No for a confirm and Stop for an alert.
-pub(super) fn notice_cancel(app: &mut VectorcraftApp, d: &Dialog) {
+pub(super) fn notice_cancel(app: &mut VansoncraftApp, d: &Dialog) {
     let answer = match d.str("kind").as_str() {
         "prompt" => "cancel",
         "confirm" => "no",
@@ -300,7 +300,7 @@ pub(super) fn notice_cancel(app: &mut VectorcraftApp, d: &Dialog) {
     let _ = give(app, d, answer);
 }
 
-fn give(app: &mut VectorcraftApp, d: &Dialog, answer: &str) -> Result<Value, String> {
+fn give(app: &mut VansoncraftApp, d: &Dialog, answer: &str) -> Result<Value, String> {
     let given = match (d.str("kind").as_str(), answer) {
         (_, "stop") => None,
         ("alert", "ok") => Some(DialogAnswer::Ok),

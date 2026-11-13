@@ -4,9 +4,9 @@
 use std::sync::Arc;
 
 use serde_json::{Value, json};
-use vectorcraft_color::Paint;
-use vectorcraft_doc::{Appearance, Node, NodeKind};
-use vectorcraft_geom::{Affine, BezPath, FillRule, PathData, Point, Rect, Shape, shapes};
+use vansoncraft_color::Paint;
+use vansoncraft_doc::{Appearance, Node, NodeKind};
+use vansoncraft_geom::{Affine, BezPath, FillRule, PathData, Point, Rect, Shape, shapes};
 
 use super::super::super::super::pathops::text_outline;
 use crate::*;
@@ -108,7 +108,7 @@ fn lines_stop_at_the_outline_and_cross_the_hole_of_a_compound_path() {
     // Both subpaths wind the same way, so the fill rule alone decides whether the inner one is a
     // hole.
     let same_way = |rule: FillRule| {
-        move |d: &mut vectorcraft_doc::Document, _: &mut vectorcraft_doc::Selection| -> Result<()> {
+        move |d: &mut vansoncraft_doc::Document, _: &mut vansoncraft_doc::Selection| -> Result<()> {
             let Some(NodeKind::Compound { children, rule: r }) = d.node_mut(c).map(|n| &mut n.kind) else { panic!("not a compound path") };
             *r = rule;
             let area = |n: &Node| match &n.kind {
@@ -545,7 +545,7 @@ fn indexed_crossings_find_the_same_stretches() {
 fn art_nested_too_deep_is_refused() {
     // A rectangle inside `levels` groups, each holding the next. A document keeps none this deep,
     // but the art symbol instances and live objects draw nests further.
-    let doc = vectorcraft_doc::Document::new(800.0, 600.0);
+    let doc = vansoncraft_doc::Document::new(800.0, 600.0);
     let nested = |levels: usize| {
         let mut n = Node::path(NodeId(1), shapes::rectangle(Rect::new(100.0, 100.0, 150.0, 140.0)), Appearance::default());
         for i in 0..levels {
@@ -627,7 +627,7 @@ fn diamond_weeding(s: &mut Session) -> (Rect, f64) {
 #[test]
 fn an_image_is_measured_by_its_frame_as_turned() {
     let mut s = session();
-    let im = vectorcraft_doc::ImageObject {
+    let im = vansoncraft_doc::ImageObject {
         key: "image".into(),
         width: 100,
         height: 100,
@@ -652,26 +652,26 @@ fn a_placed_file_is_measured_by_the_art_it_shows() {
     // `hidden`), placed centered on (200, 150) and selected.
     let place = |s: &mut Session, name: &str, hidden: bool| {
         let src = dir.file(name);
-        let mut d = vectorcraft_doc::Document::new(60.0, 40.0);
+        let mut d = vansoncraft_doc::Document::new(60.0, 40.0);
         let layer = d.layers[0].id;
         for x in [0.0, 40.0] {
             let id = d.alloc_id();
-            let look = Appearance::basic(Paint::solid(vectorcraft_color::Color::BLACK), Paint::None, 0.0);
+            let look = Appearance::basic(Paint::solid(vansoncraft_color::Color::BLACK), Paint::None, 0.0);
             let mut n = Node::path(id, shapes::rectangle(Rect::new(x, 0.0, x + 20.0, 40.0)), look);
             n.visible = !hidden;
             d.insert(Some(layer), 0, n).unwrap();
         }
-        crate::tests_links::write(&src, &vectorcraft_format::save_file(&d));
+        crate::tests_links::write(&src, &vansoncraft_format::save_file(&d));
         let r = s.execute("file.place", &json!({"path": src, "at": [200, 150]})).unwrap();
         select(s, &[NodeId(r["ids"][0].as_u64().unwrap())]);
     };
     let mut s = session();
-    place(&mut s, "pair.vectorcraft", false);
+    place(&mut s, "pair.vansoncraft", false);
     let (_, g) = weed(&mut s, json!({"margin": 10, "direction": "horizontal"}));
     // The rectangles lie at 170..190 and 210..230; the line runs between them too.
     assert_eq!(at(&g, 150.0), [(160.0, 170.0), (190.0, 210.0), (230.0, 240.0)]);
     // A file read but shown in a box with no size shows nothing, and its box isn't measured.
-    let id = NodeId(s.execute("file.place", &json!({"path": dir.file("pair.vectorcraft"), "at": [400, 150]})).unwrap()["ids"][0].as_u64().unwrap());
+    let id = NodeId(s.execute("file.place", &json!({"path": dir.file("pair.vansoncraft"), "at": [400, 150]})).unwrap()["ids"][0].as_u64().unwrap());
     s.edit("no size", |d, _| {
         if let Some(NodeKind::PlacedDocument(p)) = d.node_mut(id).map(|n| &mut n.kind) {
             (p.width, p.height) = (0.0, 0.0);
@@ -684,18 +684,18 @@ fn a_placed_file_is_measured_by_the_art_it_shows() {
     assert!(e.to_string().contains("has no outlines"), "{e}");
     // A file read with nothing showing has no outlines, and its box isn't measured instead.
     let mut s = session();
-    place(&mut s, "hidden.vectorcraft", true);
+    place(&mut s, "hidden.vansoncraft", true);
     let e = s.execute("addon.cutting.weed", &json!({})).unwrap_err();
     assert!(e.to_string().contains("has no outlines"), "{e}");
     // A file whose art is an instance of a symbol of its own: the instance's art is measured.
-    let src = dir.file("symbol.vectorcraft");
-    let mut d = vectorcraft_doc::Document::new(60.0, 40.0);
-    let look = Appearance::basic(Paint::solid(vectorcraft_color::Color::BLACK), Paint::None, 0.0);
+    let src = dir.file("symbol.vansoncraft");
+    let mut d = vansoncraft_doc::Document::new(60.0, 40.0);
+    let look = Appearance::basic(Paint::solid(vansoncraft_color::Color::BLACK), Paint::None, 0.0);
     let art = Node::path(NodeId(900), shapes::rectangle(Rect::new(0.0, 0.0, 20.0, 40.0)), look);
-    d.symbols.push(vectorcraft_doc::Symbol { dynamic: false, name: "Bar".into(), art: Arc::new(art) });
+    d.symbols.push(vansoncraft_doc::Symbol { dynamic: false, name: "Bar".into(), art: Arc::new(art) });
     let (layer, id) = (d.layers[0].id, d.alloc_id());
     d.insert(Some(layer), 0, Node::new(id, NodeKind::SymbolInstance { symbol: "Bar".into(), xf: Affine::IDENTITY })).unwrap();
-    crate::tests_links::write(&src, &vectorcraft_format::save_file(&d));
+    crate::tests_links::write(&src, &vansoncraft_format::save_file(&d));
     let mut s = session();
     let r = s.execute("file.place", &json!({"path": src, "at": [200, 150]})).unwrap();
     select(&mut s, &[NodeId(r["ids"][0].as_u64().unwrap())]);
@@ -707,8 +707,8 @@ fn a_placed_file_is_measured_by_the_art_it_shows() {
 #[test]
 fn a_placed_file_that_cant_be_read_is_measured_by_its_box_as_turned() {
     let mut s = session();
-    let p = vectorcraft_doc::PlacedDocument {
-        link: vectorcraft_doc::LinkInfo::new("/no/such/file.pdf"),
+    let p = vansoncraft_doc::PlacedDocument {
+        link: vansoncraft_doc::LinkInfo::new("/no/such/file.pdf"),
         key: "missing".into(),
         bounding: false,
         page_box: Default::default(),

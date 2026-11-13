@@ -113,6 +113,8 @@ impl Session {
                 if let Some((before, _)) = e.color_mode_paints {
                     self.paint = before;
                 }
+                // The floor is not raised here: a cancelled group's journal entries are dropped, so
+                // a replay never makes its objects, and later ids must come out the same.
                 st.doc = e.doc;
                 st.selection = Arc::unwrap_or_clone(e.selection);
                 deselect_hidden(&self.menu, &st.doc, &mut st.selection);

@@ -5,26 +5,26 @@
 use std::time::{Duration, Instant};
 
 use serde_json::json;
-use vectorcraft_engine::{EngineError, Session};
+use vansoncraft_engine::{EngineError, Session};
 
-use crate::{VectorcraftApp, trace_runs};
+use crate::{VansoncraftApp, trace_runs};
 
 /// An app with a 100 × 100 pt document and a 40 × 40 px image placed in it, selected; traces run
 /// off the UI thread.
-fn app() -> VectorcraftApp {
-    let mut app = VectorcraftApp::new(Session::new(), Default::default());
+fn app() -> VansoncraftApp {
+    let mut app = VansoncraftApp::new(Session::new(), Default::default());
     app.run("file.new", json!({"width": 100, "height": 100})).unwrap();
     let img = image::RgbaImage::from_fn(40, 40, |x, y| image::Rgba(if x < 20 && y < 30 { [0, 0, 0, 255] } else { [255, 255, 255, 255] }));
     let mut png = vec![];
     img.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
-    let data = vectorcraft_format::base64_encode(&png);
+    let data = vansoncraft_format::base64_encode(&png);
     app.run("file.place", json!({"name": "half.png", "dataBase64": data, "link": false})).unwrap();
     app.trace_runs.off_the_ui_thread = true;
     app
 }
 
 /// Applies the traces' results as the frames would, until none is left (at most 30 s).
-fn wait(app: &mut VectorcraftApp) {
+fn wait(app: &mut VansoncraftApp) {
     let t0 = Instant::now();
     while !app.trace_runs.running.is_empty() && t0.elapsed() < Duration::from_secs(30) {
         trace_runs::poll(app);
@@ -34,12 +34,12 @@ fn wait(app: &mut VectorcraftApp) {
 }
 
 /// Undo steps of the active document.
-fn undos(app: &VectorcraftApp) -> usize {
+fn undos(app: &VansoncraftApp) -> usize {
     app.session.doc().unwrap().history.undo.len()
 }
 
 /// Draws the progress window at `time` seconds → the texts it drew.
-fn progress(app: &mut VectorcraftApp, ctx: &egui::Context, time: f64) -> String {
+fn progress(app: &mut VansoncraftApp, ctx: &egui::Context, time: f64) -> String {
     let mut out = ctx.run_ui(egui::RawInput { time: Some(time), ..Default::default() }, |ui| trace_runs::show(app, ui.ctx()));
     out.textures_delta.clear();
     let mut texts = String::new();
@@ -97,7 +97,7 @@ fn starting_a_trace_asks_for_a_frame() {
     wait(&mut app);
 }
 
-/// Without threads (the web, `VECTORCRAFT_SYNC_OPEN`, unit tests that don't ask), Make traces at once.
+/// Without threads (the web, `VANSONCRAFT_SYNC_OPEN`, unit tests that don't ask), Make traces at once.
 #[test]
 fn without_threads_make_traces_at_once() {
     let mut app = app();

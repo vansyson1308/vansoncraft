@@ -11,15 +11,15 @@
 //! faces), nor scripts written for the reference app checked without running them (garbage,
 //! generated script text and mutated scripts).
 //!
-//! `PROPTEST_CASES=20000 cargo test -p vectorcraft-engine --test import_fuzz` runs a deeper search.
+//! `PROPTEST_CASES=20000 cargo test -p vansoncraft-engine --test import_fuzz` runs a deeper search.
 // Integration tests: unwrapping and panicking on failure is fine here, unlike in shipped code (AGENTS.md › Robustness).
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use proptest::prelude::*;
 use serde_json::{Value, json};
-use vectorcraft_doc::Document;
-use vectorcraft_testkit::catch_quiet;
-use vectorcraft_testkit::fixtures::rich_session;
+use vansoncraft_doc::Document;
+use vansoncraft_testkit::catch_quiet;
+use vansoncraft_testkit::fixtures::rich_session;
 
 /// 64 cases each, unless `PROPTEST_CASES` asks for more.
 fn config() -> ProptestConfig {
@@ -38,7 +38,7 @@ fn affinity_preview_sample() -> Vec<u8> {
     let mut png = Vec::new();
     im.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
     let mut b = vec![0; 72];
-    b[..4].copy_from_slice(vectorcraft_affinity::MAGIC);
+    b[..4].copy_from_slice(vansoncraft_affinity::MAGIC);
     b[4..6].copy_from_slice(&12u16.to_le_bytes());
     b[8..12].copy_from_slice(b"nsrP");
     b[12..16].copy_from_slice(b"#Inf");
@@ -59,7 +59,7 @@ fn affinity_preview_sample() -> Vec<u8> {
 /// parametric shape it knows, a compound, gradients, a stroke, text, a mask and an artboard. Not
 /// an Affinity writer: the layout is the one the reader accepts.
 fn affinity_native_stream() -> Vec<u8> {
-    use vectorcraft_affinity::synth::{self, F, tag};
+    use vansoncraft_affinity::synth::{self, F, tag};
     let f32s = |v: &[f32]| F::Struct(v.iter().flat_map(|x| x.to_le_bytes()).collect());
     let rec = |x: f64, y: f64, role: u8| {
         let mut r = x.to_le_bytes().to_vec();
@@ -186,14 +186,14 @@ fn affinity_native_stream() -> Vec<u8> {
     ])
 }
 
-fn affinity_native(stream: &[u8], method: vectorcraft_affinity::synth::Method) -> Vec<u8> {
-    vectorcraft_affinity::synth::container(&[("doc.dat", stream, method)], None)
+fn affinity_native(stream: &[u8], method: vansoncraft_affinity::synth::Method) -> Vec<u8> {
+    vansoncraft_affinity::synth::container(&[("doc.dat", stream, method)], None)
 }
 
 #[test]
 fn the_native_affinity_sample_reaches_every_reader_path() {
-    let bytes = affinity_native(&affinity_native_stream(), vectorcraft_affinity::synth::Method::Zstd);
-    let l = vectorcraft_engine::cmd::fileio::load("x.af", &bytes).unwrap();
+    let bytes = affinity_native(&affinity_native_stream(), vansoncraft_affinity::synth::Method::Zstd);
+    let l = vansoncraft_engine::cmd::fileio::load("x.af", &bytes).unwrap();
     assert!(!l.preview_only, "{:?}", l.warnings);
     let kinds = l.doc.layers.iter().flat_map(|l| l.children().into_iter().flatten()).count();
     assert!(kinds > 0);
@@ -216,8 +216,8 @@ proptest! {
         let n = stream.len();
         for (at, b) in edits { stream[at % n] = b; }
         stream.truncate(cut.max(16));
-        let bytes = affinity_native(&stream, vectorcraft_affinity::synth::Method::Stored);
-        survive("Affinity native stream", || vectorcraft_engine::cmd::fileio::load("x.af", &bytes).ok().map(|l| l.doc))?;
+        let bytes = affinity_native(&stream, vansoncraft_affinity::synth::Method::Stored);
+        survive("Affinity native stream", || vansoncraft_engine::cmd::fileio::load("x.af", &bytes).ok().map(|l| l.doc))?;
     }
 
     #[test]
@@ -225,19 +225,19 @@ proptest! {
         edits in prop::collection::vec((0usize..8192, any::<u8>()), 1..16),
         method in 0u8..3,
     ) {
-        use vectorcraft_affinity::synth::Method;
+        use vansoncraft_affinity::synth::Method;
         let m = [Method::Stored, Method::Zlib, Method::Zstd][usize::from(method)];
         let mut bytes = affinity_native(&affinity_native_stream(), m);
         let n = bytes.len();
         for (at, b) in edits { bytes[at % n] = b; }
-        survive("Affinity native container", || vectorcraft_engine::cmd::fileio::load("x.af", &bytes).ok().map(|l| l.doc))?;
+        survive("Affinity native container", || vansoncraft_engine::cmd::fileio::load("x.af", &bytes).ok().map(|l| l.doc))?;
     }
 
     #[test]
     fn affinity_garbage_never_panics(tail in prop::collection::vec(any::<u8>(), 0..2048)) {
-        let mut bytes = vectorcraft_affinity::MAGIC.to_vec();
+        let mut bytes = vansoncraft_affinity::MAGIC.to_vec();
         bytes.extend(tail);
-        survive("Affinity garbage", || vectorcraft_engine::cmd::fileio::load("x.af", &bytes).ok().map(|l| l.doc))?;
+        survive("Affinity garbage", || vansoncraft_engine::cmd::fileio::load("x.af", &bytes).ok().map(|l| l.doc))?;
     }
 
     #[test]
@@ -250,17 +250,17 @@ proptest! {
             if let Some(byte) = bytes.get_mut(at) { *byte = b; }
         }
         bytes.truncate(cut);
-        survive("Affinity preview", || vectorcraft_engine::cmd::fileio::load("x.af", &bytes).ok().map(|l| l.doc))?;
+        survive("Affinity preview", || vansoncraft_engine::cmd::fileio::load("x.af", &bytes).ok().map(|l| l.doc))?;
     }
 
     #[test]
     fn affinity_placement_is_rejected_without_panicking(tail in prop::collection::vec(any::<u8>(), 0..2048)) {
-        let mut bytes = vectorcraft_affinity::MAGIC.to_vec();
+        let mut bytes = vansoncraft_affinity::MAGIC.to_vec();
         bytes.extend(tail);
         let r = catch_quiet(|| {
-            let mut s = vectorcraft_engine::Session::new();
+            let mut s = vansoncraft_engine::Session::new();
             s.execute("file.new", &json!({"width":100,"height":100})).unwrap();
-            let p = json!({"name":"renamed.png", "dataBase64":vectorcraft_format::base64_encode(&bytes)});
+            let p = json!({"name":"renamed.png", "dataBase64":vansoncraft_format::base64_encode(&bytes)});
             for cmd in ["file.place", "file.place.info"] { assert!(no_panic(s.execute(cmd, &p)).is_err()); }
             assert!(no_panic(s.execute("file.place.queue", &json!({"files":[p]}))).is_err());
         });
@@ -301,7 +301,7 @@ fn affinity_feature_samples() -> Vec<AffinitySample> {
         decorated_text(70),
         with_effects(table_with(30, identity, ["A", "B\u{2028}two", "C", "D", "E"]), vec![colour_overlay(1.0)]),
     ]);
-    let icc = vectorcraft_color::cms::icc_bytes(vectorcraft_color::cms::GENERIC_CMYK).unwrap();
+    let icc = vansoncraft_color::cms::icc_bytes(vansoncraft_color::cms::GENERIC_CMYK).unwrap();
     let inner = canvas_stream(vec![with_effects(rectangle(10, (0.0, 0.0), (50.0, 50.0)), vec![colour_overlay(1.0)]), artistic_text(20, "Hi", 40.0)]);
     vec![
         AffinitySample { name: "effects, strokes, text and tables", stream: canvas, embedded: None },
@@ -315,23 +315,23 @@ fn affinity_feature_samples() -> Vec<AffinitySample> {
 /// A sample's file: its streams stored uncompressed, so mutations reach the object graph
 /// instead of failing a decompressor's checks.
 fn affinity_sample_file(stream: &[u8], embedded: Option<&[u8]>) -> Vec<u8> {
-    use vectorcraft_affinity::synth::Method;
+    use vansoncraft_affinity::synth::Method;
     let inner = embedded.map(|e| affinity_docs::packed(e, None, Method::Stored));
     affinity_docs::packed(stream, inner.as_deref(), Method::Stored)
 }
 
 #[test]
 fn the_affinity_feature_samples_reach_what_they_are_for() {
-    use vectorcraft_doc::NodeKind;
+    use vansoncraft_doc::NodeKind;
     let samples = affinity_feature_samples();
     let open = |i: usize| {
         let s: &AffinitySample = &samples[i];
-        let l = vectorcraft_engine::cmd::fileio::load("x.af", &affinity_sample_file(&s.stream, s.embedded.as_deref())).unwrap();
+        let l = vansoncraft_engine::cmd::fileio::load("x.af", &affinity_sample_file(&s.stream, s.embedded.as_deref())).unwrap();
         assert!(!l.preview_only, "{}: {:?}", s.name, l.warnings);
         l
     };
-    fn all(d: &Document) -> Vec<&vectorcraft_doc::Node> {
-        fn walk<'a>(nodes: &'a [std::sync::Arc<vectorcraft_doc::Node>], out: &mut Vec<&'a vectorcraft_doc::Node>) {
+    fn all(d: &Document) -> Vec<&vansoncraft_doc::Node> {
+        fn walk<'a>(nodes: &'a [std::sync::Arc<vansoncraft_doc::Node>], out: &mut Vec<&'a vansoncraft_doc::Node>) {
             for n in nodes {
                 out.push(n);
                 if let Some(c) = n.children() {
@@ -345,15 +345,15 @@ fn the_affinity_feature_samples_reach_what_they_are_for() {
     }
     let l = open(0);
     let nodes = all(&l.doc);
-    let runs: Vec<&vectorcraft_doc::text::TextRun> =
+    let runs: Vec<&vansoncraft_doc::text::TextRun> =
         nodes.iter().filter_map(|n| if let NodeKind::Text(t) = &n.kind { Some(t.runs.iter()) } else { None }).flatten().collect();
     assert!(runs.iter().any(|r| r.style.underline) && runs.iter().any(|r| r.style.strikethrough));
     assert!(runs.iter().any(|r| r.text.contains("two")), "the table's two-line cell");
     assert!(nodes.iter().any(|n| n.appearance.effects.iter().any(|e| e.id == "stylize.dropShadow")));
     assert!(l.warnings.iter().any(|w| w.contains("bevel")), "{:?}", l.warnings);
     // Line styles: solid, None (no stroke), dashed and brush.
-    use vectorcraft_doc::appearance::{AppearanceItem, StrokeLayer};
-    let strokes = |n: &vectorcraft_doc::Node| -> Vec<StrokeLayer> {
+    use vansoncraft_doc::appearance::{AppearanceItem, StrokeLayer};
+    let strokes = |n: &vansoncraft_doc::Node| -> Vec<StrokeLayer> {
         n.appearance.items.iter().filter_map(|i| if let AppearanceItem::Stroke(s) = i { Some(s.clone()) } else { None }).collect()
     };
     let boxes: Vec<_> = nodes.iter().filter(|n| n.name.as_deref() == Some("Magenta box")).collect();
@@ -391,7 +391,7 @@ proptest! {
         for (at, b) in edits { target[at % n] = b; }
         target.truncate(cut.max(16));
         let bytes = affinity_sample_file(&stream, embedded.as_deref());
-        survive(s.name, || vectorcraft_engine::cmd::fileio::load("x.af", &bytes).ok().map(|l| l.doc))?;
+        survive(s.name, || vansoncraft_engine::cmd::fileio::load("x.af", &bytes).ok().map(|l| l.doc))?;
     }
 }
 
@@ -399,16 +399,16 @@ proptest! {
 fn survive(what: &str, import: impl FnOnce() -> Option<Document>) -> Result<(), TestCaseError> {
     let r = catch_quiet(|| {
         if let Some(d) = import() {
-            let mut r = vectorcraft_render::Renderer::new();
+            let mut r = vansoncraft_render::Renderer::new();
             if let Some(ab) = d.artboards.first() {
                 let scale = (256.0 / ab.rect.width().max(ab.rect.height()).max(1.0)).min(1.0);
-                if vectorcraft_render::raster_size(ab.rect, scale).is_ok() {
+                if vansoncraft_render::raster_size(ab.rect, scale).is_ok() {
                     let _ = r.render_region(&d, ab.rect, scale, true).to_png();
                 }
             }
-            let _ = vectorcraft_svg::export(&d, &vectorcraft_svg::ExportOptions::default());
-            let _ = vectorcraft_engine::export_pdf(&d, &vectorcraft_pdf::PdfOptions::default());
-            let _ = vectorcraft_format::save_file(&d);
+            let _ = vansoncraft_svg::export(&d, &vansoncraft_svg::ExportOptions::default());
+            let _ = vansoncraft_engine::export_pdf(&d, &vansoncraft_pdf::PdfOptions::default());
+            let _ = vansoncraft_format::save_file(&d);
         }
     });
     r.map_err(|msg| TestCaseError::fail(format!("{what}: panicked: {msg}")))
@@ -419,11 +419,11 @@ fn rich_doc() -> Document {
 }
 
 fn rich_svg() -> String {
-    vectorcraft_svg::export(&rich_doc(), &vectorcraft_svg::ExportOptions::default())
+    vansoncraft_svg::export(&rich_doc(), &vansoncraft_svg::ExportOptions::default())
 }
 
 fn rich_pdf() -> Vec<u8> {
-    vectorcraft_engine::export_pdf(&rich_doc(), &vectorcraft_pdf::PdfOptions::uncompressed()).unwrap()
+    vansoncraft_engine::export_pdf(&rich_doc(), &vansoncraft_pdf::PdfOptions::uncompressed()).unwrap()
 }
 
 /// Numbers that tend to break arithmetic: zero, negatives, huge, tiny, exponents, junk.
@@ -488,7 +488,7 @@ fn arb_svg_attr() -> impl Strategy<Value = String> {
         "stroke",
         "stop-color",
         "mask-type",
-        "data-vectorcraft-mask",
+        "data-vansoncraft-mask",
         "href",
         "baseline-shift",
         "word-spacing",
@@ -627,8 +627,8 @@ fn mutate_text(src: &str, cut: usize, edits: &[(usize, char)]) -> String {
 #[test]
 fn svg_type_shifted_two_billion_points_exports_to_pdf() {
     let svg = r#"<svg xmlns="http://www.w3.org/2000/svg"><text baseline-shift="-2147483649">f</text></svg>"#;
-    let d = vectorcraft_svg::import(svg).unwrap();
-    assert!(vectorcraft_engine::export_pdf(&d, &vectorcraft_pdf::PdfOptions::default()).is_ok());
+    let d = vansoncraft_svg::import(svg).unwrap();
+    assert!(vansoncraft_engine::export_pdf(&d, &vansoncraft_pdf::PdfOptions::default()).is_ok());
 }
 
 proptest! {
@@ -636,7 +636,7 @@ proptest! {
 
     #[test]
     fn svg_garbage_never_panics(s in ".{0,300}") {
-        survive("svg garbage", || vectorcraft_svg::import(&s).ok())?;
+        survive("svg garbage", || vansoncraft_svg::import(&s).ok())?;
     }
 
     #[test]
@@ -645,7 +645,7 @@ proptest! {
         body in prop::collection::vec(arb_svg_element(2), 0..6),
     ) {
         let svg = format!("<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"{}>{}</svg>", root.concat(), body.concat());
-        survive(&svg, || vectorcraft_svg::import(&svg).ok())?;
+        survive(&svg, || vansoncraft_svg::import(&svg).ok())?;
     }
 
     /// The linked `<rect>` gets an id from the importer, so attribute selectors in `sheet` reach the
@@ -660,7 +660,7 @@ proptest! {
             "<svg xmlns=\"http://www.w3.org/2000/svg\"><style>{sheet}</style><g class=\"a b\"><text id=\"t\" class=\"a\" x=\"1 2 3\" y=\"9\" rotate=\"5\" style=\"{decls}\">ab<tspan dy=\"3\">c</tspan></text></g><a href=\"#t\"><rect width=\"5\" height=\"5\"/></a>{}</svg>",
             body.concat()
         );
-        survive(&svg, || vectorcraft_svg::import(&svg).ok())?;
+        survive(&svg, || vansoncraft_svg::import(&svg).ok())?;
     }
 
     /// Clip paths made of text, of `<use>` elements showing text, and of both with shapes, each with
@@ -680,7 +680,7 @@ proptest! {
             used.concat(),
             body.concat()
         );
-        survive(&svg, || vectorcraft_svg::import(&svg).ok())?;
+        survive(&svg, || vansoncraft_svg::import(&svg).ok())?;
     }
 
     #[test]
@@ -689,7 +689,7 @@ proptest! {
         edits in prop::collection::vec((0usize..20_000, prop::sample::select(vec!['<', '>', '"', '/', '-', '9', 'e', '.', ' ', '#', '%', '&', ';', 'x'])), 0..10),
     ) {
         let svg = mutate_text(&rich_svg(), cut, &edits);
-        survive("mutated svg", || vectorcraft_svg::import(&svg).ok())?;
+        survive("mutated svg", || vansoncraft_svg::import(&svg).ok())?;
     }
 }
 
@@ -749,7 +749,7 @@ fn pdf_many_paths_filled_with_long_function_shadings_open_in_bounded_time() {
     let content: String = (0..5000).map(|i| format!("/Pattern cs /P{} scn {} {} 2 2 re f\n", i % shadings, i % 100 * 2, i / 100 * 2)).collect();
     let pdf = handmade_pdf_with(&content, &format!("<< /Pattern << {patterns}>> >>"), "[0 0 200 100]", &functions);
     let start = std::time::Instant::now();
-    let d = vectorcraft_pdf::import(&pdf).unwrap();
+    let d = vansoncraft_pdf::import(&pdf).unwrap();
     let took = start.elapsed();
     assert!(!d.layers.is_empty());
     assert!(took < std::time::Duration::from_secs(30), "took {took:?}");
@@ -810,7 +810,7 @@ proptest! {
     fn pdf_garbage_never_panics(bytes in prop::collection::vec(any::<u8>(), 0..600)) {
         let mut b = b"%PDF-1.7\n".to_vec();
         b.extend(bytes);
-        survive("pdf garbage", || vectorcraft_pdf::import(&b).ok())?;
+        survive("pdf garbage", || vansoncraft_pdf::import(&b).ok())?;
     }
 
     #[test]
@@ -820,7 +820,7 @@ proptest! {
         media in prop::sample::select(vec!["[0 0 100 100]", "[0 0 0 0]", "[0 0 1e308 1e308]", "[100 100 0 0]", "[-5 -5 -1 -1]", "[0 0 14400 14400]", "[]", "[0 0 NaN 5]"]),
     ) {
         let pdf = handmade_pdf(&ops.join("\n"), &resources, media);
-        survive(&ops.join(" "), || vectorcraft_pdf::import(&pdf).ok())?;
+        survive(&ops.join(" "), || vansoncraft_pdf::import(&pdf).ok())?;
     }
 
     #[test]
@@ -834,7 +834,7 @@ proptest! {
             b[i % n] = c;
         }
         b.truncate(cut.min(b.len()).max(9));
-        survive("mutated pdf", || vectorcraft_pdf::import(&b).ok())?;
+        survive("mutated pdf", || vansoncraft_pdf::import(&b).ok())?;
     }
 }
 
@@ -890,7 +890,7 @@ proptest! {
         let what = format!("{space} and {font}, a function ({function}) {held}");
         let mut read = None;
         survive(&what, || {
-            let r = vectorcraft_pdf::import(&pdf);
+            let r = vansoncraft_pdf::import(&pdf);
             read = Some(r.as_ref().map(|d| d.layers.iter().any(|l| l.children().is_some_and(|c| !c.is_empty()))).map_err(ToString::to_string));
             r.ok()
         })?;
@@ -935,7 +935,7 @@ proptest! {
         pages in prop::sample::select(vec!["1", "2", "1-2", "2-1", "0", "-", "1-", "all", "1,1,2", "99999999999999999999"]),
         crop in prop::sample::select(vec!["bounding", "art", "crop", "trim", "bleed", "media", "nope"]),
     ) {
-        use vectorcraft_testkit::pdf::{PdfPage, pdf};
+        use vansoncraft_testkit::pdf::{PdfPage, pdf};
         // A `UserUnit` of 1 followed by 308 zeros (a PDF number has no exponent).
         let unit = if unit == "huge" { format!("1{}", "0".repeat(308)) } else { unit.to_string() };
         let page = PdfPage {
@@ -949,9 +949,9 @@ proptest! {
             ..PdfPage::new(0.0, 0.0, "0 0 1 rg 20 20 50 50 re f")
         };
         let bytes = pdf(&[page.clone(), page], encrypt.then_some("pw"));
-        let b64 = vectorcraft_format::base64_encode(&bytes);
+        let b64 = vansoncraft_format::base64_encode(&bytes);
         let r = catch_quiet(|| {
-            let mut s = vectorcraft_engine::Session::new();
+            let mut s = vansoncraft_engine::Session::new();
             let p = json!({"name": "x.pdf", "dataBase64": b64, "pages": pages, "cropTo": crop, "password": password, "thumbnail": 1, "thumbnailSize": 64});
             let _ = no_panic(s.execute("document.pdfInfo", &p));
             if no_panic(s.execute("document.open", &p)).is_ok() {
@@ -980,7 +980,7 @@ const RICH_XMP: &str = "<?xpacket begin=\"\u{feff}\" id=\"W5M0MpCehiHzreSzNTczkc
 /// A PDF whose trailer names an information dictionary with the entries `info` and whose catalog's
 /// metadata stream holds `xmp`.
 fn file_info_pdf(info: &str, xmp: &str) -> Vec<u8> {
-    use vectorcraft_testkit::pdf::{PdfPage, first_extra, pdf_with_catalog};
+    use vansoncraft_testkit::pdf::{PdfPage, first_extra, pdf_with_catalog};
     let x = first_extra(1);
     let stream = format!("<< /Type /Metadata /Subtype /XML /Length {} >>\nstream\n{xmp}\nendstream", xmp.len());
     let dict = format!("<< {info} >>");
@@ -993,8 +993,8 @@ fn file_info_pdf(info: &str, xmp: &str) -> Vec<u8> {
 #[test]
 fn the_file_info_sample_reaches_the_reader() {
     let pdf = file_info_pdf("/Author (Info author) /Subject (Info subject)", RICH_XMP);
-    let mut s = vectorcraft_engine::Session::new();
-    s.execute("document.open", &json!({"name": "x.ai", "dataBase64": vectorcraft_format::base64_encode(&pdf)})).unwrap();
+    let mut s = vansoncraft_engine::Session::new();
+    s.execute("document.open", &json!({"name": "x.ai", "dataBase64": vansoncraft_format::base64_encode(&pdf)})).unwrap();
     let info = s.execute("file.info", &json!({})).unwrap();
     assert_eq!((info["author"].as_str(), info["description"].as_str()), (Some("Ada, Grace"), Some("A poster")));
     assert_eq!((info["copyrightStatus"].as_str(), info["keywords"].clone()), (Some("copyrighted"), json!(["fair", "print"])));
@@ -1022,10 +1022,10 @@ proptest! {
         // `nest` elements nested in one another around the packet.
         let xmp = format!("{}{}{}", "<a>".repeat(nest), mutate_text(RICH_XMP, cut, &edits), "</a>".repeat(nest));
         let pdf = file_info_pdf(info, &xmp);
-        let b64 = vectorcraft_format::base64_encode(&pdf);
+        let b64 = vansoncraft_format::base64_encode(&pdf);
         let r = catch_quiet(|| {
-            let _ = vectorcraft_pdf::file_info(&pdf, None);
-            let mut s = vectorcraft_engine::Session::new();
+            let _ = vansoncraft_pdf::file_info(&pdf, None);
+            let mut s = vansoncraft_engine::Session::new();
             for name in ["x.pdf", "x.ai"] {
                 let _ = no_panic(s.execute("document.open", &json!({"name": name, "dataBase64": b64})));
                 let _ = no_panic(s.execute("file.info", &json!({})));
@@ -1038,7 +1038,7 @@ proptest! {
 /// Hostile content over layers (optional content, one group off), soft masks, tiling patterns,
 /// a patch mesh, an unextended shading and fonts: the import's own readings of the file.
 fn rich_resources_pdf(content: &str, config: &str) -> Vec<u8> {
-    use vectorcraft_testkit::pdf::{PdfPage, first_extra, pdf_with_catalog};
+    use vansoncraft_testkit::pdf::{PdfPage, first_extra, pdf_with_catalog};
     let x = first_extra(1);
     let stream = |dict: &str, data: &str| format!("<< {dict} /Length {} >>\nstream\n{data}\nendstream", data.len());
     let extra = [
@@ -1119,12 +1119,12 @@ proptest! {
         outlines in any::<bool>(),
     ) {
         let bytes = rich_resources_pdf(&ops.join("\n"), config);
-        let opts = vectorcraft_pdf::ImportOptions {
+        let opts = vansoncraft_pdf::ImportOptions {
             layers,
-            text_as: if outlines { vectorcraft_pdf::TextAs::Outlines } else { vectorcraft_pdf::TextAs::Text },
+            text_as: if outlines { vansoncraft_pdf::TextAs::Outlines } else { vansoncraft_pdf::TextAs::Text },
             ..Default::default()
         };
-        survive(&ops.join(" "), || vectorcraft_pdf::import_with_report(&bytes, &opts).ok().map(|r| r.document))?;
+        survive(&ops.join(" "), || vansoncraft_pdf::import_with_report(&bytes, &opts).ok().map(|r| r.document))?;
     }
 }
 
@@ -1137,8 +1137,8 @@ fn saved(cmd: &str, params: Value) -> String {
 
 /// `r`, after failing the case if the command panicked. The engine's guard reports a panic as
 /// `EngineError::Internal`.
-fn no_panic(r: Result<Value, vectorcraft_engine::EngineError>) -> Result<Value, vectorcraft_engine::EngineError> {
-    if let Err(vectorcraft_engine::EngineError::Internal { cmd, msg }) = &r {
+fn no_panic(r: Result<Value, vansoncraft_engine::EngineError>) -> Result<Value, vansoncraft_engine::EngineError> {
+    if let Err(vansoncraft_engine::EngineError::Internal { cmd, msg }) = &r {
         panic!("{cmd} panicked: {msg}");
     }
     r
@@ -1146,7 +1146,7 @@ fn no_panic(r: Result<Value, vectorcraft_engine::EngineError>) -> Result<Value, 
 
 /// Library file `data` loaded with `load`; what it holds is then used on the rich document
 /// (`then`, given the load's result), which renders and exports.
-fn survive_library(what: &str, load: &str, data: &str, then: impl FnOnce(&mut vectorcraft_engine::Session, &Value)) -> Result<(), TestCaseError> {
+fn survive_library(what: &str, load: &str, data: &str, then: impl FnOnce(&mut vansoncraft_engine::Session, &Value)) -> Result<(), TestCaseError> {
     survive(what, || {
         let mut s = rich_session();
         let r = no_panic(s.execute(load, &json!({"data": data, "name": "fuzz"}))).ok()?;
@@ -1173,15 +1173,15 @@ fn styles(what: &str, data: &str) -> Result<(), TestCaseError> {
 fn saved_text_styles() -> String {
     static TEXT: std::sync::OnceLock<String> = std::sync::OnceLock::new();
     TEXT.get_or_init(|| {
-        let mut s = vectorcraft_engine::Session::new();
+        let mut s = vansoncraft_engine::Session::new();
         s.execute("file.new", &json!({"width": 200, "height": 100})).unwrap();
         s.execute("text.create", &json!({"x": 10, "y": 40, "text": "Styled"})).unwrap();
         s.execute("charStyle.new", &json!({"name": "Lead", "attrs": {"size": 30, "tracking": 50, "underline": true, "leading": 36}})).unwrap();
         s.execute("paraStyle.new", &json!({"name": "Centered", "attrs": {"justify": "Center", "space_after": 6, "hyphenate": true}})).unwrap();
-        let options = vectorcraft_format::SaveOptions { version: 2, pretty: true, ..vectorcraft_format::SaveOptions::default() };
-        let text = String::from_utf8(vectorcraft_format::save_with(&s.doc().unwrap().doc, &options).unwrap()).unwrap();
+        let options = vansoncraft_format::SaveOptions { version: 2, pretty: true, ..vansoncraft_format::SaveOptions::default() };
+        let text = String::from_utf8(vansoncraft_format::save_with(&s.doc().unwrap().doc, &options).unwrap()).unwrap();
         // Undamaged, it loads both styles.
-        let r = rich_session().execute("textStyle.loadAll", &json!({"data": text, "name": "fuzz.vectorcraft"})).unwrap();
+        let r = rich_session().execute("textStyle.loadAll", &json!({"data": text, "name": "fuzz.vansoncraft"})).unwrap();
         assert_eq!((&r["charStyles"]["added"], &r["paraStyles"]["added"]), (&json!(["Lead"]), &json!(["Centered"])));
         text
     })
@@ -1193,7 +1193,7 @@ fn saved_text_styles() -> String {
 fn text_styles(what: &str, data: &str) -> Result<(), TestCaseError> {
     survive(what, || {
         let mut s = rich_session();
-        let r = no_panic(s.execute("textStyle.loadAll", &json!({"data": data, "name": "fuzz.vectorcraft"}))).ok()?;
+        let r = no_panic(s.execute("textStyle.loadAll", &json!({"data": data, "name": "fuzz.vansoncraft"}))).ok()?;
         let _ = no_panic(s.execute("select.all", &json!({})));
         for (list, kind) in [("charStyles", "charStyle"), ("paraStyles", "paraStyle")] {
             for name in r[list]["added"].as_array().into_iter().flatten() {
@@ -1300,7 +1300,7 @@ fn export_presets(what: &str, data: &str) -> Result<(), TestCaseError> {
 fn swatch_exchange(what: &str, bytes: &[u8]) -> Result<(), TestCaseError> {
     survive(what, || {
         let mut s = rich_session();
-        let load = json!({"dataBase64": vectorcraft_format::base64_encode(bytes), "name": "fuzz.ase"});
+        let load = json!({"dataBase64": vansoncraft_format::base64_encode(bytes), "name": "fuzz.ase"});
         let r = no_panic(s.execute("swatch.library.load", &load)).ok()?;
         let _ = no_panic(s.execute("swatch.library.add", &json!({"library": r["library"], "apply": "fill"})));
         Some((*s.doc().ok()?.doc).clone())
@@ -1316,7 +1316,7 @@ fn saved_ase() -> Vec<u8> {
         s.execute("swatch.new", &json!({"name": "Ink", "color": {"c": 1, "m": 0.5, "y": 0, "k": 0.2}, "spot": true})).unwrap();
         s.execute("swatch.new", &json!({"name": "Clay", "color": {"l": 50, "a": 20, "b": -30}, "global": true})).unwrap();
         let r = s.execute("swatch.library.save", &json!({"format": "ase"})).unwrap();
-        vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap()
+        vansoncraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap()
     })
     .clone()
 }
@@ -1408,7 +1408,7 @@ proptest! {
 
     #[test]
     fn mutated_swatch_exchange_files_never_panic(cut in prop::option::of(0usize..200), edits in prop::collection::vec((0usize..200, any::<u8>()), 0..12)) {
-        let mut bytes = vectorcraft_testkit::ase::sample();
+        let mut bytes = vansoncraft_testkit::ase::sample();
         for (at, b) in edits {
             let n = bytes.len();
             bytes[at % n] = b;
@@ -1437,8 +1437,8 @@ proptest! {
 
 /// A document with a text, a visibility and a graph variable, each bound to an object, and two
 /// data sets.
-fn merge_session() -> vectorcraft_engine::Session {
-    let mut s = vectorcraft_engine::Session::new();
+fn merge_session() -> vansoncraft_engine::Session {
+    let mut s = vansoncraft_engine::Session::new();
     s.execute("file.new", &json!({"width": 200, "height": 200})).unwrap();
     let id = |r: Value| r["id"].as_u64().unwrap();
     let t = id(s.execute("text.create", &json!({"x": 10, "y": 10, "text": "One"})).unwrap());
@@ -1496,7 +1496,7 @@ proptest! {
 
     #[test]
     fn dataset_csv_bytes_never_panic(bytes in prop::collection::vec(any::<u8>(), 0..300)) {
-        datasets("data set CSV bytes", json!({"dataBase64": vectorcraft_format::base64_encode(&bytes)}))?;
+        datasets("data set CSV bytes", json!({"dataBase64": vansoncraft_format::base64_encode(&bytes)}))?;
     }
 
     #[test]
@@ -1552,7 +1552,7 @@ proptest! {
 
     #[test]
     fn variable_library_bytes_never_panic(bytes in prop::collection::vec(any::<u8>(), 0..300)) {
-        variable_library("variable library bytes", json!({"dataBase64": vectorcraft_format::base64_encode(&bytes)}))?;
+        variable_library("variable library bytes", json!({"dataBase64": vansoncraft_format::base64_encode(&bytes)}))?;
     }
 
     /// The library cut short and with characters replaced, then with `nest` elements nested in one
@@ -1574,14 +1574,14 @@ proptest! {
 /// Shortcut set `bytes` read with `shortcutSet.read`, with import matches saved to annotate it: an
 /// error, or a set within the caps.
 fn shortcut_set(bytes: &[u8]) -> Result<(), TestCaseError> {
-    let mut s = vectorcraft_engine::Session::new();
+    let mut s = vansoncraft_engine::Session::new();
     let matches = json!([
         {"kind": "name", "name": "A", "target": "edit.undo"},
         {"kind": "key", "name": "1", "target": "K"},
         {"kind": "modifiers", "name": "-1", "target": "Cmd"},
     ]);
     s.execute("importMatches.set", &json!({ "matches": matches })).unwrap();
-    let read = json!({"dataBase64": vectorcraft_format::base64_encode(bytes), "name": "fuzz.kys"});
+    let read = json!({"dataBase64": vansoncraft_format::base64_encode(bytes), "name": "fuzz.kys"});
     if let Ok(r) = no_panic(s.execute("shortcutSet.read", &read)) {
         prop_assert!(r["entries"].as_array().map_or(0, Vec::len) <= 20_000);
         prop_assert!(r["unread"].as_array().map_or(0, Vec::len) <= 1000);
@@ -1627,7 +1627,7 @@ proptest! {
 /// marked truncated.
 #[test]
 fn shortcut_sets_past_the_caps_are_truncated() {
-    let read = |text: String| vectorcraft_engine::Session::new().execute("shortcutSet.read", &json!({ "data": text })).unwrap();
+    let read = |text: String| vansoncraft_engine::Session::new().execute("shortcutSet.read", &json!({ "data": text })).unwrap();
     let deep = format!("/Menus {{ {} /K {{ /Key 1 }} }}", "/A { ".repeat(40));
     let many = format!("/Menus {{ {} }}", "/E { /Key 1 } ".repeat(20_001));
     let long = format!("/Menus {{ /{} {{ /Key 1 }} }}", "n".repeat(2000));
@@ -1641,8 +1641,8 @@ fn shortcut_sets_past_the_caps_are_truncated() {
 
 /// Action set `bytes` read with `actionSet.read`: an error, or a set within the caps.
 fn action_set(bytes: &[u8]) -> Result<(), TestCaseError> {
-    let read = json!({"dataBase64": vectorcraft_format::base64_encode(bytes), "name": "fuzz.aia"});
-    if let Ok(r) = no_panic(vectorcraft_engine::Session::new().execute("actionSet.read", &read)) {
+    let read = json!({"dataBase64": vansoncraft_format::base64_encode(bytes), "name": "fuzz.aia"});
+    if let Ok(r) = no_panic(vansoncraft_engine::Session::new().execute("actionSet.read", &read)) {
         let actions = r["actions"].as_array().cloned().unwrap_or_default();
         prop_assert!(actions.len() <= 1000);
         prop_assert!(actions.iter().all(|a| a["steps"].as_array().map_or(0, Vec::len) <= 10_000));
@@ -1705,7 +1705,7 @@ proptest! {
 /// and marked truncated.
 #[test]
 fn action_sets_past_the_caps_are_truncated() {
-    let read = |text: String| vectorcraft_engine::Session::new().execute("actionSet.read", &json!({ "data": text })).unwrap();
+    let read = |text: String| vansoncraft_engine::Session::new().execute("actionSet.read", &json!({ "data": text })).unwrap();
     let deep = format!("/version 3 /action-1 {{ {} }}", "/x { ".repeat(40));
     let actions = format!("/version 3 {}", "/action-1 { } ".repeat(1001));
     let steps = format!("/version 3 /action-1 {{ {} }}", "/event-1 { } ".repeat(10_001));
@@ -1738,22 +1738,22 @@ fn raster_samples() -> Vec<(&'static str, Vec<u8>)> {
         img.write_to(&mut std::io::Cursor::new(&mut b), f).unwrap();
         out.push((name, b));
     }
-    out[0].1 = vectorcraft_engine::cmd::fileio::ppi::with_png_resolution(&out[0].1, (300.0, 150.0));
+    out[0].1 = vansoncraft_engine::cmd::fileio::ppi::with_png_resolution(&out[0].1, (300.0, 150.0));
     // TIFFs that store one plane per channel: CMYK with a channel after the inks, and gray with
     // alpha, 16 bits a sample.
     let plane = |v: u16| vec![v; 15];
     let cmyk = [plane(200), plane(40), plane(10), plane(0), plane(90)];
     let cmyk =
-        vectorcraft_testkit::tiff::Tiff { width: 5, height: 3, photometric: 5, bits: 8, extra: &[0], planar: true, ppi: Some(300), channels: &cmyk };
-    out.push(("planar-cmyk.tif", vectorcraft_testkit::tiff::tiff(&cmyk)));
+        vansoncraft_testkit::tiff::Tiff { width: 5, height: 3, photometric: 5, bits: 8, extra: &[0], planar: true, ppi: Some(300), channels: &cmyk };
+    out.push(("planar-cmyk.tif", vansoncraft_testkit::tiff::tiff(&cmyk)));
     let gray = [plane(30_000), plane(65_535)];
     let gray =
-        vectorcraft_testkit::tiff::Tiff { width: 5, height: 3, photometric: 1, bits: 16, extra: &[2], planar: true, ppi: None, channels: &gray };
-    out.push(("planar-gray.tif", vectorcraft_testkit::tiff::tiff(&gray)));
-    // A layered PSD with transparency (as VectorCraft exports it), and a PackBits PSB by hand.
+        vansoncraft_testkit::tiff::Tiff { width: 5, height: 3, photometric: 1, bits: 16, extra: &[2], planar: true, ppi: None, channels: &gray };
+    out.push(("planar-gray.tif", vansoncraft_testkit::tiff::tiff(&gray)));
+    // A layered PSD with transparency (as VansonCraft exports it), and a PackBits PSB by hand.
     let mut s = rich_session();
     let r = s.execute("document.export", &json!({"format": "psd", "ppi": 2})).unwrap();
-    out.push(("a.psd", vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap()));
+    out.push(("a.psd", vansoncraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap()));
     let mut psb = b"8BPS\0\x02\0\0\0\0\0\0\0\x04\0\0\0\x02\0\0\0\x03\0\x08\0\x03".to_vec();
     psb.extend([0; 8]);
     psb.extend(10u64.to_be_bytes());
@@ -1797,11 +1797,11 @@ proptest! {
         }
         bytes.truncate(cut.max(8));
         let r = catch_quiet(|| {
-            let _ = vectorcraft_engine::cmd::fileio::ppi::resolution(&bytes);
-            let _ = vectorcraft_engine::cmd::fileio::ppi::with_png_resolution(&bytes, (72.0, 72.0));
-            let mut s = vectorcraft_engine::Session::new();
+            let _ = vansoncraft_engine::cmd::fileio::ppi::resolution(&bytes);
+            let _ = vansoncraft_engine::cmd::fileio::ppi::with_png_resolution(&bytes, (72.0, 72.0));
+            let mut s = vansoncraft_engine::Session::new();
             s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
-            let p = json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(&bytes), "thumbnail": 8});
+            let p = json!({"name": name, "dataBase64": vansoncraft_format::base64_encode(&bytes), "thumbnail": 8});
             let _ = no_panic(s.execute("file.place.info", &p));
             let _ = no_panic(s.execute("file.place", &p));
         });
@@ -1822,8 +1822,8 @@ proptest! {
         }
         bytes.truncate((cut % (len + 1)).max(8));
         let r = catch_quiet(|| {
-            let mut s = vectorcraft_engine::Session::new();
-            let p = json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(&bytes), "hiddenLayers": true});
+            let mut s = vansoncraft_engine::Session::new();
+            let p = json!({"name": name, "dataBase64": vansoncraft_format::base64_encode(&bytes), "hiddenLayers": true});
             let _ = no_panic(s.execute("document.open", &p));
         });
         prop_assert!(r.is_ok(), "{name}: panicked: {:?}", r.err());
@@ -1837,8 +1837,8 @@ fn group3_samples() -> Vec<Vec<u8>> {
     let rows: Vec<Vec<bool>> = (0..6).map(|y| (0..40).map(|x| (x * (y + 1) / 3 + y) % 4 < 2).collect()).collect();
     let tiff = |compression, t4_options, fill_order, rows_per_strip, tile| {
         let rtc = compression == 3;
-        let g = vectorcraft_testkit::tiff::Group3 { rows: &rows, compression, t4_options, photometric: 0, fill_order, rows_per_strip, tile, rtc };
-        vectorcraft_testkit::tiff::group3(&g)
+        let g = vansoncraft_testkit::tiff::Group3 { rows: &rows, compression, t4_options, photometric: 0, fill_order, rows_per_strip, tile, rtc };
+        vansoncraft_testkit::tiff::group3(&g)
     };
     vec![tiff(2, 0, 1, 2, None), tiff(3, 5, 2, 6, None), tiff(3, 1, 1, 6, Some((16, 16)))]
 }
@@ -1847,9 +1847,9 @@ fn group3_samples() -> Vec<Vec<u8>> {
 #[test]
 fn the_group3_samples_place() {
     for bytes in group3_samples() {
-        let mut s = vectorcraft_engine::Session::new();
+        let mut s = vansoncraft_engine::Session::new();
         s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
-        s.execute("file.place", &json!({"name": "fax.tif", "dataBase64": vectorcraft_format::base64_encode(&bytes)})).unwrap();
+        s.execute("file.place", &json!({"name": "fax.tif", "dataBase64": vansoncraft_format::base64_encode(&bytes)})).unwrap();
     }
 }
 
@@ -1868,9 +1868,9 @@ proptest! {
         }
         bytes.truncate(cut.max(8));
         let r = catch_quiet(|| {
-            let mut s = vectorcraft_engine::Session::new();
+            let mut s = vansoncraft_engine::Session::new();
             s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
-            let p = json!({"name": "fax.tif", "dataBase64": vectorcraft_format::base64_encode(&bytes), "thumbnail": 8});
+            let p = json!({"name": "fax.tif", "dataBase64": vansoncraft_format::base64_encode(&bytes), "thumbnail": 8});
             let _ = no_panic(s.execute("file.place.info", &p));
             let _ = no_panic(s.execute("file.place", &p));
         });
@@ -1887,7 +1887,7 @@ fn targa_samples() -> Vec<(&'static str, Vec<u8>)> {
     image::RgbImage::from_pixel(5, 3, image::Rgb([200, 40, 10])).write_to(&mut std::io::Cursor::new(&mut rle), image::ImageFormat::Tga).unwrap();
     let mut s = rich_session();
     let r = s.execute("document.export", &json!({"format": "tga", "depth": 16, "ppi": 2})).unwrap();
-    let export = vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap();
+    let export = vansoncraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap();
     let mut alpha = vec![0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 2, 0, 16, 0x31, 0x02, 0x00, 0xfc, 0x1f, 0x80, 0x00, 0x00];
     alpha.extend([0x82, 0xe0, 0x83]);
     let mut mapped = vec![0, 1, 9, 5, 0, 2, 0, 16, 0, 0, 0, 0, 3, 0, 2, 0, 8, 0x21, 0x00, 0x00, 0x00, 0xfc];
@@ -1918,12 +1918,12 @@ proptest! {
         }
         bytes.truncate(cut.max(8));
         let r = catch_quiet(|| {
-            let mut s = vectorcraft_engine::Session::new();
+            let mut s = vansoncraft_engine::Session::new();
             s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
-            let p = json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(&bytes), "thumbnail": 8});
+            let p = json!({"name": name, "dataBase64": vansoncraft_format::base64_encode(&bytes), "thumbnail": 8});
             let _ = no_panic(s.execute("file.place.info", &p));
             let _ = no_panic(s.execute("file.place", &p));
-            let _ = no_panic(s.execute("clipboard.importImage", &json!({"dataBase64": vectorcraft_format::base64_encode(&bytes)})));
+            let _ = no_panic(s.execute("clipboard.importImage", &json!({"dataBase64": vansoncraft_format::base64_encode(&bytes)})));
         });
         prop_assert!(r.is_ok(), "{name}: panicked: {:?}", r.err());
     }
@@ -1971,13 +1971,13 @@ proptest! {
         }
         bytes.truncate(cut.max(4));
         let r = catch_quiet(|| {
-            let mut s = vectorcraft_engine::Session::new();
+            let mut s = vansoncraft_engine::Session::new();
             s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
-            let p = json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(&bytes), "thumbnail": 8});
+            let p = json!({"name": name, "dataBase64": vansoncraft_format::base64_encode(&bytes), "thumbnail": 8});
             let _ = no_panic(s.execute("file.place.info", &p));
             let _ = no_panic(s.execute("file.place", &p));
-            let _ = no_panic(s.execute("document.open", &json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(&bytes)})));
-            let _ = no_panic(s.execute("clipboard.importImage", &json!({"dataBase64": vectorcraft_format::base64_encode(&bytes)})));
+            let _ = no_panic(s.execute("document.open", &json!({"name": name, "dataBase64": vansoncraft_format::base64_encode(&bytes)})));
+            let _ = no_panic(s.execute("clipboard.importImage", &json!({"dataBase64": vansoncraft_format::base64_encode(&bytes)})));
         });
         prop_assert!(r.is_ok(), "{name}: panicked: {:?}", r.err());
     }
@@ -2039,13 +2039,13 @@ proptest! {
         }
         bytes.truncate(cut.max(4));
         let r = catch_quiet(|| {
-            let mut s = vectorcraft_engine::Session::new();
+            let mut s = vansoncraft_engine::Session::new();
             s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
-            let p = json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(&bytes), "thumbnail": 8});
+            let p = json!({"name": name, "dataBase64": vansoncraft_format::base64_encode(&bytes), "thumbnail": 8});
             let _ = no_panic(s.execute("file.place.info", &p));
             let _ = no_panic(s.execute("file.place", &p));
-            let _ = no_panic(s.execute("document.open", &json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(&bytes)})));
-            let _ = no_panic(s.execute("clipboard.importImage", &json!({"dataBase64": vectorcraft_format::base64_encode(&bytes)})));
+            let _ = no_panic(s.execute("document.open", &json!({"name": name, "dataBase64": vansoncraft_format::base64_encode(&bytes)})));
+            let _ = no_panic(s.execute("clipboard.importImage", &json!({"dataBase64": vansoncraft_format::base64_encode(&bytes)})));
         });
         prop_assert!(r.is_ok(), "{name}: panicked: {:?}", r.err());
     }
@@ -2069,8 +2069,8 @@ proptest! {
         }
         bytes.truncate(cut);
         let result = catch_quiet(|| {
-            let mut s = vectorcraft_engine::Session::new();
-            let params = json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(&bytes)});
+            let mut s = vansoncraft_engine::Session::new();
+            let params = json!({"name": name, "dataBase64": vansoncraft_format::base64_encode(&bytes)});
             let _ = no_panic(s.execute("document.open", &params));
             let _ = no_panic(s.execute("file.place", &params));
         });
@@ -2096,8 +2096,8 @@ proptest! {
         }
         bytes.truncate(cut);
         let result = catch_quiet(|| {
-            let mut s = vectorcraft_engine::Session::new();
-            let params = json!({"name": "a.heic", "dataBase64": vectorcraft_format::base64_encode(&bytes)});
+            let mut s = vansoncraft_engine::Session::new();
+            let params = json!({"name": "a.heic", "dataBase64": vansoncraft_format::base64_encode(&bytes)});
             let _ = no_panic(s.execute("document.open", &params));
             let _ = no_panic(s.execute("file.place", &params));
         });
@@ -2111,8 +2111,8 @@ fn saved_svg() -> String {
     if let Some(l) = d.layers.first_mut() {
         std::sync::Arc::make_mut(l).visible = false;
     }
-    let opts = vectorcraft_svg::ExportOptions { hidden_layers: true, preserve_editing: true, ..Default::default() };
-    vectorcraft_svg::export_full(&d, &opts, Some(&vectorcraft_format::save(&d, false))).svg
+    let opts = vansoncraft_svg::ExportOptions { hidden_layers: true, preserve_editing: true, ..Default::default() };
+    vansoncraft_svg::export_full(&d, &opts, Some(&vansoncraft_format::save(&d, false))).svg
 }
 
 proptest! {
@@ -2124,7 +2124,7 @@ proptest! {
         edits in prop::collection::vec((0usize..40_000, prop::sample::select(vec!['<', '>', '"', '/', '-', '9', 'e', '.', ' ', '#', '%', '&', ';', 'x', ']', 'A'])), 0..10),
     ) {
         let svg = mutate_text(&saved_svg(), cut, &edits);
-        survive("mutated saved svg", || vectorcraft_engine::cmd::fileio::load("saved.svg", svg.as_bytes()).ok().map(|l| l.doc))?;
+        survive("mutated saved svg", || vansoncraft_engine::cmd::fileio::load("saved.svg", svg.as_bytes()).ok().map(|l| l.doc))?;
     }
 }
 
@@ -2135,7 +2135,7 @@ fn saved_ai() -> Vec<u8> {
     static AI: std::sync::OnceLock<Vec<u8>> = std::sync::OnceLock::new();
     AI.get_or_init(|| {
         let r = rich_session().execute("document.save", &json!({"format": "ai", "compression": {"compressText": false}})).unwrap();
-        vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap()
+        vansoncraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap()
     })
     .clone()
 }
@@ -2154,7 +2154,7 @@ proptest! {
             b[i % n] = c;
         }
         b.truncate(cut.min(b.len()).max(9));
-        survive("mutated ai", || vectorcraft_engine::cmd::fileio::load("saved.ai", &b).ok().map(|l| l.doc))?;
+        survive("mutated ai", || vansoncraft_engine::cmd::fileio::load("saved.ai", &b).ok().map(|l| l.doc))?;
     }
 }
 
@@ -2180,7 +2180,7 @@ proptest! {
 
     #[test]
     fn mutated_pdf_presets_never_panic(cut in 0usize..20_000, edits in prop::collection::vec(arb_edit(), 0..10)) {
-        let text = saved("pdf.preset.export", json!({"names": ["VectorCraft Default", "Smallest File Size", "PDF/X-4:2010"]}));
+        let text = saved("pdf.preset.export", json!({"names": ["VansonCraft Default", "Smallest File Size", "PDF/X-4:2010"]}));
         pdf_presets("mutated pdf presets", &mutate_text(&text, cut, &edits))?;
     }
 }
@@ -2190,7 +2190,7 @@ proptest! {
 /// Load `p` into the clipboard with `cmd`, then paste it into a new document: neither may panic.
 fn paste_from_elsewhere(cmd: &str, p: Value) -> Result<(), TestCaseError> {
     let r = catch_quiet(|| {
-        let mut s = vectorcraft_engine::Session::new();
+        let mut s = vansoncraft_engine::Session::new();
         s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
         if no_panic(s.execute(cmd, &p)).is_ok() {
             // Paste may refuse what it was given, e.g. a damaged PDF whose art spans more than the
@@ -2217,7 +2217,7 @@ fn mutated_b64(mut bytes: Vec<u8>, cut: usize, edits: &[(usize, u8)]) -> String 
         }
     }
     bytes.truncate(cut.max(8));
-    vectorcraft_format::base64_encode(&bytes)
+    vansoncraft_format::base64_encode(&bytes)
 }
 
 proptest! {
@@ -2246,7 +2246,7 @@ proptest! {
 
 /// The rich document saved compressed, as v1 and as v2 (pretty).
 fn native_samples() -> &'static [Vec<u8>] {
-    use vectorcraft_format::{SaveOptions, save_with};
+    use vansoncraft_format::{SaveOptions, save_with};
     static SAMPLES: std::sync::OnceLock<Vec<Vec<u8>>> = std::sync::OnceLock::new();
     SAMPLES.get_or_init(|| {
         let d = rich_doc();
@@ -2277,7 +2277,7 @@ proptest! {
     fn native_mutated_files_never_panic(which in 0usize..4, cut in 0usize..80_000, edits in prop::collection::vec((0usize..80_000, any::<u8>()), 0..10)) {
         let samples = native_samples();
         let mut bytes = samples.get(which).cloned().unwrap_or_else(|| {
-            let mut f = vectorcraft_format::save(&rich_doc(), false);
+            let mut f = vansoncraft_format::save(&rich_doc(), false);
             f.truncate(cut.max(16));
             f
         });
@@ -2290,9 +2290,9 @@ proptest! {
         } else {
             bytes = gzip(&bytes);
         }
-        let _ = vectorcraft_format::sniff(&bytes);
-        let _ = vectorcraft_format::preview(&bytes);
-        survive("mutated native file", || vectorcraft_engine::cmd::fileio::load("x.vectorcraft", &bytes).ok().map(|l| l.doc))?;
+        let _ = vansoncraft_format::sniff(&bytes);
+        let _ = vansoncraft_format::preview(&bytes);
+        survive("mutated native file", || vansoncraft_engine::cmd::fileio::load("x.vansoncraft", &bytes).ok().map(|l| l.doc))?;
     }
 }
 
@@ -2300,19 +2300,19 @@ proptest! {
 /// overflows) opens with 100 in place of each count over 100, and renders and exports.
 #[test]
 fn native_area_type_with_2_to_the_60_rows_or_columns_opens_renders_and_exports() {
-    let mut s = vectorcraft_engine::Session::new();
+    let mut s = vansoncraft_engine::Session::new();
     s.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let made = s.execute("text.create", &json!({"x": 10, "y": 10, "text": "word ".repeat(40), "area": {"width": 300, "height": 120}})).unwrap();
-    let id = vectorcraft_doc::NodeId(made["id"].as_u64().unwrap());
+    let id = vansoncraft_doc::NodeId(made["id"].as_u64().unwrap());
     let mut d = (*s.doc().unwrap().doc).clone();
     for (rows, columns) in [(1 << 60, 1), (1, 1 << 60), (1 << 32, 1 << 32)] {
-        let Some(vectorcraft_doc::NodeKind::Text(t)) = d.node_mut(id).map(|n| &mut n.kind) else { panic!("area type") };
+        let Some(vansoncraft_doc::NodeKind::Text(t)) = d.node_mut(id).map(|n| &mut n.kind) else { panic!("area type") };
         t.area.rows = rows;
         t.area.columns = columns;
-        let file = vectorcraft_format::base64_encode(&vectorcraft_format::save(&d, false));
-        s.execute("document.open", &json!({"name": "x.vectorcraft", "dataBase64": file})).unwrap();
+        let file = vansoncraft_format::base64_encode(&vansoncraft_format::save(&d, false));
+        s.execute("document.open", &json!({"name": "x.vansoncraft", "dataBase64": file})).unwrap();
         let opened = (*s.doc().unwrap().doc).clone();
-        let Some(vectorcraft_doc::NodeKind::Text(t)) = opened.node(id).map(|n| &n.kind) else { panic!("area type") };
+        let Some(vansoncraft_doc::NodeKind::Text(t)) = opened.node(id).map(|n| &n.kind) else { panic!("area type") };
         assert_eq!((t.area.rows, t.area.columns), (rows.min(100), columns.min(100)));
         survive("area type in 2^60 rows or columns", || Some(opened)).unwrap();
     }
@@ -2323,7 +2323,7 @@ fn native_area_type_with_2_to_the_60_rows_or_columns_opens_renders_and_exports()
 fn eps_sample() -> Vec<u8> {
     let mut s = rich_session();
     let r = s.execute("document.export", &json!({"format": "eps", "useArtboards": false})).unwrap();
-    vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap()
+    vansoncraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap()
 }
 
 proptest! {
@@ -2340,9 +2340,9 @@ proptest! {
             bytes[at % n] = b;
         }
         bytes.truncate(cut.max(4));
-        let _ = vectorcraft_eps::sections(&bytes);
-        let _ = vectorcraft_eps::thumbnail(&bytes);
-        survive("mutated EPS file", || vectorcraft_eps::native(&bytes).and_then(|n| vectorcraft_format::load(&n).ok()))?;
+        let _ = vansoncraft_eps::sections(&bytes);
+        let _ = vansoncraft_eps::thumbnail(&bytes);
+        survive("mutated EPS file", || vansoncraft_eps::native(&bytes).and_then(|n| vansoncraft_format::load(&n).ok()))?;
     }
 
     /// Damaged EPS files without the document: the PostScript interpreter (or the preview
@@ -2356,7 +2356,7 @@ proptest! {
             bytes[at % n] = b;
         }
         bytes.truncate(cut.max(4));
-        survive("mutated EPS PostScript", || vectorcraft_eps::import(&bytes).ok().map(|r| r.document))?;
+        survive("mutated EPS PostScript", || vansoncraft_eps::import(&bytes).ok().map(|r| r.document))?;
     }
 
     /// A damaged EPS another app copied: Paste reads it as an error or as objects.
@@ -2380,10 +2380,10 @@ proptest! {
             ("", "")
         };
         let ps = format!("%!PS-Adobe-3.0 EPSF-3.0\n%%BoundingBox: 0 0 200 200\n{head}\n{open}{}{close}\nshowpage\n", tokens.join(" "));
-        survive("hostile PostScript", || vectorcraft_engine::cmd::fileio::load("x.eps", ps.as_bytes()).ok().map(|l| l.doc))?;
+        survive("hostile PostScript", || vansoncraft_engine::cmd::fileio::load("x.eps", ps.as_bytes()).ok().map(|l| l.doc))?;
         let r = catch_quiet(|| {
             let mut s = rich_session();
-            let _ = no_panic(s.execute("file.place", &json!({"name": "x.eps", "dataBase64": vectorcraft_format::base64_encode(ps.as_bytes())})));
+            let _ = no_panic(s.execute("file.place", &json!({"name": "x.eps", "dataBase64": vansoncraft_format::base64_encode(ps.as_bytes())})));
         });
         r.map_err(|msg| TestCaseError::fail(format!("placing hostile PostScript panicked: {msg}")))?;
     }
@@ -2393,13 +2393,13 @@ proptest! {
     #[test]
     fn ps_hostile_programs_never_panic(tokens in prop::collection::vec(arb_ps_token(), 0..60)) {
         let ps = format!("%!\n{}\nshowpage\n", tokens.join(" "));
-        survive("hostile .ps", || vectorcraft_engine::cmd::fileio::load("x.ps", ps.as_bytes()).ok().map(|l| l.doc))?;
+        survive("hostile .ps", || vansoncraft_engine::cmd::fileio::load("x.ps", ps.as_bytes()).ok().map(|l| l.doc))?;
         let r = catch_quiet(|| {
             let mut s = rich_session();
-            let _ = no_panic(s.execute("file.place", &json!({"name": "x.ps", "dataBase64": vectorcraft_format::base64_encode(ps.as_bytes())})));
+            let _ = no_panic(s.execute("file.place", &json!({"name": "x.ps", "dataBase64": vansoncraft_format::base64_encode(ps.as_bytes())})));
         });
         r.map_err(|msg| TestCaseError::fail(format!("placing a hostile .ps panicked: {msg}")))?;
-        paste_from_elsewhere("clipboard.importEps", json!({"dataBase64": vectorcraft_format::base64_encode(ps.as_bytes())}))?;
+        paste_from_elsewhere("clipboard.importEps", json!({"dataBase64": vansoncraft_format::base64_encode(ps.as_bytes())}))?;
     }
 
     /// Damaged or hostile CMYK images (a CMYK JPEG, an image with a key color): read as images,
@@ -2407,7 +2407,7 @@ proptest! {
     #[test]
     fn eps_cmyk_images_never_panic(cut in 0usize..2_500, edits in prop::collection::vec((0usize..2_500, prop::sample::select(vec!['0', '9', 'f', 'a', ' ', '\n', '<', '>', '/', '[', ']', '(', ')', '-'])), 0..12)) {
         let text = mutate_text(&cmyk_images_eps(), cut, &edits);
-        survive("mutated EPS CMYK images", || vectorcraft_eps::import(text.as_bytes()).ok().map(|r| r.document))?;
+        survive("mutated EPS CMYK images", || vansoncraft_eps::import(text.as_bytes()).ok().map(|r| r.document))?;
     }
 
     /// Damaged or hostile CCITT fax images (Group 4 and Group 3 data, their parameters): read as
@@ -2415,7 +2415,7 @@ proptest! {
     #[test]
     fn eps_ccitt_images_never_panic(cut in 0usize..800, edits in prop::collection::vec((0usize..800, prop::sample::select(vec!['0', '1', '9', 'f', '8', ' ', '\n', '<', '>', '/', '-', 't', 'e'])), 0..12)) {
         let text = mutate_text(&ccitt_images_eps(), cut, &edits);
-        survive("mutated EPS CCITT images", || vectorcraft_eps::import(text.as_bytes()).ok().map(|r| r.document))?;
+        survive("mutated EPS CCITT images", || vansoncraft_eps::import(text.as_bytes()).ok().map(|r| r.document))?;
     }
 
     /// TIFF-predicted Flate data (Predictor 2) at every depth the filter accepts, with any bytes, 1 to 5
@@ -2436,7 +2436,7 @@ proptest! {
              currentfile /ASCIIHexDecode filter << /Predictor 2 /Colors {colors} /BitsPerComponent {bpc} /Columns {columns} >> /FlateDecode filter image\n\
              {hex}>\nshowpage\n%%EOF\n"
         );
-        survive("TIFF-predicted EPS images", || vectorcraft_eps::import(text.as_bytes()).ok().map(|r| r.document))?;
+        survive("TIFF-predicted EPS images", || vansoncraft_eps::import(text.as_bytes()).ok().map(|r| r.document))?;
     }
 
     /// Damaged or hostile TrueType data in a Type 42 font that a composite font shows (its table
@@ -2454,7 +2454,7 @@ proptest! {
             }
         }
         let text = type42_composite_eps(&font, gid);
-        survive("damaged Type 42 glyphs", || vectorcraft_eps::import(text.as_bytes()).ok().map(|r| r.document))?;
+        survive("damaged Type 42 glyphs", || vansoncraft_eps::import(text.as_bytes()).ok().map(|r| r.document))?;
     }
 
     /// CID-keyed fonts with hostile CMaps (codespace ranges of any length, mappings past them)
@@ -2487,7 +2487,7 @@ proptest! {
              10 60 moveto <{}> true charpath fill\nshowpage\n%%EOF\n",
             data.len(), hex(&data), space.len(), cids.len(), hex(&shown), hex(&shown), hex(&shown)
         );
-        survive("hostile CID-keyed fonts", || vectorcraft_eps::import(text.as_bytes()).ok().map(|r| r.document))?;
+        survive("hostile CID-keyed fonts", || vansoncraft_eps::import(text.as_bytes()).ok().map(|r| r.document))?;
     }
 
     /// Embedded Type 1 fonts whose encrypted part is damaged or hostile (any bytes, binary or
@@ -2512,7 +2512,7 @@ proptest! {
         }
         bytes.extend(format!("\n{}\ncleartomark\n/T1 findfont 40 scalefont setfont 10 20 moveto <{}> show <{}> stringwidth pop pop\n\
             10 60 moveto <{}> true charpath fill\nshowpage\n%%EOF\n", "0".repeat(512), hexed(&shown), hexed(&shown), hexed(&shown)).into_bytes());
-        survive("hostile Type 1 programs", || vectorcraft_eps::import(&bytes).ok().map(|r| r.document))?;
+        survive("hostile Type 1 programs", || vansoncraft_eps::import(&bytes).ok().map(|r| r.document))?;
     }
 }
 
@@ -2538,7 +2538,7 @@ fn type42_composite_eps(font: &[u8], gid: u32) -> String {
 /// [`type42_composite_eps`] as it is: the glyph draws as filled outlines, not as type.
 #[test]
 fn the_type42_fixture_draws_its_glyphs() {
-    let r = vectorcraft_eps::import(type42_composite_eps(TYPE42_FONT, 9).as_bytes()).unwrap();
+    let r = vansoncraft_eps::import(type42_composite_eps(TYPE42_FONT, 9).as_bytes()).unwrap();
     assert!(r.warnings.is_empty() && !r.preview, "{:?}", r.warnings);
     let mut kinds = vec![];
     r.document.walk(|n| kinds.push(n.kind_label()));
@@ -2562,7 +2562,7 @@ fn ccitt_images_eps() -> String {
 /// clear by the mask), without a warning.
 #[test]
 fn the_ccitt_images_fixture_reads_both_images() {
-    let r = vectorcraft_eps::import(ccitt_images_eps().as_bytes()).unwrap();
+    let r = vansoncraft_eps::import(ccitt_images_eps().as_bytes()).unwrap();
     assert!(r.warnings.is_empty() && !r.preview, "{:?}", r.warnings);
     let d = &r.document;
     let shade = |p: &image::Rgba<u8>| match p.0 {
@@ -2572,7 +2572,7 @@ fn the_ccitt_images_fixture_reads_both_images() {
     };
     let mut found = vec![];
     d.walk(|n| {
-        if let vectorcraft_doc::NodeKind::Image(im) = &n.kind {
+        if let vansoncraft_doc::NodeKind::Image(im) = &n.kind {
             let px = image::load_from_memory(&d.images[&im.key].bytes).unwrap().to_rgba8();
             found.push(px.pixels().map(shade).collect::<String>());
         }
@@ -2583,7 +2583,7 @@ fn the_ccitt_images_fixture_reads_both_images() {
 /// An EPS with CMYK images that the PostScript interpreter reads: a CMYK JPEG through `DCTDecode`
 /// (Adobe's inverted samples), and an image whose key color hides a pixel.
 fn cmyk_images_eps() -> String {
-    use vectorcraft_render::encode::jpeg::{ColorModel, JpegOptions, encode};
+    use vansoncraft_render::encode::jpeg::{ColorModel, JpegOptions, encode};
     let o = JpegOptions { color_model: ColorModel::Cmyk, embed_icc: false, ..JpegOptions::default() };
     let jpeg = encode(&[0, 102, 255, 0].repeat(16), 4, 4, 90, None, &o).unwrap();
     let hex: String = jpeg.iter().map(|b| format!("{b:02x}")).collect();
@@ -2599,12 +2599,12 @@ fn cmyk_images_eps() -> String {
 /// [`cmyk_images_eps`] as it is: both images keep their ink amounts, the keyed one with its mask.
 #[test]
 fn the_cmyk_images_fixture_reads_its_inks_and_mask() {
-    let r = vectorcraft_eps::import(cmyk_images_eps().as_bytes()).unwrap();
+    let r = vansoncraft_eps::import(cmyk_images_eps().as_bytes()).unwrap();
     assert!(r.warnings.is_empty() && !r.preview, "{:?}", r.warnings);
     let d = &r.document;
     let mut found = vec![];
     d.walk(|n| {
-        if let vectorcraft_doc::NodeKind::Image(im) = &n.kind {
+        if let vansoncraft_doc::NodeKind::Image(im) = &n.kind {
             found.push((d.images[&im.key].cmyk().map(|i| i.data.len()), n.extras().mask.is_some()));
         }
     });
@@ -2615,7 +2615,7 @@ fn the_cmyk_images_fixture_reads_its_inks_and_mask() {
 /// PostScript is read.
 fn foreign_eps_sample() -> Vec<u8> {
     let mut bytes = eps_sample();
-    let marker = b"%VectorCraft_BeginData: native";
+    let marker = b"%VansonCraft_BeginData: native";
     let at = bytes.windows(marker.len()).position(|w| w == marker).unwrap();
     bytes[at + marker.len() - 1] = b'x';
     bytes
@@ -2702,11 +2702,11 @@ proptest! {
         edits in prop::collection::vec((0usize..2_000, any::<u8>()), 0..12),
         password in prop::sample::select(vec!["pw", "pw-owner", "wrong", ""]),
     ) {
-        use vectorcraft_testkit::pdf::{PdfPage, pdf};
+        use vansoncraft_testkit::pdf::{PdfPage, pdf};
         let bytes = pdf(&[PdfPage::new(100.0, 100.0, "0 0 1 rg 20 20 50 50 re f")], Some("pw"));
         let b64 = mutated_b64(bytes, cut, &edits);
         let r = catch_quiet(|| {
-            let mut s = vectorcraft_engine::Session::new();
+            let mut s = vansoncraft_engine::Session::new();
             let p = json!({"name": "x.pdf", "dataBase64": b64, "password": password});
             let _ = no_panic(s.execute("document.pdfInfo", &p));
             if no_panic(s.execute("document.open", &p)).is_ok() {
@@ -2722,7 +2722,7 @@ proptest! {
 
 /// The rich document exported as DXF (2018: hatches, splines, text, images; R12: polylines).
 fn rich_dxf(version: &str) -> Vec<u8> {
-    vectorcraft_engine::cmd::fileio::encode(&rich_doc(), "dxf", &json!({"version": version, "preserve": "editability"})).unwrap()
+    vansoncraft_engine::cmd::fileio::encode(&rich_doc(), "dxf", &json!({"version": version, "preserve": "editability"})).unwrap()
 }
 
 /// Group-code pairs as DXF text.
@@ -2772,14 +2772,14 @@ fn hostile_dxf(block: &[Vec<(i32, String)>], body: &[Vec<(i32, String)>]) -> Vec
 
 /// Import with every option at once, and place it; whatever comes back must render and export.
 fn survive_dxf(what: &str, bytes: &[u8], fit: bool) -> Result<(), TestCaseError> {
-    let o = vectorcraft_cad::ImportOptions { fit, center: !fit, merge_layers: fit, ..Default::default() };
-    survive(what, || vectorcraft_cad::import(bytes, &o).ok().map(|r| r.document))?;
-    let _ = vectorcraft_cad::info(bytes);
-    let _ = vectorcraft_cad::is_dxf(bytes);
+    let o = vansoncraft_cad::ImportOptions { fit, center: !fit, merge_layers: fit, ..Default::default() };
+    survive(what, || vansoncraft_cad::import(bytes, &o).ok().map(|r| r.document))?;
+    let _ = vansoncraft_cad::info(bytes);
+    let _ = vansoncraft_cad::is_dxf(bytes);
     survive(what, || {
-        let mut s = vectorcraft_engine::Session::new();
+        let mut s = vansoncraft_engine::Session::new();
         no_panic(s.execute("file.new", &json!({"width": 300, "height": 200}))).ok()?;
-        let p = json!({"name": "x.dxf", "dataBase64": vectorcraft_format::base64_encode(bytes), "dxf": {"fit": fit}, "thumbnail": 8});
+        let p = json!({"name": "x.dxf", "dataBase64": vansoncraft_format::base64_encode(bytes), "dxf": {"fit": fit}, "thumbnail": 8});
         let _ = no_panic(s.execute("file.place.info", &p));
         let _ = no_panic(s.execute("file.place", &p));
         let _ = no_panic(s.execute("document.dxfInfo", &p));
@@ -2836,7 +2836,7 @@ fn metafile_samples() -> &'static [Vec<u8>] {
             .iter()
             .map(|f| {
                 let r = s.execute("document.export", &json!({ "format": f })).unwrap();
-                vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap()
+                vansoncraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap()
             })
             .collect()
     })
@@ -2883,11 +2883,11 @@ fn wmf_of(records: &[(u16, Vec<u8>)]) -> Vec<u8> {
 
 /// Open the bytes as `name`, and place them: neither may panic.
 fn survive_metafile(what: &str, name: &str, bytes: &[u8]) -> Result<(), TestCaseError> {
-    survive(what, || vectorcraft_engine::cmd::fileio::load(name, bytes).ok().map(|l| l.doc))?;
+    survive(what, || vansoncraft_engine::cmd::fileio::load(name, bytes).ok().map(|l| l.doc))?;
     let r = catch_quiet(|| {
-        let mut s = vectorcraft_engine::Session::new();
+        let mut s = vansoncraft_engine::Session::new();
         s.execute("file.new", &json!({"width": 100, "height": 100})).unwrap();
-        let _ = no_panic(s.execute("file.place", &json!({"name": name, "dataBase64": vectorcraft_format::base64_encode(bytes)})));
+        let _ = no_panic(s.execute("file.place", &json!({"name": name, "dataBase64": vansoncraft_format::base64_encode(bytes)})));
     });
     prop_assert!(r.is_ok(), "{what}: placing panicked: {:?}", r.err());
     Ok(())
@@ -2902,7 +2902,7 @@ fn arb_body() -> impl Strategy<Value = Vec<u8>> {
     ]
 }
 
-/// WMF record functions VectorCraft reads, and one it doesn't.
+/// WMF record functions VansonCraft reads, and one it doesn't.
 const WMF_FUNCTIONS: [u16; 33] = [
     0x0324, 0x0325, 0x0538, 0x041B, 0x0418, 0x061C, 0x0817, 0x081A, 0x0830, 0x0416, 0x0415, 0x02FA, 0x02FC, 0x02FB, 0x012D, 0x01F0, 0x0521, 0x0A32,
     0x0F43, 0x0B41, 0x0940, 0x061D, 0x0213, 0x0214, 0x001E, 0x0127, 0x0106, 0x0209, 0x012E, 0x00F7, 0x01F9, 0x0142, 0x0999,
@@ -2951,10 +2951,10 @@ DT*,1;LBlabel*SMx;PA0,0;SM;PE:\xc1<=\xbf\xc0\xc2\xc2;LB\x03PG;\x1b%0A\x1b*r1A\x1
 /// The sample the mutations start from opens as a plot with art.
 #[test]
 fn the_hpgl_sample_opens() {
-    let l = vectorcraft_engine::cmd::fileio::load("x.plt", HPGL_SAMPLE).unwrap();
+    let l = vansoncraft_engine::cmd::fileio::load("x.plt", HPGL_SAMPLE).unwrap();
     assert_eq!(l.format.id, "hpgl");
     let mut paths = 0;
-    l.doc.walk(|n| paths += usize::from(matches!(n.kind, vectorcraft_doc::NodeKind::Path { .. })));
+    l.doc.walk(|n| paths += usize::from(matches!(n.kind, vansoncraft_doc::NodeKind::Path { .. })));
     assert!(paths > 15, "{paths} paths, warnings {:?}", l.warnings);
 }
 
@@ -3219,7 +3219,7 @@ fn editing_eps(editing: &str) -> Vec<u8> {
 #[test]
 fn the_editing_fixture_reads_its_palette() {
     let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(&editing_text())].concat();
-    let (doc, warnings, layers) = vectorcraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, true, 1.0);
+    let (doc, warnings, layers) = vansoncraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, true, 1.0);
     assert!(layers, "{warnings:?}");
     let swatches: Vec<&str> = doc.swatches.iter().map(|s| s.name.as_str()).collect();
     assert_eq!(swatches, ["[None]", "Black", "Unused ink", "Black global", "Dots"]);
@@ -3234,7 +3234,7 @@ fn the_editing_fixture_reads_its_palette() {
 #[test]
 fn the_editing_fixture_reads_its_cmyk_image_with_its_mask() {
     let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(&editing_text())].concat();
-    let (doc, warnings, layers) = vectorcraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, true, 1.0);
+    let (doc, warnings, layers) = vansoncraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, true, 1.0);
     let mut found = vec![];
     doc.visit_images(|n, im| found.push((doc.images[&im.key].cmyk().map(|i| i.data), n.extras().mask.is_some())));
     assert!(layers && found.contains(&(Some(vec![255, 0, 0, 0, 0, 0, 0, 255]), true)), "{found:?} {warnings:?}");
@@ -3245,10 +3245,10 @@ fn the_editing_fixture_reads_its_cmyk_image_with_its_mask() {
 #[test]
 fn the_editing_fixture_reads_its_image_mask_colorized() {
     let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(&editing_text())].concat();
-    let (doc, warnings, layers) = vectorcraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, true, 1.0);
+    let (doc, warnings, layers) = vansoncraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, true, 1.0);
     let mut found = vec![];
     doc.visit_images(|n, im| {
-        if let Some(vectorcraft_color::Paint::Solid { swatch, .. }) = n.extras().colorize.as_deref() {
+        if let Some(vansoncraft_color::Paint::Solid { swatch, .. }) = n.extras().colorize.as_deref() {
             found.push((swatch.clone(), im.width, im.height, doc.images[&im.key].coverage().map(|c| c.2)));
         }
     });
@@ -3327,10 +3327,10 @@ const VERTICAL_OBJECTS: &str = "/AI11Text :\n0 /FrameIndex ,\n0 /StoryIndex ,\n;
 /// Tate-chu-yoko run marked.
 #[test]
 fn the_vertical_fixture_reads_as_vertical_type() {
-    let l = vectorcraft_engine::cmd::fileio::load("x.eps", &text_eps_of(&vertical_document_text(), VERTICAL_OBJECTS)).unwrap();
+    let l = vansoncraft_engine::cmd::fileio::load("x.eps", &text_eps_of(&vertical_document_text(), VERTICAL_OBJECTS)).unwrap();
     let mut found = vec![];
     l.doc.walk(|n| {
-        if let vectorcraft_doc::NodeKind::Text(t) = &n.kind {
+        if let vansoncraft_doc::NodeKind::Text(t) = &n.kind {
             let tcy: Vec<&str> = t.runs.iter().filter(|r| r.style.tate_chu_yoko).map(|r| r.text.as_str()).collect();
             let roman: Vec<&str> = t.runs.iter().filter(|r| r.style.standard_vertical_roman).map(|r| r.text.as_str()).collect();
             found.push((t.plain_text(), t.vertical, tcy.join("|"), roman.join("|")));
@@ -3352,13 +3352,13 @@ const FRAME_OBJECTS: &str = "/AI11Text :\n0 /FrameIndex ,\n0 /StoryIndex ,\n;\n/
 /// The fuzzed fixture, as it is, reads as area type in two threaded frames and type on a path.
 #[test]
 fn the_frames_fixture_reads_as_threaded_area_type_and_type_on_a_path() {
-    let l = vectorcraft_engine::cmd::fileio::load("x.eps", &text_eps_of(&frames_document_text(), FRAME_OBJECTS)).unwrap();
+    let l = vansoncraft_engine::cmd::fileio::load("x.eps", &text_eps_of(&frames_document_text(), FRAME_OBJECTS)).unwrap();
     let mut kinds = vec![];
     l.doc.walk(|n| {
-        if let vectorcraft_doc::NodeKind::Text(t) = &n.kind {
+        if let vansoncraft_doc::NodeKind::Text(t) = &n.kind {
             kinds.push(match t.kind {
-                vectorcraft_doc::TextKind::Area { .. } => "area",
-                vectorcraft_doc::TextKind::OnPath { .. } => "path",
+                vansoncraft_doc::TextKind::Area { .. } => "area",
+                vansoncraft_doc::TextKind::OnPath { .. } => "path",
                 _ => "point",
             });
         }
@@ -3374,10 +3374,10 @@ fn the_frames_fixture_reads_as_threaded_area_type_and_type_on_a_path() {
 fn a_text_frame_with_a_control_point_at_8e115_opens_with_its_story_in_the_next_frame() {
     let text = mutate_text(&frames_document_text(), 1397, &[(191, '1'), (1586, 'e')]);
     assert!(text.contains(" 8e0115 "));
-    let l = vectorcraft_engine::cmd::fileio::load("x.eps", &text_eps_of(&text, FRAME_OBJECTS)).unwrap();
+    let l = vansoncraft_engine::cmd::fileio::load("x.eps", &text_eps_of(&text, FRAME_OBJECTS)).unwrap();
     let mut texts = vec![];
     l.doc.walk(|n| {
-        if let vectorcraft_doc::NodeKind::Text(t) = &n.kind {
+        if let vansoncraft_doc::NodeKind::Text(t) = &n.kind {
             texts.push(t.plain_text());
         }
     });
@@ -3599,12 +3599,12 @@ fn the_shown_stories_fixture_opens_with_its_layers() {
     // Each story's first line where the page draws it: the area type's below its frame's top, the
     // type on a path on its path.
     let page = format!("{FIRST_LINE} 8.5 69.5 moveto (Line 1) show 8.5 61.5 moveto (Line 2) show");
-    let l = vectorcraft_engine::cmd::fileio::load("x.eps", &shown_text_eps(&doc, &story_objects(&[(0, 0), (1, 0), (2, 0)]), &page)).unwrap();
+    let l = vansoncraft_engine::cmd::fileio::load("x.eps", &shown_text_eps(&doc, &story_objects(&[(0, 0), (1, 0), (2, 0)]), &page)).unwrap();
     let names: Vec<_> = l.doc.layers.iter().map(|l| l.name.clone()).collect();
     assert_eq!(names, [Some("Words".to_string())], "{:?}", l.warnings);
     let mut texts = vec![];
     l.doc.walk(|n| {
-        if let vectorcraft_doc::NodeKind::Text(t) = &n.kind {
+        if let vansoncraft_doc::NodeKind::Text(t) = &n.kind {
             texts.push(t.plain_text());
         }
     });
@@ -3622,7 +3622,7 @@ fn the_editing_fixture_reads_names_in_a_legacy_encoding() {
         .replace("(Dots)", r"(\273\241\260\255)")
         .replace("(Black global)", r"(\273\241\260\255 global)");
     let bytes = editing_eps(&text);
-    let r = vectorcraft_eps::import_names(&bytes, true, true, vectorcraft_eps::NameEncoding::Korean).unwrap();
+    let r = vansoncraft_eps::import_names(&bytes, true, true, vansoncraft_eps::NameEncoding::Korean).unwrap();
     let names: Vec<_> = r.document.layers.iter().map(|l| l.name.clone().unwrap_or_default()).collect();
     assert_eq!(names, ["레이어 1", "Two"], "{:?}", r.warnings);
     assert!(r.document.pattern("빨강").is_some(), "{:?}", r.warnings);
@@ -3644,7 +3644,7 @@ proptest! {
     ) {
         let kinds: Vec<u8> = kinds.into_iter().map(|k| if k == 3 { 9 } else { k }).collect();
         let bytes = shown_text_eps(&stories_document_text(&kinds, &soft, &runs), &story_objects(&pairs), FIRST_LINE);
-        survive("EPS with shown stories", || vectorcraft_engine::cmd::fileio::load("x.eps", &bytes).ok().map(|l| l.doc))?;
+        survive("EPS with shown stories", || vansoncraft_engine::cmd::fileio::load("x.eps", &bytes).ok().map(|l| l.doc))?;
     }
 
     /// An Illustrator EPS whose text document is damaged or hostile: read as its type, or without it.
@@ -3652,7 +3652,7 @@ proptest! {
     fn eps_text_document_never_panics(cut in 0usize..1_500, edits in prop::collection::vec((0usize..1_500, prop::sample::select(vec!['0', '9', '-', '.', ' ', '\n', '(', ')', '/', '[', ']', '<', '>', '\\', 'e', '1'])), 0..12)) {
         let text = mutate_text(&text_document_text(), cut, &edits);
         let bytes = text_eps(&text);
-        survive("mutated EPS text document", || vectorcraft_eps::import(&bytes).ok().map(|r| r.document))?;
+        survive("mutated EPS text document", || vansoncraft_eps::import(&bytes).ok().map(|r| r.document))?;
     }
 
     /// The same for area type threaded through frames and type on a path, opened as a document
@@ -3661,7 +3661,7 @@ proptest! {
     fn eps_text_frames_never_panic(cut in 0usize..2_500, edits in prop::collection::vec((0usize..2_500, prop::sample::select(vec!['0', '9', '-', '.', ' ', '\n', '(', ')', '/', '[', ']', '<', '>', '\\', 'e', '1', '2'])), 0..12)) {
         let text = mutate_text(&frames_document_text(), cut, &edits);
         let bytes = text_eps_of(&text, FRAME_OBJECTS);
-        survive("mutated EPS text frames", || vectorcraft_engine::cmd::fileio::load("x.eps", &bytes).ok().map(|l| l.doc))?;
+        survive("mutated EPS text frames", || vansoncraft_engine::cmd::fileio::load("x.eps", &bytes).ok().map(|l| l.doc))?;
     }
 
     /// The threaded area type of the same text document with hostile Area Type Options in each of its
@@ -3671,9 +3671,9 @@ proptest! {
         let text = frames_document_text().replacen("/0 1 /7 18", &format!("/0 1 {first}"), 1).replacen("/0 1 /7 18", &format!("/0 1 {second}"), 1);
         let editing = text_editing_of(&text, FRAME_OBJECTS);
         let bytes = editing_eps(&editing);
-        survive("EPS text frames with hostile area options", || vectorcraft_engine::cmd::fileio::load("x.eps", &bytes).ok().map(|l| l.doc))?;
+        survive("EPS text frames with hostile area options", || vansoncraft_engine::cmd::fileio::load("x.eps", &bytes).ok().map(|l| l.doc))?;
         let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(&editing)].concat();
-        survive(".ai text frames with hostile area options", || Some(vectorcraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0))?;
+        survive(".ai text frames with hostile area options", || Some(vansoncraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0))?;
     }
 
     /// The same text document with hostile paragraph attributes: an alignment, auto leading,
@@ -3683,9 +3683,9 @@ proptest! {
         let text = frames_document_text().replace("/5 << /0 2 /1 4 /2 6 >>", &format!("/5 << /1 4 /2 6 {attrs} >>"));
         let editing = text_editing_of(&text, FRAME_OBJECTS);
         let bytes = editing_eps(&editing);
-        survive("EPS text frames with hostile paragraph attributes", || vectorcraft_engine::cmd::fileio::load("x.eps", &bytes).ok().map(|l| l.doc))?;
+        survive("EPS text frames with hostile paragraph attributes", || vansoncraft_engine::cmd::fileio::load("x.eps", &bytes).ok().map(|l| l.doc))?;
         let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(&editing)].concat();
-        survive(".ai text frames with hostile paragraph attributes", || Some(vectorcraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0))?;
+        survive(".ai text frames with hostile paragraph attributes", || Some(vansoncraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0))?;
     }
 
     /// The type on a path of the same text document with hostile Type on a Path Options, opened as
@@ -3695,9 +3695,9 @@ proptest! {
         let text = frames_document_text().replacen("/6 [ 0.5 2.0 ]", &format!("/6 [ 0.5 2.0 ] {options}"), 1);
         let editing = text_editing_of(&text, FRAME_OBJECTS);
         let bytes = editing_eps(&editing);
-        survive("EPS text frames with hostile path options", || vectorcraft_engine::cmd::fileio::load("x.eps", &bytes).ok().map(|l| l.doc))?;
+        survive("EPS text frames with hostile path options", || vansoncraft_engine::cmd::fileio::load("x.eps", &bytes).ok().map(|l| l.doc))?;
         let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(&editing)].concat();
-        survive(".ai text frames with hostile path options", || Some(vectorcraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0))?;
+        survive(".ai text frames with hostile path options", || Some(vansoncraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0))?;
     }
 
     /// The same for vertical type and Tate-chu-yoko runs: orientations and baseline directions of
@@ -3706,7 +3706,7 @@ proptest! {
     fn eps_vertical_text_never_panics(cut in 0usize..2_000, edits in prop::collection::vec((0usize..2_000, prop::sample::select(vec!['0', '9', '-', '.', ' ', '\n', '(', ')', '/', '[', ']', '<', '>', '\\', 'e', '1', '2', '3'])), 0..12)) {
         let text = mutate_text(&vertical_document_text(), cut, &edits);
         let bytes = text_eps_of(&text, VERTICAL_OBJECTS);
-        survive("mutated EPS vertical text", || vectorcraft_engine::cmd::fileio::load("x.eps", &bytes).ok().map(|l| l.doc))?;
+        survive("mutated EPS vertical text", || vansoncraft_engine::cmd::fileio::load("x.eps", &bytes).ok().map(|l| l.doc))?;
     }
 
     /// An Illustrator EPS whose editing data is damaged or hostile: read as its layers, or as its page.
@@ -3714,7 +3714,7 @@ proptest! {
     fn eps_editing_data_never_panics(cut in 0usize..3_000, edits in prop::collection::vec((0usize..3_000, prop::sample::select(vec!['0', '9', '-', '.', ' ', '\n', '(', ')', '/', ':', ';', '[', ']', '%', 'q', 'Q', 'W', 'u', 'U', 'L', 'l', 'c', 'C', 'v', 'V', 'y', 'Y', 'k', 'x'])), 0..12)) {
         let text = mutate_text(&editing_text(), cut, &edits);
         let bytes = editing_eps(&text);
-        survive("mutated EPS editing data", || vectorcraft_eps::import(&bytes).ok().map(|r| r.document))?;
+        survive("mutated EPS editing data", || vansoncraft_eps::import(&bytes).ok().map(|r| r.document))?;
     }
 
     /// Names of any bytes (a layer's, a pattern's, a global colour's) read in any legacy name
@@ -3723,7 +3723,7 @@ proptest! {
     #[test]
     fn eps_editing_data_names_in_any_encoding_never_panic(
         name in prop::collection::vec(any::<u8>(), 0..24),
-        encoding in prop::sample::select(vectorcraft_eps::NameEncoding::LABELS.to_vec()),
+        encoding in prop::sample::select(vansoncraft_eps::NameEncoding::LABELS.to_vec()),
     ) {
         let escaped: String = name.iter().map(|b| format!("\\{b:03o}")).collect();
         let text = editing_text()
@@ -3731,9 +3731,9 @@ proptest! {
             .replace("(Dots)", &format!("({escaped})"))
             .replace("(Black global)", &format!("({escaped} global)"));
         let bytes = editing_eps(&text);
-        let encoding = vectorcraft_eps::NameEncoding::from_label(encoding).unwrap();
+        let encoding = vansoncraft_eps::NameEncoding::from_label(encoding).unwrap();
         survive("EPS editing data names in a legacy encoding", || {
-            vectorcraft_eps::import_names(&bytes, true, false, encoding).ok().map(|r| r.document)
+            vansoncraft_eps::import_names(&bytes, true, false, encoding).ok().map(|r| r.document)
         })?;
     }
 
@@ -3754,7 +3754,7 @@ proptest! {
         cut in 0usize..2_000,
         edits in prop::collection::vec((0usize..2_000, prop::sample::select(vec!['0', '9', '-', ' ', '\n', '(', ')', '/', ':', ';', ',', '[', ']', '%', '_', 'X', 'u', 'U'])), 0..8),
     ) {
-        use vectorcraft_testkit::ai;
+        use vansoncraft_testkit::ai;
         let n = |x: &str, y: &str| format!("%_[0.5 1 {x} {y} {x} {y} 1 {x} {y} 1] /N X#\n");
         let mesh = format!(
             "%_/Mesh X!\n%_2 /Version X#\n%_/Cartesian /Type X#\n%_{size} /Size X#\n%_/Data X#\n%_[0 0] /P X#\n{}{}{}%_[{corner}] /N X#\n%_/E X#\n%_[0 0] /P X#\n%_/E X#\n%_/End X!\n",
@@ -3771,7 +3771,7 @@ proptest! {
         );
         let data = mutate_text(&ai::editing_data(100.0, 100.0, &ai::layer("L", &art)), cut, &edits);
         let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(&data)].concat();
-        survive("hostile .ai envelope", || Some(vectorcraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0))?;
+        survive("hostile .ai envelope", || Some(vansoncraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0))?;
     }
 
     /// A `.ai` whose warped type is damaged or hostile: any warp style and settings, on the object or
@@ -3805,7 +3805,7 @@ proptest! {
         );
         let data = mutate_text(&text_editing_of(&vertical_document_text(), &(styles + &object.repeat(objects))), cut, &edits);
         let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(&data)].concat();
-        survive("hostile .ai warped type", || Some(vectorcraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0))?;
+        survive("hostile .ai warped type", || Some(vansoncraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0))?;
     }
 
     /// A `.ai` whose editing data is damaged or hostile.
@@ -3819,7 +3819,7 @@ proptest! {
                 *x = b;
             }
         }
-        survive("mutated .ai editing data", || Some(vectorcraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0))?;
+        survive("mutated .ai editing data", || Some(vansoncraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0))?;
     }
 
     /// The active artboard that a restored `.ai` opens on, read from damaged or hostile editing data.
@@ -3834,7 +3834,7 @@ proptest! {
         let private = mutate_text(&text, cut, &edits).into_bytes();
         survive("hostile CropAreaActive", || {
             let mut doc = Document::new(100.0, 100.0);
-            doc.opened_artboard = vectorcraft_eps::ai_opened_artboard(&private, &doc);
+            doc.opened_artboard = vansoncraft_eps::ai_opened_artboard(&private, &doc);
             Some(doc)
         })?;
     }
@@ -3852,13 +3852,13 @@ proptest! {
         let text = mutate_text(&editing_text(), cut, &edits);
         let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(&text), &junk].concat();
         let bytes = refused_ai(&private, key, filter, "");
-        let plain = vectorcraft_engine::cmd::fileio::LoadOptions { editing_data: false, ..Default::default() };
-        let page_error = vectorcraft_engine::cmd::fileio::load_with("x.ai", &bytes, &plain).err().map(|e| e.to_string());
+        let plain = vansoncraft_engine::cmd::fileio::LoadOptions { editing_data: false, ..Default::default() };
+        let page_error = vansoncraft_engine::cmd::fileio::load_with("x.ai", &bytes, &plain).err().map(|e| e.to_string());
         prop_assert!(page_error.is_some());
-        let _ = catch_quiet(|| vectorcraft_pdf::illustrator_data_without_pdf_part(&bytes, None)).expect("the private data read panicked");
+        let _ = catch_quiet(|| vansoncraft_pdf::illustrator_data_without_pdf_part(&bytes, None)).expect("the private data read panicked");
         let mut opened = None;
         survive("a .ai whose PDF part can't be read", || {
-            let l = vectorcraft_engine::cmd::fileio::load("x.ai", &bytes);
+            let l = vansoncraft_engine::cmd::fileio::load("x.ai", &bytes);
             opened = Some(l.as_ref().map(|l| l.editing_data).map_err(|e| e.to_string()));
             l.ok().map(|l| l.doc)
         })?;
@@ -3873,7 +3873,7 @@ proptest! {
     /// on: refused, as before.
     #[test]
     fn ai_with_a_hostile_object_stream_is_refused(damage in prop::collection::vec((0usize..200, any::<u8>()), 0..6)) {
-        let private = [&b"%AI12_CompressedData"[..], &deflated(&vectorcraft_testkit::ai::sample_data())].concat();
+        let private = [&b"%AI12_CompressedData"[..], &deflated(&vansoncraft_testkit::ai::sample_data())].concat();
         let mut bytes = refused_ai(&private, "AIPrivateData", "/Filter /FlateDecode", "/Type /ObjStm /N 1 /First 4 /DecodeParms << /Predictor 12 /Columns 0 >>");
         let table = bytes.windows(5).rposition(|w| w == b"xref\n").unwrap_or(0);
         for (at, b) in damage {
@@ -3882,9 +3882,9 @@ proptest! {
                 *x = b;
             }
         }
-        let read = catch_quiet(|| vectorcraft_pdf::illustrator_data_without_pdf_part(&bytes, None)).expect("the private data read panicked");
+        let read = catch_quiet(|| vansoncraft_pdf::illustrator_data_without_pdf_part(&bytes, None)).expect("the private data read panicked");
         prop_assert!(read.is_none());
-        let opened = catch_quiet(|| vectorcraft_engine::cmd::fileio::load("x.ai", &bytes).is_ok()).expect("the open panicked");
+        let opened = catch_quiet(|| vansoncraft_engine::cmd::fileio::load("x.ai", &bytes).is_ok()).expect("the open panicked");
         prop_assert!(!opened);
     }
 
@@ -3898,7 +3898,7 @@ proptest! {
         cut in 0usize..2_000,
         edits in prop::collection::vec((0usize..2_000, prop::sample::select(vec!['0', '1', '-', '.', ' ', '\n', '(', ')', 'w', 'B', 'S', 'T'])), 0..8),
     ) {
-        use vectorcraft_testkit::ai;
+        use vansoncraft_testkit::ai;
         let gradient = "%AI5_BeginGradient: (G)\n(G) 0 2 Bd\n[\n<00FF>\n0\n%_0 0 0 0 1 0 0 2 1 6 50 0 Bs\n%_0 0 0 0 0 0 1 2 1 6 50 100 Bs\nBD\n%AI5_EndGradient\n";
         let art = format!(
             "0 1 1 0 1 0 0 XA\n{width} w\n10 10 m\n90 90 L\nS\n{}Bb\n1 (G) 0 0 0 1 1 0 0 1 0 0 1 Bg\nf\n1 BB\n\
@@ -3907,7 +3907,7 @@ proptest! {
         );
         let data = mutate_text(&ai::editing_data(100.0, 100.0, &format!("{gradient}{}", ai::layer("L", &art))), cut, &edits);
         let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(&data)].concat();
-        survive("hostile .ai line widths", || Some(vectorcraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0))?;
+        survive("hostile .ai line widths", || Some(vansoncraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0))?;
     }
 
     /// A `.ai` whose legacy type is set in a CJK composite font (a predefined CMap the reader
@@ -3922,12 +3922,12 @@ proptest! {
         ]),
         strings in prop::collection::vec(prop::collection::vec(any::<u8>(), 0..24), 1..4),
     ) {
-        use vectorcraft_testkit::ai;
+        use vansoncraft_testkit::ai;
         let tx: String = strings.iter().map(|s| format!("({}) Tx\n", s.iter().map(|b| format!("\\{b:03o}")).collect::<String>())).collect();
         let art = format!("0 To\n1 0 0 1 10 50 0 Tp\nTP\n0 Tr\n/_Test-W3-{cmap} 9 Tf\n{tx}(\\r) TX\nTO\n");
         let data = ai::editing_data(100.0, 100.0, &ai::layer("L", &art));
         let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(&data)].concat();
-        survive("legacy type in CJK fonts", || Some(vectorcraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0))?;
+        survive("legacy type in CJK fonts", || Some(vansoncraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0))?;
     }
 
     /// A `.ai` whose pattern definition (a marked tile box, a gradient placed by `Bg`'s matrix) and
@@ -3937,7 +3937,7 @@ proptest! {
         cut in 0usize..2_000,
         edits in prop::collection::vec((0usize..2_000, prop::sample::select(vec!['0', '1', '-', '.', ' ', '\n', '(', ')', '[', ']', '%', '_', 'n', 'E', 'p', 'B'])), 0..12),
     ) {
-        use vectorcraft_testkit::ai;
+        use vansoncraft_testkit::ai;
         let gradient = "%AI5_BeginGradient: (G)\n(G) 1 2 Bd\n[\n%_0 0 0 0 1 0 0 2 1 6 50 0 Bs\n%_0 0 0 0 0 0 1 2 1 6 50 100 Bs\nBD\n%AI5_EndGradient\n";
         let pattern = "%AI3_BeginPattern: (P)\n(P) 0 -10 10 0\n%_0 A\n%_0 Xw\n%_0 XR\n%_0 0 m\n%_10 0 L\n%_10 -10 L\n%_0 -10 L\n%_0 0 L\n%_n\n\
                        %_/ArtDictionary :\n%_1 /Bool (AIPattern_Editor_Backing_Tile_Rect) ,\n%_;\n%_\n%_2 -2 m\n%_8 -2 L\n%_8 -8 L\n%_2 -8 L\n%_Bb\n\
@@ -3945,7 +3945,7 @@ proptest! {
         let art = format!("(P) 0 0 1 1 0 0 0 0 0 [0.5 0.2 -0.2 0.5 3 -4] p\n{}f\n", ai::rect(20.0, 20.0, 80.0, 80.0));
         let data = mutate_text(&ai::editing_data(100.0, 100.0, &format!("{gradient}{pattern}{}", ai::layer("L", &art))), cut, &edits);
         let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(&data)].concat();
-        survive("hostile .ai patterns", || Some(vectorcraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0))?;
+        survive("hostile .ai patterns", || Some(vansoncraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0))?;
     }
 
     /// A `.ai` whose gradients and patterns have names with newlines (blank before one, several,
@@ -3957,7 +3957,7 @@ proptest! {
         cut in 0usize..3_000,
         edits in prop::collection::vec((0usize..3_000, prop::sample::select(vec!['\\', 'n', '(', ')', ' ', '\n', 'B', 'p', 'E', '%'])), 0..10),
     ) {
-        use vectorcraft_testkit::ai;
+        use vansoncraft_testkit::ai;
         let mut setup = String::new();
         let mut art = String::new();
         let mut cells = String::new();
@@ -3973,7 +3973,7 @@ proptest! {
         setup.push_str(&format!("%AI5_BeginPalette\n0 0 Pb\n{cells}PB\n%AI5_EndPalette\n"));
         let data = mutate_text(&ai::editing_data(100.0, 100.0, &format!("{setup}{}", ai::layer("L", &art))), cut, &edits);
         let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(&data)].concat();
-        survive("hostile .ai global names", || Some(vectorcraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0))?;
+        survive("hostile .ai global names", || Some(vansoncraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0))?;
     }
 
     /// A `.ai` whose images (binary samples with an alpha channel, the operators that end a raster,
@@ -3984,7 +3984,7 @@ proptest! {
         cut in 0usize..3_000,
         edits in prop::collection::vec((0usize..3_000, prop::sample::select(vec![b'0', b'1', b'9', b' ', b'\r', b'\n', b'(', b')', b'[', b']', b'%', b'_', b'N', b'X', b'~', 0u8, 255u8])), 0..12),
     ) {
-        use vectorcraft_testkit::ai;
+        use vansoncraft_testkit::ai;
         let raster = "%AI5_File:\n%AI5_BeginRaster\n() 1 XG\n/DeviceRGB XN\n[10 0 0 10 20 -30] 2 1 0 Xh\n[10 0 0 10 20 -30] 0 0 2 1 2 1 8 3 1 17 1 0 4 4 0 0\n%%BeginData: 10\nXI\n@@%%EndData\nXH\n\
                       %AI17_Begin_Content_if_version_gt:24 17\n72 72 Xr\n%AI17_End_Versioned_Content\n%AI5_EndRaster\nN\n\
                       %_/ArtDictionary :\n%_/Mask :\n%_X=\n%_0 g\n%_0 0 m\n%_5 0 l\n%_5 -5 l\n%_f\n%_X+\n%_ (Art) ,\n%_; (AI9_Mask) ,\n%_/XMLUID : (Photo) ; (AI10_ArtUID) ,\n%_;\n%_\n";
@@ -4010,7 +4010,7 @@ proptest! {
         }
         data.truncate(cut.min(data.len()));
         let private = [b"%AI24_ZStandard_Data".as_slice(), &ruzstd::encoding::compress_to_vec(data.as_slice(), ruzstd::encoding::CompressionLevel::Fastest)].concat();
-        survive("hostile .ai images and placed files", || Some(vectorcraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0))?;
+        survive("hostile .ai images and placed files", || Some(vansoncraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0))?;
     }
 
     /// A `.ai` whose type (point type turned, vertical type, area type, threaded area type and type
@@ -4021,8 +4021,8 @@ proptest! {
         cut in 0usize..30_000,
         edits in prop::collection::vec((0usize..30_000, prop::sample::select(vec!['0', '1', '9', ' ', '\n', '(', ')', '[', ']', '<', '>', '/', '%', '_', 'n', 'f', 'z', '~'])), 0..16),
     ) {
-        use vectorcraft_doc::{CharStyle, Node, NodeKind, TextKind, TextObject};
-        use vectorcraft_geom::{Affine, Point, Rect, shapes};
+        use vansoncraft_doc::{CharStyle, Node, NodeKind, TextKind, TextObject};
+        use vansoncraft_geom::{Affine, Point, Rect, shapes};
         let mut doc = Document::new(200.0, 100.0);
         let layer = doc.layers[0].id;
         let mut point = TextObject::point(Point::new(10.0, 30.0), "Turned\ntype", CharStyle::default());
@@ -4040,10 +4040,10 @@ proptest! {
         down_area.kind = TextKind::Area { frame: shapes::rectangle(Rect::new(150.0, 40.0, 180.0, 90.0)) };
         let mut first = area.clone();
         first.kind = TextKind::Area { frame: shapes::rectangle(Rect::new(20.0, 5.0, 50.0, 35.0)) };
-        first.runs = vec![vectorcraft_doc::TextRun::new("A story through two frames", CharStyle::default())];
+        first.runs = vec![vansoncraft_doc::TextRun::new("A story through two frames", CharStyle::default())];
         let mut second = first.clone();
         second.kind = TextKind::Area { frame: shapes::rectangle(Rect::new(60.0, 5.0, 90.0, 35.0)) };
-        second.runs = vec![vectorcraft_doc::TextRun::new("", CharStyle::default())];
+        second.runs = vec![vansoncraft_doc::TextRun::new("", CharStyle::default())];
         for t in [point, area, on_path, down, down_area] {
             let n = Node::new(doc.alloc_id(), NodeKind::Text(Box::new(t)));
             doc.insert(Some(layer), usize::MAX, n).unwrap();
@@ -4052,13 +4052,13 @@ proptest! {
         doc.text_threads.push(vec![first.id, second.id]);
         doc.insert(Some(layer), usize::MAX, first).unwrap();
         doc.insert(Some(layer), usize::MAX, second).unwrap();
-        let program = vectorcraft_eps::export_ai_editing(&doc, &vectorcraft_eps::AiEditingOptions::default()).unwrap().program;
+        let program = vansoncraft_eps::export_ai_editing(&doc, &vansoncraft_eps::AiEditingOptions::default()).unwrap().program;
         let written = String::from_utf8_lossy(&program);
         prop_assert_eq!(written.matches("/AI11Text :").count(), 7, "every text object is written as text");
         let text = mutate_text(&written, cut, &edits);
         let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(&text)].concat();
-        survive("hostile .ai type", || vectorcraft_eps::ai_alone(&private).ok().map(|r| r.0))?;
-        survive("hostile .ai type beside a page", || Some(vectorcraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, false, 1.0).0))?;
+        survive("hostile .ai type", || vansoncraft_eps::ai_alone(&private).ok().map(|r| r.0))?;
+        survive("hostile .ai type beside a page", || Some(vansoncraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, false, 1.0).0))?;
     }
 
     /// A `.ai` whose variable library is damaged or hostile: the library is counted for the warning
@@ -4066,12 +4066,12 @@ proptest! {
     /// handle, and then the layers aren't read).
     #[test]
     fn ai_variable_library_never_panics(cut in 0usize..12_000, edits in prop::collection::vec((0usize..12_000, prop::sample::select(vec!['0', '9', ' ', '\n', '(', ')', '/', ':', ';', ',', '%', '_', 'Z'])), 0..12)) {
-        use vectorcraft_testkit::ai;
+        use vansoncraft_testkit::ai;
         let library = ai::variable_library(&["Name", "Number"], &["One", "Two"]);
         let data = ai::editing_data(100.0, 100.0, &format!("{library}{}", ai::layer("L", "0 g\n10 10 m\n20 20 L\nS\n")));
         let text = mutate_text(&data, cut, &edits);
         let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(&text)].concat();
-        survive("mutated .ai variable library", || Some(vectorcraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0))?;
+        survive("mutated .ai variable library", || Some(vansoncraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0))?;
     }
 
     /// A `.ai` whose variable library holds values of every kind, values of the wrong type, elements
@@ -4088,7 +4088,7 @@ proptest! {
         bad in prop::sample::select(vec![0u8, 1, 2, 3, 4]),
         layers in prop::sample::select(vec![0u8, 1, 2]),
     ) {
-        use vectorcraft_testkit::ai::{self, XmlValue};
+        use vansoncraft_testkit::ai::{self, XmlValue};
         let mut nested = ai::xml_text(XmlValue::Str("deep"));
         for _ in 0..depth {
             nested = ai::xml_element("p", &[], &[nested]);
@@ -4116,7 +4116,7 @@ proptest! {
         let data = ai::editing_data(100.0, 100.0, &format!("{}{art}", ai::variable_library_data(&library)));
         let text = mutate_text(&data, cut, &edits);
         let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(&text)].concat();
-        survive("hostile .ai variable library values", || Some(vectorcraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0))?;
+        survive("hostile .ai variable library values", || Some(vansoncraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0))?;
     }
 
     /// A `.ai` whose variable library binds objects by XML ids that repeat, name nothing, are empty
@@ -4129,7 +4129,7 @@ proptest! {
         refs in prop::collection::vec((0usize..5, 0usize..5), 0..40),
         art in prop::collection::vec(0usize..5, 0..12),
     ) {
-        use vectorcraft_testkit::ai::{self, XmlValue};
+        use vansoncraft_testkit::ai::{self, XmlValue};
         let names = ["a", "b", "a_x5F_1", "", "missing"];
         let traits = ["textcontent", "visibility", "fileref", "graphdata", "other"];
         let declared: Vec<String> = refs
@@ -4148,7 +4148,7 @@ proptest! {
         let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(&text)].concat();
         let mut bound = true;
         survive("hostile .ai variable bindings", || {
-            let d = vectorcraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, true, 1.0).0;
+            let d = vansoncraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, true, 1.0).0;
             bound = d.variables.bindings.keys().all(|id| d.node(*id).is_some());
             Some(d)
         })?;
@@ -4161,7 +4161,7 @@ proptest! {
         let text = mutate_text(&on_path_data(&ON_PATH_IDS, &ON_PATH_IDS, 4, "4", "0.5", "", ["0", "1", "2"], true, 0), cut, &edits);
         let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(&text)].concat();
         // Trusted, so that the layers read are built whatever the empty page shows.
-        survive("mutated .ai Objects on Path", || Some(vectorcraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, true, 1.0).0))?;
+        survive("mutated .ai Objects on Path", || Some(vansoncraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, true, 1.0).0))?;
     }
 
     /// Style lists (`%AI9_BeginArtStyleList`) of any entries, repeated, empty, malformed or not
@@ -4176,7 +4176,7 @@ proptest! {
         objects in prop::collection::vec((prop_oneof![arb_num(), prop::sample::select(vec!["1".to_string(), "6".into(), "9".into()])], prop::sample::select(vec!["A", "B", "", "Caf\u{e9}", "Missing"]), any::<bool>()), 0..6),
         unit in prop::sample::select(vec![1.0, 2.0, 0.0, -1.0, f64::NAN, f64::INFINITY]),
     ) {
-        use vectorcraft_testkit::ai;
+        use vansoncraft_testkit::ai;
         let style = |name: &str| {
             format!(
                 "/KnownStyle :\n({name}) /Name ,\n/ActiveStyle :\n/CompoundFilter :\n(Chain Style Filter) 0 0 /Filter ,\n1 /Visible ,\n\
@@ -4200,14 +4200,14 @@ proptest! {
             })
             .collect();
         let data = ai::editing_data(200.0, 100.0, &format!("{header}%AI5_BeginLayer\n1 1 1 1 0 0 1 0 79 128 255 0 50 0 Lb\n(L) Ln\n{art}LB\n%AI5_EndLayer--\n"));
-        survive("style lists and links", || Some(vectorcraft_eps::layered_ai(data.as_bytes(), Document::new(200.0, 100.0), vec![], false, false, 1.0).0))?;
+        survive("style lists and links", || Some(vansoncraft_eps::layered_ai(data.as_bytes(), Document::new(200.0, 100.0), vec![], false, false, 1.0).0))?;
         let eps = ai::eps(data.as_bytes(), ai::page_ps());
-        survive("style lists and links in an EPS", || vectorcraft_engine::cmd::fileio::load("x.eps", &eps).ok().map(|l| l.doc))?;
+        survive("style lists and links in an EPS", || vansoncraft_engine::cmd::fileio::load("x.eps", &eps).ok().map(|l| l.doc))?;
         // A graphic style library: the styles and their list, no layers.
         let library = ai::editing_data(200.0, 100.0, &header);
-        survive("style library", || Some(vectorcraft_eps::layered_ai(library.as_bytes(), Document::new(200.0, 100.0), vec![], false, false, unit).0))?;
+        survive("style library", || Some(vansoncraft_eps::layered_ai(library.as_bytes(), Document::new(200.0, 100.0), vec![], false, false, unit).0))?;
         let eps = ai::eps(library.as_bytes(), ai::page_ps());
-        survive("style library in an EPS", || vectorcraft_engine::cmd::fileio::load("x.eps", &eps).ok().map(|l| l.doc))?;
+        survive("style library in an EPS", || vansoncraft_engine::cmd::fileio::load("x.eps", &eps).ok().map(|l| l.doc))?;
     }
 
     /// Objects on Path records of any shape: ids in any order, repeated or missing, any number of
@@ -4231,7 +4231,7 @@ proptest! {
         let cut_at = (0..=cut_at).rev().find(|i| data.is_char_boundary(*i)).unwrap_or(0);
         for data in [data.as_str(), &data[..cut_at]] {
             let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(data)].concat();
-            survive("hostile Objects on Path", || Some(vectorcraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, true, 1.0).0))?;
+            survive("hostile Objects on Path", || Some(vansoncraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, true, 1.0).0))?;
         }
     }
 
@@ -4241,7 +4241,7 @@ proptest! {
     fn ai_art_brushed_paths_never_panic(cut in 0usize..1_600, edits in prop::collection::vec((0usize..1_600, prop::sample::select(vec!['0', '9', '-', '.', 'e', ' ', '\n', '(', ')', '/', ':', ';', ',', '%', 'u', 'U', 'A', 'Z'])), 0..12)) {
         let text = mutate_text(&art_brushed_text(), cut, &edits);
         let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(&text)].concat();
-        survive("mutated .ai Art brushed path", || Some(vectorcraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0))?;
+        survive("mutated .ai Art brushed path", || Some(vansoncraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0))?;
     }
 
     /// [`styled_definitions_text`] (objects with an art style in a pattern's art and in a brush's
@@ -4251,8 +4251,8 @@ proptest! {
         let text = mutate_text(&styled_definitions_text(), cut, &edits);
         let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(&text)].concat();
         survive("mutated .ai styled definitions", || {
-            let d = vectorcraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0;
-            let _ = vectorcraft_brush::library(&d);
+            let d = vansoncraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0;
+            let _ = vansoncraft_brush::library(&d);
             Some(d)
         })?;
     }
@@ -4271,7 +4271,7 @@ proptest! {
         layers in any::<bool>(),
         frame in prop::option::of((prop::collection::vec(prop_oneof![arb_num(), Just("0".to_string()), Just("4".to_string())], 4), prop::sample::select(vec!["n", "N", "f", "S"]), any::<bool>())),
     ) {
-        use vectorcraft_testkit::ai;
+        use vansoncraft_testkit::ai;
         let kinds = ["Adobe Calligraphic Brush Tool", "Adobe Scatter Brush Tool", "Adobe ArtOnPath Brush Tool", "Adobe PatternOnPath Brush Tool", "Adobe dBrush Brush Tool", "Adobe Brush Manager Order", "Other"];
         let object = |k: &str, name: &str, p: &str| {
             let chars: Vec<char> = p.chars().collect();
@@ -4298,8 +4298,8 @@ proptest! {
         let body = if layers { format!("{records}{}", ai::layer("L", "0 g\n10 10 m\n20 20 L\nS\n")) } else { records };
         let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(&ai::editing_data(100.0, 100.0, &body))].concat();
         survive("hostile .ai brushes", || {
-            let d = vectorcraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0;
-            let _ = vectorcraft_brush::library(&d);
+            let d = vansoncraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, false, 1.0).0;
+            let _ = vansoncraft_brush::library(&d);
             Some(d)
         })?;
     }
@@ -4310,14 +4310,14 @@ proptest! {
     fn ai_symbols_never_panic(cut in 0usize..2_000, edits in prop::collection::vec((0usize..2_000, prop::sample::select(vec!['0', '9', '-', '.', 'e', ' ', '\n', '(', ')', '/', ':', ';', ',', '%', 'u', 'U', 'A', 'Z'])), 0..12)) {
         let text = mutate_text(&symbols_text(), cut, &edits);
         let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(&text)].concat();
-        survive("mutated .ai symbols", || Some(vectorcraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, false, 1.0).0))?;
-        survive("mutated .ai symbols, trusted", || Some(vectorcraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, true, 1.0).0))?;
+        survive("mutated .ai symbols", || Some(vansoncraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, false, 1.0).0))?;
+        survive("mutated .ai symbols, trusted", || Some(vansoncraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, true, 1.0).0))?;
         // A symbol library: the same symbols and list, no layers.
         let library = mutate_text(&symbol_library_text(), cut, &edits);
         let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(&library)].concat();
-        survive("mutated .ai symbol library", || Some(vectorcraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, false, 1.0).0))?;
-        let eps = vectorcraft_testkit::ai::eps(library.as_bytes(), vectorcraft_testkit::ai::page_ps());
-        survive("mutated symbol library in an EPS", || vectorcraft_engine::cmd::fileio::load("x.eps", &eps).ok().map(|l| l.doc))?;
+        survive("mutated .ai symbol library", || Some(vansoncraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, false, 1.0).0))?;
+        let eps = vansoncraft_testkit::ai::eps(library.as_bytes(), vansoncraft_testkit::ai::page_ps());
+        survive("mutated symbol library in an EPS", || vansoncraft_engine::cmd::fileio::load("x.eps", &eps).ok().map(|l| l.doc))?;
     }
 
     /// A `.ai` whose art styles, as the writer writes them, are damaged: the styles, the style
@@ -4327,8 +4327,8 @@ proptest! {
     fn ai_written_styles_never_panic(cut in 0usize..STYLES_FUZZ_CHARS, edits in prop::collection::vec((0usize..STYLES_FUZZ_CHARS, prop::sample::select(vec!['0', '9', '-', '.', ' ', '\n', '(', ')', '/', ':', ';', ',', '%', '_', 'u', 'U', 'X', 'W'])), 0..12)) {
         let text = mutate_text(styles_text(), cut, &edits);
         let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(&text)].concat();
-        survive("mutated .ai art styles", || Some(vectorcraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, false, 1.0).0))?;
-        survive("mutated .ai art styles, trusted", || Some(vectorcraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, true, 1.0).0))?;
+        survive("mutated .ai art styles", || Some(vansoncraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, false, 1.0).0))?;
+        survive("mutated .ai art styles, trusted", || Some(vansoncraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, true, 1.0).0))?;
     }
 
     /// A `.ai` whose brushes, as the writer writes them, are damaged: the brush art with its frame,
@@ -4338,26 +4338,26 @@ proptest! {
     fn ai_written_brushes_never_panic(cut in 0usize..BRUSHES_FUZZ_CHARS, edits in prop::collection::vec((0usize..BRUSHES_FUZZ_CHARS, prop::sample::select(vec!['0', '1', '9', '-', '.', ' ', '\n', '(', ')', '/', ':', ';', ',', '%', '_', 'u', 'U', 'n', 'X', 'W'])), 0..12)) {
         let text = mutate_text(brushes_text(), cut, &edits);
         let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(&text)].concat();
-        survive("mutated .ai brushes", || Some(vectorcraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, false, 1.0).0))?;
-        survive("mutated .ai brushes, trusted", || Some(vectorcraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, true, 1.0).0))?;
+        survive("mutated .ai brushes", || Some(vansoncraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, false, 1.0).0))?;
+        survive("mutated .ai brushes, trusted", || Some(vansoncraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, true, 1.0).0))?;
     }
 }
 
 /// The range of [`ai_written_styles_never_panic`]'s cuts and edits: past the end of [`styles_text`].
 const STYLES_FUZZ_CHARS: usize = 64_000;
 
-/// The editing data VectorCraft writes for a document with a drop shadow on a path, a gradient fill
+/// The editing data VansonCraft writes for a document with a drop shadow on a path, a gradient fill
 /// and a width profile on others, a stroked even-odd path with an opacity mask, Pathfinder › Add on
 /// a group and a graphic style of its own with effects on one of its fills.
 fn styles_text() -> &'static str {
     static TEXT: std::sync::OnceLock<String> = std::sync::OnceLock::new();
     TEXT.get_or_init(|| {
-        use vectorcraft_color::{Color, Gradient, GradientKind, GradientPaint, GradientStop, Paint};
-        use vectorcraft_doc::{Appearance, AppearanceItem, FillLayer, GraphicStyle, Node, NodeKind, OpacityMask, StrokeLayer, WidthProfile};
-        use vectorcraft_geom::{FillRule, Rect, shapes};
+        use vansoncraft_color::{Color, Gradient, GradientKind, GradientPaint, GradientStop, Paint};
+        use vansoncraft_doc::{Appearance, AppearanceItem, FillLayer, GraphicStyle, Node, NodeKind, OpacityMask, StrokeLayer, WidthProfile};
+        use vansoncraft_geom::{FillRule, Rect, shapes};
         let mut doc = Document::new(200.0, 100.0);
         let layer = doc.layers[0].id;
-        let fx = |id: &str| vectorcraft_render::effects::new_effect(id, &json!({})).unwrap();
+        let fx = |id: &str| vansoncraft_render::effects::new_effect(id, &json!({})).unwrap();
         let mut ap = Appearance::basic(Paint::solid(Color::BLACK), Paint::solid(Color::WHITE), 2.0);
         ap.effects = vec![fx("stylize.dropShadow")];
         let shaded = Node::path(doc.alloc_id(), shapes::rectangle(Rect::new(10.0, 10.0, 50.0, 40.0)), ap.clone());
@@ -4400,7 +4400,7 @@ fn styles_text() -> &'static str {
         let chained = FillLayer { opacity: 0.5, effects: vec![fx("distort.twist")], ..FillLayer::new(Paint::solid(Color::WHITE)) };
         let chained = Appearance { items: vec![AppearanceItem::Fill(chained)], ..Appearance::default() };
         doc.graphic_styles.push(GraphicStyle::new("Chained", chained));
-        let out = vectorcraft_eps::export_ai_editing(&doc, &vectorcraft_eps::AiEditingOptions::default()).unwrap();
+        let out = vansoncraft_eps::export_ai_editing(&doc, &vansoncraft_eps::AiEditingOptions::default()).unwrap();
         String::from_utf8(out.program).unwrap()
     })
 }
@@ -4425,7 +4425,7 @@ fn the_written_styles_fuzz_data_opens_live() {
         assert!(text.replace("\r\n", "\n").contains(mark), "{mark}");
     }
     let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(text)].concat();
-    let (d, warnings, layered) = vectorcraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, true, 1.0);
+    let (d, warnings, layered) = vansoncraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, true, 1.0);
     assert!(layered, "{warnings:?}");
     let art = d.layers[0].children().unwrap();
     assert_eq!(art.iter().map(|n| n.appearance.effects.len()).collect::<Vec<_>>(), [1, 1, 1, 1, 1]);
@@ -4447,7 +4447,7 @@ fn the_symbol_library_fuzz_data_opens_with_its_symbols() {
     let text = symbol_library_text();
     assert!(!text.contains("%AI5_BeginLayer"));
     let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(&text)].concat();
-    let (doc, warnings, layered) = vectorcraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, false, 1.0);
+    let (doc, warnings, layered) = vansoncraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, false, 1.0);
     assert!(!layered, "{warnings:?}");
     let names: Vec<&str> = doc.symbols.iter().map(|s| s.name.as_str()).collect();
     assert_eq!(names, ["S2", "S1"], "{warnings:?}");
@@ -4456,17 +4456,17 @@ fn the_symbol_library_fuzz_data_opens_with_its_symbols() {
 /// The range of [`ai_written_brushes_never_panic`]'s cuts and edits: past the end of [`brushes_text`].
 const BRUSHES_FUZZ_CHARS: usize = 48_000;
 
-/// The editing data VectorCraft writes for a document whose brushes are a Calligraphic brush, a
+/// The editing data VansonCraft writes for a document whose brushes are a Calligraphic brush, a
 /// Scatter brush in Tints and an Art brush in Tints (each art a wide block over a narrow one), with a
 /// path drawn with the Calligraphic brush and one with the Art brush.
 fn brushes_text() -> &'static str {
     static TEXT: std::sync::OnceLock<String> = std::sync::OnceLock::new();
     TEXT.get_or_init(|| {
         use std::sync::Arc;
-        use vectorcraft_brush::{ArtBrush, Brush, BrushKind, Calligraphic, Colorization, Scatter, Variation};
-        use vectorcraft_color::{Color, Paint};
-        use vectorcraft_doc::{Appearance, Node, NodeId};
-        use vectorcraft_geom::{Rect, shapes};
+        use vansoncraft_brush::{ArtBrush, Brush, BrushKind, Calligraphic, Colorization, Scatter, Variation};
+        use vansoncraft_color::{Color, Paint};
+        use vansoncraft_doc::{Appearance, Node, NodeId};
+        use vansoncraft_geom::{Rect, shapes};
         let block = |id: u64, r: Rect| {
             Arc::new(Node::path(NodeId(id), shapes::rectangle(r), Appearance::basic(Paint::solid(Color::BLACK), Paint::None, 0.0)))
         };
@@ -4484,7 +4484,7 @@ fn brushes_text() -> &'static str {
             Brush { name: "Ribbon".into(), kind: BrushKind::Art(ArtBrush { art: art(), colorization: Colorization::Tints, ..ArtBrush::default() }) },
         ];
         let mut doc = Document::new(200.0, 100.0);
-        vectorcraft_brush::store(&mut doc, &lib);
+        vansoncraft_brush::store(&mut doc, &lib);
         let layer = doc.layers[0].id;
         for (brush, y) in [("Nib", 30.0), ("Ribbon", 70.0)] {
             let mut line = Node::path(
@@ -4495,7 +4495,7 @@ fn brushes_text() -> &'static str {
             line.appearance.stroke_mut().unwrap().brush = Some(brush.into());
             doc.insert(Some(layer), usize::MAX, line).unwrap();
         }
-        let out = vectorcraft_eps::export_ai_editing(&doc, &vectorcraft_eps::AiEditingOptions::default()).unwrap();
+        let out = vansoncraft_eps::export_ai_editing(&doc, &vansoncraft_eps::AiEditingOptions::default()).unwrap();
         String::from_utf8(out.program).unwrap()
     })
 }
@@ -4510,9 +4510,9 @@ fn the_written_brushes_fuzz_data_opens_live() {
         assert!(text.replace("\r\n", "\n").contains(mark), "{mark}");
     }
     let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(text)].concat();
-    let (d, warnings, layered) = vectorcraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, true, 1.0);
+    let (d, warnings, layered) = vansoncraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, true, 1.0);
     assert!(layered, "{warnings:?}");
-    let names: Vec<String> = vectorcraft_brush::library(&d).into_iter().map(|b| b.name).collect();
+    let names: Vec<String> = vansoncraft_brush::library(&d).into_iter().map(|b| b.name).collect();
     assert_eq!(names, ["Nib", "Spray", "Ribbon"]);
     let art = d.layers[0].children().unwrap();
     let brushes: Vec<Option<&str>> = art.iter().map(|n| n.appearance.stroke().and_then(|s| s.brush.as_deref())).collect();
@@ -4522,7 +4522,7 @@ fn the_written_brushes_fuzz_data_opens_live() {
 /// Editing data with symbols (S2's art holds an instance of S1, F's holds non-native art), the
 /// symbol list and a layer of instances, as the format writes them.
 fn symbols_text() -> String {
-    use vectorcraft_testkit::ai;
+    use vansoncraft_testkit::ai;
     let def = |name: &str, art: &str, reg: u32| {
         format!(
             "%AI14_BeginSymbol\n({name})\n0 A\n0 Xw\n0 Ae\nu\n{art}U\n%_/ArtDictionary :\n%_{reg} /Int (AI13PatternRegistrationType) ,\n%_;\n%_\n9 () XW\n%AI10_EndSymbol\n"
@@ -4557,12 +4557,12 @@ fn symbols_text() -> String {
 #[test]
 fn the_symbols_fuzz_data_opens_live() {
     let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(&symbols_text())].concat();
-    let (doc, warnings, layered) = vectorcraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, true, 1.0);
+    let (doc, warnings, layered) = vansoncraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, true, 1.0);
     assert!(layered, "{warnings:?}");
     let names: Vec<&str> = doc.symbols.iter().map(|s| s.name.as_str()).filter(|n| *n != "F").collect();
     assert_eq!(names, ["S2", "S1"]);
     let mut instances = 0;
-    doc.walk(|n| instances += usize::from(matches!(n.kind, vectorcraft_doc::NodeKind::SymbolInstance { .. })));
+    doc.walk(|n| instances += usize::from(matches!(n.kind, vansoncraft_doc::NodeKind::SymbolInstance { .. })));
     assert_eq!(instances, 3);
 }
 
@@ -4570,7 +4570,7 @@ fn the_symbols_fuzz_data_opens_live() {
 /// use, definitions nested deeper than it reads, and symbols that hold each other.
 #[test]
 fn ai_symbol_limits_never_panic() {
-    use vectorcraft_testkit::ai;
+    use vansoncraft_testkit::ai;
     let inst = |name: &str, m: &str| format!("/SymbolInstance :\n{name} /SymbolRef ,\n{m} /RTransformMatrix\n;\n");
     let def = |name: &str, art: &str| format!("%AI14_BeginSymbol\n({name})\n0 A\n0 Xw\n0 Ae\nu\n{art}U\n%AI10_EndSymbol\n");
     let mut nested = String::new();
@@ -4616,10 +4616,10 @@ fn ai_symbol_limits_never_panic() {
     for body in cases {
         let data = ai::editing_data(200.0, 100.0, &body).replacen("%%EndComments", "%AI3_TemplateBox: 100.5 50.5 100.5 50.5\n%%EndComments", 1);
         let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(&data)].concat();
-        survive("hostile .ai symbols", || Some(vectorcraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, false, 1.0).0))
+        survive("hostile .ai symbols", || Some(vansoncraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, false, 1.0).0))
             .unwrap();
         survive("hostile .ai symbols, trusted", || {
-            Some(vectorcraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, true, 1.0).0)
+            Some(vansoncraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, true, 1.0).0)
         })
         .unwrap();
     }
@@ -4631,7 +4631,7 @@ fn the_objects_on_path_fuzz_data_opens_live() {
     let text = on_path_data(&ON_PATH_IDS, &ON_PATH_IDS, 4, "4", "0.5", "", ["0", "1", "2"], true, 0);
     let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(&text)].concat();
     // Trusted: the empty page it is read beside isn't compared with its art.
-    let (doc, warnings, _) = vectorcraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, true, 1.0);
+    let (doc, warnings, _) = vansoncraft_eps::layered_ai(&private, Document::new(200.0, 100.0), vec![], false, true, 1.0);
     let g = doc.layers.first().and_then(|l| l.children()).and_then(|c| c.first()).unwrap_or_else(|| panic!("{warnings:?}"));
     assert!(g.extras().objects_on_path.is_some(), "{g:?}");
 }
@@ -4639,7 +4639,7 @@ fn the_objects_on_path_fuzz_data_opens_live() {
 /// Editing data with an Art brush, its art, and a path with its drawn look and the brush in its art
 /// style, as the format writes them.
 fn art_brushed_text() -> String {
-    use vectorcraft_testkit::ai;
+    use vansoncraft_testkit::ai;
     let tool = "Adobe ArtOnPath Brush Tool";
     let object = format!(
         "%AI8_BeginPluginObject\n({tool})\n(R)\n(2 / A/ / / / / 0 0/ 5 0 0 0 /  1) -\n( 1 1 0 1 0 0 0 1 1 0 0 0 0 1) .\n%AI8_EndPluginObject\n"
@@ -4661,7 +4661,7 @@ fn art_brushed_text() -> String {
 fn the_art_brushed_fuzz_data_opens_live() {
     let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(&art_brushed_text())].concat();
     // Trusted: the empty page it is read beside isn't compared with its art.
-    let (doc, warnings, _) = vectorcraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, true, 1.0);
+    let (doc, warnings, _) = vansoncraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, true, 1.0);
     let n = doc.layers.first().and_then(|l| l.children()).and_then(|c| c.first()).unwrap_or_else(|| panic!("{warnings:?}"));
     assert_eq!(n.appearance.stroke().and_then(|s| s.brush.as_deref()), Some("R"), "{warnings:?} {n:?}");
 }
@@ -4670,7 +4670,7 @@ fn the_art_brushed_fuzz_data_opens_live() {
 /// version 7 form (its tile string) and a Scatter brush's art each holding a square with its drawn
 /// look and that style, and a path filled with the first pattern.
 fn styled_definitions_text() -> String {
-    use vectorcraft_testkit::ai;
+    use vansoncraft_testkit::ai;
     let style = "%AI9_BeginArtStyles\n/KnownStyle :\n(S) /Name ,\n/ActiveStyle :\n/CompoundFilter :\n(Chain Style Filter) 0 0 /Filter ,\n1 /Visible ,\n\
                  /CompoundFilter :\n(Stack Style Filter) 0 0 /Filter ,\n1 /Visible ,\n\
                  /BasicFilter :\n(Fill Style Filter) 0 0 /Filter ,\n1 /Visible ,\n/Dictionary : /NotRecorded ,\n/FillStyle : 0 O\n0 0 0 0 0 0 1 Xa\n0 1 Xd\n/Def ;\n (FillStyle) ,\n; /Dict ;\n /Part ,\n\
@@ -4693,13 +4693,13 @@ fn styled_definitions_text() -> String {
 fn the_styled_definitions_fuzz_data_opens_live() {
     let private = [b"%AI24_ZStandard_Data".as_slice(), &zstd(&styled_definitions_text())].concat();
     // Trusted: the empty page it is read beside isn't compared with its art.
-    let (doc, warnings, _) = vectorcraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, true, 1.0);
-    let live = |n: &vectorcraft_doc::Node| matches!(n.kind, vectorcraft_doc::NodeKind::Path { .. }) && n.appearance.effects.len() == 1;
+    let (doc, warnings, _) = vansoncraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, true, 1.0);
+    let live = |n: &vansoncraft_doc::Node| matches!(n.kind, vansoncraft_doc::NodeKind::Path { .. }) && n.appearance.effects.len() == 1;
     for name in ["P", "Q"] {
         let tile = doc.pattern(name).map(|p| p.art.clone()).unwrap_or_else(|| panic!("{name}: {warnings:?}"));
         assert!(tile.len() == 1 && live(&tile[0]), "{name}: {warnings:?} {tile:?}");
     }
-    let lib = vectorcraft_brush::library(&doc);
+    let lib = vansoncraft_brush::library(&doc);
     let brush = lib.iter().find(|b| b.name == "B").unwrap_or_else(|| panic!("{warnings:?}"));
     assert!(matches!(brush.art().as_slice(), [n] if live(n)), "{warnings:?} {brush:?}");
 }
@@ -4724,7 +4724,7 @@ fn on_path_data(
     versioned: bool,
     nest: usize,
 ) -> String {
-    use vectorcraft_testkit::ai;
+    use vansoncraft_testkit::ai;
     let options = ai::on_path_options(members, 0, 0.0, more)
         .replace("%_0 /Int (PivotPosition)", &format!("%_{pivot} /Int (PivotPosition)"))
         .replace("%_0 /Real (Rotation)", &format!("%_{rotation} /Real (Rotation)"));
@@ -4765,7 +4765,7 @@ const NAMED_PROLOG_AI: &str = "%!PS-Adobe-3.0\n%%BoundingBox: 0 0 200 100\n%%Doc
 /// The fixture, as it is, opens with its layer and sublayer.
 #[test]
 fn the_named_prolog_fixture_opens_with_its_layers() {
-    let l = vectorcraft_engine::cmd::fileio::load("x.ai", NAMED_PROLOG_AI.as_bytes()).unwrap();
+    let l = vansoncraft_engine::cmd::fileio::load("x.ai", NAMED_PROLOG_AI.as_bytes()).unwrap();
     let names: Vec<_> = l.doc.layers.iter().map(|l| l.name.clone()).collect();
     assert_eq!(names, [Some("A::B".to_string())], "{:?}", l.warnings);
     assert_eq!(l.doc.layers[0].children().unwrap().len(), 3);
@@ -4779,7 +4779,7 @@ proptest! {
     #[test]
     fn ps_form_ai_never_panics(cut in 0usize..1_200, edits in prop::collection::vec((0usize..1_200, prop::sample::select(vec!['0', '9', '-', '.', ' ', '\n', '(', ')', '/', '[', ']', '%', 'u', 'U', 'L', 'b', 'B', 'i', 'A', 'K', 'p', ':', '\u{e9}'])), 0..12)) {
         let text = mutate_text(NAMED_PROLOG_AI, cut, &edits);
-        survive("mutated PostScript-form .ai", || vectorcraft_engine::cmd::fileio::load("x.ai", text.as_bytes()).ok().map(|l| l.doc))?;
+        survive("mutated PostScript-form .ai", || vansoncraft_engine::cmd::fileio::load("x.ai", text.as_bytes()).ok().map(|l| l.doc))?;
     }
 
     /// Multi-layer masks (`Mb` <path> `W n` `Md` … `MB`) over any number of layers, with tokens
@@ -4792,7 +4792,7 @@ proptest! {
         edits in prop::collection::vec((0usize..64, prop::sample::select(vec!["", "Mb", "Md", "MB", "Mi", "LB", "u", "U", "q", "Q", "W n", "h W n"])), 0..4),
         cut in prop::option::of(0usize..64),
     ) {
-        use vectorcraft_testkit::ai;
+        use vansoncraft_testkit::ai;
         let (begin, define) = if aliases { ("Mv", "ME") } else { ("Mb", "Md") };
         let mut tokens: Vec<String> = vec![];
         for i in 0..layers {
@@ -4819,9 +4819,9 @@ proptest! {
             tokens.truncate(cut);
         }
         let data = ai::editing_data(200.0, 100.0, &format!("%AI5_BeginLayer\n1 1 1 1 0 1 1 79 128 255 Lb\n(L0) Ln\n{}\nLB\n", tokens.join("\n")));
-        survive("multi-layer masks", || Some(vectorcraft_eps::layered_ai(data.as_bytes(), Document::new(200.0, 100.0), vec![], false, false, 1.0).0))?;
+        survive("multi-layer masks", || Some(vansoncraft_eps::layered_ai(data.as_bytes(), Document::new(200.0, 100.0), vec![], false, false, 1.0).0))?;
         let eps = ai::eps(data.as_bytes(), ai::page_ps());
-        survive("multi-layer masks in an EPS", || vectorcraft_engine::cmd::fileio::load("x.eps", &eps).ok().map(|l| l.doc))?;
+        survive("multi-layer masks in an EPS", || vansoncraft_engine::cmd::fileio::load("x.eps", &eps).ok().map(|l| l.doc))?;
     }
 
     /// The same file with placed EPS files in the version 7 form (no `%AI5_BeginPlace`), one
@@ -4834,7 +4834,7 @@ proptest! {
         let fixture = NAMED_PROLOG_AI.replacen("0 Ap\nu\n", &format!("0 Ap\n{placed}u\n"), 1);
         prop_assert!(fixture.contains("(b.eps)"));
         let text = mutate_text(&fixture, cut, &edits);
-        survive("mutated PostScript-form .ai with placed files", || vectorcraft_engine::cmd::fileio::load("x.ai", text.as_bytes()).ok().map(|l| l.doc))?;
+        survive("mutated PostScript-form .ai with placed files", || vansoncraft_engine::cmd::fileio::load("x.ai", text.as_bytes()).ok().map(|l| l.doc))?;
     }
 
     /// The same file with linked images in the version 7 form (`XG`, then `XF` with no samples),
@@ -4847,7 +4847,7 @@ proptest! {
         let fixture = NAMED_PROLOG_AI.replacen("0 Ap\nu\n", &format!("0 Ap\n{linked}u\n"), 1);
         prop_assert!(fixture.contains("(a.tif)"));
         let text = mutate_text(&fixture, cut, &edits);
-        survive("mutated PostScript-form .ai with linked images", || vectorcraft_engine::cmd::fileio::load("x.ai", text.as_bytes()).ok().map(|l| l.doc))?;
+        survive("mutated PostScript-form .ai with linked images", || vansoncraft_engine::cmd::fileio::load("x.ai", text.as_bytes()).ok().map(|l| l.doc))?;
     }
 }
 
@@ -4861,7 +4861,7 @@ const LAYERLESS_AI: &str = "%!PS-Adobe-3.0 EPSF-3.0\n%%Creator: a script\n%%Boun
 /// The fixture, as it is, opens through the reader: its first path keeps its lock.
 #[test]
 fn the_layerless_fixture_opens_through_the_reader() {
-    let l = vectorcraft_engine::cmd::fileio::load("x.ai", LAYERLESS_AI.as_bytes()).unwrap();
+    let l = vansoncraft_engine::cmd::fileio::load("x.ai", LAYERLESS_AI.as_bytes()).unwrap();
     assert_eq!(l.doc.layers.len(), 1, "{:?}", l.warnings);
     let art = l.doc.layers[0].children().unwrap();
     assert_eq!(art.len(), 2, "{:?}", l.warnings);
@@ -4876,7 +4876,7 @@ proptest! {
     #[test]
     fn layerless_ai_never_panics(cut in 0usize..800, edits in prop::collection::vec((0usize..800, prop::sample::select(vec!['0', '9', '-', '.', ' ', '\n', '(', ')', '/', '{', '}', '%', 'u', 'U', 'L', 'f', 'A', 'k'])), 0..12)) {
         let text = mutate_text(LAYERLESS_AI, cut, &edits);
-        survive("mutated layerless .ai", || vectorcraft_engine::cmd::fileio::load("x.ai", text.as_bytes()).ok().map(|l| l.doc))?;
+        survive("mutated layerless .ai", || vansoncraft_engine::cmd::fileio::load("x.ai", text.as_bytes()).ok().map(|l| l.doc))?;
     }
 }
 
@@ -4896,10 +4896,10 @@ fn legacy_pattern_ai(pattern: &str) -> String {
 /// The fixture, as it is, opens with the pattern filling the square.
 #[test]
 fn the_legacy_pattern_fixture_opens_with_its_pattern() {
-    let l = vectorcraft_engine::cmd::fileio::load("x.ai", legacy_pattern_ai(LEGACY_PATTERN).as_bytes()).unwrap();
+    let l = vansoncraft_engine::cmd::fileio::load("x.ai", legacy_pattern_ai(LEGACY_PATTERN).as_bytes()).unwrap();
     assert_eq!(l.doc.pattern("P").map(|p| p.art.len()), Some(2), "{:?}", l.warnings);
     let square = &l.doc.layers[0].children().unwrap()[0];
-    assert!(matches!(square.appearance.fill().map(|f| &f.paint), Some(vectorcraft_color::Paint::Pattern { .. })));
+    assert!(matches!(square.appearance.fill().map(|f| &f.paint), Some(vansoncraft_color::Paint::Pattern { .. })));
 }
 
 proptest! {
@@ -4910,7 +4910,7 @@ proptest! {
     #[test]
     fn ps_form_ai_legacy_pattern_never_panics(cut in 0usize..500, edits in prop::collection::vec((0usize..500, prop::sample::select(vec!['0', '9', '-', '.', ' ', '\n', '\r', '(', ')', '\\', '[', ']', '%', '@', '&', '_', 'E', 'u', 'U', 'q', 'Q', 'm', 'f', 'S', 'k', 'X'])), 0..12)) {
         let text = legacy_pattern_ai(&mutate_text(LEGACY_PATTERN, cut, &edits));
-        survive("PostScript-form .ai with a damaged version 7 pattern", || vectorcraft_engine::cmd::fileio::load("x.ai", text.as_bytes()).ok().map(|l| l.doc))?;
+        survive("PostScript-form .ai with a damaged version 7 pattern", || vansoncraft_engine::cmd::fileio::load("x.ai", text.as_bytes()).ok().map(|l| l.doc))?;
     }
 }
 
@@ -4929,12 +4929,12 @@ fn linked_areas_ai(text: &str) -> String {
 /// the first into the second.
 #[test]
 fn the_linked_areas_fixture_opens_as_threaded_frames() {
-    let l = vectorcraft_engine::cmd::fileio::load("x.ai", linked_areas_ai(LINKED_AREAS).as_bytes()).unwrap();
+    let l = vansoncraft_engine::cmd::fileio::load("x.ai", linked_areas_ai(LINKED_AREAS).as_bytes()).unwrap();
     let [thread] = &l.doc.text_threads[..] else { panic!("one thread: {:?} {:?}", l.doc.text_threads, l.warnings) };
     let texts: Vec<String> = thread
         .iter()
         .map(|id| match &l.doc.node(*id).unwrap().kind {
-            vectorcraft_doc::NodeKind::Text(t) => t.plain_text(),
+            vansoncraft_doc::NodeKind::Text(t) => t.plain_text(),
             k => panic!("type: {k:?}"),
         })
         .collect();
@@ -4951,7 +4951,7 @@ proptest! {
     #[test]
     fn ps_form_ai_linked_areas_never_panic(cut in 0usize..400, edits in prop::collection::vec((0usize..400, prop::sample::select(vec!['0', '1', '-', '.', ' ', '\n', '(', ')', '\\', 'T', 'p', 'P', 'O', 'o', 'x', 'X', 'm', 'L', 'n'])), 0..12)) {
         let text = linked_areas_ai(&mutate_text(LINKED_AREAS, cut, &edits));
-        survive("PostScript-form .ai with damaged linked areas", || vectorcraft_engine::cmd::fileio::load("x.ai", text.as_bytes()).ok().map(|l| l.doc))?;
+        survive("PostScript-form .ai with damaged linked areas", || vansoncraft_engine::cmd::fileio::load("x.ai", text.as_bytes()).ok().map(|l| l.doc))?;
     }
 }
 
@@ -5480,7 +5480,7 @@ fn arb_ai_wrap_entry() -> impl Strategy<Value = String> {
 
 /// The testkit's sample editing data, compressed as older `.ai` files compress it.
 fn ai_sample_compressed() -> Vec<u8> {
-    [&b"%AI12_CompressedData"[..], &deflated(&vectorcraft_testkit::ai::sample_data())].concat()
+    [&b"%AI12_CompressedData"[..], &deflated(&vansoncraft_testkit::ai::sample_data())].concat()
 }
 
 /// `data` compressed (zlib).
@@ -5512,7 +5512,7 @@ proptest! {
         visible in any::<bool>(),
         on_fill in any::<bool>(),
     ) {
-        use vectorcraft_testkit::ai;
+        use vansoncraft_testkit::ai;
         let keys: String = entries.iter().map(|(k, kind, v)| format!("{v} /{kind} ({k}) ,\n")).collect();
         let basic = |name: &str, body: &str| format!("/BasicFilter :\n({name}) 0 0 /Filter ,\n1 /Visible ,\n/Dictionary : /NotRecorded ,\n{body}; /Dict ;\n /Part ,\n");
         let compound = |name: &str, kids: &[String]| format!("/CompoundFilter :\n({name}) 0 0 /Filter ,\n1 /Visible ,\n{};\n /Part ,\n", kids.concat());
@@ -5533,29 +5533,29 @@ proptest! {
             ai::rect(100.0, 20.0, 180.0, 60.0)
         );
         let data = ai::editing_data(200.0, 100.0, &format!("{styles}{}", ai::layer("L", &art)));
-        survive("Convert to Shape art style", || Some(vectorcraft_eps::layered_ai(data.as_bytes(), Document::new(200.0, 100.0), vec![], false, false, 1.0).0))?;
+        survive("Convert to Shape art style", || Some(vansoncraft_eps::layered_ai(data.as_bytes(), Document::new(200.0, 100.0), vec![], false, false, 1.0).0))?;
         let eps = ai::eps(data.as_bytes(), ai::page_ps());
-        survive("Convert to Shape art style in an EPS", || vectorcraft_engine::cmd::fileio::load("x.eps", &eps).ok().map(|l| l.doc))?;
+        survive("Convert to Shape art style in an EPS", || vansoncraft_engine::cmd::fileio::load("x.eps", &eps).ok().map(|l| l.doc))?;
     }
 
     /// Hostile editing data in Illustrator EPS and `.ai` files: operators in any order with any
     /// operands, sections and dictionaries left open, images of any size.
     #[test]
     fn ai_hostile_editing_data_never_panics(tokens in prop::collection::vec(prop_oneof![8 => arb_ai_token(), 1 => arb_ai_wrap_entry()], 0..80)) {
-        use vectorcraft_testkit::ai;
+        use vansoncraft_testkit::ai;
         let data = ai::editing_data(200.0, 100.0, &format!("%AI5_BeginLayer\n1 1 1 1 0 0 1 0 79 128 255 0 50 0 Lb\n(L) Ln\n{}\nLB\n", tokens.join(" ")));
-        survive("hostile editing data", || Some(vectorcraft_eps::layered_ai(data.as_bytes(), Document::new(200.0, 100.0), vec![], false, false, 1.0).0))?;
-        survive("hostile editing data, type as outlines", || Some(vectorcraft_eps::layered_ai(data.as_bytes(), Document::new(200.0, 100.0), vec![], true, false, 1.0).0))?;
-        survive("hostile editing data, trusted", || Some(vectorcraft_eps::layered_ai(data.as_bytes(), Document::new(200.0, 100.0), vec![], false, true, 1.0).0))?;
+        survive("hostile editing data", || Some(vansoncraft_eps::layered_ai(data.as_bytes(), Document::new(200.0, 100.0), vec![], false, false, 1.0).0))?;
+        survive("hostile editing data, type as outlines", || Some(vansoncraft_eps::layered_ai(data.as_bytes(), Document::new(200.0, 100.0), vec![], true, false, 1.0).0))?;
+        survive("hostile editing data, trusted", || Some(vansoncraft_eps::layered_ai(data.as_bytes(), Document::new(200.0, 100.0), vec![], false, true, 1.0).0))?;
         // A PDF part read from a user space of 10 points a unit: the layers are read in its units and scaled.
         survive("hostile editing data in units of 10 points", || {
-            Some(vectorcraft_eps::layered_ai(data.as_bytes(), Document::new(2000.0, 1000.0), vec![], false, false, 10.0).0)
+            Some(vansoncraft_eps::layered_ai(data.as_bytes(), Document::new(2000.0, 1000.0), vec![], false, false, 10.0).0)
         })?;
         let eps = ai::eps(data.as_bytes(), ai::page_ps());
-        survive("hostile editing data in an EPS", || vectorcraft_engine::cmd::fileio::load("x.eps", &eps).ok().map(|l| l.doc))?;
+        survive("hostile editing data in an EPS", || vansoncraft_engine::cmd::fileio::load("x.eps", &eps).ok().map(|l| l.doc))?;
         // An EPS whose page is its art's box, not its artboard: what prints outside it is compared too.
         let boxed = ai::eps(data.replace("%AI3_Cropmarks: 0 0 200 100", "%AI3_Cropmarks: -50 -50 300 200").as_bytes(), ai::page_ps());
-        survive("hostile editing data in an EPS of its art's box", || vectorcraft_engine::cmd::fileio::load("x.eps", &boxed).ok().map(|l| l.doc))?;
+        survive("hostile editing data in an EPS of its art's box", || vansoncraft_engine::cmd::fileio::load("x.eps", &boxed).ok().map(|l| l.doc))?;
     }
 
     /// A group with an Effect › Pathfinder style whose dictionary is hostile: any `Command`, keys of
@@ -5580,7 +5580,7 @@ proptest! {
         hidden in any::<bool>(),
         cut in 0usize..4_000,
     ) {
-        use vectorcraft_testkit::ai;
+        use vansoncraft_testkit::ai;
         let options = if defaults {
             format!(
                 "1 /Bool (ConvertCustom) ,\n1 /Bool (ExtractUnpainted) ,\n{mix} /Real (Mix) ,\n10 /Real (Precision) ,\n0 /Bool (RemovePoints) ,\n\
@@ -5619,11 +5619,11 @@ proptest! {
             }
             d
         };
-        survive("hostile Pathfinder style", || check(Some(vectorcraft_eps::layered_ai(data.as_bytes(), Document::new(200.0, 100.0), vec![], false, false, 1.0).0)))?;
+        survive("hostile Pathfinder style", || check(Some(vansoncraft_eps::layered_ai(data.as_bytes(), Document::new(200.0, 100.0), vec![], false, false, 1.0).0)))?;
         let eps = ai::eps(data.as_bytes(), ai::page_ps());
-        survive("hostile Pathfinder style in an EPS", || check(vectorcraft_engine::cmd::fileio::load("x.eps", &eps).ok().map(|l| l.doc)))?;
+        survive("hostile Pathfinder style in an EPS", || check(vansoncraft_engine::cmd::fileio::load("x.eps", &eps).ok().map(|l| l.doc)))?;
         let file = ai::ai(data.as_bytes(), ai::page_pdf());
-        survive("hostile Pathfinder style in a .ai", || check(vectorcraft_engine::cmd::fileio::load("x.ai", &file).ok().map(|l| l.doc)))?;
+        survive("hostile Pathfinder style in a .ai", || check(vansoncraft_engine::cmd::fileio::load("x.ai", &file).ok().map(|l| l.doc)))?;
     }
 
     /// Art styles with Offset Path, Outline Object and Outline Stroke, in any order, shown or hidden,
@@ -5646,7 +5646,7 @@ proptest! {
         ), 0..5),
         target in 0..3usize,
     ) {
-        use vectorcraft_testkit::ai;
+        use vansoncraft_testkit::ai;
         let basic = |name: &str, body: &str| format!("/BasicFilter :\n({name}) 0 0 /Filter ,\n1 /Visible ,\n/Dictionary : /NotRecorded ,\n{body}; /Dict ;\n /Part ,\n");
         let compound = |name: &str, kids: &[String]| format!("/CompoundFilter :\n({name}) 0 0 /Filter ,\n1 /Visible ,\n{};\n /Part ,\n", kids.concat());
         let filters: Vec<String> = effects
@@ -5674,9 +5674,9 @@ proptest! {
             ai::rect(100.0, 20.0, 180.0, 60.0)
         );
         let data = ai::editing_data(200.0, 100.0, &format!("{styles}{}", ai::layer("L", &art)));
-        survive("Path effect art style", || Some(vectorcraft_eps::layered_ai(data.as_bytes(), Document::new(200.0, 100.0), vec![], false, false, 1.0).0))?;
+        survive("Path effect art style", || Some(vansoncraft_eps::layered_ai(data.as_bytes(), Document::new(200.0, 100.0), vec![], false, false, 1.0).0))?;
         let eps = ai::eps(data.as_bytes(), ai::page_ps());
-        survive("Path effect art style in an EPS", || vectorcraft_engine::cmd::fileio::load("x.eps", &eps).ok().map(|l| l.doc))?;
+        survive("Path effect art style in an EPS", || vansoncraft_engine::cmd::fileio::load("x.eps", &eps).ok().map(|l| l.doc))?;
     }
 
     /// Art styles with a Distort & Transform effect (Transform, Free Distort, Pucker & Bloat, Roughen,
@@ -5713,7 +5713,7 @@ proptest! {
         depth in 0usize..300,
         stroked in any::<bool>(),
     ) {
-        use vectorcraft_testkit::ai;
+        use vansoncraft_testkit::ai;
         let keys: String = entries.iter().map(|(k, kind, v)| format!("{v} /{kind} ({k}) ,\n")).collect();
         let basic = |name: &str, body: &str| format!("/BasicFilter :\n({name}) 0 0 /Filter ,\n1 /Visible ,\n/Dictionary : /NotRecorded ,\n{body}; /Dict ;\n /Part ,\n");
         let compound = |name: &str, kids: &[String]| format!("/CompoundFilter :\n({name}) 0 0 /Filter ,\n1 /Visible ,\n{};\n /Part ,\n", kids.concat());
@@ -5737,9 +5737,9 @@ proptest! {
             ai::rect(20.0, 50.0, 80.0, 90.0)
         );
         let data = ai::editing_data(200.0, 100.0, &format!("{styles}{}", ai::layer("L", &art)));
-        survive("distort art style", || Some(vectorcraft_eps::layered_ai(data.as_bytes(), Document::new(200.0, 100.0), vec![], false, false, 1.0).0))?;
+        survive("distort art style", || Some(vansoncraft_eps::layered_ai(data.as_bytes(), Document::new(200.0, 100.0), vec![], false, false, 1.0).0))?;
         let eps = ai::eps(data.as_bytes(), ai::page_ps());
-        survive("distort art style in an EPS", || vectorcraft_engine::cmd::fileio::load("x.eps", &eps).ok().map(|l| l.doc))?;
+        survive("distort art style in an EPS", || vansoncraft_engine::cmd::fileio::load("x.eps", &eps).ok().map(|l| l.doc))?;
     }
 
     /// Layer options (`Lb`) of any number of operands with any values, and guide paths (`(N) *`,
@@ -5751,7 +5751,7 @@ proptest! {
         guides in prop::collection::vec((prop::collection::vec((arb_guide_coord(), arb_guide_coord()), 0..5), any::<bool>(), any::<bool>()), 0..12),
         boards in prop::collection::vec(prop::sample::select(vec![[0.0, 100.0, 200.0, 0.0], [0.0, 100.0, 100.0, 0.0], [50.0, 100.0, 200.0, 0.0]]), 0..4),
     ) {
-        use vectorcraft_testkit::ai;
+        use vansoncraft_testkit::ai;
         let board = |b: &[f64; 4]| {
             format!(
                 "%_/Dictionary :\n%_{} {} /RealPointRelToROrigin\n%_ (PositionPoint1) ,\n%_{} {} /RealPointRelToROrigin\n%_ (PositionPoint2) ,\n%_; ,\n",
@@ -5770,12 +5770,12 @@ proptest! {
             .collect();
         let body = format!("{document}%AI5_BeginLayer\n{} Lb\n(L) Ln\n{}\nLB\n%AI5_EndLayer--\n", options.join(" "), paths.concat());
         let data = ai::editing_data(200.0, 100.0, &body).replacen("%%EndComments", "%AI3_TemplateBox: 100 50 100 50\n%%EndComments", 1);
-        survive("layer options and ruler guides", || Some(vectorcraft_eps::layered_ai(data.as_bytes(), Document::new(200.0, 100.0), vec![], false, false, 1.0).0))?;
+        survive("layer options and ruler guides", || Some(vansoncraft_eps::layered_ai(data.as_bytes(), Document::new(200.0, 100.0), vec![], false, false, 1.0).0))?;
         survive("layer options and ruler guides in units of 10 points", || {
-            Some(vectorcraft_eps::layered_ai(data.as_bytes(), Document::new(2000.0, 1000.0), vec![], false, false, 10.0).0)
+            Some(vansoncraft_eps::layered_ai(data.as_bytes(), Document::new(2000.0, 1000.0), vec![], false, false, 10.0).0)
         })?;
         let eps = ai::eps(data.as_bytes(), ai::page_ps());
-        survive("layer options and ruler guides in an EPS", || vectorcraft_engine::cmd::fileio::load("x.eps", &eps).ok().map(|l| l.doc))?;
+        survive("layer options and ruler guides in an EPS", || vansoncraft_engine::cmd::fileio::load("x.eps", &eps).ok().map(|l| l.doc))?;
     }
 
     /// Artboard display options and Document Raster Effects Settings of any type and value, and
@@ -5793,7 +5793,7 @@ proptest! {
             0..10,
         ),
     ) {
-        use vectorcraft_testkit::ai;
+        use vansoncraft_testkit::ai;
         let entries = |e: &[(&str, String)]| e.iter().map(|(k, v)| format!("%_{v} ({k}) ,\n")).collect::<String>();
         let array: String = boards
             .iter()
@@ -5814,19 +5814,19 @@ proptest! {
         let comments: String = header.iter().map(|(c, ops)| format!("{c} {}\n", ops.join(" "))).collect();
         let body = format!("{document}{}", ai::layer("L", &format!("{}f\n", ai::rect(0.0, 0.0, 10.0, 10.0))));
         let data = ai::editing_data(200.0, 100.0, &body).replacen("%%EndComments", &format!("{comments}%%EndComments"), 1);
-        survive("document settings", || Some(vectorcraft_eps::layered_ai(data.as_bytes(), Document::new(200.0, 100.0), vec![], false, false, 1.0).0))?;
+        survive("document settings", || Some(vansoncraft_eps::layered_ai(data.as_bytes(), Document::new(200.0, 100.0), vec![], false, false, 1.0).0))?;
         let eps = ai::eps(data.as_bytes(), ai::page_ps());
-        survive("document settings in an EPS", || vectorcraft_engine::cmd::fileio::load("x.eps", &eps).ok().map(|l| l.doc))?;
+        survive("document settings in an EPS", || vansoncraft_engine::cmd::fileio::load("x.eps", &eps).ok().map(|l| l.doc))?;
         // The same comments in the EPS's own header.
         let at = eps.windows(13).position(|w| w == b"%%EndComments").unwrap_or(0);
         let outer = [&eps[..at], comments.as_bytes(), &eps[at..]].concat();
-        survive("document settings in an EPS's header", || vectorcraft_engine::cmd::fileio::load("x.eps", &outer).ok().map(|l| l.doc))?;
+        survive("document settings in an EPS's header", || vansoncraft_engine::cmd::fileio::load("x.eps", &outer).ok().map(|l| l.doc))?;
     }
 
     /// The testkit's sample damaged, as it is and compressed, in EPS, `.ai` and PDF files.
     #[test]
     fn ai_mutated_sample_never_panics(cut in 0usize..4_000, edits in prop::collection::vec((0usize..4_000, any::<u8>()), 0..12)) {
-        use vectorcraft_testkit::ai;
+        use vansoncraft_testkit::ai;
         static PLAIN: std::sync::OnceLock<Vec<u8>> = std::sync::OnceLock::new();
         static PACKED: std::sync::OnceLock<Vec<u8>> = std::sync::OnceLock::new();
         for (what, sample) in [("editing data", PLAIN.get_or_init(ai::sample_data)), ("compressed editing data", PACKED.get_or_init(ai_sample_compressed))] {
@@ -5837,11 +5837,11 @@ proptest! {
             }
             bytes.truncate(cut.max(4));
             let file = ai::ai(&bytes, ai::page_pdf());
-            survive(what, || vectorcraft_engine::cmd::fileio::load("x.ai", &file).ok().map(|l| l.doc))?;
+            survive(what, || vansoncraft_engine::cmd::fileio::load("x.ai", &file).ok().map(|l| l.doc))?;
             let file = ai::pdf(&bytes, ai::page_pdf());
-            survive(what, || vectorcraft_engine::cmd::fileio::load("x.pdf", &file).ok().map(|l| l.doc))?;
+            survive(what, || vansoncraft_engine::cmd::fileio::load("x.pdf", &file).ok().map(|l| l.doc))?;
             let file = ai::eps(&bytes, ai::page_ps());
-            survive(what, || vectorcraft_engine::cmd::fileio::load("x.eps", &file).ok().map(|l| l.doc))?;
+            survive(what, || vansoncraft_engine::cmd::fileio::load("x.eps", &file).ok().map(|l| l.doc))?;
         }
     }
 
@@ -5857,7 +5857,7 @@ proptest! {
         cut in 0usize..600,
         edits in prop::collection::vec((0usize..600, prop::sample::select(vec!['%', '~', '>', 'z', 'v', '!', 'u', '\n', ';', ' '])), 0..6),
     ) {
-        use vectorcraft_testkit::ai;
+        use vansoncraft_testkit::ai;
         let object = |body: Vec<u8>| [&b"Objc"[..], &0x8000_0000u32.to_be_bytes(), b"Clss", &(body.len() as u32 + 4).to_be_bytes(), &1u32.to_be_bytes(), &body].concat();
         let mut nested = inner.concat();
         for _ in 0..nesting {
@@ -5874,9 +5874,9 @@ proptest! {
         let hidden = ai::rect(0.0, 0.0, 10.0, 10.0).replace('\n', "\n%_");
         let art = format!("0 Ae\nu\n0 1 1 0 1 0 0 Xa\n{}f\nU\n%_{hidden}f\n1 (R) XW\n", ai::rect(0.0, 0.0, 10.0, 10.0));
         let data = ai::editing_data(200.0, 100.0, &format!("{styles}{}", ai::layer("L", &art)));
-        survive("filter-gallery settings", || Some(vectorcraft_eps::layered_ai(data.as_bytes(), Document::new(200.0, 100.0), vec![], false, false, 1.0).0))?;
+        survive("filter-gallery settings", || Some(vansoncraft_eps::layered_ai(data.as_bytes(), Document::new(200.0, 100.0), vec![], false, false, 1.0).0))?;
         let eps = ai::eps(data.as_bytes(), ai::page_ps());
-        survive("filter-gallery settings in an EPS", || vectorcraft_engine::cmd::fileio::load("x.eps", &eps).ok().map(|l| l.doc))?;
+        survive("filter-gallery settings in an EPS", || vansoncraft_engine::cmd::fileio::load("x.eps", &eps).ok().map(|l| l.doc))?;
     }
 }
 
@@ -5899,7 +5899,7 @@ fn arb_settings_field() -> impl Strategy<Value = Vec<u8>> {
 /// `OS/2` tables of the bundled Source Sans 3 renamed "Findme Sans 3", and an `fvar` table with a
 /// weight axis and three named instances (named by name ids 2, 1 and 4).
 fn search_font() -> Vec<u8> {
-    let font = vectorcraft_testkit::fonts::renamed("Findme Sans 3");
+    let font = vansoncraft_testkit::fonts::renamed("Findme Sans 3");
     let be32 = |at: usize| u32::from_be_bytes(font[at..at + 4].try_into().unwrap()) as usize;
     let table = |tag: &[u8; 4]| {
         let n = u16::from_be_bytes([font[4], font[5]]) as usize;
@@ -5966,9 +5966,9 @@ fn search_collection(font: &[u8], faces: u32) -> Vec<u8> {
 
 /// The fonts a search for "Findme Sans 3" looks for: the face, and a style of the family as if the
 /// family were installed.
-fn findme_wanted() -> vectorcraft_text::WantedFonts {
-    use vectorcraft_text::WantedFont;
-    vectorcraft_text::WantedFonts::new(&[
+fn findme_wanted() -> vansoncraft_text::WantedFonts {
+    use vansoncraft_text::WantedFont;
+    vansoncraft_text::WantedFonts::new(&[
         WantedFont { family: "Findme Sans 3".into(), style: "Regular".into(), installed: None },
         WantedFont { family: "FINDME SANS 3".into(), style: "Black".into(), installed: Some("Findme Sans 3".into()) },
         WantedFont { family: "SourceSans3-Regular".into(), style: "Bold".into(), installed: None },
@@ -5977,7 +5977,7 @@ fn findme_wanted() -> vectorcraft_text::WantedFonts {
 
 /// Whether reading `bytes` as a font file a search reads panics.
 fn search_reads(what: &str, bytes: &[u8]) -> Result<Vec<usize>, TestCaseError> {
-    let path = vectorcraft_testkit::temp_dir("font-search-fuzz").join(format!("{:?}.ttc", std::thread::current().id()));
+    let path = vansoncraft_testkit::temp_dir("font-search-fuzz").join(format!("{:?}.ttc", std::thread::current().id()));
     std::fs::write(&path, bytes).unwrap();
     catch_quiet(|| findme_wanted().provided_by(&path)).map_err(|e| TestCaseError::fail(format!("{what}: a search reading the file panicked: {e}")))
 }
@@ -6084,7 +6084,7 @@ const SCRIPT_PIECES: &[&str] = &[
 
 /// `script.check` with `p`, which mustn't panic, and whose lists keep to their limit.
 fn checked(what: &str, p: Value) -> Result<(), TestCaseError> {
-    let r = catch_quiet(|| no_panic(vectorcraft_engine::Session::new().execute("script.check", &p)))
+    let r = catch_quiet(|| no_panic(vansoncraft_engine::Session::new().execute("script.check", &p)))
         .map_err(|e| TestCaseError::fail(format!("{what}: script.check panicked: {e}")))?;
     if let Ok(r) = r {
         for list in [&r["targets"], &r["directives"], &r["includes"], &r["problems"], &r["dom"]["members"], &r["menuCommands"]["strings"]] {
@@ -6097,7 +6097,7 @@ fn checked(what: &str, p: Value) -> Result<(), TestCaseError> {
 /// The sample the properties mutate reaches every part of the check.
 #[test]
 fn the_script_sample_is_checked_whole() {
-    let r = vectorcraft_engine::Session::new().execute("script.check", &json!({"data": SCRIPT_SAMPLE})).unwrap();
+    let r = vansoncraft_engine::Session::new().execute("script.check", &json!({"data": SCRIPT_SAMPLE})).unwrap();
     assert_eq!(r["kind"], "script");
     assert_eq!(r["needs"], json!(["language", "dom", "files", "menuCommands", "dialogs", "hostOnly"]));
     assert_eq!(r["problems"], json!([]));
@@ -6109,7 +6109,7 @@ proptest! {
     #[test]
     fn script_garbage_never_panics(bytes in prop::collection::vec(any::<u8>(), 0..2_000), compiled in any::<bool>()) {
         let name = if compiled { "garbage.jsxbin" } else { "garbage.jsx" };
-        checked("script garbage", json!({"dataBase64": vectorcraft_format::base64_encode(&bytes), "name": name}))?;
+        checked("script garbage", json!({"dataBase64": vansoncraft_format::base64_encode(&bytes), "name": name}))?;
     }
 
     #[test]
@@ -6125,7 +6125,7 @@ proptest! {
             bytes[at % n] = b;
         }
         bytes.truncate(cut);
-        checked("mutated script", json!({"dataBase64": vectorcraft_format::base64_encode(&bytes), "name": "sample.jsx"}))?;
+        checked("mutated script", json!({"dataBase64": vansoncraft_format::base64_encode(&bytes), "name": "sample.jsx"}))?;
     }
 }
 
@@ -6136,7 +6136,7 @@ proptest! {
 // `MAX_DEPTH`. These run on a thread with the stack of a Windows main thread (1 MB), where an
 // overflow ends the test run.
 
-use vectorcraft_doc::MAX_DEPTH;
+use vansoncraft_doc::MAX_DEPTH;
 
 /// `f` on a thread with a 1 MB stack.
 fn on_a_small_stack(f: impl FnOnce() + Send + 'static) {
@@ -6146,7 +6146,7 @@ fn on_a_small_stack(f: impl FnOnce() + Send + 'static) {
 /// Open `bytes` as the file `name`: an error, or a document within the cap that renders and
 /// exports. Returns the document and the import's warnings.
 fn open_deep(name: &str, bytes: &[u8]) -> Option<(Document, Vec<String>)> {
-    let loaded = vectorcraft_engine::cmd::fileio::load(name, bytes).ok()?;
+    let loaded = vansoncraft_engine::cmd::fileio::load(name, bytes).ok()?;
     assert!(!loaded.doc.too_deep(None), "{name}: deeper than the cap");
     let doc = loaded.doc.clone();
     survive(name, move || Some(doc)).unwrap();
@@ -6181,13 +6181,13 @@ fn deeply_nested_svg_is_refused_or_merged() {
         let (_, warnings) = open_deep("shallow.svg", nested_svg(20).as_bytes()).expect("20 groups open");
         assert!(!merged(&warnings), "{warnings:?}");
         // As deep as the reader goes (on a stack of its own): opened and merged the same.
-        let most = vectorcraft_svg::MAX_ELEMENT_DEPTH;
+        let most = vansoncraft_svg::MAX_ELEMENT_DEPTH;
         let (doc, warnings) = open_deep("deepest.svg", nested_svg(most - 2).as_bytes()).expect("opens at the reader's cap");
         assert!(merged(&warnings), "{warnings:?}");
         assert_eq!(paths_in(&doc), most - 1, "no art is lost");
         // Past it: an error that says why, whatever the depth.
         for n in [most, 2 * most, 200_000] {
-            let e = vectorcraft_engine::cmd::fileio::load("deep.svg", nested_svg(n).as_bytes()).err().expect("refused").to_string();
+            let e = vansoncraft_engine::cmd::fileio::load("deep.svg", nested_svg(n).as_bytes()).err().expect("refused").to_string();
             assert!(e.contains(&format!("nested more than {most} deep")), "{n}: {e}");
         }
         // Unnamed groups of one object aren't kept, but usvg walks them all the same.
@@ -6212,10 +6212,10 @@ fn deeply_nested_svg_is_refused_or_merged() {
             assert!(warnings.iter().any(|w| w.contains("SVG images were left out")), "{i}: {warnings:?}");
         }
         // Placed and pasted, as opened.
-        let mut s = vectorcraft_engine::Session::new();
+        let mut s = vansoncraft_engine::Session::new();
         s.execute("file.new", &json!({"width": 300, "height": 200})).unwrap();
         for svg in [nested_svg(40), nested_svg(2 * most)].iter().chain(&images) {
-            let p = json!({"name": "deep.svg", "dataBase64": vectorcraft_format::base64_encode(svg.as_bytes())});
+            let p = json!({"name": "deep.svg", "dataBase64": vansoncraft_format::base64_encode(svg.as_bytes())});
             let _ = no_panic(s.execute("file.place", &p));
             let _ = no_panic(s.execute("clipboard.importSvg", &json!({"svg": svg})));
             let _ = no_panic(s.execute("edit.paste", &json!({})));
@@ -6228,7 +6228,7 @@ fn deeply_nested_svg_is_refused_or_merged() {
 /// deep around the next.
 fn nested_images(levels: usize, n: usize) -> String {
     let image = |svg: &str| {
-        format!("<image href=\"data:text/plain;base64,{}\" width=\"9\" height=\"9\"/>", vectorcraft_format::base64_encode(svg.as_bytes()))
+        format!("<image href=\"data:text/plain;base64,{}\" width=\"9\" height=\"9\"/>", vansoncraft_format::base64_encode(svg.as_bytes()))
     };
     let mut svg = nested_svg(0);
     for _ in 0..levels {
@@ -6342,9 +6342,9 @@ fn open_each(name: &str, files: impl IntoIterator<Item = Vec<u8>> + Send + 'stat
             open_deep(&format!("{name}-{i}.pdf"), &bytes);
             // As `.ai` (the PDF part of one) and placed, too.
             open_deep(&format!("{name}-{i}.ai"), &bytes);
-            let mut s = vectorcraft_engine::Session::new();
+            let mut s = vansoncraft_engine::Session::new();
             s.execute("file.new", &json!({"width": 300, "height": 200})).unwrap();
-            let _ = no_panic(s.execute("file.place", &json!({"name": "deep.pdf", "dataBase64": vectorcraft_format::base64_encode(&bytes)})));
+            let _ = no_panic(s.execute("file.place", &json!({"name": "deep.pdf", "dataBase64": vansoncraft_format::base64_encode(&bytes)})));
             assert!(!s.doc().unwrap().doc.too_deep(None));
         }
     });
@@ -6410,7 +6410,7 @@ fn pdf_nesting_inside_an_object_stream() {
             pdf_with_object_stream("[0 0 100 100]", "/Extends 5 0 R"),
         ],
     );
-    let plain = vectorcraft_engine::cmd::fileio::load("plain.pdf", &pdf_with_object_stream("[0 0 120 80]", "")).expect("an object stream is read");
+    let plain = vansoncraft_engine::cmd::fileio::load("plain.pdf", &pdf_with_object_stream("[0 0 120 80]", "")).expect("an object stream is read");
     assert_eq!(plain.doc.artboards[0].rect.width(), 120.0);
 }
 
@@ -6587,7 +6587,7 @@ fn pdf_streams_the_reader_would_fail_on_are_refused() {
     on_a_small_stack(move || {
         for (what, bytes, why) in &files {
             for name in ["hostile.pdf", "hostile.ai"] {
-                let e = vectorcraft_engine::cmd::fileio::load(name, bytes).err().map(|e| e.to_string());
+                let e = vansoncraft_engine::cmd::fileio::load(name, bytes).err().map(|e| e.to_string());
                 assert!(e.as_deref().is_some_and(|e| e.contains(why.as_str())), "{what} as {name}: {e:?}");
             }
         }
@@ -6596,7 +6596,7 @@ fn pdf_streams_the_reader_would_fail_on_are_refused() {
     let fine = "/DecodeParms << /Predictor 1 /Columns 0 >>";
     let function = calculator(&program, "");
     for bytes in [form(fine, "0 0 5 5 re f"), deep_pdf(&inline("<< /Predictor 1 >>"), "<< >>"), held(format!("[{function}]")), shaded(&function)] {
-        vectorcraft_engine::cmd::fileio::load("fine.pdf", &bytes).expect("opens");
+        vansoncraft_engine::cmd::fileio::load("fine.pdf", &bytes).expect("opens");
     }
 }
 
@@ -6614,7 +6614,7 @@ fn pdf_a_huge_form_drawn_over_and_over_is_refused_in_bounded_time() {
     let form = packed_as_is(FORM, &e.finish().unwrap());
     let bytes = pdf_with(&"/F Do ".repeat(1000), "<< /XObject << /F 5 0 R >> >>", &[form]);
     let start = std::time::Instant::now();
-    let e = vectorcraft_engine::cmd::fileio::load("repeated.pdf", &bytes).err().map(|e| e.to_string());
+    let e = vansoncraft_engine::cmd::fileio::load("repeated.pdf", &bytes).err().map(|e| e.to_string());
     let took = start.elapsed();
     assert!(e.as_deref().is_some_and(|e| e.contains("no document was imported")), "{e:?}");
     assert!(took < std::time::Duration::from_secs(60), "took {took:?}");
@@ -6666,7 +6666,7 @@ fn a_stream_past_the_cap_is_named() {
     on_a_small_stack(move || {
         for (what, bytes, why) in &files {
             for name in ["large.pdf", "large.ai"] {
-                let e = vectorcraft_engine::cmd::fileio::load(name, bytes).err().map(|e| e.to_string());
+                let e = vansoncraft_engine::cmd::fileio::load(name, bytes).err().map(|e| e.to_string());
                 assert!(e.as_deref().is_some_and(|e| e.contains(why)), "{what} as {name}: {e:?}");
             }
         }
@@ -6700,7 +6700,7 @@ fn pages_sharing_a_contents_array_name_its_stream() {
     ];
     on_a_small_stack(move || {
         for (bytes, why) in &files {
-            let e = vectorcraft_engine::cmd::fileio::load("shared.pdf", bytes).err().map(|e| e.to_string());
+            let e = vansoncraft_engine::cmd::fileio::load("shared.pdf", bytes).err().map(|e| e.to_string());
             assert!(e.as_deref().is_some_and(|e| e.contains(why)), "{why}: {e:?}");
         }
     });
@@ -6810,7 +6810,7 @@ fn dxf_blocks_inserting_themselves_are_left_out() {
 
 #[test]
 fn deeply_nested_affinity_groups_are_read_within_the_cap() {
-    use vectorcraft_affinity::synth::{self, F, Method, tag};
+    use vansoncraft_affinity::synth::{self, F, Method, tag};
     // Groups in groups: within what the reader takes, past its cap on layers (128), past its cap
     // on the stream's own nesting (384), and far past both.
     let files: Vec<Vec<u8>> = [20u32, 120, 180, 370, 2000]
@@ -6849,11 +6849,11 @@ fn deeply_nested_plugin_manifests_and_output_are_errors() {
     on_a_small_stack(|| {
         // (A manifest may be 64 kB.)
         let deep = |n: usize| format!("{}{}", "[".repeat(n), "]".repeat(n));
-        assert!(vectorcraft_plugins::Manifest::parse(deep(30_000).as_bytes()).is_err());
-        assert!(vectorcraft_plugins::Manifest::parse(format!("{{\"params\": {}}}", deep(30_000)).as_bytes()).is_err());
+        assert!(vansoncraft_plugins::Manifest::parse(deep(30_000).as_bytes()).is_err());
+        assert!(vansoncraft_plugins::Manifest::parse(format!("{{\"params\": {}}}", deep(30_000)).as_bytes()).is_err());
         let deep = deep(100_000);
         for output in [deep.clone(), format!("{{\"objects\": {deep}}}"), format!("{{\"objects\": [{{\"kind\": \"path\", \"path\": {deep}}}]}}")] {
-            assert!(vectorcraft_plugins::objects::decode(output.as_bytes()).is_err());
+            assert!(vansoncraft_plugins::objects::decode(output.as_bytes()).is_err());
         }
     });
 }
@@ -6864,13 +6864,13 @@ fn deeply_nested_plugin_manifests_and_output_are_errors() {
 /// an instance of the symbol; that instance inside as many groups as a file holds; a square
 /// painted with the pattern. So what the brush draws is drawn with the brush.
 fn brushed_document(kind: usize, art: usize) -> Document {
-    use vectorcraft_brush::{ArtBrush, Brush, BrushKind, PatternBrush, Scatter};
-    use vectorcraft_color::Paint;
-    use vectorcraft_doc::{Appearance, AppearanceItem, Node, NodeKind, PatternDef, Symbol};
+    use vansoncraft_brush::{ArtBrush, Brush, BrushKind, PatternBrush, Scatter};
+    use vansoncraft_color::Paint;
+    use vansoncraft_doc::{Appearance, AppearanceItem, Node, NodeKind, PatternDef, Symbol};
     let mut doc = nested_document(1);
-    let square = || vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(0.0, 0.0, 60.0, 20.0));
+    let square = || vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(0.0, 0.0, 60.0, 20.0));
     let brushed = |doc: &mut Document| {
-        let mut look = Appearance::basic(Paint::None, Paint::solid(vectorcraft_color::Color::rgb8(0, 0, 0)), 4.0);
+        let mut look = Appearance::basic(Paint::None, Paint::solid(vansoncraft_color::Color::rgb8(0, 0, 0)), 4.0);
         for item in &mut look.items {
             if let AppearanceItem::Stroke(s) = item {
                 s.brush = Some("loop".into());
@@ -6879,9 +6879,9 @@ fn brushed_document(kind: usize, art: usize) -> Document {
         Node::path(doc.alloc_id(), square(), look)
     };
     let instance =
-        |doc: &mut Document| Node::new(doc.alloc_id(), NodeKind::SymbolInstance { symbol: "s0".into(), xf: vectorcraft_geom::Affine::IDENTITY });
+        |doc: &mut Document| Node::new(doc.alloc_id(), NodeKind::SymbolInstance { symbol: "s0".into(), xf: vansoncraft_geom::Affine::IDENTITY });
     let painted = |doc: &mut Document| {
-        let fill = Paint::Pattern { pattern: "p0".into(), xf: vectorcraft_geom::Affine::IDENTITY };
+        let fill = Paint::Pattern { pattern: "p0".into(), xf: vansoncraft_geom::Affine::IDENTITY };
         Node::path(doc.alloc_id(), square(), Appearance::basic(fill, Paint::None, 0.0))
     };
     let (in_symbol, in_pattern) = (brushed(&mut doc), brushed(&mut doc));
@@ -6897,7 +6897,7 @@ fn brushed_document(kind: usize, art: usize) -> Document {
         1 => BrushKind::Scatter(Scatter { art, ..Default::default() }),
         _ => BrushKind::Pattern(PatternBrush { side: art.clone(), start: Some(art), ..Default::default() }),
     };
-    vectorcraft_brush::store(&mut doc, &[Brush { name: "loop".into(), kind }]);
+    vansoncraft_brush::store(&mut doc, &[Brush { name: "loop".into(), kind }]);
     let layer = doc.layers[0].id;
     for on_layer in [instance(&mut doc), painted(&mut doc), brushed(&mut doc)] {
         doc.insert(Some(layer), usize::MAX, on_layer).unwrap();
@@ -6907,8 +6907,8 @@ fn brushed_document(kind: usize, art: usize) -> Document {
 
 /// `doc` saved, opened again, drawn, exported and edited: nothing overflows.
 fn art_by_name_survives(what: &str, doc: Document) {
-    let (back, _) = open_deep("named.vectorcraft", &vectorcraft_format::save_file(&doc)).expect("opens");
-    let mut s = vectorcraft_engine::Session::new();
+    let (back, _) = open_deep("named.vansoncraft", &vansoncraft_format::save_file(&doc)).expect("opens");
+    let mut s = vansoncraft_engine::Session::new();
     s.add_document(back, None);
     for (cmd, p) in [
         ("select.all", json!({})),
@@ -6960,10 +6960,10 @@ brushes_drawn_with_themselves! {
 
 #[test]
 fn a_graph_design_of_deep_art_and_of_a_symbol_holding_itself_is_drawn() {
-    use vectorcraft_doc::{GraphDesign, Node, NodeKind};
+    use vansoncraft_doc::{GraphDesign, Node, NodeKind};
     on_a_small_stack(|| {
         let mut doc = symbols_document(1, 1, "s0");
-        let instance = Node::new(doc.alloc_id(), NodeKind::SymbolInstance { symbol: "s0".into(), xf: vectorcraft_geom::Affine::IDENTITY });
+        let instance = Node::new(doc.alloc_id(), NodeKind::SymbolInstance { symbol: "s0".into(), xf: vansoncraft_geom::Affine::IDENTITY });
         let art = (0..MAX_DEPTH + 4).fold(instance, |inner, _| Node::group(doc.alloc_id(), vec![std::sync::Arc::new(inner)]));
         doc.graph_designs.push(GraphDesign { name: "deep".into(), art: std::sync::Arc::new(art) });
         art_by_name_survives("a graph design of deep art", doc);
@@ -6973,11 +6973,11 @@ fn a_graph_design_of_deep_art_and_of_a_symbol_holding_itself_is_drawn() {
 /// A layer holding `levels` groups in one another around a rectangle, each with a second
 /// rectangle beside the next: `levels + 2` deep.
 fn nested_document(levels: usize) -> Document {
-    use vectorcraft_doc::Node;
-    use vectorcraft_testkit::fixtures::DocBuilder;
+    use vansoncraft_doc::Node;
+    use vansoncraft_testkit::fixtures::DocBuilder;
     let mut b = DocBuilder::new(100.0, 100.0);
     let rect =
-        |b: &mut DocBuilder, x: f64| b.rect_node(vectorcraft_geom::Rect::new(x, 0.0, x + 10.0, 10.0), vectorcraft_color::Color::rgb8(200, 0, 0));
+        |b: &mut DocBuilder, x: f64| b.rect_node(vansoncraft_geom::Rect::new(x, 0.0, x + 10.0, 10.0), vansoncraft_color::Color::rgb8(200, 0, 0));
     let mut inner = rect(&mut b, 0.0);
     for _ in 0..levels {
         let beside = rect(&mut b, 20.0);
@@ -6993,16 +6993,16 @@ fn a_document_at_the_cap_saves_opens_and_exports() {
     on_a_small_stack(|| {
         let doc = nested_document(MAX_DEPTH - 2);
         assert!(!doc.too_deep(None));
-        let back = vectorcraft_format::load_file(&vectorcraft_format::save_file(&doc)).expect("what can be made opens again");
+        let back = vansoncraft_format::load_file(&vansoncraft_format::save_file(&doc)).expect("what can be made opens again");
         assert!(back.depth_notes.is_empty());
         assert_eq!(back.doc.layers, doc.layers);
         survive("at the cap", || Some(doc.clone())).unwrap();
         // Every format that keeps the nesting reads its own file back within the cap.
-        let mut s = vectorcraft_engine::Session::new();
+        let mut s = vansoncraft_engine::Session::new();
         s.add_document(doc, None);
         for format in ["svg", "pdf", "eps", "ai"] {
             let r = s.execute("document.export", &json!({"format": format})).unwrap();
-            let bytes = vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap();
+            let bytes = vansoncraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap();
             open_deep(&format!("cap.{format}"), &bytes).unwrap_or_else(|| panic!("{format} opens"));
         }
         for cmd in ["select.all", "document.inspect", "document.info", "edit.copy", "edit.paste", "object.ungroup", "edit.undo"] {
@@ -7015,18 +7015,18 @@ fn a_document_at_the_cap_saves_opens_and_exports() {
 fn a_native_file_nested_too_deep_is_merged_or_refused() {
     on_a_small_stack(|| {
         // Saved before the cap by a version that could still open it: opened, the deepest merged.
-        let old = vectorcraft_format::save_file(&nested_document(MAX_DEPTH + 2));
-        let (doc, warnings) = open_deep("old.vectorcraft", &old).expect("opens");
+        let old = vansoncraft_format::save_file(&nested_document(MAX_DEPTH + 2));
+        let (doc, warnings) = open_deep("old.vansoncraft", &old).expect("opens");
         assert!(merged(&warnings), "{warnings:?}");
         assert_eq!(paths_in(&doc), MAX_DEPTH + 3, "no art is lost");
         // Deeper than any version could open, and a hostile file: an error that says why. Written
         // by hand: a tree this deep can't be built and saved.
-        let text = String::from_utf8(vectorcraft_format::save(&nested_document(0), false)).unwrap();
+        let text = String::from_utf8(vansoncraft_format::save(&nested_document(0), false)).unwrap();
         let (open, close) = ("{\"id\":900000,\"kind\":{\"type\":\"group\",\"children\":[", "]}}");
         let at = text.find("\"children\":[").expect("the layer's children") + "\"children\":[".len();
         for levels in [100, 50_000] {
             let deep = format!("{}{}{},{}", &text[..at], open.repeat(levels), close.repeat(levels), &text[at..]);
-            let e = vectorcraft_engine::cmd::fileio::load("deep.vectorcraft", deep.as_bytes()).err().expect("refused").to_string();
+            let e = vansoncraft_engine::cmd::fileio::load("deep.vansoncraft", deep.as_bytes()).err().expect("refused").to_string();
             assert!(e.contains("nested too deep"), "{levels}: {e}");
         }
     });
@@ -7035,7 +7035,7 @@ fn a_native_file_nested_too_deep_is_merged_or_refused() {
 #[test]
 fn commands_cannot_nest_deeper_than_the_cap() {
     on_a_small_stack(|| {
-        let mut s = vectorcraft_engine::Session::new();
+        let mut s = vansoncraft_engine::Session::new();
         s.execute("file.new", &json!({"width": 200, "height": 200})).unwrap();
         s.execute("shape.rectangle", &json!({"x": 10, "y": 10, "width": 50, "height": 50})).unwrap();
         s.execute("select.all", &json!({})).unwrap();
@@ -7043,7 +7043,7 @@ fn commands_cannot_nest_deeper_than_the_cap() {
         for _ in 0..10_000 {
             match no_panic(s.execute("object.group", &json!({}))) {
                 Ok(_) => grouped += 1,
-                Err(e) => assert!(e.to_string().contains(vectorcraft_engine::TOO_DEEP), "after {grouped} groups: {e}"),
+                Err(e) => assert!(e.to_string().contains(vansoncraft_engine::TOO_DEEP), "after {grouped} groups: {e}"),
             }
         }
         // The layer, the groups and the rectangle.
@@ -7066,9 +7066,9 @@ fn commands_cannot_nest_deeper_than_the_cap() {
 /// A document whose one object is an instance of the first of `count` symbols: each symbol's art
 /// is `levels` groups around an instance of the next symbol, the last one of `last`.
 fn symbols_document(count: usize, levels: usize, last: &str) -> Document {
-    use vectorcraft_doc::{Node, NodeKind, Symbol};
+    use vansoncraft_doc::{Node, NodeKind, Symbol};
     let instance =
-        |doc: &mut Document, of: String| Node::new(doc.alloc_id(), NodeKind::SymbolInstance { symbol: of, xf: vectorcraft_geom::Affine::IDENTITY });
+        |doc: &mut Document, of: String| Node::new(doc.alloc_id(), NodeKind::SymbolInstance { symbol: of, xf: vansoncraft_geom::Affine::IDENTITY });
     let mut doc = nested_document(1);
     for i in 0..count {
         let mut art = instance(&mut doc, if i + 1 < count { format!("s{}", i + 1) } else { last.to_string() });
@@ -7086,9 +7086,9 @@ fn symbols_document(count: usize, levels: usize, last: &str) -> Document {
 /// `doc` saved (as an older version, or a hostile file, could have) and opened again: within the
 /// caps (`kept`: as it was), drawn, exported and edited.
 fn symbols_survive(what: &str, doc: Document, kept: bool) {
-    let (back, warnings) = open_deep("symbols.vectorcraft", &vectorcraft_format::save_file(&doc)).expect("opens");
+    let (back, warnings) = open_deep("symbols.vansoncraft", &vansoncraft_format::save_file(&doc)).expect("opens");
     assert_eq!(!warnings.iter().any(|w| w.contains("symbol instances")), kept, "{what}: {warnings:?}");
-    let mut s = vectorcraft_engine::Session::new();
+    let mut s = vansoncraft_engine::Session::new();
     s.add_document(back, None);
     for cmd in [
         "select.all",
@@ -7123,7 +7123,7 @@ fn symbols_in_symbols_are_drawn_only_so_deep() {
         symbols_survive("symbols at the cap", symbols_document(3, MAX_DEPTH - 2, "none"), true);
         symbols_survive("symbols in symbols", symbols_document(40, MAX_DEPTH - 1, "none"), false);
         // A symbol can't be made to hold itself, or one that holds it, by editing either.
-        let mut s = vectorcraft_engine::Session::new();
+        let mut s = vansoncraft_engine::Session::new();
         s.add_document(symbols_document(2, 1, "none"), None);
         s.execute("select.all", &json!({})).unwrap();
         for (cmd, p) in [
@@ -7141,12 +7141,12 @@ fn symbols_in_symbols_are_drawn_only_so_deep() {
 #[test]
 fn a_pattern_painting_its_own_tile_opens_without_the_paint() {
     on_a_small_stack(|| {
-        use vectorcraft_color::Paint;
-        use vectorcraft_doc::{Appearance, PatternDef};
+        use vansoncraft_color::Paint;
+        use vansoncraft_doc::{Appearance, PatternDef};
         let painted = |doc: &mut Document, with: &str| {
-            let fill = Paint::Pattern { pattern: with.into(), xf: vectorcraft_geom::Affine::IDENTITY };
-            let square = vectorcraft_geom::shapes::rectangle(vectorcraft_geom::Rect::new(0.0, 0.0, 20.0, 20.0));
-            vectorcraft_doc::Node::path(doc.alloc_id(), square, Appearance::basic(fill, Paint::None, 0.0))
+            let fill = Paint::Pattern { pattern: with.into(), xf: vansoncraft_geom::Affine::IDENTITY };
+            let square = vansoncraft_geom::shapes::rectangle(vansoncraft_geom::Rect::new(0.0, 0.0, 20.0, 20.0));
+            vansoncraft_doc::Node::path(doc.alloc_id(), square, Appearance::basic(fill, Paint::None, 0.0))
         };
         // One pattern painting its own tile, and two painting each other's.
         for names in [["p", "p"], ["p", "q"]] {
@@ -7175,7 +7175,7 @@ fn ai_cut_inside_an_array_or_dictionary_opens_without_panicking() {
             b[at] = c;
         }
         b.truncate(44902.min(b.len()));
-        survive("ai cut inside an array or dictionary", || vectorcraft_engine::cmd::fileio::load("saved.ai", &b).ok().map(|l| l.doc)).unwrap();
+        survive("ai cut inside an array or dictionary", || vansoncraft_engine::cmd::fileio::load("saved.ai", &b).ok().map(|l| l.doc)).unwrap();
     }
 }
 
@@ -7187,13 +7187,13 @@ fn a_long_thin_shape_with_a_shadow_renders_and_exports() {
     use affinity_docs::*;
     let stream = canvas_stream(vec![with_effects(rectangle(10, (0.0, 0.0), (3_276_800.0, 50.0)), vec![shadow()])]);
     let bytes = affinity_sample_file(&stream, None);
-    let doc = vectorcraft_engine::cmd::fileio::load("long.af", &bytes).unwrap().doc;
+    let doc = vansoncraft_engine::cmd::fileio::load("long.af", &bytes).unwrap().doc;
     survive("long shape", || Some(doc)).unwrap();
 }
 
 /// A blend in `.ai` editing data, written by hand: two keys (10 pt squares, red on the left, blue on
 /// the right) on a straight spine, `steps` steps drawn between them as the blend lays them out, and
-/// the record (`DCBA`, Specified Steps, two keys `A` and `B`, see `vectorcraft_eps`' AI blend
+/// the record (`DCBA`, Specified Steps, two keys `A` and `B`, see `vansoncraft_eps`' AI blend
 /// reader).
 fn blend_text(steps: usize) -> String {
     blend_text_spaced(steps, [1, 0, 0])
@@ -7237,7 +7237,7 @@ fn blend_text_spaced(steps: usize, spacing: [u32; 3]) -> String {
 
 /// `.ai` editing data holding `layer_art` on one layer, compressed as the private data is.
 fn ai_private(layer_art: &str) -> Vec<u8> {
-    use vectorcraft_testkit::ai;
+    use vansoncraft_testkit::ai;
     let data = ai::editing_data(4000.0, 200.0, &ai::layer("L", layer_art));
     [b"%AI24_ZStandard_Data".as_slice(), &zstd(&data)].concat()
 }
@@ -7250,12 +7250,12 @@ fn large_ai_blends_import_in_bounded_time() {
     for (steps, live) in [(3, true), (998, true), (1_500, false)] {
         let private = ai_private(&blend_text(steps));
         let started = std::time::Instant::now();
-        let (doc, notes, read) = vectorcraft_eps::layered_ai(&private, Document::new(4000.0, 200.0), vec![], false, true, 1.0);
+        let (doc, notes, read) = vansoncraft_eps::layered_ai(&private, Document::new(4000.0, 200.0), vec![], false, true, 1.0);
         assert!(read, "{steps} steps: read from the layers ({notes:?})");
         let took = started.elapsed();
         assert!(took < std::time::Duration::from_secs(30), "{steps} steps took {took:?}");
         let mut blends = 0;
-        doc.walk(|n| blends += usize::from(matches!(n.kind, vectorcraft_doc::NodeKind::Blend { .. })));
+        doc.walk(|n| blends += usize::from(matches!(n.kind, vansoncraft_doc::NodeKind::Blend { .. })));
         assert_eq!(blends == 1, live, "{steps} steps: live {live}");
     }
 }
@@ -7271,8 +7271,8 @@ proptest! {
         let private = ai_private(&text);
         // Far-out coordinates: the check's grid saturates instead of overflowing.
         let far = ai_private(&blend_text(steps).replace(" 40 m\n", " 1e300 m\n").replace(" 50 L\n", " -1e300 L\n"));
-        survive("a .ai blend far out", || Some(vectorcraft_eps::layered_ai(&far, Document::new(100.0, 100.0), vec![], false, true, 1.0).0))?;
-        survive("mutated .ai blend", || Some(vectorcraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, true, 1.0).0))?;
+        survive("a .ai blend far out", || Some(vansoncraft_eps::layered_ai(&far, Document::new(100.0, 100.0), vec![], false, true, 1.0).0))?;
+        survive("mutated .ai blend", || Some(vansoncraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, true, 1.0).0))?;
     }
 
     /// A `.ai` blend whose record holds any spacing, distance bits (zero, negative, tiny, NaN,
@@ -7280,7 +7280,7 @@ proptest! {
     #[test]
     fn ai_blend_spacing_never_panics(steps in 1usize..6, kind in prop_oneof![0u32..4, any::<u32>()], distance in prop_oneof![any::<u32>(), prop::sample::select(vec![0u32, 0x8000_0000, 1, 0x7f80_0000, 0xff80_0000, 0x7fc0_0000, 0x7f7f_ffff, 0x41c8_0000])], count in prop_oneof![0u32..1_100, any::<u32>()]) {
         let private = ai_private(&blend_text_spaced(steps, [kind, distance, count]));
-        survive("a .ai blend's spacing", || Some(vectorcraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, true, 1.0).0))?;
+        survive("a .ai blend's spacing", || Some(vansoncraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, true, 1.0).0))?;
     }
 }
 
@@ -7304,7 +7304,7 @@ proptest! {
     fn ai_graph_never_panics(cut in 0usize..700, edits in prop::collection::vec((0usize..700, prop::sample::select(vec!['0', '9', '-', '.', ' ', '\n', '(', ')', '[', ']', '/', '%', '_', 'G', 's', 'S', 't', 'T', 'u', 'U'])), 0..12), digits in prop::collection::vec((0usize..600, 0u8..10), 0..12)) {
         let text = mutate_text(&graph_text(), cut, &edits);
         let private = ai_private(&text);
-        survive("mutated .ai graph", || Some(vectorcraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, true, 1.0).0))?;
+        survive("mutated .ai graph", || Some(vansoncraft_eps::layered_ai(&private, Document::new(100.0, 100.0), vec![], false, true, 1.0).0))?;
         let src = graph_text();
         let records = src.find("u\n0 0 0 1 k").unwrap_or(0).max(1);
         let mut kept: Vec<char> = src.chars().collect();
@@ -7313,10 +7313,10 @@ proptest! {
                 *c = char::from(b'0' + d);
             }
         }
-        let (doc, notes, read) = vectorcraft_eps::layered_ai(&ai_private(&kept.into_iter().collect::<String>()), Document::new(4000.0, 200.0), vec![], false, true, 1.0);
+        let (doc, notes, read) = vansoncraft_eps::layered_ai(&ai_private(&kept.into_iter().collect::<String>()), Document::new(4000.0, 200.0), vec![], false, true, 1.0);
         prop_assert!(read, "{:?}", notes);
         let mut paths = 0;
-        doc.walk(|n| paths += usize::from(matches!(n.kind, vectorcraft_doc::NodeKind::Path { .. })));
+        doc.walk(|n| paths += usize::from(matches!(n.kind, vansoncraft_doc::NodeKind::Path { .. })));
         prop_assert_eq!(paths, 1, "{:?}", notes);
         prop_assert!(notes.iter().any(|n| n.contains("graphs come in as plain art")), "{:?}", notes);
         prop_assert!(!notes.iter().any(|n| n.contains("art this can't read")), "the records aren't art: {:?}", notes);

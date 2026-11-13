@@ -8,7 +8,7 @@
 //! else the document's current brush).
 
 use serde_json::{Value, json};
-use vectorcraft_geom::{Point, Shape};
+use vansoncraft_geom::{Point, Shape};
 
 use crate::draw2::{FEEDBACK, GestureTool, points_json};
 use crate::{Action, Cursor, MAX_STROKE_SAMPLES, Mods, Overlay, PointerEvent, PointerKind, Tool, ToolContext, ToolKey, previews_at};
@@ -304,7 +304,7 @@ impl Tool for BrushPaintTool {
 mod tests {
     use super::*;
     use crate::testutil::*;
-    use vectorcraft_doc::Selection;
+    use vansoncraft_doc::Selection;
 
     #[test]
     fn sprayer_previews_all_points_and_commits() {

@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex, mpsc};
 use std::time::{Duration, Instant};
 
 use serde_json::{Value, json};
-use vectorcraft_doc::{NodeId, NodeKind};
+use vansoncraft_doc::{NodeId, NodeKind};
 
 use crate::cmd::findfiles::{self, Limits, Rules, Visitor};
 use crate::cmd::linkfiles::{self, LinkSearch, Sought};
@@ -16,7 +16,7 @@ use crate::{EngineError, Session};
 
 /// A fresh temporary folder (canonical, as a search reports it).
 fn folder(tag: &str) -> PathBuf {
-    let dir = vectorcraft_testkit::temp_dir(&format!("linkfiles-{tag}"));
+    let dir = vansoncraft_testkit::temp_dir(&format!("linkfiles-{tag}"));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     findfiles::plain(std::fs::canonicalize(&dir).unwrap())
@@ -356,7 +356,7 @@ fn a_relative_link_path_is_judged_from_the_documents_folder() {
     write(&root.join("lrf-away/photo.png"), &png(40, 30, RED));
     let id = placed(&mut s, &root.join("lrf-away/photo.png"));
     std::fs::create_dir_all(&home).unwrap();
-    s.execute("document.save", &json!({"path": home.join("poster.vectorcraft")})).unwrap();
+    s.execute("document.save", &json!({"path": home.join("poster.vansoncraft")})).unwrap();
     let narrow = crate::file_access::AutomationRoots::new(&[&home], &[]).unwrap().unwrap();
     for (saved, shown) in [("sub/photo.png", true), ("../lrf-away/photo.png", false)] {
         s.edit("relative path", |d, _| {
@@ -401,7 +401,7 @@ fn relinking_with_copy_puts_the_file_in_the_documents_folder() {
     write(&root.join("orig/photo.png"), &png(40, 30, RED));
     let id = placed(&mut s, &root.join("orig/photo.png"));
     std::fs::create_dir_all(root.join("doc")).unwrap();
-    s.execute("document.save", &json!({"path": root.join("doc/poster.vectorcraft")})).unwrap();
+    s.execute("document.save", &json!({"path": root.join("doc/poster.vansoncraft")})).unwrap();
     std::fs::remove_dir_all(root.join("orig")).unwrap();
     let (found, blue) = (root.join("found/photo.png"), png(40, 30, BLUE));
     write(&found, &blue);
@@ -414,7 +414,7 @@ fn relinking_with_copy_puts_the_file_in_the_documents_folder() {
         NodeKind::Image(im) => im.link.clone().unwrap(),
         k => panic!("not an image: {k:?}"),
     };
-    assert_eq!((link(&s).path, link(&s).hash), (copy.to_string_lossy().into_owned(), Some(vectorcraft_doc::links::hash_bytes(&blue))));
+    assert_eq!((link(&s).path, link(&s).hash), (copy.to_string_lossy().into_owned(), Some(vansoncraft_doc::links::hash_bytes(&blue))));
     assert_eq!(s.doc().unwrap().history.undo.last().unwrap().label, "Relink");
     // The same file again: the copy is used.
     let r = relink(&mut s, &found).unwrap();
@@ -453,15 +453,15 @@ fn copy_refuses_placed_documents() {
     let root = folder("copy-placed");
     let mut s = session_for(&root);
     s.execute("shape.rectangle", &json!({"x": 10, "y": 10, "width": 50, "height": 50})).unwrap();
-    let badge = root.join("badge.vectorcraft");
+    let badge = root.join("badge.vansoncraft");
     s.execute("document.save", &json!({"path": badge})).unwrap();
     s.execute("file.new", &json!({"width": 400, "height": 300})).unwrap();
     let id = s.execute("file.place", &json!({"path": badge, "link": true})).unwrap()["ids"][0].clone();
     std::fs::create_dir_all(root.join("doc")).unwrap();
-    s.execute("document.save", &json!({"path": root.join("doc/poster.vectorcraft")})).unwrap();
+    s.execute("document.save", &json!({"path": root.join("doc/poster.vansoncraft")})).unwrap();
     let r = s.execute("links.relink", &json!({"ids": [id], "path": badge, "copy": true}));
     assert!(matches!(&r, Err(EngineError::BadParams { msg, .. }) if msg.contains("images only")), "{r:?}");
-    assert!(!root.join("doc/badge.vectorcraft").exists());
+    assert!(!root.join("doc/badge.vansoncraft").exists());
     assert_eq!(s.execute("links.relink", &json!({"ids": [id], "path": badge})).unwrap()["relinked"], json!([id]));
 }
 
@@ -476,7 +476,7 @@ fn a_copy_stays_inside_the_write_root() {
     write(&root.join("orig/photo.png"), &png(40, 30, RED));
     let id = placed(&mut s, &root.join("orig/photo.png"));
     std::fs::create_dir_all(root.join("doc")).unwrap();
-    s.execute("document.save", &json!({"path": root.join("doc/poster.vectorcraft")})).unwrap();
+    s.execute("document.save", &json!({"path": root.join("doc/poster.vansoncraft")})).unwrap();
     let found = root.join("found/photo.png");
     write(&found, &png(40, 30, BLUE));
     let allowed = root.join("allowed");
@@ -525,7 +525,7 @@ fn junk_search_params_never_fail_internally() {
     std::fs::remove_file(root.join("orig/a.png")).unwrap();
     let internal = |r: &crate::Result<Value>| matches!(r, Err(EngineError::Internal { .. }));
     let mut cases = vec![];
-    for v in vectorcraft_testkit::strategies::junk_values() {
+    for v in vansoncraft_testkit::strategies::junk_values() {
         cases.extend([
             json!({"folder": root, "maxSeconds": v}),
             json!({"folder": root, "ids": v}),

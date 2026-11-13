@@ -7,7 +7,7 @@
 
 use skrifa::MetadataProvider;
 use skrifa::raw::TableProvider;
-use vectorcraft_doc::GlyphChoice;
+use vansoncraft_doc::GlyphChoice;
 
 use super::FontFace;
 use super::gsub::Substitution;
@@ -111,7 +111,7 @@ impl FontFace {
 
     /// `c` drawn with glyph `gid` of this face ([`CharStyle::glyph_alternate`]).
     ///
-    /// [`CharStyle::glyph_alternate`]: vectorcraft_doc::CharStyle::glyph_alternate
+    /// [`CharStyle::glyph_alternate`]: vansoncraft_doc::CharStyle::glyph_alternate
     pub fn choice(&self, c: char, gid: u32) -> GlyphChoice {
         GlyphChoice { ch: c, gid, font: self.postscript_name(), version: self.version.clone() }
     }

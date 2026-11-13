@@ -5,10 +5,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::{Map, Value, json};
-use vectorcraft_doc::{AnchorRef, Document, NodeId, NodeKind};
-use vectorcraft_geom::{PathData, Point, Vec2};
-use vectorcraft_pathops::addons::pathtools as pt;
-use vectorcraft_tools::addons::shared_edge::{DIAMETER, DIAMETER_RANGE, ID};
+use vansoncraft_doc::{AnchorRef, Document, NodeId, NodeKind};
+use vansoncraft_geom::{PathData, Point, Vec2};
+use vansoncraft_pathops::addons::pathtools as pt;
+use vansoncraft_tools::addons::shared_edge::{DIAMETER, DIAMETER_RANGE, ID};
 
 use super::super::super::{CommandSpec, always, bad, checked_id, cmd, finite_numbers, has_doc, number_or, switch_or, text_param};
 use super::{edit_whole, set_path};

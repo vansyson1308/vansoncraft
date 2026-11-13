@@ -46,7 +46,7 @@ impl Visitor for Blocked {
 /// A fresh folder (canonical, as a search reports it) holding `paths`: files, and folders where
 /// they end in `/`.
 fn tree(tag: &str, paths: &[&str]) -> PathBuf {
-    let root = vectorcraft_testkit::temp_dir(&format!("findfiles-{tag}"));
+    let root = vansoncraft_testkit::temp_dir(&format!("findfiles-{tag}"));
     let _ = std::fs::remove_dir_all(&root);
     std::fs::create_dir_all(&root).unwrap();
     for p in paths {
@@ -187,8 +187,8 @@ fn a_picked_folder_inside_other_apps_folders_is_refused() {
     let briefs = [
         ("missing", "the folder can't be read"),
         ("file.ttf", "the path isn't a folder"),
-        ("refused", "VectorCraft doesn't search other apps' or the system's folders"),
-        ("Users/Public/x", "VectorCraft doesn't search the Shared or Public folder in Users"),
+        ("refused", "VansonCraft doesn't search other apps' or the system's folders"),
+        ("Users/Public/x", "VansonCraft doesn't search the Shared or Public folder in Users"),
     ];
     for (picked, why) in briefs {
         assert_eq!(search(&root, picked, Limits::default(), 1, &[]).failure(), Some(why), "{picked}");

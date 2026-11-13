@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use kurbo::{ParamCurve, ParamCurveArclen, Point, Vec2};
-use vectorcraft_geom::{Anchor, AnchorKind, PathData, SubPath};
+use vansoncraft_geom::{Anchor, AnchorKind, PathData, SubPath};
 
 use super::*;
 use crate::addons::simplify_anchors_keep_shape;

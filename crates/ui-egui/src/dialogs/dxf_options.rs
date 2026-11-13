@@ -9,14 +9,14 @@
 //! (asking where when there is no path); bad options keep the dialog open.
 
 use serde_json::{Map, Value, json};
-use vectorcraft_cad::{ColorDepth, DxfPreset, DxfVersion, Preserve, RasterFormat};
-use vectorcraft_doc::Unit;
-use vectorcraft_engine::cmd::fileio;
+use vansoncraft_cad::{ColorDepth, DxfPreset, DxfVersion, Preserve, RasterFormat};
+use vansoncraft_doc::Unit;
+use vansoncraft_engine::cmd::fileio;
 
 use super::DialogSpec;
 use super::document_setup::{LABEL, check, choice};
 use crate::state::Dialog;
-use crate::{VectorcraftApp, io, widgets};
+use crate::{VansoncraftApp, io, widgets};
 
 pub(super) const KIND: &str = "dxfOptions";
 
@@ -103,7 +103,7 @@ pub(super) fn note_set(d: &mut Dialog, field: &str) {
 /// Open DXF Options for an export whose params (path, artboard choice, any DXF option) are
 /// `params`, over the options used last. A `dxfPreset` in `params` sets its fields under the
 /// options `params` gives.
-pub fn open(app: &mut VectorcraftApp, params: &Value) {
+pub fn open(app: &mut VansoncraftApp, params: &Value) {
     let mut fields = defaults();
     if let Some(o) = app.ui.dxf_options.as_object() {
         fields.extend(o.iter().map(|(k, v)| (k.clone(), v.clone())));
@@ -120,7 +120,7 @@ pub fn open(app: &mut VectorcraftApp, params: &Value) {
     app.ui.dialog = Some(d);
 }
 
-fn body(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
+fn body(app: &mut VansoncraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
     let presets: Vec<(&str, &str)> = DxfPreset::ALL.iter().map(|p| (p.id(), p.label())).collect();
     choice(ui, d, PRESET, tl!("Preset:"), &presets);
     apply_picked_preset(d, false);
@@ -194,7 +194,7 @@ pub(super) fn scale_row(ui: &mut egui::Ui, d: &mut Dialog) {
         ui.label(egui::RichText::new("=").color(t.text));
         let scale = d.f64("scale", 1.0);
         if let Some(v) = widgets::plain_field(ui, "dxf-scale", scale, "", 3, 64.0) {
-            let (lo, hi) = (*vectorcraft_cad::SCALE_RANGE.start(), *vectorcraft_cad::SCALE_RANGE.end());
+            let (lo, hi) = (*vansoncraft_cad::SCALE_RANGE.start(), *vansoncraft_cad::SCALE_RANGE.end());
             d.fields.insert("scale".into(), json!(v.clamp(lo, hi)));
         }
         ui.label(egui::RichText::new(tl!("Units")).color(t.text));
@@ -210,7 +210,7 @@ fn note(ui: &mut egui::Ui, text: &str) {
 }
 
 /// Check the options, remember them, and write the file(s).
-fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
+fn confirm(app: &mut VansoncraftApp, d: &Dialog) -> Result<Value, String> {
     // A preset or field set since the dialog last drew (the control channel sets fields without
     // drawing) counts as drawn.
     let mut d = d.clone();
