@@ -149,8 +149,9 @@ model is **CLIENT VERIFIED**.
 | Claude Desktop | — | Windows/macOS | — | — | **NOT VERIFIED** (no desktop client here); `setup claude-desktop --apply` is tested against the documented file format |
 | Codex CLI / IDE / desktop app | — | any | — | — | **NOT VERIFIED** (no OpenAI account here); `setup codex` prints the documented command and TOML |
 | Release 0.25.0 packages: the scripted MCP client (`packaging/smoke/mcp_smoke.py`), `setup` and `doctor`, and the desktop app with the bridge ([release run](https://github.com/vansyson1308/vansoncraft/actions/runs/43371867221)) | 0.25.0 | Windows Server 2025 (portable ZIP; MSI installed for the user beside VectorCraft 0.24.1), Ubuntu 24.04 (tar.gz, AppImage `--version`); Rust removed from the runners | headless and desktop | stdio + TCP | **PROTOCOL VERIFIED** on the files the draft release held, before they were published |
-| The same files downloaded from the public release URLs, no token | 0.25.0 | Ubuntu 24.04 and Windows Server 2025 runners (`verify-public`), and a Linux container (Xvfb) | headless and desktop | stdio + TCP | **PROTOCOL VERIFIED**: every file matched `SHA256SUMS.txt`; 38 of 38 checks of `packaging/smoke/linux.sh` passed in the container |
-| In-app updater, the released Linux app made to count as 0.24.0 (`VANSONCRAFT_PRETEND_VERSION`) | 0.25.0 | Linux container, Xvfb | — | — | Help › Check for Updates says 0.25.0 is the newest: the pre-release is not offered, as designed. Offering a newer **stable** release was not tried (there is none yet) |
+| The same files downloaded from the public release URLs, no token (`verify-public`) | 0.25.0 | Ubuntu 24.04 (tar.gz) and Windows Server 2025 (portable ZIP) runners | headless | stdio | **PROTOCOL VERIFIED**: every file matched `SHA256SUMS.txt`; the CLI's version and the scripted MCP client |
+| The same files downloaded from the public release URLs, in a Linux container | 0.25.0 | Ubuntu 24.04 container, Xvfb | headless and desktop | stdio + TCP | **PROTOCOL VERIFIED**: every file matched `SHA256SUMS.txt`; 38 of 38 checks of `packaging/smoke/linux.sh` passed (MCP, `setup`/`doctor`, the desktop bridge, the AppImage) |
+| In-app updater, the released Linux app made to count as 0.24.0 (`VANSONCRAFT_PRETEND_VERSION`) | 0.25.0 | Linux container, Xvfb | — | — | Help › Check for Updates offered nothing and said the app is up to date. The message names the build's own version, not the one it compared. By the updater's code, pre-releases are never offered; this run shows that nothing was offered, not why. Offering a newer **stable** release was not tried (there is none yet) |
 | Any client on Windows (Claude Desktop, Claude Code, Codex with a real model) | — | Windows | — | — | **NOT VERIFIED** (no Windows desktop with a client here; the scripted checks above ran on Windows Server 2025) |
 
 ## Measured with 0.25.0
@@ -160,13 +161,14 @@ model is **CLIENT VERIFIED**.
 - **range:** the same measurement across that run and the two dry runs before it.
 - **here:** a Linux container (no GPU) that downloaded the public files.
 
-These are first baselines, not targets; a desktop with a GPU will differ.
+These are first baselines, not targets; a desktop with a GPU will differ. The Windows runner's
+clock ticks about every 16 ms, so its sub-second MCP timings (0.016, 0.031, 0.062 s) are whole ticks.
 
 | What | Windows | Linux |
 |---|---|---|
-| Download size | MSI 74.2 MB, portable ZIP 98.9 MB | tar.gz 93.6 MB, AppImage 86.7 MB |
-| Download time (here, about 90 MB/s) | about 1 s each | about 1 s each |
-| Unpack | ZIP 1.1 s (dry run) | tar.gz 1.7 s (release; range 1.5–1.7 s), 1.8 s (here) |
+| Download size | MSI 74.2 MiB, portable ZIP 98.9 MiB | tar.gz 93.6 MiB, AppImage 86.7 MiB |
+| Download time (here, measured with curl at 74–96 MB/s) | about 1 s each | about 1 s each |
+| Unpack | ZIP 1.3 s (release; range 0.8–1.3 s) | tar.gz 1.7 s (release; range 1.5–1.9 s), 1.8 s (here) |
 | MSI install / install again / uninstall | 5.3 s / 0.44 s / 1.3 s (release; install range 3.4–5.3 s) | — |
 | MCP `initialize` answered | 0.016–0.031 s | 0.004 s (release), 0.007 s (here) |
 | Tool list ready, from the server's start | 0.016–0.031 s | 0.005 s (release), 0.01 s (here) |

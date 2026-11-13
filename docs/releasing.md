@@ -30,7 +30,7 @@ User-facing names say **VansonCraft**. Files, binaries and ids stay lowercase
 
 | Version | Date | Kind | Run | Platforms |
 |---|---|---|---|---|
-| [0.25.0](https://github.com/vansyson1308/vansoncraft/releases/tag/v0.25.0) | 2026-11-13 | pre-release, unsigned | [43371867221](https://github.com/vansyson1308/vansoncraft/actions/runs/43371867221), every job passed | Windows x64 (MSI, portable ZIP), Linux x86_64 (tar.gz, AppImage) |
+| [0.25.0](https://github.com/vansyson1308/vansoncraft/releases/tag/v0.25.0) | 2026-11-13 | pre-release, unsigned | [43371867221](https://github.com/vansyson1308/vansoncraft/actions/runs/43371867221), every job that ran passed (the dry-run stage is skipped in a publishing run) | Windows x64 (MSI, portable ZIP), Linux x86_64 (tar.gz, AppImage) |
 
 A published version is never changed: the workflow refuses to publish a version that is already
 published, or whose tag already exists, and a stable release must be newer than the latest one.

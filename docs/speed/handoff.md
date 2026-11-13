@@ -29,7 +29,7 @@ doing, not done in this release.
 | Engine: no id reuse after undo (`unique_ids`, on in MCP headless and in the desktop app with `--control`) | IMPLEMENTED, TESTED |
 | Method resources and four prompts | IMPLEMENTED, TESTED (protocol), CLIENT VERIFIED (Claude Code 2.1.322 read and used them, `mcp-clients.md`) |
 | Desktop live mode (H) | TESTED on Linux under Xvfb with a software GPU (`mcp-clients.md`) |
-| Release 0.25.0 packages (Windows x64 MSI and portable ZIP, Linux x86_64 tar.gz and AppImage) | TESTED: the scripted MCP client, `setup`/`doctor` and the desktop bridge on fresh Windows Server 2025 and Ubuntu 24.04 runners, before publishing and again from the public URLs (`mcp-clients.md`) |
+| Release 0.25.0 packages (Windows x64 MSI and portable ZIP, Linux x86_64 tar.gz and AppImage) | TESTED before publishing on fresh Windows Server 2025 and Ubuntu 24.04 runners:<br>• the scripted MCP client;<br>• `setup`/`doctor`;<br>• the desktop bridge.<br>After publishing, from the public URLs:<br>• checksums and the headless MCP client again on both runners (ZIP, tar.gz);<br>• the full Linux check in a Linux container (`mcp-clients.md`). |
 | Claude Desktop, Codex, clients on Windows | BLOCKED here (no such client, credentials or Windows desktop); configuration written from the official docs |
 | Lost-and-found (soft) edges as a vector primitive | DEFERRED: no honest vector primitive; guidance offers an intermediate value shape, a gradient across the edge, or a declared feather effect |
 | F4 (undo group left open on disconnect), F5, F8, F9, F12, F14, F16–F18 | DEFERRED (see `audit.md`) |

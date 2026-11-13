@@ -173,15 +173,17 @@ files are not code-signed. They are listed on the
 
 | File | For | Size |
 |---|---|---|
-| [`vansoncraft-0.25.0-windows-x64.msi`](https://github.com/vansyson1308/vansoncraft/releases/download/v0.25.0/vansoncraft-0.25.0-windows-x64.msi) | Windows x64. Installs for the current user; app and CLI. | 74.2 MB |
-| [`vansoncraft-0.25.0-windows-x64-portable.zip`](https://github.com/vansyson1308/vansoncraft/releases/download/v0.25.0/vansoncraft-0.25.0-windows-x64-portable.zip) | Windows x64, without installing. Unpack it into a folder you keep. | 98.9 MB |
-| [`vansoncraft-0.25.0-linux-x86_64.tar.gz`](https://github.com/vansyson1308/vansoncraft/releases/download/v0.25.0/vansoncraft-0.25.0-linux-x86_64.tar.gz) | Linux x86_64, glibc 2.35+. App and CLI, the copy to give an agent. | 93.6 MB |
-| [`vansoncraft-0.25.0-linux-x86_64.AppImage`](https://github.com/vansyson1308/vansoncraft/releases/download/v0.25.0/vansoncraft-0.25.0-linux-x86_64.AppImage) | Linux x86_64, the desktop app in one file. | 86.7 MB |
-| [`SHA256SUMS.txt`](https://github.com/vansyson1308/vansoncraft/releases/download/v0.25.0/SHA256SUMS.txt) | checksums of every file | |
+| [`vansoncraft-0.25.0-windows-x64.msi`](https://github.com/vansyson1308/vansoncraft/releases/download/v0.25.0/vansoncraft-0.25.0-windows-x64.msi) | Windows x64. Installs for the current user by default; app and CLI. | 74.2 MiB |
+| [`vansoncraft-0.25.0-windows-x64-portable.zip`](https://github.com/vansyson1308/vansoncraft/releases/download/v0.25.0/vansoncraft-0.25.0-windows-x64-portable.zip) | Windows x64, without installing. Unpack it into a folder you keep. | 98.9 MiB |
+| [`vansoncraft-0.25.0-linux-x86_64.tar.gz`](https://github.com/vansyson1308/vansoncraft/releases/download/v0.25.0/vansoncraft-0.25.0-linux-x86_64.tar.gz) | Linux x86_64, glibc 2.35+. App and CLI, the copy to give an agent. | 93.6 MiB |
+| [`vansoncraft-0.25.0-linux-x86_64.AppImage`](https://github.com/vansyson1308/vansoncraft/releases/download/v0.25.0/vansoncraft-0.25.0-linux-x86_64.AppImage) | Linux x86_64, the desktop app in one file. | 86.7 MiB |
+| [`SHA256SUMS.txt`](https://github.com/vansyson1308/vansoncraft/releases/download/v0.25.0/SHA256SUMS.txt) | checksums of every package | |
 
-These exact files were checked before they were published:
-- on fresh Windows Server 2025 and Ubuntu 24.04 runners;
-- then again after a download from the links above.
+**What was checked:**
+- **Before publishing:** these exact files, on fresh Windows Server 2025 and Ubuntu 24.04 runners: the MCP server, `setup` and `doctor`, the desktop app with the bridge, and the MSI's install and uninstall.
+- **After a download from the links above:**
+  - the checksums and the MCP server on both systems;
+  - the full Linux check in a container.
 
 Nobody has tried them on a Windows 10 or 11 desktop, or on another Linux distribution, yet.
 
@@ -191,8 +193,8 @@ Nobody has tried them on a Windows 10 or 11 desktop, or on another Linux distrib
 
    Windows SmartScreen may say that the publisher is unknown, because the files are unsigned.
 2. **Install:**
-   - **MSI:** run it. It installs into `%LOCALAPPDATA%\Programs\VansonCraft`.
-   - **ZIP or tar.gz:** unpack it.
+   - **MSI:** run it. It installs into `%LOCALAPPDATA%\Programs\VansonCraft` by default ("Only for me"). The commands below assume that folder; use yours if you chose another.
+   - **ZIP or tar.gz:** unpack it. The programs are in the unpacked folder, `bin/` for the tar.gz.
 3. **Connect your agent** from the installed copy. On Windows:
 
    ```powershell
@@ -203,16 +205,25 @@ Nobody has tried them on a Windows 10 or 11 desktop, or on another Linux distrib
    & $cli doctor                         # checks the install, the engine and each client's entry
    ```
 
-   On Linux, the same commands run `bin/vansoncraft-cli` from the unpacked folder.
-4. **Draw** in the window: start the app with its control port,
-   `vansoncraft --control 7979`. Restart the client, then ask it to draw.
+   For the portable ZIP, set `$cli` to `vansoncraft-cli.exe` in the unpacked folder. On Linux, the
+   same commands run `bin/vansoncraft-cli` from the unpacked folder.
+4. **Draw** in the window. Start the app with its control port (the Start menu shortcut starts it
+   without one):
+
+   ```powershell
+   & "$env:LOCALAPPDATA\Programs\VansonCraft\vansoncraft.exe" --control 7979
+   ```
+
+   On Linux, run `bin/vansoncraft --control 7979` from the unpacked folder. Restart the client, then
+   ask it to draw.
 
    To work without a window, use `setup <client> --headless --folder <folder>`: the agent reads and
    writes only in that folder.
 
 The full guide is [`docs/speed/mcp-clients.md`](docs/speed/mcp-clients.md). It covers what an agent
 should check before downloading anything, and which clients were tried.
-- Claude Code was tried with a real model on Linux.
+- Claude Code was tried with a real model on Linux, with a development build just before 0.25.0
+  (not yet with the release packages).
 - Claude Desktop, Codex and the Windows clients have not been tried with a real client yet. The
   release workflow checks the MCP server, `setup` and `doctor` with a scripted client on both
   systems.
