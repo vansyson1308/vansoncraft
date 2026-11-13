@@ -256,6 +256,59 @@ fn a_call_meant_for_another_document_runs_nothing() {
     assert_eq!(r["isError"], false, "{r}");
 }
 
+/// With `expect_document`, every step of a batch is pinned to that document: a step that opens
+/// another document stops the batch at the next step, which runs nowhere, and an atomic batch
+/// takes back what the steps before it did.
+#[test]
+fn every_step_of_a_pinned_batch_checks_its_document() {
+    let mut s = Server::new(Box::new(Headless::with_document()));
+    let first = payload(&call(&mut s, "doc_inspect", json!({"depth": 0})))["uid"].clone();
+    let rect = json!({"x": 0, "y": 0, "width": 5, "height": 5});
+    let r = call(
+        &mut s,
+        "command_batch",
+        json!({"expect_document": first, "steps": [
+            {"id": "shape.rectangle", "params": rect},
+            {"id": "file.new", "params": {"width": 100, "height": 100}},
+            {"id": "shape.ellipse", "params": rect},
+            {"id": "draw_shape", "params": {"shape": "star", "cx": 50, "cy": 50, "radius1": 20, "radius2": 8, "points": 5}},
+        ]}),
+    );
+    let out = payload(&r);
+    assert_eq!((out["completed"].as_u64(), out["failed"].as_u64()), (Some(2), Some(1)), "{out}");
+    let refused = out["results"][2]["error"].as_str().unwrap();
+    assert!(refused.contains(&format!("not {first}")) && refused.contains("nothing was run"), "{refused}");
+    let second = payload(&call(&mut s, "doc_inspect", json!({"depth": 0})));
+    assert_ne!(second["uid"], first);
+    assert_eq!(second["layers"][0]["childCount"], 0, "nothing was drawn in the document the batch opened: {second}");
+
+    // Atomic: the refused step rolls the batch back, in the first document too; the group closes.
+    let activate_first = |s: &mut Server| {
+        assert_eq!(call(s, "command_run", json!({"id": "document.activate", "params": {"index": 0}}))["isError"], false);
+        let active = payload(&call(s, "doc_inspect", json!({"depth": 0})));
+        assert_eq!(active["uid"], first);
+        active["layers"][0]["childCount"].clone()
+    };
+    let before = activate_first(&mut s);
+    assert_eq!(before, 1, "the rectangle the first batch drew");
+    let r = call(
+        &mut s,
+        "command_batch",
+        json!({"expect_document": first, "atomic": true, "steps": [
+            {"id": "shape.rectangle", "params": rect},
+            {"id": "file.new", "params": {"width": 100, "height": 100}},
+            {"id": "shape.ellipse", "params": rect},
+        ]}),
+    );
+    let out = payload(&r);
+    assert_eq!(out["rolledBack"], true, "{out}");
+    assert_eq!(activate_first(&mut s), before, "the first step was taken back");
+    let r = call(&mut s, "command_run", json!({"id": "shape.rectangle", "params": rect, "expect_document": first}));
+    assert_eq!(r["isError"], false, "the undo group was closed: {r}");
+    let bad = call(&mut s, "command_batch", json!({"expect_document": "first", "steps": []}));
+    assert_eq!(bad["isError"], true, "{bad}");
+}
+
 #[test]
 fn pictures_a_command_returns_come_back_as_images() {
     let mut s = Server::new(Box::new(Headless::with_document()));

@@ -1,136 +1,153 @@
 # Connecting Claude and Codex (Windows first)
 
-> **Status:** written 2026-11-12 against the official client docs listed at the end. The
-> compatibility matrix says exactly which combinations were run.
+> **Status:** 2026-11-13. Written against the clients' official documentation (Sources, at the end).
+> The compatibility matrix says exactly which combinations were run, and when.
 
 ## What runs where
 
 `vansoncraft-cli mcp` is a **local stdio** MCP server: the client (Claude Code, Claude Desktop,
-Codex) starts it as a child process on the same computer and talks to it over stdin/stdout. It has
-two backends:
+Codex) starts it as a child process on the same computer and talks to it over stdin and stdout. It
+has two backends:
 
 | Mode | Start it with | What you get |
 |---|---|---|
-| **Desktop (remote)** | the app with `--control 7979`, then `vansoncraft-cli mcp --connect 127.0.0.1:7979` | the agent draws in the open window; you watch and can edit by hand |
-| **Headless** | `vansoncraft-cli mcp --headless` | an in-process engine; no window; save before the server stops |
+| **Desktop** | the app with `--control 7979`, then `vansoncraft-cli mcp --connect 127.0.0.1:7979` | the agent draws in the open window; you watch and can edit by hand |
+| **Headless** | `vansoncraft-cli mcp --headless --automation-read-root DIR --automation-write-root DIR` | an engine of its own, no window, files only inside DIR; save before the server stops |
 
-"Remote" here means a TCP bridge to the app **on your own machine** (127.0.0.1), not a server on the
-Internet. There is no Internet transport, so a cloud chat (claude.ai in the browser, ChatGPT) cannot
-reach it; use a local client. Do not open port 7979 to the network to work around this.
+"Desktop" reaches the app over a TCP bridge **on your own machine** (127.0.0.1), not over the
+Internet. There is no Internet transport, so a cloud chat (claude.ai or ChatGPT in a browser) cannot
+reach it: use a local client. Do not open port 7979 to the network to work around this.
 
-With no flag the server tries 127.0.0.1:7979 once at start-up and falls back to headless. It now
-says so: the `initialize` instructions and a note after the first tool result explain that nothing
-appears in a window, and `doc_inspect` reports `backend.kind` (`remote` or `headless`) and the
-document `uid`. **To draw in the window you are looking at, start the app first and register the
-server with `--connect`**, so a missing app is an error instead of a silent fallback.
+With `--connect` the server first asks the program on the port what it is (`app.identity`) and
+refuses anything but VansonCraft, so it never drives another app that listens on the same port
+(VectorCraft uses 7979 too); nothing answering is an error, never a silent headless session.
 
-## Windows set-up
+## Install once (no Rust, no build)
 
-1. **Build** (this fork has no installer releases): install Rust (rustup, MSVC toolchain), then in
-   the repository folder:
+Download a release from [GitHub Releases](https://github.com/vansyson1308/vansoncraft/releases)
+and check it against the release's `SHA256SUMS.txt` (`Get-FileHash <file>` in PowerShell):
 
-   ```bash
-   cargo install --path apps/vansoncraft-cli --locked
-   ```
+| Package | Where the programs are |
+|---|---|
+| Windows MSI (`vansoncraft-<version>-windows-x64.msi`, installs for the current user) | `%LOCALAPPDATA%\Programs\VansonCraft\vansoncraft.exe` and `vansoncraft-cli.exe`; the Start menu has VansonCraft |
+| Windows portable ZIP (`…-windows-x64-portable.zip`) | the folder you unpack it into (keep it; settings stay in `VansonCraftData` beside the programs) |
+| Linux tar.gz (`…-linux-x86_64.tar.gz`, glibc 2.35+) | `<folder>/vansoncraft-<version>-linux-x86_64/bin/vansoncraft` and `vansoncraft-cli` |
 
-   The CLI lands in `%USERPROFILE%\.cargo\bin\vansoncraft-cli.exe`. Build the app the same way
-   (`cargo install --path apps/vansoncraft --locked`) or run it from the checkout:
+The packages are not code-signed yet: SmartScreen may say the publisher is unknown. The AppImage
+runs the desktop app; for agents use the tar.gz, whose CLI has a lasting path.
 
-   ```bash
-   cargo run --release -p vansoncraft -- --control 7979
-   ```
+Then, in a terminal, from the installed copy (Windows example):
 
-2. **Folders.** Make one folder for references and one for results, e.g. `C:\Art\refs` and
-   `C:\Art\out`. Chat attachments are **not** files the server can see: put a reference image or SVG
-   in `C:\Art\refs` and give the agent its path.
-3. **Confine file access (recommended).** For headless work add
-   `--automation-read-root C:\Art --automation-write-root C:\Art\out`; for the desktop app start the
-   app itself with those flags (`vansoncraft.exe --control 7979 --automation-read-root C:\Art
-   --automation-write-root C:\Art\out`), since a running app enforces its own roots.
-4. **Register** the server in your client (below). Use the absolute path to the `.exe`; restart the
-   client after changing its configuration.
-
-## Client configuration
-
-### Claude Code (CLI, VS Code, JetBrains)
-
-```bash
-claude mcp add --transport stdio vansoncraft -- "C:\Users\me\.cargo\bin\vansoncraft-cli.exe" mcp --connect 127.0.0.1:7979
+```powershell
+& "$env:LOCALAPPDATA\Programs\VansonCraft\vansoncraft-cli.exe" doctor
 ```
 
-Everything after `--` is the server command. Add `--scope user` to have it in every project, or
-`--scope project` to write a shared `.mcp.json` (servers in it need approval the first time):
+`doctor` checks the program and its version, the desktop app beside it, the headless engine (one
+drawing and preview), what answers on 127.0.0.1:7979, and every client entry that names VansonCraft.
 
-```json
-{"mcpServers": {"vansoncraft": {"type": "stdio", "command": "C:\\Users\\me\\.cargo\\bin\\vansoncraft-cli.exe", "args": ["mcp", "--connect", "127.0.0.1:7979"]}}}
+## Connect a client (once)
+
+`setup` prints (or, for Claude Desktop, writes) the server entry for **this** installed program, so
+the client never points at a build folder or a temporary download:
+
+```powershell
+$cli = "$env:LOCALAPPDATA\Programs\VansonCraft\vansoncraft-cli.exe"
+& $cli setup claude-desktop --apply            # desktop mode, written into Claude Desktop's settings
+& $cli setup claude-code                       # prints the `claude mcp add …` command to run
+& $cli setup codex                             # prints the `codex mcp add …` command and the TOML
+& $cli setup codex --headless --folder C:\Art  # headless, reading and writing only in C:\Art
 ```
 
-Check with `claude mcp list` (✔ Connected) or `/mcp` inside a session. For headless work replace
-`--connect 127.0.0.1:7979` with `--headless`.
+- **Claude Desktop:** `--apply` keeps every other server and setting, saves a backup beside the
+  file (`claude_desktop_config.json.vansoncraft-backup-<time>`), writes atomically, replaces an older
+  `vansoncraft` entry instead of adding a second one and does nothing when the entry is already
+  right. `--remove` takes out only that entry. Quit Claude Desktop completely and start it again.
+  The file is `%APPDATA%\Claude\claude_desktop_config.json` (macOS `~/Library/Application
+  Support/Claude/…`); when only the Microsoft Store copy's folder exists, setup uses that one;
+  `--config FILE` names another.
+- **Claude Code:** run the printed `claude mcp add --scope user --transport stdio vansoncraft -- …`
+  (it stores the server in `~/.claude.json`); `claude mcp list` should show it connected. If an
+  entry named `vansoncraft` exists, remove it first with the printed `claude mcp remove` command.
+- **Codex** (CLI, IDE extension, desktop app; they share `~/.codex/config.toml`, on Windows
+  `%USERPROFILE%\.codex`): run the printed `codex mcp add vansoncraft -- …`, or paste the printed
+  `[mcp_servers.vansoncraft]` table. `codex mcp list` should show it.
 
-### Claude Desktop
+Run `doctor` again afterwards: it reads the three clients' settings and says whether each entry runs
+this program.
 
-Edit `%APPDATA%\Claude\claude_desktop_config.json` (macOS: `~/Library/Application
-Support/Claude/claude_desktop_config.json`; Settings › Developer › Edit Config), then quit and restart:
+### Every time you draw
 
-```json
-{
-  "mcpServers": {
-    "vansoncraft": {
-      "command": "C:\\Users\\me\\.cargo\\bin\\vansoncraft-cli.exe",
-      "args": ["mcp", "--connect", "127.0.0.1:7979"]
-    }
-  }
-}
-```
+- **Desktop mode:** start the app with the control port, then start (or restart) the client:
 
-Logs: `%APPDATA%\Claude\logs\mcp-server-vansoncraft.log` holds the server's stderr (it names the
-backend on its first line). Images dropped into a Claude Desktop chat reach the model, not the MCP
-server: save the reference into your refs folder and give its path.
+  ```powershell
+  & "$env:LOCALAPPDATA\Programs\VansonCraft\vansoncraft.exe" --control 7979
+  ```
 
-### Codex (CLI and IDE extension)
+  To confine what the agent's commands read and write, start the app with
+  `--automation-read-root C:\Art --automation-write-root C:\Art\out` as well.
+- **Headless mode:** nothing to start; the client starts the server.
 
-Codex reads MCP servers from `config.toml` (`~/.codex/config.toml`; on Windows the `.codex` folder
-in your user profile, or `$CODEX_HOME`). Use a TOML literal string for a Windows path:
+Nothing is downloaded or built again: the client starts the installed `vansoncraft-cli`.
 
-```toml
-[mcp_servers.vansoncraft]
-command = 'C:\Users\me\.cargo\bin\vansoncraft-cli.exe'
-args = ["mcp", "--connect", "127.0.0.1:7979"]
-startup_timeout_sec = 20
-tool_timeout_sec = 120
-```
+## For agents setting this up
 
-or `codex mcp add vansoncraft -- 'C:\Users\me\.cargo\bin\vansoncraft-cli.exe' mcp --connect 127.0.0.1:7979`.
-Check with `codex mcp list` or `/mcp` in the TUI. If Codex runs inside WSL, it starts Linux
-programs: build the Linux CLI inside WSL, and note that a Windows app's control port is reached
-from WSL2 only with WSL networking set up for it.
+Before downloading anything, look for an installed copy and reuse it:
 
-## Compatibility matrix
-
-| Client | Version | OS | Backend | Transport | Result |
-|---|---|---|---|---|---|
-| MCP protocol tests (`cargo test -p vansoncraft-mcp`) | — | Linux | headless + fake remote | in-process / TCP | **PASS** (protocol level only) |
-| Scripted MCP client (scenarios A–G, I) | — | Linux | headless | stdio | **PASS** (see `acceptance-matrix.md`) |
-| Claude Code CLI (`claude -p`, a real model) | 2.1.322 | Linux (container) | headless, `--automation-*-root` | stdio | **CLIENT VERIFIED**, two runs. Run 1 (a binary built before the method notes existed): 13 MCP calls, drawing saved and exported; it reported honestly that `vansoncraft://method/mass` was missing. Run 2 (final binary, the same Vietnamese vase brief): read `vansoncraft://method/procedure` and `…/mass`, 47 tool calls in 48 turns, measured with `study.values`, revised twice (light masses 6 → 3, darks linked), fixed an overlap it found, saved `.vansoncraft` and SVG. The two errors were its own shell commands, refused by the client's permissions |
-| Desktop app + `vansoncraft-cli mcp --connect` | debug build | Linux, Xvfb, Mesa llvmpipe (Vulkan) | remote | TCP 127.0.0.1:7979 | **PASS** (scenario H): `backend.kind` `remote`, `desktopWindow: true`; a 75-step composition drawn in the window and seen in `ui_screenshot`; a pointer click between agent calls moved the revision and the selection; closing the app → "not reachable … nothing was sent" (no fallback); a wrong port → exit 1 with the reason; no flag and no app → headless with the notice |
-| Claude Desktop | — | Windows/macOS | — | — | **NOT VERIFIED** (no desktop client in this environment) |
-| Codex CLI / IDE | — | any | — | — | **NOT VERIFIED** (not installed here; no OpenAI credentials) |
-| Any client on Windows | — | Windows | — | — | **NOT VERIFIED** (no Windows machine here; the shared CI gate may build Windows when Actions run on the fork — check the PR's checks) |
+1. Windows: `%LOCALAPPDATA%\Programs\VansonCraft\vansoncraft-cli.exe` (the MSI), then
+   `Get-Command vansoncraft-cli`, then a folder the user names (portable ZIP). Linux:
+   `command -v vansoncraft-cli`, then a folder the user names.
+2. Run `vansoncraft-cli --version` and `vansoncraft-cli doctor --json`. A copy that reports the
+   version wanted (or newer) and no `fail` is used as it is.
+3. Only when there is none, or the user asks for a newer one: download that version's package from
+   its release URL (`https://github.com/vansyson1308/vansoncraft/releases/download/v<version>/<file>`),
+   check its SHA-256 against that release's `SHA256SUMS.txt`, and install it for the current user
+   (`msiexec /i <file>.msi /qn`, no administrator rights) or unpack it into a folder the user keeps.
+4. Register it with `vansoncraft-cli setup <client> …` and check with `doctor`. Never clone the
+   repository or run cargo to set VansonCraft up; never point a client at a download or build folder.
+5. Ask the user which folder the work may read and write, and use exactly that (`--folder`, or the
+   app's `--automation-*-root`); never widen access to the whole disk to make a check pass.
 
 ## Working conventions for agents
 
 - Coordinates are points, y down, origin at the first artboard's top-left. Bézier `in`/`out`
   handles are absolute points, not offsets.
 - `draw_shape.rotation` turns clockwise; `transform.rotate` and `object.rotate` counter-clockwise.
-- Check `doc_inspect` → `backend` and `uid` before editing, and pass `expect_document: uid` to
-  `command_run` / `command_batch` so a call meant for one document never runs in another; when a call
-  times out, inspect before retrying so nothing is drawn twice.
-- `command_batch {atomic: true}` now rolls back when a step fails (`rolledBack: true`); files a step
-  wrote and documents it opened are not taken back.
+- Check `doc_inspect` → `backend` (`kind`, and `app` with the desktop app's name and version) and
+  `uid` before editing, and pass `expect_document: uid` to `command_run`, `run_command`,
+  `invoke_menu` and `command_batch`: each command the call sends (each step of a batch) is checked
+  against it as it runs, in the app's own frame, so a tab the person switches to (or a document an
+  earlier step opened) is never changed; the step is refused with nothing run. A command that runs
+  others itself (`command.batch`, an action, a script) is checked once, when it starts.
+- If the app was restarted, every call that could change something says so and sends nothing
+  until `doc_inspect` has gone through: document uids and object ids from before name nothing in
+  the new launch.
+- New objects never take the id of one an undo took away (headless, and the desktop app with
+  `--control`): a stale id fails with "no such object" instead of changing a new object.
+- `command_batch {atomic: true}` rolls back when a step fails (`rolledBack: true`): the document
+  edits are undone; files a step wrote and documents it opened stay. The ids it created are void.
+- When a call times out, inspect before retrying, so nothing is drawn twice.
 - Part names can repeat across artboards: scope `document.find` with `within` or `intersects`.
 - Drawing method: `vansoncraft://method` and the prompts `speed-drawing`, `composition-variants`,
   `revise-locally`, `memory-exercise`.
+
+## Compatibility matrix
+
+What was run, with which version. Scripted checks are **PROTOCOL VERIFIED**; a real client with a
+model is **CLIENT VERIFIED**.
+
+| Client | Version | OS | Backend | Transport | Result |
+|---|---|---|---|---|---|
+| MCP protocol tests (`cargo test -p vansoncraft-mcp`) | — | Linux | headless + fake desktop app | in-process / TCP | **PROTOCOL VERIFIED**, including the identity check, pinned documents and a restarted app |
+| Scripted MCP client (scenarios A–G, I of `acceptance-matrix.md`) | — | Linux | headless | stdio | **PROTOCOL VERIFIED** |
+| Desktop app + `vansoncraft-cli mcp --connect` (scenario H) | debug build | Linux, Xvfb, Mesa llvmpipe | desktop | TCP 127.0.0.1:7979 | **PROTOCOL VERIFIED**: `backend.kind` `remote`, a 75-step composition drawn in the window and seen in `ui_screenshot`; closing the app → "not reachable … nothing was sent"; a wrong port → exit 1 with the reason |
+| Desktop app, the person switching tabs between the agent's calls (2026-11-13) | debug build | Linux, Xvfb | desktop | TCP | **PROTOCOL VERIFIED**: `command_run` and an atomic `command_batch` with `expect_document` refused ("nothing was run"); nothing drawn in the other document; a program answering like VectorCraft on the port refused |
+| Claude Code CLI (`claude -p`, a real model) | 2.1.322 | Linux (container) | headless, `--automation-*-root` | stdio | **CLIENT VERIFIED**, two runs. Run 1 (a binary built before the method notes existed): 13 MCP calls, drawing saved and exported; it reported honestly that `vansoncraft://method/mass` was missing. Run 2 (the same Vietnamese vase brief): read `vansoncraft://method/procedure` and `…/mass`, 47 tool calls in 48 turns, measured with `study.values`, revised twice, saved `.vansoncraft` and SVG |
+| Claude Code CLI (`claude -p`, a real model), 2026-11-13 | 2.1.322 | Linux (container), Xvfb | desktop (`--connect 127.0.0.1:7979`) | stdio + TCP | **CLIENT VERIFIED**: 26 tool calls in 66 s; drew sky, sun, mountains and "Chào buổi sáng Việt Nam" in the window, previewed, changed only the sun with `expect_document`, saved `.vansoncraft` and exported SVG and PNG into `Bản vẽ thử/buổi sáng.*`, reopened the file (6 objects). `claude mcp add` as `setup claude-code` prints it: added, `claude mcp list` Connected, a second add refused as a duplicate |
+| Claude Desktop | — | Windows/macOS | — | — | **NOT VERIFIED** (no desktop client here); `setup claude-desktop --apply` is tested against the documented file format |
+| Codex CLI / IDE / desktop app | — | any | — | — | **NOT VERIFIED** (no OpenAI account here); `setup codex` prints the documented command and TOML |
+| Any client on Windows | — | Windows | — | — | **NOT VERIFIED** |
+
+The release workflow's own checks of the packages, once it runs, are listed in each release's notes.
 
 ## Prompts to try (Vietnamese)
 
@@ -149,8 +166,29 @@ from WSL2 only with WSL networking set up for it.
 
 ## Sources
 
-Read on 2026-11-12: Claude Code — https://code.claude.com/docs/en/mcp; Claude Desktop —
-https://modelcontextprotocol.io/quickstart/user; Codex — https://learn.chatgpt.com/docs/extend/mcp
-(redirected from developers.openai.com/codex/mcp) and
-https://learn.chatgpt.com/codex/config-file/config-reference. The Codex Windows path and timeout key
-names were read from page summaries, not verbatim text: confirm them against your Codex version.
+Read on 2026-11-12 and 2026-11-13:
+
+- Claude Code: https://code.claude.com/docs/en/mcp and https://code.claude.com/docs/en/mcp-quickstart
+  (`claude mcp add [options] <name> -- <command> [args...]`, scopes `local`, `project`, `user`;
+  `~/.claude.json`, on Windows `%USERPROFILE%\.claude.json`; image results shown to the model).
+- Claude Desktop: https://modelcontextprotocol.io/docs/develop/connect-local-servers
+  (`claude_desktop_config.json` in `%APPDATA%\Claude` or `~/Library/Application Support/Claude`,
+  `mcpServers` → `command`, `args`; quit and restart after editing) and
+  https://code.claude.com/docs/en/hipaa-setup (the Microsoft Store copy's folder). Local servers are
+  not available in claude.ai or Cowork:
+  https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp.
+- Codex: https://learn.chatgpt.com/docs/extend/mcp?surface=cli (redirected from
+  developers.openai.com/codex/mcp), https://learn.chatgpt.com/docs/developer-commands?surface=cli
+  (`codex mcp add <name> -- <command>`, `list`, `get`, `remove`),
+  https://learn.chatgpt.com/docs/config-file/config-reference (`[mcp_servers.<name>]`, `command`,
+  `args`, `startup_timeout_sec` default 10, `tool_timeout_sec` default 60) and
+  https://learn.chatgpt.com/docs/windows/windows-app (`%USERPROFILE%\.codex`). Codex passes MCP
+  image results to the model unless the result also has `structuredContent` (openai/codex source);
+  VansonCraft's results have none.
+
+## Revision history
+
+| Date | Change | Summary |
+|---|---|---|
+| 2026-11-13 | major | For installed packages: install once, `setup`, `doctor`, what an agent checks before downloading; desktop-mode guards; the matrix with the desktop Claude Code run. |
+| 2026-11-12 | major | First version. |

@@ -4,6 +4,8 @@
 //! vansoncraft-cli --safe-mode SUBCOMMAND ...
 //! vansoncraft-cli mcp [--connect 127.0.0.1:7979 | --headless] [--automation-read-root DIR]... [--automation-write-root DIR]...
 //! vansoncraft-cli run [--in FILE] [--cmd id [--params '{json}'] | --commands FILE|-]... [--export out.svg]... [--scale 2] [--ppi 300]
+//! vansoncraft-cli setup claude-desktop|claude-code|codex [--desktop [--port N] | --headless --folder DIR...] [--apply | --remove]
+//! vansoncraft-cli doctor [--connect 127.0.0.1:7979] [--json]
 //! vansoncraft-cli commands
 //! vansoncraft-cli convert IN OUT [--scale 2] [--ppi 300] [--artboard 0 | --range 1-3,5] [--outline-text] [--decimals N] [--replace-lossy] [--editing-data] [--legacy-name-encoding ENC] [--preserve-editing] [--ai-version 7|pdf] [--hidden-objects layer|omit|visible] [--transparent-images flatten|omit]
 //! vansoncraft-cli info FILE
@@ -38,6 +40,7 @@ macro_rules! out {
     }};
 }
 
+mod agents;
 /// The desktop app's CoreText font lister, shared: exports and MCP find the same fonts.
 #[cfg(target_os = "macos")]
 #[path = "../../vansoncraft/src/mac_fonts.rs"]
@@ -96,6 +99,19 @@ USAGE:
       plug-in store, so it reads no grants.json, and a plug-in that lists permissions or asks for a
       heavy budget does not install there. With VANSONCRAFT_NO_PREFS set there is no store either,
       and a grant accepted under this flag lasts for that session only.
+
+  vansoncraft-cli setup CLIENT [--desktop [--port N] | --headless --folder DIR...] [--apply | --remove] [--config FILE]
+      Connect an AI agent to this copy of VansonCraft. CLIENT: claude-desktop, claude-code or codex.
+      Prints the MCP server entry for this program (never a build or temporary folder) and how to
+      add it; for Claude Desktop, --apply writes it into the client's settings (a backup is kept,
+      every other server stays) and --remove takes it out. --desktop (default) draws in the window
+      of `vansoncraft --control N`; --headless --folder DIR draws without a window, reading and
+      writing files only inside DIR. `vansoncraft-cli setup --help` says more.
+
+  vansoncraft-cli doctor [--connect ADDR] [--json]
+      Check this copy for agents: the program and its version, the desktop app beside it, the
+      headless engine (one drawing and preview), what answers on ADDR (default 127.0.0.1:7979) and
+      every client entry that names VansonCraft. Exits non-zero when a check fails.
 
   vansoncraft-cli run [--in FILE] [--cmd ID [--params JSON] | --commands FILE|-]... [--export FILE]... [--scale N] [--ppi N] [--allow-plugin-grants]
       Headless batch: open FILE (any readable format) or start a new document, run commands in
@@ -216,6 +232,8 @@ fn main() -> ExitCode {
         // usage. The other subcommands check for it themselves.
         Some("commands" | "info") if help_requested(&args[1..], &[]) => help(),
         Some("mcp") => mcp(&args[1..], safe_mode),
+        Some("setup") => agents::setup(&args[1..]),
+        Some("doctor") => agents::doctor(&args[1..]),
         Some("run") => run(&args[1..]),
         Some("commands") => commands(),
         Some("convert") => convert(&args[1..]),
@@ -317,12 +335,14 @@ fn mcp(args: &[String], safe_mode: bool) -> Result<(), String> {
     } else if headless || safe_mode || allow_grants {
         Box::new(accepting_grants(with_stores(Headless::with_document()), allow_grants))
     } else if let Some(addr) = connect {
-        // Explicit address: fail loudly if the app isn't there.
-        Box::new(Remote::connect(&addr).map_err(|e| format!("cannot connect to {addr}: {e}"))?)
+        // Explicit address: fail loudly if VansonCraft isn't there (nothing listens, or another
+        // program does), never fall back to a session no window shows.
+        Box::new(Remote::connect_verified(&addr).map_err(|e| format!("cannot connect to {addr}: {e}"))?)
     } else {
-        match Remote::connect(DEFAULT_ADDR) {
+        match Remote::connect_verified(DEFAULT_ADDR) {
             Ok(r) => Box::new(r),
-            Err(_) => {
+            Err(e) => {
+                eprintln!("vansoncraft-cli: not connecting to {DEFAULT_ADDR}: {e}");
                 fell_back = true;
                 Box::new(with_stores(Headless::with_document()))
             }

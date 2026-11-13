@@ -1,6 +1,6 @@
 # VansonCraft MCP server
 
-> **Last updated:** 2026-11-12 · **Change:** drawing-method resources and prompts (docs/speed/), `render_preview` regions and value views, `doc_inspect` backend, headless-fallback notice, atomic `command_batch` rollback; previously: Save location-refusal error (#6146); existing response shapes retained.
+> **Last updated:** 2026-11-13 · **Change:** `setup` and `doctor`; `--connect` checks the app's identity; `expect_document` checked by the app as each command runs; previously: drawing-method resources and prompts (docs/speed/), `render_preview` regions and value views, `doc_inspect` backend, headless-fallback notice, atomic `command_batch` rollback; existing response shapes retained.
 
 `vansoncraft-cli mcp` runs a [Model Context Protocol](https://modelcontextprotocol.io) server on stdio
 (newline-delimited JSON-RPC 2.0; see [Protocol](#protocol) for version negotiation). Agents use it to
@@ -13,8 +13,16 @@ It has two backends:
 | **Remote** | `vansoncraft-cli mcp --connect 127.0.0.1:7979` (the app must run with `vansoncraft --control 7979`) | Everything. Tool calls are forwarded over the [control protocol](control-protocol.md), so you watch the app change live. |
 | **Headless** | `vansoncraft-cli mcp --headless` | An in-process engine session with a CPU renderer. Everything except the UI-only tools (`inspect_ui` or `ui_inspect`, `type_text`, `answer_dialog`, `open_panel`, `screenshot {window:true}` or `ui_screenshot`). |
 
-With no flag, the server tries `127.0.0.1:7979` and falls back to headless. Logs go to stderr; stdout carries
-only protocol messages.
+With no flag, the server tries `127.0.0.1:7979` and falls back to headless (and says so). With
+`--connect` it never falls back: it first asks the program on the port what it is (`app.identity`) and
+stops, saying why, when nothing answers or the answer isn't VansonCraft (another app may hold the port;
+VectorCraft uses 7979 too). Logs go to stderr; stdout carries only protocol messages.
+
+**Set up and check an installed copy:** `vansoncraft-cli setup claude-desktop|claude-code|codex` prints
+(for Claude Desktop, with `--apply`, writes) the server entry for the installed program, and
+`vansoncraft-cli doctor` checks the program, the app beside it, the headless engine, the control port
+and every client entry that names VansonCraft. Step by step, for Windows first:
+[docs/speed/mcp-clients.md](speed/mcp-clients.md).
 
 ### Command catalogue (headless vs remote)
 
@@ -70,28 +78,31 @@ For a live session, start the app first: `cargo run --release -p vansoncraft -- 
 
 The release packages ship `vansoncraft-cli` alongside the desktop app, so no build is needed:
 
-| Install | CLI |
+| Package | CLI |
 |---|---|
-| Windows (MSI) | `%LOCALAPPDATA%\Programs\VansonCraft\vansoncraft-cli.exe` by default (`C:\Program Files\VansonCraft\vansoncraft-cli.exe` for an all-users install, under `Program Files (x86)` instead for the 32-bit build, or wherever you installed it otherwise), not on `PATH` |
-| Linux (deb, rpm) | `/usr/bin/vansoncraft-cli` |
-| macOS | the separate `vansoncraft-cli-<version>-macos-<arch>.zip` release asset (the `.app` holds only the desktop app) |
+| Windows MSI (installs for the current user) | `%LOCALAPPDATA%\Programs\VansonCraft\vansoncraft-cli.exe` (not on `PATH`) |
+| Windows portable ZIP | `vansoncraft-cli.exe` in the folder you unpack it into |
+| Linux tar.gz | `bin/vansoncraft-cli` in the folder you unpack it into |
 
-```sh
-# Windows (PowerShell), default install folder
-claude mcp add vansoncraft -- "$env:LOCALAPPDATA\Programs\VansonCraft\vansoncraft-cli.exe" mcp
-# Linux, or macOS with the CLI unzipped onto PATH
-claude mcp add vansoncraft -- vansoncraft-cli mcp
+Let the installed CLI write or print the client entry for itself, then check it:
+
+```powershell
+& "$env:LOCALAPPDATA\Programs\VansonCraft\vansoncraft-cli.exe" setup claude-code   # prints `claude mcp add …`
+& "$env:LOCALAPPDATA\Programs\VansonCraft\vansoncraft-cli.exe" doctor
 ```
+
+[docs/speed/mcp-clients.md](speed/mcp-clients.md) covers Claude Desktop (`setup claude-desktop --apply`),
+Codex and headless mode.
 
 For a live session, start the installed app with the control port before the MCP client starts the server:
 
 ```sh
 # macOS: quit VansonCraft first, since `open -a` passes no arguments to an app that is already running
 open -a VansonCraft --args --control 7979
-# Windows (PowerShell), default install folder
+# Windows (PowerShell), the MSI's folder
 & "$env:LOCALAPPDATA\Programs\VansonCraft\vansoncraft.exe" --control 7979
-# Linux (deb, rpm)
-vansoncraft --control 7979
+# Linux, from the unpacked tar.gz
+./bin/vansoncraft --control 7979
 ```
 
 The Dock, Start menu and desktop launchers start the app without `--control`, so the app opens no control

@@ -4,6 +4,7 @@ use super::handlers::{
     select_ids, transform,
 };
 use super::{ARTBOARD_PARAMS, Backend, Map, ToolResult, Value, json, writable_format};
+use crate::backend::Pinned;
 
 /// The `menu` argument of the command listings.
 pub(super) const MENU_FILTER: &str =
@@ -76,7 +77,11 @@ fn filter_commands(all: Value, a: &Args) -> Value {
 pub(super) fn backend_info(b: &dyn Backend) -> Value {
     let describe = b.describe();
     let kind = if describe.starts_with("remote") { "remote" } else { "headless" };
-    json!({"kind": kind, "describe": describe, "desktopWindow": kind == "remote"})
+    let mut info = json!({"kind": kind, "describe": describe, "desktopWindow": kind == "remote"});
+    if let Some(app) = b.app() {
+        info["app"] = app;
+    }
+    info
 }
 
 fn dispatch(b: &mut dyn Backend, name: &str, a: &Args) -> Result<ToolResult, String> {
@@ -103,7 +108,7 @@ fn dispatch(b: &mut dyn Backend, name: &str, a: &Args) -> Result<ToolResult, Str
             j(json!({"count": list.as_array().map_or(0, Vec::len), "commands": list}))
         }
         "command_run" | "run_command" | "invoke_menu" => {
-            expect_document(b, a)?;
+            let pin = expected_document(a)?;
             let cmd = req_str(a, if name == "command_run" { "id" } else { "command" })?;
             let params = match a.get("params") {
                 None | Some(Value::Null) => json!({}),
@@ -111,7 +116,11 @@ fn dispatch(b: &mut dyn Backend, name: &str, a: &Args) -> Result<ToolResult, Str
                 Some(_) => return Err("`params` must be an object".into()),
             };
             let method = if name == "invoke_menu" && b.has_ui() { "ui.menu.invoke" } else { "engine.execute" };
-            let mut reply = b.call(method, json!({"command": cmd, "params": params}))?;
+            let request = json!({"command": cmd, "params": params});
+            let mut reply = match pin {
+                Some(uid) => Pinned { inner: b, uid }.call(method, request)?,
+                None => b.call(method, request)?,
+            };
             // A picture in the reply (`study.render`, `study.values {image}`, `study.compare {image}`)
             // goes back as an image the model can look at, not as base64 text it can't read.
             match reply.as_object_mut().and_then(|o| o.remove("pngBase64")) {
@@ -348,25 +357,27 @@ pub(crate) fn check_tool_arguments(name: &str, args: &Args) -> Result<(), String
 }
 
 /// `expect_document`: the uid (from `doc_inspect`) of the document the caller means to change.
-/// Refused before anything runs when another document is active, as after a person switched tabs
-/// in the desktop app or a step opened another file (F2b in docs/speed/audit.md). The check and
-/// the command are separate requests to a desktop app, so a switch in between still slips past.
-fn expect_document(b: &mut dyn Backend, a: &Args) -> Result<(), String> {
-    let Some(v) = a.get("expect_document").filter(|v| !v.is_null()) else { return Ok(()) };
-    let want = v.as_u64().ok_or("`expect_document` must be a document uid (a whole number from doc_inspect)")?;
-    let doc = b.call("document.inspect", json!({"depth": 0}))?;
-    match doc.get("uid").and_then(Value::as_u64) {
-        Some(uid) if uid == want => Ok(()),
-        Some(uid) => Err(format!(
-            "the active document is uid {uid} ({}), not {want}: nothing was run; inspect and activate the right document first",
-            doc.get("title").and_then(Value::as_str).unwrap_or("untitled")
-        )),
-        None => Err("no document is open: nothing was run".into()),
+/// Every command the call runs is then pinned to it ([`Pinned`]): the app, or the headless
+/// session, checks it in the same step that runs the command, so a command finds another document
+/// active (a person switched tabs in the desktop app, or a step opened another file) and refuses,
+/// with nothing run, instead of changing that document (F2b in docs/speed/audit.md).
+fn expected_document(a: &Args) -> Result<Option<u64>, String> {
+    match a.get("expect_document").filter(|v| !v.is_null()) {
+        None => Ok(None),
+        Some(v) => v.as_u64().map(Some).ok_or_else(|| "`expect_document` must be a document uid (a whole number from doc_inspect)".to_string()),
     }
 }
 
 fn command_batch(b: &mut dyn Backend, a: &Args) -> Result<ToolResult, String> {
-    expect_document(b, a)?;
+    match expected_document(a)? {
+        Some(uid) => batch_steps(&mut Pinned { inner: b, uid }, a),
+        None => batch_steps(b, a),
+    }
+}
+
+/// [`command_batch`] on `b`, pinned to the expected document when there is one ([`Pinned`] lets
+/// the atomic group's end through, so it closes, and rolls back, whichever document is active).
+fn batch_steps(b: &mut dyn Backend, a: &Args) -> Result<ToolResult, String> {
     let steps = a.get("steps").and_then(Value::as_array).ok_or("`steps` must be an array")?;
     if steps.len() > MAX_COMMAND_BATCH_STEPS {
         return Err(format!("`steps` holds {} steps; at most {MAX_COMMAND_BATCH_STEPS}", steps.len()));

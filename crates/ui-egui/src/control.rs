@@ -1,7 +1,11 @@
 //! Programmatic control of the running app (agents, tests, MCP).
 //!
 //! Methods (JSON-lines over the host's transport):
-//! - `engine.execute {command, params}` / `ui.menu.invoke {command|id, params}`: run any command
+//! - `app.identity`: `{name: "VansonCraft", appId, version, pid, instance}`, so a client can tell this
+//!   app from another that listens on the same port, and a restart of it (`instance` is new each run)
+//! - `engine.execute {command, params, expectDocument?}` / `ui.menu.invoke {command|id, params,
+//!   expectDocument?}`: run any command; with `expectDocument` (a uid from `document.inspect`) only
+//!   while that document is active, checked in the frame that runs it
 //! - `engine.commands`: engine + UI commands with enablement
 //! - `document.inspect`: document summary; `ui.inspect`: UI state
 //! - `ui.docking`: the panel layout in use, the open flyout, the focused panel and the docking
@@ -494,12 +498,58 @@ fn packet_mods(value: Option<&Value>) -> Result<Option<Mods>, String> {
     }
 }
 
+/// What `app.identity` answers: which program holds the control port. A client checks it before
+/// it acts, so that it never drives another app that listens on the same port (VectorCraft, the
+/// project VansonCraft is based on, speaks the same protocol on the same default port).
+pub fn identity() -> Value {
+    json!({
+        "name": "VansonCraft",
+        "appId": vansoncraft_engine::cmd::help::APP_ID,
+        "version": env!("CARGO_PKG_VERSION"),
+        "pid": std::process::id(),
+        "instance": instance(),
+    })
+}
+
+/// A token of this launch of the app, random and the same for its whole run: a client that
+/// reconnects and finds another one knows the app was restarted, so the document uids and object
+/// ids it holds name nothing any more (each run counts them from 1 again).
+fn instance() -> &'static str {
+    static INSTANCE: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    INSTANCE.get_or_init(|| {
+        use std::hash::BuildHasher as _;
+        let keyed = std::collections::hash_map::RandomState::new();
+        format!("{:016x}{:016x}", keyed.hash_one(std::process::id()), keyed.hash_one(std::time::SystemTime::now()))
+    })
+}
+
+/// `expectDocument` of a request that runs a command: the uid (`document.inspect`) of the document
+/// the client means to change. Checked here, in the frame that runs the command, so no tab switch
+/// can come between the check and the command. `Ok(())` when it is absent.
+fn expected_document(app: &VansoncraftApp, p: &Value) -> Result<(), String> {
+    let Some(v) = p.get("expectDocument").filter(|v| !v.is_null()) else { return Ok(()) };
+    let want = v.as_u64().ok_or("`expectDocument` must be a document uid (a whole number from document.inspect)")?;
+    match app.session.active() {
+        Some(st) if st.uid == want => Ok(()),
+        Some(st) => Err(format!(
+            "the active document is uid {} ({}), not {want}: nothing was run; inspect and activate the right document first",
+            st.uid,
+            st.title()
+        )),
+        None => Err(format!("no document is open (expected uid {want}): nothing was run")),
+    }
+}
+
 pub fn handle(app: &mut VansoncraftApp, ctx: &egui::Context, req: &ControlRequest) -> Outcome {
     let p = &req.params;
     let s = |k: &str| p.get(k).and_then(Value::as_str);
     match req.method.as_str() {
+        "app.identity" => ok(identity()),
         "engine.execute" | "ui.menu.invoke" | "command" => {
             let Some(id) = s("command").or(s("id")) else { return err("missing `command`") };
+            if let Err(e) = expected_document(app, p) {
+                return err(e);
+            }
             let params = p.get("params").cloned().unwrap_or(json!({}));
             let params = if params.is_null() { json!({}) } else { params };
             // A key the command's description doesn't name is an error, not a default (#1442).

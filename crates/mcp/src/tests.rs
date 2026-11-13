@@ -22,6 +22,7 @@ mod place;
 mod protocol;
 mod speed;
 mod svg;
+mod verified;
 
 fn server() -> Server {
     Server::new(Box::new(Headless::with_document()))

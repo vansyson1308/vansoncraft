@@ -12,6 +12,55 @@ fn input_request(app: &mut VansoncraftApp, method: &str, params: Value) -> Value
     r
 }
 
+/// `app.identity` says which program holds the port, so a client never drives another app there.
+#[test]
+fn the_identity_names_vansoncraft_and_its_version() {
+    let mut app = VansoncraftApp::new(Session::new(), Services::default());
+    let r = input_request(&mut app, "app.identity", json!({}));
+    assert_eq!(r["ok"], true, "{r}");
+    assert_eq!(r["result"]["name"], "VansonCraft");
+    assert_eq!(r["result"]["appId"], vansoncraft_engine::cmd::help::APP_ID);
+    assert_eq!(r["result"]["version"], env!("CARGO_PKG_VERSION"));
+    assert_eq!(r["result"]["pid"], std::process::id());
+    let instance = r["result"]["instance"].as_str().unwrap().to_string();
+    assert_eq!(instance.len(), 32);
+    assert_eq!(input_request(&mut app, "app.identity", json!({}))["result"]["instance"], instance.as_str(), "the same for the whole run");
+}
+
+/// `expectDocument` is checked in the request that runs the command: after the person switched
+/// to another document, nothing runs in it (F2b in docs/speed/audit.md).
+#[test]
+fn a_command_meant_for_another_document_runs_nowhere() {
+    let mut app = VansoncraftApp::new(Session::new(), Services::default());
+    let none = input_request(
+        &mut app,
+        "engine.execute",
+        json!({"command": "shape.rectangle", "params": {"x": 0, "y": 0, "width": 5, "height": 5}, "expectDocument": 1}),
+    );
+    assert!(none["error"].as_str().unwrap().contains("no document is open"), "{none}");
+    app.run("file.new", json!({"width": 200, "height": 200})).unwrap();
+    let first = app.session.active().unwrap().uid;
+    app.run("file.new", json!({"width": 200, "height": 200})).unwrap();
+    let second = app.session.active().unwrap().uid;
+    let count = |app: &VansoncraftApp| app.session.active().unwrap().doc.node_count();
+    let before = count(&app);
+    let rect = json!({"x": 0, "y": 0, "width": 5, "height": 5});
+    for method in ["engine.execute", "ui.menu.invoke", "command"] {
+        let r = input_request(&mut app, method, json!({"command": "shape.rectangle", "params": rect, "expectDocument": first}));
+        let e = r["error"].as_str().unwrap_or_default();
+        assert!(e.contains(&format!("the active document is uid {second}")) && e.contains("nothing was run"), "{method}: {r}");
+        assert_eq!(count(&app), before, "{method}: nothing was drawn in the active document");
+    }
+    let bad = input_request(&mut app, "engine.execute", json!({"command": "shape.rectangle", "params": rect, "expectDocument": "first"}));
+    assert!(bad["error"].as_str().unwrap().contains("must be a document uid"), "{bad}");
+    let r = input_request(&mut app, "engine.execute", json!({"command": "shape.rectangle", "params": rect, "expectDocument": second}));
+    assert_eq!(r["ok"], true, "{r}");
+    assert_eq!(count(&app), before + 1);
+    // Without it, as before.
+    let r = input_request(&mut app, "engine.execute", json!({"command": "shape.rectangle", "params": rect}));
+    assert_eq!(r["ok"], true, "{r}");
+}
+
 #[test]
 fn deferred_pointer_reply_uses_the_gesture_document_after_file_new() {
     let mut app = VansoncraftApp::new(Session::new(), Services::default());

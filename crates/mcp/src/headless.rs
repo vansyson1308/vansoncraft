@@ -402,11 +402,28 @@ impl Backend for Headless {
 }
 
 impl Headless {
+    /// `expectDocument` of a command request, checked as the desktop app checks it
+    /// (`vansoncraft_ui_egui::control`): the command runs only while that document is active.
+    fn expected_document(&self, p: &Value) -> Result<(), String> {
+        let Some(v) = p.get("expectDocument").filter(|v| !v.is_null()) else { return Ok(()) };
+        let want = v.as_u64().ok_or("`expectDocument` must be a document uid (a whole number from document.inspect)")?;
+        match self.session.active() {
+            Some(st) if st.uid == want => Ok(()),
+            Some(st) => Err(format!(
+                "the active document is uid {} ({}), not {want}: nothing was run; inspect and activate the right document first",
+                st.uid,
+                st.title()
+            )),
+            None => Err(format!("no document is open (expected uid {want}): nothing was run")),
+        }
+    }
+
     /// One control-channel method ([`Backend::call`]).
     fn answer(&mut self, method: &str, p: &Value) -> Result<Value, String> {
         match method {
             "engine.execute" | "ui.menu.invoke" | "command" => {
                 let id = s(p, "command").or(s(p, "id")).ok_or("missing `command`")?.to_string();
+                self.expected_document(p)?;
                 let params = match p.get("params") {
                     None | Some(Value::Null) => json!({}),
                     Some(v) => v.clone(),

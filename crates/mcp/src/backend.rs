@@ -15,6 +15,46 @@ pub trait Backend {
     fn has_ui(&self) -> bool;
     /// Short human description ("headless", "remote 127.0.0.1:7979").
     fn describe(&self) -> String;
+    /// The desktop app's own answer to `app.identity` (`{name, appId, version, pid}`), when it was
+    /// checked on connecting.
+    fn app(&self) -> Option<Value> {
+        None
+    }
+}
+
+/// `inner` with every command it runs pinned to the document `uid` (MCP `expect_document`): each
+/// `engine.execute` / `ui.menu.invoke` carries `expectDocument`, which the app (or the headless
+/// session) checks in the same step that runs the command, so a tab switched in between, or a
+/// document a step opened, makes the next command refuse instead of changing another document.
+pub struct Pinned<'a> {
+    pub inner: &'a mut dyn Backend,
+    pub uid: u64,
+}
+
+impl Backend for Pinned<'_> {
+    fn call(&mut self, method: &str, params: Value) -> Result<Value, String> {
+        // Closing an undo group is never refused: a batch that stopped because another document
+        // became active still closes (and rolls back) its group, which reaches every document the
+        // batch changed.
+        let closes_group = params.get("command").and_then(Value::as_str) == Some("edit.undoGroup.end");
+        let params = match (method, params) {
+            ("engine.execute" | "ui.menu.invoke" | "command", Value::Object(mut o)) if !closes_group => {
+                o.insert("expectDocument".into(), json!(self.uid));
+                Value::Object(o)
+            }
+            (_, other) => other,
+        };
+        self.inner.call(method, params)
+    }
+    fn has_ui(&self) -> bool {
+        self.inner.has_ui()
+    }
+    fn describe(&self) -> String {
+        self.inner.describe()
+    }
+    fn app(&self) -> Option<Value> {
+        self.inner.app()
+    }
 }
 
 /// A running VansonCraft app, reached through its loopback control port.
@@ -22,7 +62,16 @@ pub struct Remote {
     addr: String,
     conn: Option<(BufReader<TcpStream>, TcpStream)>,
     next_id: u64,
+    /// What the app said it is (`app.identity`), when connected with [`Remote::connect_verified`]:
+    /// every new connection asks again before it carries a call.
+    identity: Option<Value>,
+    /// An identity check found a new launch of the app (it was restarted): until a
+    /// `document.inspect` goes through, every call that could change something is refused.
+    stale: bool,
 }
+
+/// How long the app has to answer `app.identity` (it answers in its next frame).
+const IDENTITY_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// Longest accepted control-channel reply line (bytes, without the newline). The app answers
 /// small JSON objects except for images, which reach tens of megabytes; anything longer is refused
@@ -33,9 +82,85 @@ const MAX_REPLY_BYTES: usize = 256 * 1024 * 1024;
 impl Remote {
     /// Connect to `addr` (e.g. `127.0.0.1:7979`), failing fast when nothing is listening.
     pub fn connect(addr: &str) -> std::io::Result<Self> {
-        let mut r = Self { addr: addr.to_string(), conn: None, next_id: 1 };
+        let mut r = Self { addr: addr.to_string(), conn: None, next_id: 1, identity: None, stale: false };
         r.reconnect()?;
         Ok(r)
+    }
+
+    /// [`Remote::connect`], then make sure the program on `addr` is VansonCraft (`app.identity`),
+    /// on this connection and on every later one: another app may listen on the same port (the
+    /// default 7979 is also VectorCraft's), and its documents must never be edited by mistake.
+    /// An app too old to answer `app.identity` is refused too: it can't check `expectDocument`.
+    pub fn connect_verified(addr: &str) -> Result<Self, String> {
+        let mut r = Self::connect(addr).map_err(|e| e.to_string())?;
+        r.identity = Some(Value::Null);
+        if let Err(e) = r.verify() {
+            r.conn = None;
+            return Err(e);
+        }
+        Ok(r)
+    }
+
+    /// What the app said it is (`{name, appId, version, pid, instance}`), when connected with
+    /// [`Remote::connect_verified`].
+    pub fn identity(&self) -> Option<&Value> {
+        self.identity.as_ref().filter(|v| !v.is_null())
+    }
+
+    /// Ask the program on the current connection what it is, and refuse anything but VansonCraft.
+    /// A VansonCraft of another launch than the one reached before (the app was restarted) sets
+    /// `stale`, which `call` acts on.
+    fn verify(&mut self) -> Result<(), String> {
+        let before = self.identity().cloned();
+        let id = self.next_id;
+        self.next_id += 1;
+        let line = json!({"id": id, "method": "app.identity", "params": {}}).to_string();
+        let kept = self.conn.as_ref().and_then(|(_, s)| s.read_timeout().ok().flatten());
+        if let Some((_, s)) = self.conn.as_ref() {
+            s.set_read_timeout(Some(IDENTITY_TIMEOUT)).map_err(|e| e.to_string())?;
+        }
+        let reply = self.roundtrip(&line);
+        if let Some((_, s)) = self.conn.as_ref() {
+            let _ = s.set_read_timeout(kept); // Only lengthens the wait of later calls if it fails.
+        }
+        let not_ours = |why: String| {
+            format!(
+                "the program listening on {} is not VansonCraft ({why}); another app may hold this port, or a VansonCraft older than 0.25.0, which can't check documents: start VansonCraft 0.25.0 or later with --control <port> and connect to that port",
+                self.addr
+            )
+        };
+        let reply = reply.map_err(|e| {
+            format!(
+                "the program listening on {} did not say what it is within {} s (`app.identity`: {e}); if it is VansonCraft and busy, try again",
+                self.addr,
+                IDENTITY_TIMEOUT.as_secs()
+            )
+        })?;
+        let v: Value = serde_json::from_str(reply.trim()).map_err(|_| not_ours("its answer is not JSON".into()))?;
+        if v.get("id") != Some(&json!(id)) && v.get("id").is_some() {
+            return Err(not_ours("its answer is not to app.identity".into()));
+        }
+        if v.get("ok").and_then(Value::as_bool) != Some(true) {
+            let why = v.get("error").and_then(Value::as_str).unwrap_or("it refused app.identity");
+            if v.get("id").is_none() {
+                // The control server's own refusals (too many connections) carry no id.
+                return Err(format!("the program at {} refused the connection: {why}", self.addr));
+            }
+            return Err(not_ours(format!("it answered app.identity with: {why}")));
+        }
+        let me = v.get("result").cloned().unwrap_or(Value::Null);
+        match me.get("name").and_then(Value::as_str) {
+            Some("VansonCraft") => {
+                let launch = |i: &Value| (i.get("instance").cloned(), i.get("pid").cloned());
+                if before.as_ref().is_some_and(|b| launch(b) != launch(&me)) {
+                    self.stale = true;
+                }
+                self.identity = Some(me);
+                Ok(())
+            }
+            Some(other) => Err(not_ours(format!("it says it is {other}"))),
+            None => Err(not_ours("it gave no name".into())),
+        }
     }
 
     pub fn addr(&self) -> &str {
@@ -66,11 +191,37 @@ impl Remote {
         Err(last)
     }
 
-    fn prepare_connection(&mut self) -> std::io::Result<()> {
+    /// A connection to carry the next call: the current one, or a new one whose program is asked
+    /// what it is ([`Remote::connect_verified`]). Fails with nothing sent, and with no connection
+    /// kept, when the app can't be reached or isn't VansonCraft.
+    fn prepare_connection(&mut self) -> Result<(), String> {
+        let ready = self.reach();
+        if ready.is_err() {
+            self.conn = None;
+        }
+        ready
+    }
+
+    /// Methods that only read, which go through after a restart: a client inspects with them.
+    const READS: [&str; 11] = [
+        "document.inspect",
+        "document.node",
+        "document.json",
+        "engine.commands",
+        "ui.inspect",
+        "ui.screenshot",
+        "ui.render",
+        "ui.menu.list",
+        "ui.contextMenu.list",
+        "ui.tool.list",
+        "ui.docking",
+    ];
+
+    fn reach(&mut self) -> Result<(), String> {
         if let Some((_, stream)) = self.conn.as_ref() {
-            stream.set_nonblocking(true)?;
+            stream.set_nonblocking(true).map_err(|e| e.to_string())?;
             let probe = stream.peek(&mut [0]);
-            stream.set_nonblocking(false)?;
+            stream.set_nonblocking(false).map_err(|e| e.to_string())?;
             match probe {
                 // Closed by the app, or holding bytes nobody asked for (an app that explains why it
                 // closes): either way no reply to the next request can be read from it.
@@ -80,7 +231,12 @@ impl Remote {
             }
         }
         if self.conn.is_none() {
-            self.reconnect()?;
+            self.reconnect().map_err(|e| format!("is not reachable: {e}"))?;
+            // A new connection may reach another program than the first one did (the app was
+            // closed and something else took the port): it is asked again.
+            if self.identity.is_some() {
+                self.verify()?;
+            }
         }
         Ok(())
     }
@@ -144,10 +300,16 @@ impl Remote {
 
 impl Backend for Remote {
     fn call(&mut self, method: &str, params: Value) -> Result<Value, String> {
-        self.prepare_connection().map_err(|e| {
-            self.conn = None;
-            format!("VansonCraft app at {} is not reachable: {e}; `{method}`: nothing was sent", self.addr)
-        })?;
+        self.prepare_connection().map_err(|e| format!("VansonCraft app at {}: {e}; `{method}`: nothing was sent", self.addr))?;
+        // After a restart every launch counts document uids and object ids from 1 again, so what
+        // the client holds would name other documents and objects: nothing that could change
+        // anything is sent until the client has inspected the new launch.
+        if self.stale && !Self::READS.contains(&method) {
+            return Err(format!(
+                "VansonCraft app at {} was restarted: the documents, their uids and the object ids from before are gone (a new launch counts them from 1 again); `{method}`: nothing was sent. Call doc_inspect and work from what it shows",
+                self.addr
+            ));
+        }
         let id = self.next_id;
         self.next_id += 1;
         let line = json!({"id": id, "method": method, "params": params}).to_string();
@@ -179,6 +341,10 @@ impl Backend for Remote {
             ));
         }
         if v.get("ok").and_then(Value::as_bool) == Some(true) {
+            if method == "document.inspect" {
+                // The client has seen the new launch's documents.
+                self.stale = false;
+            }
             Ok(v.get("result").cloned().unwrap_or(Value::Null))
         } else {
             Err(v.get("error").and_then(Value::as_str).unwrap_or("unknown error").to_string())
@@ -189,7 +355,14 @@ impl Backend for Remote {
         true
     }
 
+    fn app(&self) -> Option<Value> {
+        self.identity().cloned()
+    }
+
     fn describe(&self) -> String {
-        format!("remote {}", self.addr)
+        match self.identity().and_then(|i| i.get("version")).and_then(Value::as_str) {
+            Some(v) => format!("remote {} (VansonCraft {v})", self.addr),
+            None => format!("remote {}", self.addr),
+        }
     }
 }

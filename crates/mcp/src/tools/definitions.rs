@@ -110,7 +110,7 @@ pub fn tool_definitions() -> Vec<Value> {
             "Run a command",
             "Run an engine command by id with its JSON params. Command parameters follow the registry's descriptions. run_command runs it the same way; it takes the id as command instead of id.",
             obj(
-                json!({"id": string("Command id"), "params": {"type":"object"}, "expect_document": {"type":"integer","minimum":0,"description":"The uid (doc_inspect) of the document this call is meant for; refused, with nothing run, when another document is active"}}),
+                json!({"id": string("Command id"), "params": {"type":"object"}, "expect_document": {"type":"integer","minimum":0,"description":"The uid (doc_inspect) of the document this call is meant for: each command it runs checks it as it runs and is refused, with nothing run, while another document is active (a tab switched in the desktop app, or a document an earlier step opened)"}}),
                 &["id"],
             ),
             false,
@@ -120,7 +120,7 @@ pub fn tool_definitions() -> Vec<Value> {
             "Run several commands",
             "Run steps in order; each edit is its own undo step, or with atomic:true the whole batch is one (named `label`, else after its first edit; `atomic` says which documents). A step's id is a command id, or draw_path / draw_shape with that tool's arguments as params (its result is the tool's: the new object's `id`). A param string that is exactly \"$N.path\" (N: 0-based step index) or \"$last.path\" takes that value from an earlier step's result, e.g. {\"id\":\"$1.id\"}; \"$$\" starts a literal \"$\". Returns completed, failed, results and created (the ids draw_path / draw_shape steps made, in order). Stops on the first error by default. At most 256 steps; kept step results total at most 8 MiB, past which the batch stops with the reason.",
             obj(
-                json!({"steps": {"type":"array", "maxItems": 256, "items":obj(json!({"id":string("Command id, or draw_path / draw_shape"),"params":{"type":"object"}}), &["id"])}, "stop_on_error":{"type":"boolean", "default":true}, "atomic":{"type":"boolean", "default":false, "description":"Make the batch's edits one undo step in the active document and in each document a step opens or creates; in a document open before the batch that a step switches to, each edit stays its own undo step. When a step fails, the edits of the steps before it are undone and the reply says rolledBack: true (files written and documents opened are not taken back); keep_on_error keeps them instead"}, "keep_on_error":{"type":"boolean", "default":false, "description":"With atomic: keep the edits of the steps that ran when one fails (as one undo step)"}, "label":string("The undo step's name with atomic"), "expect_document": {"type":"integer","minimum":0,"description":"The uid (doc_inspect) of the document this call is meant for; refused, with nothing run, when another document is active"}}),
+                json!({"steps": {"type":"array", "maxItems": 256, "items":obj(json!({"id":string("Command id, or draw_path / draw_shape"),"params":{"type":"object"}}), &["id"])}, "stop_on_error":{"type":"boolean", "default":true}, "atomic":{"type":"boolean", "default":false, "description":"Make the batch's edits one undo step in the active document and in each document a step opens or creates; in a document open before the batch that a step switches to, each edit stays its own undo step. When a step fails, the edits of the steps before it are undone and the reply says rolledBack: true (files written and documents opened are not taken back); keep_on_error keeps them instead"}, "keep_on_error":{"type":"boolean", "default":false, "description":"With atomic: keep the edits of the steps that ran when one fails (as one undo step)"}, "label":string("The undo step's name with atomic"), "expect_document": {"type":"integer","minimum":0,"description":"The uid (doc_inspect) of the document this call is meant for: each command it runs checks it as it runs and is refused, with nothing run, while another document is active (a tab switched in the desktop app, or a document an earlier step opened)"}}),
                 &["steps"],
             ),
             false,
@@ -177,7 +177,7 @@ pub fn tool_definitions() -> Vec<Value> {
             "Run command",
             "Execute any VansonCraft command by id with JSON params (see list_commands for ids and params). Examples: {\"command\":\"object.group\"}, {\"command\":\"object.align\",\"params\":{\"horizontal\":\"left\"}}, {\"command\":\"file.new\",\"params\":{\"width\":800,\"height\":600}}. Returns the command's result (e.g. {id} for creation commands). command_run runs it the same way and takes the id as id.",
             obj(
-                json!({"command": string("Command id, e.g. shape.rectangle, object.group, paint.setFill"), "params": {"type": "object", "description": "Command parameters"}, "expect_document": {"type":"integer","minimum":0,"description":"The uid (doc_inspect) of the document this call is meant for; refused, with nothing run, when another document is active"}}),
+                json!({"command": string("Command id, e.g. shape.rectangle, object.group, paint.setFill"), "params": {"type": "object", "description": "Command parameters"}, "expect_document": {"type":"integer","minimum":0,"description":"The uid (doc_inspect) of the document this call is meant for: each command it runs checks it as it runs and is refused, with nothing run, while another document is active (a tab switched in the desktop app, or a document an earlier step opened)"}}),
                 &["command"],
             ),
             false,
@@ -336,7 +336,7 @@ pub fn tool_definitions() -> Vec<Value> {
             "Invoke menu",
             "Invoke a menu item by its command id (same ids as list_commands, including UI-only commands like view.zoomIn or window.* in the desktop app).",
             obj(
-                json!({"command": string("Menu command id"), "params": {"type": "object"}, "expect_document": {"type":"integer","minimum":0,"description":"The uid (doc_inspect) of the document this call is meant for; refused, with nothing run, when another document is active"}}),
+                json!({"command": string("Menu command id"), "params": {"type": "object"}, "expect_document": {"type":"integer","minimum":0,"description":"The uid (doc_inspect) of the document this call is meant for: each command it runs checks it as it runs and is refused, with nothing run, while another document is active (a tab switched in the desktop app, or a document an earlier step opened)"}}),
                 &["command"],
             ),
             false,

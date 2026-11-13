@@ -22,15 +22,16 @@ doing, not done in this release.
 | `study.hatch` (fill-rule clipping, seeded jitter, recipe in data) | IMPLEMENTED, TESTED, VISUALLY VERIFIED |
 | MCP `render_preview` region / gray / values / scale-up | IMPLEMENTED, TESTED |
 | MCP `doc_inspect.backend`, headless-fallback notice | IMPLEMENTED, TESTED |
-| MCP `expect_document` guard | IMPLEMENTED, TESTED (headless); remote race documented |
+| MCP `expect_document` guard | IMPLEMENTED, TESTED: checked by the app (or the headless session) as each command runs, 2026-11-13 |
+| MCP app identity (`app.identity`, restart detection), `setup`, `doctor` | IMPLEMENTED, TESTED; Claude Code 2.1.322 CLIENT VERIFIED in desktop mode on Linux (`mcp-clients.md`) |
 | Example artworks (`examples/speed/`) | VISUALLY VERIFIED (three QC rounds, `qc-report.md`); every SVG rendered by Chromium matches the app's PNG |
 | Atomic `command_batch` rollback | IMPLEMENTED, TESTED |
-| Engine: no id reuse after undo (`unique_ids`, on in MCP headless) | IMPLEMENTED, TESTED; desktop app DEFERRED |
+| Engine: no id reuse after undo (`unique_ids`, on in MCP headless and in the desktop app with `--control`) | IMPLEMENTED, TESTED |
 | Method resources and four prompts | IMPLEMENTED, TESTED (protocol), CLIENT VERIFIED (Claude Code 2.1.322 read and used them, `mcp-clients.md`) |
 | Desktop live mode (H) | TESTED on Linux under Xvfb with a software GPU (`mcp-clients.md`) |
 | Claude Desktop, Codex, Windows | BLOCKED here (no such client, credentials or machine); configuration written from the official docs |
 | Lost-and-found (soft) edges as a vector primitive | DEFERRED: no honest vector primitive; guidance offers an intermediate value shape, a gradient across the edge, or a declared feather effect |
-| F4 (undo group left open on disconnect), F5, F8–F10, F12, F14, F16–F18 | DEFERRED (see `audit.md`) |
+| F4 (undo group left open on disconnect), F5, F8, F9, F12, F14, F16–F18 | DEFERRED (see `audit.md`) |
 | Menu placement of the study commands in the desktop app | DEFERRED: they run from the command palette, the control channel, the CLI and MCP; menus need translations for every language |
 
 ## Known limitations
@@ -42,28 +43,27 @@ doing, not done in this release.
 - `study.blockIn` may cut corners of the outline by up to its tolerance; with `hull` the convex
   envelope can cut inside concave parts.
 - `study.hatch` makes straight lines only; it refuses more than `maxLines` instead of thinning them.
-- `expect_document` is checked atomically only in headless mode.
-- In the desktop app, an id an undo took away can still be given to a new object (`unique_ids` is
-  off there until journals record it); pass `expect_document` and re-read ids after an undo.
+- A command that runs other commands itself (`command.batch`, an action, a script) is checked
+  against `expect_document` once, when it starts.
+- `unique_ids` is on only where an agent drives the session (MCP headless, the app with
+  `--control`): an action recorded there and played in a window without `--control` after an undo
+  can bind other ids.
 - Headless sessions have no autosave: save with `save_file`.
 - An SVG export of a document with several artboards uses the first artboard's viewBox; export each
   artboard (`export {artboard}`) for separate files.
 
 ## Backlog (ranked)
 
-1. `unique_ids` in the desktop app with the flag recorded in the journal (F2), an atomic document
-   guard inside `engine.execute` in the desktop control server (F2b), and closing a client's undo
-   group when its connection drops (F4).
+1. Closing a client's undo group when its connection drops (F4).
 2. Stop a cancelled `command_batch` between steps (F5).
 3. Default bounds for `doc_inspect` and `screenshot` (F8, F9); compact JSON replies.
-4. App identity on reconnect (F10).
-5. Menu entries and translations for the study commands.
-6. A width-profile helper that tapers a stroke where a contour is "lost" (SP-IV-1, SP-VIII-11).
-7. A "pet forms" check: pairwise `study.compare` over invented shapes to flag near-duplicates
+4. Menu entries and translations for the study commands.
+5. A width-profile helper that tapers a stroke where a contour is "lost" (SP-IV-1, SP-VIII-11).
+6. A "pet forms" check: pairwise `study.compare` over invented shapes to flag near-duplicates
    (SP-XIII-2).
-8. An SVG export of a whole multi-artboard document with a viewBox spanning every artboard (today:
+7. An SVG export of a whole multi-artboard document with a viewBox spanning every artboard (today:
    the first artboard's; export each with `export {artboard}`).
-9. The example art's cosmetic defects from QC round 3 (`qc-report.md`): a stem loop in C, an arch
+8. The example art's cosmetic defects from QC round 3 (`qc-report.md`): a stem loop in C, an arch
    along a leaf, petal tips, the accent outline's heavy side, stem ends at 7–8×.
 
 ## Checkpoint
@@ -100,4 +100,5 @@ Or revert the whole branch: the pull request is a set of commits on top of `main
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-13 | minor | Desktop mode: `expect_document` checked by the app, `unique_ids` with `--control`, app identity and restart detection; `setup` and `doctor`; a desktop Claude Code run. |
 | 2026-11-12 | major | First version. |
