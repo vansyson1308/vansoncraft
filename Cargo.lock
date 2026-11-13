@@ -6410,11 +6410,13 @@ dependencies = [
 name = "vansoncraft-cli"
 version = "0.24.1"
 dependencies = [
+ "chrono",
  "log",
  "objc2-core-foundation",
  "objc2-core-text",
  "serde_json",
  "tempfile",
+ "toml",
  "vansoncraft-color",
  "vansoncraft-doc",
  "vansoncraft-engine",

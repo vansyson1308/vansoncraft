@@ -839,3 +839,46 @@ fn runs_without_preferences_remember_nothing() {
     let r = run_in(&config, &[("pdf.preset.list", json!({}))]);
     assert!(r[0]["presets"].as_array().unwrap().iter().all(|p| p["builtIn"] == true));
 }
+
+/// `doctor --json` reports the program, the headless engine and the control port, and passes on a
+/// machine with no app running and no client set up. Client settings are read from a home of its
+/// own, so the machine's are never touched.
+#[test]
+fn doctor_reports_the_engine_and_the_port() {
+    let home = empty_dir(std::env::temp_dir().join(format!("vansoncraft-cli-test-doctor-{}", std::process::id())));
+    let free = std::net::TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap().to_string();
+    let out = Command::new(crate::bin())
+        .args(["doctor", "--json", "--connect", &free])
+        .env("HOME", &home)
+        .env("USERPROFILE", &home)
+        .env("APPDATA", &home)
+        .env("LOCALAPPDATA", &home)
+        .env("CODEX_HOME", home.join(".codex"))
+        .env("VANSONCRAFT_NO_PREFS", "1")
+        .output()
+        .unwrap();
+    assert!(out.status.success(), "{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr));
+    let report: Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(report["ok"], true, "{report}");
+    let lines: Vec<String> = report["checks"].as_array().unwrap().iter().map(|c| format!("{} {}", c["level"].as_str().unwrap(), c["check"].as_str().unwrap())).collect();
+    let has = |s: &str| lines.iter().any(|l| l.contains(s));
+    assert!(has(&format!("vansoncraft-cli {}", env!("CARGO_PKG_VERSION"))), "{lines:?}");
+    assert!(lines.iter().any(|l| l.starts_with("ok the headless engine drew and previewed a page")), "{lines:?}");
+    assert!(has(&format!("nothing answers on {free}")), "{lines:?}");
+    assert!(has("no client has a `vansoncraft` MCP server yet"), "{lines:?}");
+    // A copy run from a build folder (as this one is) says so instead of passing for installed.
+    assert!(lines.iter().any(|l| l.starts_with("warn") && l.contains("a cargo build folder")), "{lines:?}");
+}
+
+/// `setup` never registers a copy that runs from a build folder: a client would lose it on the
+/// next `cargo clean`.
+#[test]
+fn setup_refuses_a_copy_in_a_build_folder() {
+    for client in ["claude-desktop", "claude-code", "codex"] {
+        let out = Command::new(crate::bin()).args(["setup", client]).env("VANSONCRAFT_NO_PREFS", "1").output().unwrap();
+        let err = String::from_utf8_lossy(&out.stderr);
+        assert!(!out.status.success() && err.contains("a cargo build folder") && err.contains("Install VansonCraft"), "{client}: {err}");
+    }
+    let out = Command::new(crate::bin()).args(["setup", "codex", "--headless"]).env("VANSONCRAFT_NO_PREFS", "1").output().unwrap();
+    assert!(String::from_utf8_lossy(&out.stderr).contains("--headless needs --folder DIR"));
+}

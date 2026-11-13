@@ -590,6 +590,10 @@ fn main() -> std::process::ExitCode {
                 if let Some(port) = control_port {
                     let rx = control_server::start(port, cc.egui_ctx.clone());
                     app = app.with_control(rx).with_automation_roots(roots.clone());
+                    // An agent drives this window: a new object never takes the id of one an undo
+                    // took away, so an id the agent still holds fails instead of changing the new
+                    // object (F2 in docs/speed/audit.md), as in the MCP server's headless session.
+                    app.session.unique_ids = true;
                     if let Some(roots) = &roots {
                         // Everywhere the app doesn't say whose work it is (worker threads), the
                         // roots hold: unconfined is only what the person at the keyboard does.

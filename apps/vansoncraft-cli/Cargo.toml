@@ -25,6 +25,10 @@ vansoncraft-render = { workspace = true }
 vansoncraft-text = { workspace = true }
 serde_json = { workspace = true }
 log = { workspace = true }
+# `setup`'s backup names (AGENTS.md: time goes through chrono).
+chrono = { workspace = true }
+# `doctor` reads Codex's config.toml (the same crate the desktop app already builds).
+toml = "1"
 
 # `perf` on Windows (src/perf.rs) reads how busy the processors are (GetSystemTimes) and this
 # process's working set (GetProcessMemoryInfo) through winsafe's safe wrappers over Win32 (MIT),

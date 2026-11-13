@@ -1,6 +1,6 @@
 # VansonCraft MCP server
 
-> **Last updated:** 2026-11-12 · **Change:** drawing-method resources and prompts (docs/speed/), `render_preview` regions and value views, `doc_inspect` backend, headless-fallback notice, atomic `command_batch` rollback; previously: Save location-refusal error (#6146); existing response shapes retained.
+> **Last updated:** 2026-11-13 · **Change:** `setup` and `doctor`; `--connect` checks the app's identity; `expect_document` checked by the app as each command runs; previously: drawing-method resources and prompts (docs/speed/), `render_preview` regions and value views, `doc_inspect` backend, headless-fallback notice, atomic `command_batch` rollback; existing response shapes retained.
 
 `vansoncraft-cli mcp` runs a [Model Context Protocol](https://modelcontextprotocol.io) server on stdio
 (newline-delimited JSON-RPC 2.0; see [Protocol](#protocol) for version negotiation). Agents use it to
@@ -13,8 +13,16 @@ It has two backends:
 | **Remote** | `vansoncraft-cli mcp --connect 127.0.0.1:7979` (the app must run with `vansoncraft --control 7979`) | Everything. Tool calls are forwarded over the [control protocol](control-protocol.md), so you watch the app change live. |
 | **Headless** | `vansoncraft-cli mcp --headless` | An in-process engine session with a CPU renderer. Everything except the UI-only tools (`inspect_ui` or `ui_inspect`, `type_text`, `answer_dialog`, `open_panel`, `screenshot {window:true}` or `ui_screenshot`). |
 
-With no flag, the server tries `127.0.0.1:7979` and falls back to headless. Logs go to stderr; stdout carries
-only protocol messages.
+With no flag, the server tries `127.0.0.1:7979` and falls back to headless (and says so). With
+`--connect` it never falls back: it first asks the program on the port what it is (`app.identity`) and
+stops, saying why, when nothing answers or the answer isn't VansonCraft (another app may hold the port;
+VectorCraft uses 7979 too). Logs go to stderr; stdout carries only protocol messages.
+
+**Set up and check an installed copy:** `vansoncraft-cli setup claude-desktop|claude-code|codex` prints
+(for Claude Desktop, with `--apply`, writes) the server entry for the installed program, and
+`vansoncraft-cli doctor` checks the program, the app beside it, the headless engine, the control port
+and every client entry that names VansonCraft. Step by step, for Windows first:
+[docs/speed/mcp-clients.md](speed/mcp-clients.md).
 
 ### Command catalogue (headless vs remote)
 
