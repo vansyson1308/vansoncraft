@@ -1,7 +1,8 @@
 # Releasing VansonCraft
 
-> **Last updated:** 2026-11-13 · **Change:** major (the release workflow, `.github/workflows/release.yml`:
-> Windows x64 and Linux x86_64, checked on fresh runners before and after publishing)
+> **Last updated:** 2026-11-13 · **Change:** minor (the first release, 0.25.0, a pre-release; previously
+> major: the release workflow, `.github/workflows/release.yml`: Windows x64 and Linux x86_64, checked
+> on fresh runners before and after publishing)
 
 User-facing names say **VansonCraft**. Files, binaries and ids stay lowercase
 (`vansoncraft-<version>-<platform>-<arch>.<ext>`, `io.github.vansyson1308.vansoncraft`).
@@ -24,6 +25,12 @@ User-facing names say **VansonCraft**. Files, binaries and ids stay lowercase
    scripts runs.
 3. **Wait for it to finish.** The release is public only once every check passed; then
    `verify-public` downloads the files again from the release page without a token and runs them.
+
+**Releases so far:**
+
+| Version | Date | Kind | Run | Platforms |
+|---|---|---|---|---|
+| [0.25.0](https://github.com/vansyson1308/vansoncraft/releases/tag/v0.25.0) | 2026-11-13 | pre-release, unsigned | [43371867221](https://github.com/vansyson1308/vansoncraft/actions/runs/43371867221), every job that ran passed (the dry-run stage is skipped in a publishing run) | Windows x64 (MSI, portable ZIP), Linux x86_64 (tar.gz, AppImage) |
 
 A published version is never changed: the workflow refuses to publish a version that is already
 published, or whose tag already exists, and a stable release must be newer than the latest one.
@@ -306,6 +313,7 @@ build.
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-13 | minor | The first release, 0.25.0 (a pre-release), from run 43371867221: the table of releases so far. |
 | 2026-11-13 | major | The release workflow: Windows x64 (MSI, portable ZIP) and Linux x86_64 (tar.gz, AppImage), built from one commit with a pinned toolchain, staged as a draft, smoke-tested on fresh runners without the Rust toolchain, published, then downloaded again from the public URLs and checked. A version is published once (no published release, no tag); a stable one must be newer than the latest; the write token only in the steps that call the API; the Windows executables import no C runtime DLL. |
 | 2026-11-12 | major | VansonCraft is independent: no release pipeline in the repository yet (the inherited one ran through the upstream project's shared CI); the guide says what exists and what the first release needs. Windows installs go to `Programs\VansonCraft`; AppImage updates come from `vansyson1308/vansoncraft`. |
 | 2026-10-14 | minor | RPM glibc floor names libm's `GLIBC_2.35`: RHEL 9's glibc 2.34 provides libc's through backports |
