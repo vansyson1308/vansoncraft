@@ -1,0 +1,597 @@
+name: Release
+
+# Builds VansonCraft's release packages from one commit, checks them on clean runners, and (run by
+# hand from main with `publish` ticked) publishes them as a GitHub Release:
+#
+#   source ─┬─ windows-x64 ──┐
+#           └─ linux-x86_64 ─┴─ stage (draft release, or the build artifacts in a dry run)
+#                                 └─ smoke-windows-portable, smoke-windows-msi, smoke-linux
+#                                      └─ publish ─ verify-public
+#
+# - Every package comes from the same commit (`source.outputs.sha`), built with a pinned Rust
+#   toolchain from the lockfile (`--locked`).
+# - `stage` uploads the files to a draft release, downloads them back and checks them against
+#   SHA256SUMS.txt. The smoke jobs test exactly those bytes on fresh GitHub-hosted runners. Each
+#   removes the Rust toolchain first and builds nothing; the only repository files they fetch are
+#   the test scripts in packaging/smoke/. The Windows images carry the Visual C++ runtimes, so the
+#   Windows build checks that neither executable imports a C runtime DLL. `publish` checks that
+#   the draft still holds those bytes before it makes the release public, and `verify-public`
+#   downloads them again from the public URLs, without a token.
+# - Only `stage` (in a publishing run) and `publish` can write releases, and only their steps that
+#   call the API hold the token. A version is published once: a publishing run stops when its tag
+#   or a published release of it exists. Pull requests run the same builds and checks as a dry
+#   run, with read-only tokens and no release.
+# - Signing: none yet (no certificates). The packages are unsigned and the release notes say so.
+#
+# Cost: GitHub-hosted standard runners, free for this public repository. A full run takes about
+# 1.5 to 2 hours of runner time (two release builds, three smoke jobs, two public checks).
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish a release (from main only). Unticked, the run builds and checks the packages and uploads nothing.
+        type: boolean
+        default: false
+      prerelease:
+        description: Mark it as a pre-release (not "latest", never offered by the in-app updater)
+        type: boolean
+        default: true
+  pull_request:
+    paths:
+      - .github/workflows/release.yml
+      - packaging/env.sh
+      - packaging/linux/package.sh
+      - packaging/release/**
+      - packaging/smoke/**
+      - packaging/windows/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # The toolchain every release is built with; change it on purpose, in its own pull request.
+  RUST_TOOLCHAIN: "1.97.0"
+  CARGO_TERM_COLOR: always
+
+jobs:
+  source:
+    name: Version and commit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      tag: ${{ steps.v.outputs.tag }}
+      sha: ${{ steps.v.outputs.sha }}
+      publish: ${{ steps.v.outputs.publish }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: v
+        name: Read the version
+        env:
+          PUBLISH: ${{ github.event_name == 'workflow_dispatch' && inputs.publish }}
+          PRERELEASE: ${{ inputs.prerelease }}
+          REF: ${{ github.ref }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          . packaging/env.sh
+          sha="$(git rev-parse HEAD)"
+          { echo "version=$VERSION"; echo "tag=v$VERSION"; echo "sha=$sha"; } >> "$GITHUB_OUTPUT"
+          if [[ "$PUBLISH" == "true" ]]; then
+            if [[ "$REF" != "refs/heads/main" ]]; then
+              echo "::error::releases are published from main only (this run is on $REF)"; exit 1
+            fi
+            published="$(gh api "repos/$GITHUB_REPOSITORY/releases" --paginate -q ".[] | select(.tag_name == \"v$VERSION\" and .draft == false) | .html_url")"
+            if [[ -n "$published" ]]; then
+              echo "::error::v$VERSION is already published ($published). A published release is never changed: bump the version (cargo xtask version set …)."; exit 1
+            fi
+            # A tag without a release (pushed by hand, or left by a deleted release) would make
+            # the release point at that tag's commit instead of this one.
+            if tag_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$VERSION" -q .object.sha 2>tag-error.txt)"; then
+              echo "::error::the tag v$VERSION already exists (at $tag_sha). A version is published once: bump the version."; exit 1
+            fi
+            grep -q 'HTTP 404' tag-error.txt || { cat tag-error.txt; echo "::error::could not check whether the tag v$VERSION exists"; exit 1; }
+            # A stable release becomes "latest" (what the in-app updater and the AppImage's update
+            # information follow), so it must be newer than the latest one.
+            if [[ "$PRERELEASE" != "true" ]]; then
+              if latest="$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" -q .tag_name 2>latest-error.txt)"; then
+                newest="$(printf '%s\n' "${latest#v}" "$VERSION" | sort -V | tail -1)"
+                if [[ "${latest#v}" == "$VERSION" || "$newest" != "$VERSION" ]]; then
+                  echo "::error::$VERSION is not newer than the latest release ($latest)"; exit 1
+                fi
+              else
+                grep -q 'HTTP 404' latest-error.txt || { cat latest-error.txt; echo "::error::could not read the latest release"; exit 1; }
+              fi
+            fi
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "VansonCraft $VERSION from $sha (publish: $PUBLISH)" >> "$GITHUB_STEP_SUMMARY"
+
+  windows-x64:
+    name: Build Windows x64 (MSI, portable ZIP)
+    needs: source
+    runs-on: windows-2025
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.source.outputs.sha }}
+          persist-credentials: false
+      - name: Install Rust
+        uses: step-security/dtolnay-rust-toolchain@8dd607977d06adf4ed49b190381e74c17a9dd25f # v1.0.0
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          targets: x86_64-pc-windows-msvc
+      - name: Install WiX 5.0.2
+        shell: pwsh
+        run: |
+          $tools = Join-Path $env:RUNNER_TEMP 'wix'
+          dotnet tool install --tool-path $tools wix --version 5.0.2
+          if ($LASTEXITCODE -ne 0) { throw 'WiX installation failed.' }
+          $tools >> $env:GITHUB_PATH
+          foreach ($ext in 'UI', 'Util') {
+            & (Join-Path $tools 'wix.exe') extension add -g "WixToolset.$ext.wixext/5.0.2"
+            if ($LASTEXITCODE -ne 0) { throw "WiX extension $ext installation failed." }
+          }
+      - name: Build and package
+        shell: pwsh
+        env:
+          VANSONCRAFT_BUILD_SHA: ${{ needs.source.outputs.sha }}
+          DIST: ${{ github.workspace }}\dist
+          CARGO_INCREMENTAL: "0"
+        run: |
+          rustc --version
+          ./packaging/windows/package.ps1 -Arch x64
+          $v = '${{ needs.source.outputs.version }}'
+          foreach ($f in "vansoncraft-$v-windows-x64.msi", "vansoncraft-$v-windows-x64-portable.zip") {
+            if (-not (Test-Path (Join-Path $env:DIST $f))) { throw "missing $f" }
+          }
+      # The runner has the Visual C++ runtimes, a user's Windows may not: the smoke jobs can't see
+      # a missing one, so check the imports here (the binaries link the C runtime statically).
+      - name: The executables import no C runtime DLL
+        shell: pwsh
+        env:
+          DIST: ${{ github.workspace }}\dist
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $dumpbin = & $vswhere -latest -products * -find 'VC\Tools\MSVC\**\bin\Hostx64\x64\dumpbin.exe' | Select-Object -First 1
+          if (-not $dumpbin) { throw 'dumpbin.exe was not found' }
+          $v = '${{ needs.source.outputs.version }}'
+          $unpacked = Join-Path $env:RUNNER_TEMP 'portable'
+          Expand-Archive -Path (Join-Path $env:DIST "vansoncraft-$v-windows-x64-portable.zip") -DestinationPath $unpacked
+          $exes = @(Get-ChildItem -Path $unpacked -Recurse -Filter '*.exe')
+          if ($exes.Count -lt 2) { throw "the portable ZIP holds $($exes.Count) executables" }
+          foreach ($exe in $exes) {
+            $lines = & $dumpbin /nologo /dependents $exe.FullName
+            if ($LASTEXITCODE -ne 0) { throw "dumpbin failed on $($exe.Name)" }
+            $dlls = @($lines | ForEach-Object { $_.Trim() } | Where-Object { $_ -match '\.dll$' })
+            "$($exe.Name) imports: $($dlls -join ', ')"
+            $crt = @($dlls | Where-Object { $_ -match '^(vcruntime|msvcp|ucrtbase|api-ms-win-crt-|concrt|vccorlib)' })
+            if ($crt.Count -ne 0) { throw "$($exe.Name) needs $($crt -join ', '), which Windows without the Visual C++ runtimes lacks" }
+          }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pkg-windows-x64
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 1
+
+  linux-x86_64:
+    name: Build Linux x86_64 (tar.gz, AppImage)
+    needs: source
+    # The oldest GitHub-hosted image: the binaries need glibc 2.35 or newer.
+    runs-on: ubuntu-22.04
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.source.outputs.sha }}
+          persist-credentials: false
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+      - name: System packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends pkg-config libxkbcommon-dev libwayland-dev \
+            libx11-dev libxcb1-dev libxcursor-dev libxrandr-dev libxi-dev libfontconfig1-dev \
+            libfreetype-dev libgl1-mesa-dev desktop-file-utils appstream zsync file
+      - name: Install Rust
+        uses: step-security/dtolnay-rust-toolchain@8dd607977d06adf4ed49b190381e74c17a9dd25f # v1.0.0
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - name: Build and package
+        env:
+          VANSONCRAFT_BUILD_SHA: ${{ needs.source.outputs.sha }}
+          DIST: ${{ github.workspace }}/dist
+          CARGO_INCREMENTAL: "0"
+        run: |
+          set -euo pipefail
+          rustc --version
+          packaging/linux/package.sh --formats "tar appimage"
+          v='${{ needs.source.outputs.version }}'
+          for f in "vansoncraft-$v-linux-x86_64.tar.gz" "vansoncraft-$v-linux-x86_64.AppImage"; do
+            test -s "dist/$f" || { echo "::error::missing $f"; exit 1; }
+          done
+          bin="target/linux-package/root/usr/bin"
+          for b in vansoncraft vansoncraft-cli; do
+            file "$bin/$b"
+            file -b "$bin/$b" | grep -Eq '^ELF 64-bit LSB (pie )?executable, x86-64' || { echo "::error::$b is not an x86-64 executable"; exit 1; }
+            echo "== ldd $b"; ldd "$bin/$b"
+          done
+          # The newest glibc symbol version the binaries need (the floor users need).
+          objdump -T "$bin/vansoncraft" "$bin/vansoncraft-cli" | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1
+        shell: bash
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pkg-linux-x86_64
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # A dry run (pull request, or a run without `publish`): the build artifacts become the files under
+  # test, with their checksums. Read-only.
+  stage-dry:
+    name: Stage (dry run)
+    needs: [source, windows-x64, linux-x86_64]
+    if: needs.source.outputs.publish != 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.source.outputs.sha }}
+          persist-credentials: false
+          sparse-checkout: packaging/release
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: pkg-*
+          path: ${{ runner.temp }}/assets
+          merge-multiple: true
+      - name: Checksums, build information, release notes
+        env:
+          V: ${{ needs.source.outputs.version }}
+          SHA: ${{ needs.source.outputs.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          packaging/release/stage.sh "$RUNNER_TEMP/assets" "$V" "$SHA" "$RUN_URL" "$RUST_TOOLCHAIN" "$RUNNER_TEMP/notes.md" true
+          cat "$RUNNER_TEMP/notes.md" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-assets
+          path: ${{ runner.temp }}/assets/*
+          if-no-files-found: error
+          retention-days: 2
+
+  # A publishing run: upload to a draft release, then download the draft's files back; those are
+  # the files the smoke jobs test.
+  stage-draft:
+    name: Stage (draft release)
+    needs: [source, windows-x64, linux-x86_64]
+    if: needs.source.outputs.publish == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    # The token is given only to the steps that call the API, not to the actions.
+    env:
+      V: ${{ needs.source.outputs.version }}
+      TAG: ${{ needs.source.outputs.tag }}
+      SHA: ${{ needs.source.outputs.sha }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      PRERELEASE: ${{ inputs.prerelease }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.source.outputs.sha }}
+          persist-credentials: false
+          sparse-checkout: packaging/release
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: pkg-*
+          path: ${{ runner.temp }}/assets
+          merge-multiple: true
+      - name: Checksums, build information, release notes
+        run: packaging/release/stage.sh "$RUNNER_TEMP/assets" "$V" "$SHA" "$RUN_URL" "$RUST_TOOLCHAIN" "$RUNNER_TEMP/notes.md" "$PRERELEASE"
+      - name: Create the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # A draft left by an earlier run of this version is replaced; a published one never is
+          # (checked by `source`, and again here).
+          gh api "repos/$GITHUB_REPOSITORY/releases" --paginate -q ".[] | select(.tag_name == \"$TAG\") | \"\(.id) \(.draft)\"" > existing.txt
+          while read -r id draft; do
+            if [[ "$draft" != "true" ]]; then echo "::error::$TAG is already published"; exit 1; fi
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/releases/$id"
+          done < existing.txt
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" --silent 2>/dev/null; then echo "::error::the tag $TAG exists"; exit 1; fi
+          pre=(); if [[ "$PRERELEASE" == "true" ]]; then pre=(--prerelease); fi
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --draft --target "$SHA" --title "VansonCraft $V" --notes-file "$RUNNER_TEMP/notes.md" "${pre[@]}" "$RUNNER_TEMP"/assets/*
+      - name: Download the draft's files back and check them
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          id="$(gh api "repos/$GITHUB_REPOSITORY/releases" --paginate -q ".[] | select(.tag_name == \"$TAG\" and .draft == true) | .id")"
+          test -n "$id" || { echo "::error::the draft release was not found"; exit 1; }
+          mkdir draft
+          gh api "repos/$GITHUB_REPOSITORY/releases/$id/assets" --paginate -q '.[] | "\(.id) \(.name) \(.digest)"' > draft-assets.txt
+          cat draft-assets.txt
+          while read -r aid name digest; do
+            gh api -H 'Accept: application/octet-stream' "repos/$GITHUB_REPOSITORY/releases/assets/$aid" > "draft/$name"
+            have="sha256:$(sha256sum "draft/$name" | cut -d' ' -f1)"
+            if [[ "$digest" != "null" && "$digest" != "$have" ]]; then echo "::error::$name: GitHub reports $digest, the download is $have"; exit 1; fi
+          done < draft-assets.txt
+          (cd draft && sha256sum -c SHA256SUMS.txt)
+          diff <(ls draft) <(ls "$RUNNER_TEMP/assets") || { echo "::error::the draft does not hold the same files"; exit 1; }
+          echo "$id" > draft/RELEASE_ID
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-assets
+          path: draft/*
+          if-no-files-found: error
+          retention-days: 2
+
+  smoke-windows-portable:
+    name: Check the portable ZIP (clean Windows)
+    needs: [source, stage-dry, stage-draft]
+    # Runs after whichever stage job ran (the other is skipped), but not in a cancelled run.
+    if: ${{ !cancelled() && (needs.stage-dry.result == 'success' || needs.stage-draft.result == 'success') }}
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.source.outputs.sha }}
+          persist-credentials: false
+          sparse-checkout: packaging/smoke
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+          path: ${{ runner.temp }}\assets
+      - name: Take the Rust toolchain off this runner (nothing here may build or use it)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($d in ($env:CARGO_HOME ?? "$env:USERPROFILE\.cargo"), ($env:RUSTUP_HOME ?? "$env:USERPROFILE\.rustup")) {
+            if (Test-Path $d) { cmd /c rmdir /s /q "$d" }  # faster than Remove-Item on many small files
+          }
+          foreach ($c in 'cargo', 'rustc', 'rustup') {
+            $found = Get-Command $c -ErrorAction SilentlyContinue
+            if ($found) { throw "$c is still on this runner: $($found.Source)" }
+          }
+      - name: Unpack into a folder with spaces and Vietnamese letters, run the CLI
+        id: unpack
+        shell: pwsh
+        env:
+          V: ${{ needs.source.outputs.version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $assets = Join-Path $env:RUNNER_TEMP 'assets'
+          & ./packaging/smoke/check-sums.ps1 -Folder $assets -Name "vansoncraft-$env:V-windows-x64-portable.zip"
+          $root = Join-Path $env:RUNNER_TEMP 'Thử nghiệm VansonCraft'
+          $t = [Diagnostics.Stopwatch]::StartNew()
+          Expand-Archive -Path (Join-Path $assets "vansoncraft-$env:V-windows-x64-portable.zip") -DestinationPath $root
+          "unpack_s=$([math]::Round($t.Elapsed.TotalSeconds, 2))" >> $env:GITHUB_OUTPUT
+          $dir = Join-Path $root "vansoncraft-$env:V-windows-x64-portable"
+          foreach ($f in 'vansoncraft.exe', 'vansoncraft-cli.exe', 'portable.txt', 'LICENSE-MIT', 'NOTICE') {
+            if (-not (Test-Path (Join-Path $dir $f))) { throw "the ZIP has no $f" }
+          }
+          $out = & (Join-Path $dir 'vansoncraft-cli.exe') --version
+          if ($LASTEXITCODE -ne 0 -or $out -ne "vansoncraft-cli $env:V") { throw "vansoncraft-cli --version said '$out'" }
+          "dir=$dir" >> $env:GITHUB_OUTPUT
+      - name: MCP, headless
+        shell: pwsh
+        env:
+          V: ${{ needs.source.outputs.version }}
+        run: |
+          python -I packaging/smoke/mcp_smoke.py --cli "${{ steps.unpack.outputs.dir }}\vansoncraft-cli.exe" --work "$env:RUNNER_TEMP\work" --version $env:V --report "$env:RUNNER_TEMP\report-headless.json"
+          if ($LASTEXITCODE -ne 0) { throw 'MCP smoke test failed' }
+      - name: Setup and doctor from the unpacked copy
+        shell: pwsh
+        run: |
+          python -I packaging/smoke/mcp_smoke.py --cli "${{ steps.unpack.outputs.dir }}\vansoncraft-cli.exe" --work "$env:RUNNER_TEMP\setup" --setup --report "$env:RUNNER_TEMP\report-setup.json"
+          if ($LASTEXITCODE -ne 0) { throw 'setup and doctor failed' }
+      - name: Desktop app and the MCP bridge
+        shell: pwsh
+        env:
+          V: ${{ needs.source.outputs.version }}
+        run: |
+          ./packaging/smoke/desktop.ps1 -App "${{ steps.unpack.outputs.dir }}\vansoncraft.exe" -Cli "${{ steps.unpack.outputs.dir }}\vansoncraft-cli.exe" -Out "$env:RUNNER_TEMP\desktop" -Version $env:V -Port 7979
+      - name: Summary
+        if: always()
+        shell: pwsh
+        run: |
+          "### Portable ZIP on a clean Windows runner" >> $env:GITHUB_STEP_SUMMARY
+          "Unpacked in ${{ steps.unpack.outputs.unpack_s }} s." >> $env:GITHUB_STEP_SUMMARY
+          foreach ($r in "$env:RUNNER_TEMP\report-headless.json", "$env:RUNNER_TEMP\report-setup.json", "$env:RUNNER_TEMP\desktop\report.json") {
+            if (Test-Path $r) { '```json' >> $env:GITHUB_STEP_SUMMARY; Get-Content $r >> $env:GITHUB_STEP_SUMMARY; '```' >> $env:GITHUB_STEP_SUMMARY }
+          }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-windows-portable
+          path: |
+            ${{ runner.temp }}/report-*.json
+            ${{ runner.temp }}/desktop/
+            ${{ runner.temp }}/work/
+          retention-days: 14
+
+  smoke-windows-msi:
+    name: Check the MSI (clean Windows, beside VectorCraft)
+    needs: [source, stage-dry, stage-draft]
+    # Runs after whichever stage job ran (the other is skipped), but not in a cancelled run.
+    if: ${{ !cancelled() && (needs.stage-dry.result == 'success' || needs.stage-draft.result == 'success') }}
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.source.outputs.sha }}
+          persist-credentials: false
+          sparse-checkout: packaging/smoke
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+          path: ${{ runner.temp }}\assets
+      - name: Take the Rust toolchain off this runner (nothing here may build or use it)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($d in ($env:CARGO_HOME ?? "$env:USERPROFILE\.cargo"), ($env:RUSTUP_HOME ?? "$env:USERPROFILE\.rustup")) {
+            if (Test-Path $d) { cmd /c rmdir /s /q "$d" }  # faster than Remove-Item on many small files
+          }
+          foreach ($c in 'cargo', 'rustc', 'rustup') {
+            $found = Get-Command $c -ErrorAction SilentlyContinue
+            if ($found) { throw "$c is still on this runner: $($found.Source)" }
+          }
+      - name: Install VectorCraft first (the project VansonCraft is based on)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ./packaging/smoke/vectorcraft.ps1 -Action install -Out "$env:RUNNER_TEMP\vectorcraft"
+      - name: Install, run, uninstall
+        shell: pwsh
+        env:
+          V: ${{ needs.source.outputs.version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $assets = Join-Path $env:RUNNER_TEMP 'assets'
+          $msi = "vansoncraft-$env:V-windows-x64.msi"
+          & ./packaging/smoke/check-sums.ps1 -Folder $assets -Name $msi
+          ./packaging/smoke/msi.ps1 -Msi (Join-Path $assets $msi) -Version $env:V -Out "$env:RUNNER_TEMP\msi" -VectorCraft "$env:RUNNER_TEMP\vectorcraft"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-windows-msi
+          path: |
+            ${{ runner.temp }}/msi/
+            ${{ runner.temp }}/vectorcraft/*.json
+            ${{ runner.temp }}/vectorcraft/*.log
+          retention-days: 14
+
+  smoke-linux:
+    name: Check the Linux packages (clean Ubuntu 24.04)
+    needs: [source, stage-dry, stage-draft]
+    # Runs after whichever stage job ran (the other is skipped), but not in a cancelled run.
+    if: ${{ !cancelled() && (needs.stage-dry.result == 'success' || needs.stage-draft.result == 'success') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.source.outputs.sha }}
+          persist-credentials: false
+          sparse-checkout: packaging/smoke
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+          path: ${{ runner.temp }}/assets
+      - name: What a desktop already has (a display server, GPU drivers, keyboard maps)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb libxkbcommon-x11-0 libxcursor1 libxrandr2 libxi6 libx11-xcb1 libegl1 mesa-vulkan-drivers
+      - name: Take the Rust toolchain off this runner (nothing here may build or use it)
+        run: |
+          set -euo pipefail
+          rm -rf "${CARGO_HOME:-$HOME/.cargo}" "${RUSTUP_HOME:-$HOME/.rustup}"
+          hash -r
+          for c in cargo rustc rustup; do
+            if command -v "$c"; then echo "::error::$c is still on this runner"; exit 1; fi
+          done
+      - name: Unpack, CLI, MCP, desktop app, AppImage
+        env:
+          V: ${{ needs.source.outputs.version }}
+        # The unpacked package stays out of the uploaded results.
+        run: packaging/smoke/linux.sh "$RUNNER_TEMP/assets" "$V" "$RUNNER_TEMP/out" "$RUNNER_TEMP/unpacked"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-linux
+          path: ${{ runner.temp }}/out/
+          retention-days: 14
+
+  publish:
+    name: Publish
+    needs: [source, stage-draft, smoke-windows-portable, smoke-windows-msi, smoke-linux]
+    # A status function is needed: without one the job takes `success()`, which is false because
+    # `stage-dry` (an ancestor through the smoke jobs) is skipped in a publishing run.
+    if: ${{ !cancelled() && needs.source.outputs.publish == 'true' && needs.stage-draft.result == 'success' && needs.smoke-windows-portable.result == 'success' && needs.smoke-windows-msi.result == 'success' && needs.smoke-linux.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    # The token is given only to the steps that call the API, not to the actions.
+    env:
+      TAG: ${{ needs.source.outputs.tag }}
+      SHA: ${{ needs.source.outputs.sha }}
+      PRERELEASE: ${{ inputs.prerelease }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+          path: tested
+      - name: The draft still holds the tested files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          id="$(cat tested/RELEASE_ID)"
+          gh api "repos/$GITHUB_REPOSITORY/releases/$id" -q '"\(.draft) \(.target_commitish) \(.tag_name)"' | tee state.txt
+          read -r draft target tag < state.txt
+          [[ "$draft" == "true" && "$target" == "$SHA" && "$tag" == "$TAG" ]] || { echo "::error::the release changed since it was tested"; exit 1; }
+          # Download every file the draft holds now and compare it with the tested one.
+          mkdir now
+          gh api "repos/$GITHUB_REPOSITORY/releases/$id/assets" --paginate -q '.[] | "\(.id) \(.name)"' > assets.txt
+          while read -r aid name; do
+            gh api -H 'Accept: application/octet-stream' "repos/$GITHUB_REPOSITORY/releases/assets/$aid" > "now/$name"
+          done < assets.txt
+          (cd now && sha256sum -- * | sort -k2) > now.txt
+          (cd tested && for f in *; do [[ "$f" == RELEASE_ID ]] || sha256sum -- "$f"; done | sort -k2) > tested.txt
+          diff -u tested.txt now.txt
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          id="$(cat tested/RELEASE_ID)"
+          latest=true; if [[ "$PRERELEASE" == "true" ]]; then latest=false; fi
+          gh api -X PATCH "repos/$GITHUB_REPOSITORY/releases/$id" -F draft=false -F "prerelease=$PRERELEASE" -f "make_latest=$latest" -q .html_url >> "$GITHUB_STEP_SUMMARY"
+          # Publishing created the tag; it must name the commit the files were built from.
+          tag_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" -q .object.sha)"
+          [[ "$tag_sha" == "$SHA" ]] || { echo "::error::$TAG points at $tag_sha, not $SHA"; exit 1; }
+
+  verify-public:
+    name: Download from the public page (${{ matrix.os }})
+    needs: [source, publish]
+    if: ${{ !cancelled() && needs.publish.result == 'success' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    permissions: {}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.source.outputs.sha }}
+          persist-credentials: false
+          sparse-checkout: packaging/smoke
+      - name: Download without a token, check, run
+        shell: bash
+        env:
+          V: ${{ needs.source.outputs.version }}
+          TAG: ${{ needs.source.outputs.tag }}
+          PRERELEASE: ${{ inputs.prerelease }}
+        run: packaging/smoke/public.sh "https://github.com/${GITHUB_REPOSITORY}" "$TAG" "$V" "$PRERELEASE" "$RUNNER_TEMP/public"
