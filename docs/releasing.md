@@ -69,9 +69,9 @@ way to get VansonCraft: releases are. The smoke jobs' uploads (reports, logs, sc
 drawings made in the test) hold no program files.
 
 **Tokens:** only `stage-draft` and `publish` get `contents: write`, and only their steps that call
-the API hold the token, never an action. `actions/upload-artifact` and `actions/download-artifact`
-are referenced by their major tag (`@v4`) and kept current by Dependabot. They were not pinned to a
-commit because the commit for the tag could not be confirmed when the workflow was written.
+the API hold the token, never an action. Every action is pinned to a commit, with its version in a
+comment; Dependabot keeps them current. The commits of `actions/upload-artifact` and
+`actions/download-artifact` are the ones GitHub resolved `@v4` to in the workflow's first run.
 
 **Signing:** none. VansonCraft has no code-signing certificates, so the packages are unsigned: the
 release notes say so, SmartScreen may warn that the publisher is unknown, and the in-app updater,

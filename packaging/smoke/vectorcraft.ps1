@@ -8,14 +8,15 @@
   (storytold/vectorcraft, with the workflow's read-only token), installs it for the current user,  # brand-ok: the app this test installs beside VansonCraft
   and writes -Out\vectorcraft.json: its uninstall entry, install folder and a SHA-256 of every  # brand-ok: the app this test installs beside VansonCraft
   installed file, which msi.ps1 compares before and after.
-  The download must match -Sha256 (pinned below); with an empty -Sha256 the file's hash is printed
-  as a warning so it can be pinned.
+  The download must match -Sha256. The pinned value is the hash of the v0.24.1 release's
+  vectorcraft-0.24.1-windows-x64.msi as the release workflow first downloaded it (2026-11-13);  # brand-ok: the file this test installs beside VansonCraft
+  with an empty -Sha256 the file's hash is printed as a warning so it can be pinned.
 #>
 param(
   [ValidateSet('install')] [string] $Action = 'install',
   [Parameter(Mandatory)] [string] $Out,
   [string] $Tag = 'v0.24.1',
-  [string] $Sha256 = ''
+  [string] $Sha256 = '72756c96d8533d7bb347f013e7f24e8be7d91dfe080849bb259fdb9d5cedee62'
 )
 $ErrorActionPreference = 'Stop'
 New-Item -ItemType Directory -Force -Path $Out | Out-Null
@@ -38,12 +39,17 @@ if ($p.ExitCode -ne 0) { throw "VectorCraft's MSI failed with $($p.ExitCode)" } 
 $entry = Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue |
   Where-Object { $_.DisplayName -eq 'VectorCraft' } | Select-Object -First 1  # brand-ok: the app this test installs beside VansonCraft
 if (-not $entry) { throw 'no uninstall entry for VectorCraft after installing it' }  # brand-ok: the app this test installs beside VansonCraft
-# Where it went: the uninstall entry's InstallLocation when the package records one, else its
-# default per-user or per-machine folder.
-$candidates = @($entry.InstallLocation, (Join-Path $env:LOCALAPPDATA 'Programs\VectorCraft'), (Join-Path $env:ProgramFiles 'VectorCraft')) | Where-Object { $_ }  # brand-ok: the app this test installs beside VansonCraft
-$folder = $candidates | Where-Object { Test-Path -LiteralPath (Join-Path $_ 'vectorcraft.exe') } | Select-Object -First 1  # brand-ok: the app this test installs beside VansonCraft
-if (-not $folder) { throw "vectorcraft.exe was not found after installing VectorCraft (looked in $($candidates -join ', '))" }  # brand-ok: the app this test installs beside VansonCraft
-$folder = (Resolve-Path -LiteralPath $folder).ProviderPath.TrimEnd('\')
+# Where it went, as the package itself records it: the App Paths entry names the program (the
+# folder is not ours to guess), else the uninstall entry's InstallLocation.
+$appPaths = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\App Paths\vectorcraft.exe', 'HKLM:\Software\Microsoft\Windows\CurrentVersion\App Paths\vectorcraft.exe'  # brand-ok: the app this test installs beside VansonCraft
+$exe = $appPaths | ForEach-Object { (Get-ItemProperty -LiteralPath $_ -ErrorAction SilentlyContinue).'(default)' } |
+  Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -First 1
+if (-not $exe -and $entry.InstallLocation) {
+  $exe = Join-Path $entry.InstallLocation 'vectorcraft.exe'  # brand-ok: the app this test installs beside VansonCraft
+  if (-not (Test-Path -LiteralPath $exe)) { $exe = $null }
+}
+if (-not $exe) { throw 'neither the App Paths entry nor the uninstall entry leads to the installed program' }
+$folder = (Resolve-Path -LiteralPath (Split-Path -Parent $exe)).ProviderPath.TrimEnd('\')
 $files = Get-ChildItem -LiteralPath $folder -Recurse -File | ForEach-Object { @{ path = $_.FullName.Substring($folder.Length + 1); sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $_.FullName).Hash } }
 @{ productCode = $entry.PSChildName; version = $entry.DisplayVersion; folder = $folder; files = $files } |
   ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8 (Join-Path $Out 'vectorcraft.json')  # brand-ok: the app this test installs beside VansonCraft

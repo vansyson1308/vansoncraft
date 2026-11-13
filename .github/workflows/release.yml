@@ -178,7 +178,7 @@ jobs:
             $crt = @($dlls | Where-Object { $_ -match '^(vcruntime|msvcp|ucrtbase|api-ms-win-crt-|concrt|vccorlib)' })
             if ($crt.Count -ne 0) { throw "$($exe.Name) needs $($crt -join ', '), which Windows without the Visual C++ runtimes lacks" }
           }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: pkg-windows-x64
           path: dist/*
@@ -230,7 +230,7 @@ jobs:
           # The newest glibc symbol version the binaries need (the floor users need).
           objdump -T "$bin/vansoncraft" "$bin/vansoncraft-cli" | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1
         shell: bash
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: pkg-linux-x86_64
           path: dist/*
@@ -251,7 +251,7 @@ jobs:
           ref: ${{ needs.source.outputs.sha }}
           persist-credentials: false
           sparse-checkout: packaging/release
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           pattern: pkg-*
           path: ${{ runner.temp }}/assets
@@ -264,7 +264,7 @@ jobs:
         run: |
           packaging/release/stage.sh "$RUNNER_TEMP/assets" "$V" "$SHA" "$RUN_URL" "$RUST_TOOLCHAIN" "$RUNNER_TEMP/notes.md" true
           cat "$RUNNER_TEMP/notes.md" >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: release-assets
           path: ${{ runner.temp }}/assets/*
@@ -294,7 +294,7 @@ jobs:
           ref: ${{ needs.source.outputs.sha }}
           persist-credentials: false
           sparse-checkout: packaging/release
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           pattern: pkg-*
           path: ${{ runner.temp }}/assets
@@ -334,7 +334,7 @@ jobs:
           (cd draft && sha256sum -c SHA256SUMS.txt)
           diff <(ls draft) <(ls "$RUNNER_TEMP/assets") || { echo "::error::the draft does not hold the same files"; exit 1; }
           echo "$id" > draft/RELEASE_ID
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: release-assets
           path: draft/*
@@ -354,7 +354,7 @@ jobs:
           ref: ${{ needs.source.outputs.sha }}
           persist-credentials: false
           sparse-checkout: packaging/smoke
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: release-assets
           path: ${{ runner.temp }}\assets
@@ -363,7 +363,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           foreach ($d in ($env:CARGO_HOME ?? "$env:USERPROFILE\.cargo"), ($env:RUSTUP_HOME ?? "$env:USERPROFILE\.rustup")) {
-            if (Test-Path $d) { cmd /c rmdir /s /q "$d" }  # faster than Remove-Item on many small files
+            if (Test-Path $d) { "removing $d"; cmd /c rmdir /s /q "$d" } else { "no $d on this image" }  # rmdir: faster than Remove-Item on many small files
           }
           foreach ($c in 'cargo', 'rustc', 'rustup') {
             $found = Get-Command $c -ErrorAction SilentlyContinue
@@ -416,7 +416,7 @@ jobs:
           foreach ($r in "$env:RUNNER_TEMP\report-headless.json", "$env:RUNNER_TEMP\report-setup.json", "$env:RUNNER_TEMP\desktop\report.json") {
             if (Test-Path $r) { '```json' >> $env:GITHUB_STEP_SUMMARY; Get-Content $r >> $env:GITHUB_STEP_SUMMARY; '```' >> $env:GITHUB_STEP_SUMMARY }
           }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: smoke-windows-portable
@@ -439,7 +439,7 @@ jobs:
           ref: ${{ needs.source.outputs.sha }}
           persist-credentials: false
           sparse-checkout: packaging/smoke
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: release-assets
           path: ${{ runner.temp }}\assets
@@ -448,7 +448,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           foreach ($d in ($env:CARGO_HOME ?? "$env:USERPROFILE\.cargo"), ($env:RUSTUP_HOME ?? "$env:USERPROFILE\.rustup")) {
-            if (Test-Path $d) { cmd /c rmdir /s /q "$d" }  # faster than Remove-Item on many small files
+            if (Test-Path $d) { "removing $d"; cmd /c rmdir /s /q "$d" } else { "no $d on this image" }  # rmdir: faster than Remove-Item on many small files
           }
           foreach ($c in 'cargo', 'rustc', 'rustup') {
             $found = Get-Command $c -ErrorAction SilentlyContinue
@@ -470,7 +470,7 @@ jobs:
           $msi = "vansoncraft-$env:V-windows-x64.msi"
           & ./packaging/smoke/check-sums.ps1 -Folder $assets -Name $msi
           ./packaging/smoke/msi.ps1 -Msi (Join-Path $assets $msi) -Version $env:V -Out "$env:RUNNER_TEMP\msi" -VectorCraft "$env:RUNNER_TEMP\vectorcraft"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: smoke-windows-msi
@@ -493,7 +493,7 @@ jobs:
           ref: ${{ needs.source.outputs.sha }}
           persist-credentials: false
           sparse-checkout: packaging/smoke
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: release-assets
           path: ${{ runner.temp }}/assets
@@ -504,7 +504,9 @@ jobs:
       - name: Take the Rust toolchain off this runner (nothing here may build or use it)
         run: |
           set -euo pipefail
-          rm -rf "${CARGO_HOME:-$HOME/.cargo}" "${RUSTUP_HOME:-$HOME/.rustup}"
+          for d in "${CARGO_HOME:-$HOME/.cargo}" "${RUSTUP_HOME:-$HOME/.rustup}"; do
+            if [[ -d "$d" ]]; then echo "removing $d ($(du -sh "$d" | cut -f1))"; rm -rf "$d"; else echo "no $d on this image"; fi
+          done
           hash -r
           for c in cargo rustc rustup; do
             if command -v "$c"; then echo "::error::$c is still on this runner"; exit 1; fi
@@ -514,7 +516,7 @@ jobs:
           V: ${{ needs.source.outputs.version }}
         # The unpacked package stays out of the uploaded results.
         run: packaging/smoke/linux.sh "$RUNNER_TEMP/assets" "$V" "$RUNNER_TEMP/out" "$RUNNER_TEMP/unpacked"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: smoke-linux
@@ -537,7 +539,7 @@ jobs:
       SHA: ${{ needs.source.outputs.sha }}
       PRERELEASE: ${{ inputs.prerelease }}
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: release-assets
           path: tested
