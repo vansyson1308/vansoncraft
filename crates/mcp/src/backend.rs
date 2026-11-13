@@ -65,8 +65,9 @@ pub struct Remote {
     /// What the app said it is (`app.identity`), when connected with [`Remote::connect_verified`]:
     /// every new connection asks again before it carries a call.
     identity: Option<Value>,
-    /// The last identity check found a new launch of the app; the next call is refused once.
-    restarted: bool,
+    /// An identity check found a new launch of the app (it was restarted): until a
+    /// `document.inspect` goes through, every call that could change something is refused.
+    stale: bool,
 }
 
 /// How long the app has to answer `app.identity` (it answers in its next frame).
@@ -81,7 +82,7 @@ const MAX_REPLY_BYTES: usize = 256 * 1024 * 1024;
 impl Remote {
     /// Connect to `addr` (e.g. `127.0.0.1:7979`), failing fast when nothing is listening.
     pub fn connect(addr: &str) -> std::io::Result<Self> {
-        let mut r = Self { addr: addr.to_string(), conn: None, next_id: 1, identity: None, restarted: false };
+        let mut r = Self { addr: addr.to_string(), conn: None, next_id: 1, identity: None, stale: false };
         r.reconnect()?;
         Ok(r)
     }
@@ -108,7 +109,7 @@ impl Remote {
 
     /// Ask the program on the current connection what it is, and refuse anything but VansonCraft.
     /// A VansonCraft of another launch than the one reached before (the app was restarted) sets
-    /// `restarted`, which `prepare_connection` reports.
+    /// `stale`, which `call` acts on.
     fn verify(&mut self) -> Result<(), String> {
         let before = self.identity().cloned();
         let id = self.next_id;
@@ -143,7 +144,7 @@ impl Remote {
             let why = v.get("error").and_then(Value::as_str).unwrap_or("it refused app.identity");
             if v.get("id").is_none() {
                 // The control server's own refusals (too many connections) carry no id.
-                return Err(format!("VansonCraft at {} refused the connection: {why}", self.addr));
+                return Err(format!("the program at {} refused the connection: {why}", self.addr));
             }
             return Err(not_ours(format!("it answered app.identity with: {why}")));
         }
@@ -151,7 +152,9 @@ impl Remote {
         match me.get("name").and_then(Value::as_str) {
             Some("VansonCraft") => {
                 let launch = |i: &Value| (i.get("instance").cloned(), i.get("pid").cloned());
-                self.restarted = before.as_ref().is_some_and(|b| launch(b) != launch(&me));
+                if before.as_ref().is_some_and(|b| launch(b) != launch(&me)) {
+                    self.stale = true;
+                }
                 self.identity = Some(me);
                 Ok(())
             }
@@ -190,24 +193,29 @@ impl Remote {
 
     /// A connection to carry the next call: the current one, or a new one whose program is asked
     /// what it is ([`Remote::connect_verified`]). Fails with nothing sent, and with no connection
-    /// kept, when the app can't be reached or isn't VansonCraft. A new launch of the app (it was
-    /// restarted) fails once too, keeping the connection: each launch counts document uids and
-    /// object ids from 1 again, so what the client holds would name other documents and objects,
-    /// and the client must inspect again before the next call goes through.
+    /// kept, when the app can't be reached or isn't VansonCraft.
     fn prepare_connection(&mut self) -> Result<(), String> {
         let ready = self.reach();
         if ready.is_err() {
             self.conn = None;
         }
-        ready?;
-        if std::mem::take(&mut self.restarted) {
-            return Err(
-                "was restarted since the last call: the documents, their uids and the object ids from before are gone (a new launch counts them from 1 again); call doc_inspect and work from what it shows"
-                    .into(),
-            );
-        }
-        Ok(())
+        ready
     }
+
+    /// Methods that only read, which go through after a restart: a client inspects with them.
+    const READS: [&str; 11] = [
+        "document.inspect",
+        "document.node",
+        "document.json",
+        "engine.commands",
+        "ui.inspect",
+        "ui.screenshot",
+        "ui.render",
+        "ui.menu.list",
+        "ui.contextMenu.list",
+        "ui.tool.list",
+        "ui.docking",
+    ];
 
     fn reach(&mut self) -> Result<(), String> {
         if let Some((_, stream)) = self.conn.as_ref() {
@@ -293,6 +301,15 @@ impl Remote {
 impl Backend for Remote {
     fn call(&mut self, method: &str, params: Value) -> Result<Value, String> {
         self.prepare_connection().map_err(|e| format!("VansonCraft app at {}: {e}; `{method}`: nothing was sent", self.addr))?;
+        // After a restart every launch counts document uids and object ids from 1 again, so what
+        // the client holds would name other documents and objects: nothing that could change
+        // anything is sent until the client has inspected the new launch.
+        if self.stale && !Self::READS.contains(&method) {
+            return Err(format!(
+                "VansonCraft app at {} was restarted: the documents, their uids and the object ids from before are gone (a new launch counts them from 1 again); `{method}`: nothing was sent. Call doc_inspect and work from what it shows",
+                self.addr
+            ));
+        }
         let id = self.next_id;
         self.next_id += 1;
         let line = json!({"id": id, "method": method, "params": params}).to_string();
@@ -324,6 +341,10 @@ impl Backend for Remote {
             ));
         }
         if v.get("ok").and_then(Value::as_bool) == Some(true) {
+            if method == "document.inspect" {
+                // The client has seen the new launch's documents.
+                self.stale = false;
+            }
             Ok(v.get("result").cloned().unwrap_or(Value::Null))
         } else {
             Err(v.get("error").and_then(Value::as_str).unwrap_or("unknown error").to_string())

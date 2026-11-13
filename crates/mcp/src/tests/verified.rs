@@ -90,8 +90,8 @@ fn pinned_commands_carry_the_document_for_the_app_to_check() {
 }
 
 /// The app was restarted between two calls (the connection closed, and the program on the port is
-/// a new launch): the next call is refused with nothing sent, since the uids and ids the client
-/// holds name nothing in the new launch; the call after it goes through.
+/// a new launch): every call that could change something is refused with nothing sent, since the
+/// uids and ids the client holds name nothing in the new launch, until it inspects the documents.
 #[test]
 fn a_restarted_app_is_reported_before_anything_reaches_it() {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
@@ -123,10 +123,21 @@ fn a_restarted_app_is_reported_before_anything_reaches_it() {
     assert_eq!(r.call("document.inspect", json!({})).unwrap()["launch"], "first");
     // Let the first launch's connection close.
     std::thread::sleep(std::time::Duration::from_millis(200));
-    let e = r.call("engine.execute", json!({"command": "shape.rectangle", "params": {}, "expectDocument": 1})).unwrap_err();
-    assert!(e.contains("was restarted") && e.contains("nothing was sent") && e.contains("doc_inspect"), "{e}");
+    // Every call that could change something is refused, not only the first (a batch that goes on
+    // after a failed step, a retry), until the client inspects the new launch.
+    for method in ["engine.execute", "engine.execute", "ui.menu.invoke", "ui.pointer", "app.save"] {
+        let e = r.call(method, json!({"command": "shape.rectangle", "params": {}, "expectDocument": 1})).unwrap_err();
+        assert!(e.contains("was restarted") && e.contains("nothing was sent") && e.contains("doc_inspect"), "{method}: {e}");
+    }
     let sent: Vec<(&str, String)> = seen.try_iter().collect();
-    assert!(!sent.iter().any(|(launch, m)| *launch == "second" && m == "engine.execute"), "nothing reached the new launch: {sent:?}");
-    assert_eq!(r.call("document.inspect", json!({})).unwrap()["launch"], "second", "the next call goes through");
+    assert!(
+        !sent.iter().any(|(launch, m)| *launch == "second" && m != "app.identity"),
+        "nothing but the identity check reached the new launch: {sent:?}"
+    );
+    // Reading goes through; once the documents were inspected, so does the rest.
+    assert_eq!(r.call("engine.commands", json!({})).unwrap()["launch"], "second");
+    assert!(r.call("engine.execute", json!({"command": "shape.rectangle", "params": {}})).is_err(), "reading the commands is not inspecting");
+    assert_eq!(r.call("document.inspect", json!({})).unwrap()["launch"], "second");
+    assert_eq!(r.call("engine.execute", json!({"command": "shape.rectangle", "params": {}})).unwrap()["launch"], "second");
     assert_eq!(r.identity().unwrap()["instance"], "second");
 }

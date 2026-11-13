@@ -58,12 +58,12 @@ doing, not done in this release.
 2. Stop a cancelled `command_batch` between steps (F5).
 3. Default bounds for `doc_inspect` and `screenshot` (F8, F9); compact JSON replies.
 4. Menu entries and translations for the study commands.
-6. A width-profile helper that tapers a stroke where a contour is "lost" (SP-IV-1, SP-VIII-11).
-7. A "pet forms" check: pairwise `study.compare` over invented shapes to flag near-duplicates
+5. A width-profile helper that tapers a stroke where a contour is "lost" (SP-IV-1, SP-VIII-11).
+6. A "pet forms" check: pairwise `study.compare` over invented shapes to flag near-duplicates
    (SP-XIII-2).
-8. An SVG export of a whole multi-artboard document with a viewBox spanning every artboard (today:
+7. An SVG export of a whole multi-artboard document with a viewBox spanning every artboard (today:
    the first artboard's; export each with `export {artboard}`).
-9. The example art's cosmetic defects from QC round 3 (`qc-report.md`): a stem loop in C, an arch
+8. The example art's cosmetic defects from QC round 3 (`qc-report.md`): a stem loop in C, an arch
    along a leaf, petal tips, the accent outline's heavy side, stem ends at 7–8×.
 
 ## Checkpoint

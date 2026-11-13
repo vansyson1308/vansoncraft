@@ -510,6 +510,7 @@ pub fn doctor(args: &[String]) -> Result<(), String> {
             }
         }
         Err(e) if e.contains("not VansonCraft") => add("fail", e),
+        Err(e) if e.contains("did not say what it is") || e.contains("refused the connection") => add("warn", e),
         Err(e) => add(
             "info",
             format!("nothing answers on {addr} ({e}): for desktop mode start `vansoncraft --control {}`", addr.rsplit(':').next().unwrap_or("7979")),

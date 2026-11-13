@@ -118,8 +118,9 @@ Before downloading anything, look for an installed copy and reuse it:
   against it as it runs, in the app's own frame, so a tab the person switches to (or a document an
   earlier step opened) is never changed; the step is refused with nothing run. A command that runs
   others itself (`command.batch`, an action, a script) is checked once, when it starts.
-- If the app was restarted, the next call says so and sends nothing: document uids and object ids
-  from before name nothing in the new launch, so inspect again.
+- If the app was restarted, every call that could change something says so and sends nothing
+  until `doc_inspect` has gone through: document uids and object ids from before name nothing in
+  the new launch.
 - New objects never take the id of one an undo took away (headless, and the desktop app with
   `--control`): a stale id fails with "no such object" instead of changing a new object.
 - `command_batch {atomic: true}` rolls back when a step fails (`rolledBack: true`): the document
