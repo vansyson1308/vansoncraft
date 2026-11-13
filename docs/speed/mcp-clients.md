@@ -1,7 +1,8 @@
 # Connecting Claude and Codex (Windows first)
 
 > **Status:** 2026-11-13. Written against the clients' official documentation (Sources, at the end).
-> The compatibility matrix says exactly which combinations were run, and when.
+> The compatibility matrix says exactly which combinations were run, and when. The first release,
+> [0.25.0](https://github.com/vansyson1308/vansoncraft/releases/tag/v0.25.0), is out (a pre-release).
 
 ## What runs where
 
@@ -24,8 +25,10 @@ refuses anything but VansonCraft, so it never drives another app that listens on
 
 ## Install once (no Rust, no build)
 
-Download a release from [GitHub Releases](https://github.com/vansyson1308/vansoncraft/releases)
-and check it against the release's `SHA256SUMS.txt` (`Get-FileHash <file>` in PowerShell):
+Download a release from [GitHub Releases](https://github.com/vansyson1308/vansoncraft/releases).
+The current one is [0.25.0](https://github.com/vansyson1308/vansoncraft/releases/tag/v0.25.0), a
+pre-release; link to it by its version, since `/releases/latest` names stable releases only. Check
+the download against the release's `SHA256SUMS.txt` (`Get-FileHash <file>` in PowerShell):
 
 | Package | Where the programs are |
 |---|---|
@@ -145,9 +148,40 @@ model is **CLIENT VERIFIED**.
 | Claude Code CLI (`claude -p`, a real model), 2026-11-13 | 2.1.322 | Linux (container), Xvfb | desktop (`--connect 127.0.0.1:7979`) | stdio + TCP | **CLIENT VERIFIED**: 26 tool calls in 66 s; drew sky, sun, mountains and "Chào buổi sáng Việt Nam" in the window, previewed, changed only the sun with `expect_document`, saved `.vansoncraft` and exported SVG and PNG into `Bản vẽ thử/buổi sáng.*`, reopened the file (6 objects). `claude mcp add` as `setup claude-code` prints it: added, `claude mcp list` Connected, a second add refused as a duplicate |
 | Claude Desktop | — | Windows/macOS | — | — | **NOT VERIFIED** (no desktop client here); `setup claude-desktop --apply` is tested against the documented file format |
 | Codex CLI / IDE / desktop app | — | any | — | — | **NOT VERIFIED** (no OpenAI account here); `setup codex` prints the documented command and TOML |
-| Any client on Windows | — | Windows | — | — | **NOT VERIFIED** |
+| Release 0.25.0 packages: the scripted MCP client (`packaging/smoke/mcp_smoke.py`), `setup` and `doctor`, and the desktop app with the bridge ([release run](https://github.com/vansyson1308/vansoncraft/actions/runs/43371867221)) | 0.25.0 | Windows Server 2025 (portable ZIP; MSI installed for the user beside VectorCraft 0.24.1), Ubuntu 24.04 (tar.gz, AppImage `--version`); Rust removed from the runners | headless and desktop | stdio + TCP | **PROTOCOL VERIFIED** on the files the draft release held, before they were published |
+| The same files downloaded from the public release URLs, no token | 0.25.0 | Ubuntu 24.04 and Windows Server 2025 runners (`verify-public`), and a Linux container (Xvfb) | headless and desktop | stdio + TCP | **PROTOCOL VERIFIED**: every file matched `SHA256SUMS.txt`; 38 of 38 checks of `packaging/smoke/linux.sh` passed in the container |
+| In-app updater, the released Linux app made to count as 0.24.0 (`VANSONCRAFT_PRETEND_VERSION`) | 0.25.0 | Linux container, Xvfb | — | — | Help › Check for Updates says 0.25.0 is the newest: the pre-release is not offered, as designed. Offering a newer **stable** release was not tried (there is none yet) |
+| Any client on Windows (Claude Desktop, Claude Code, Codex with a real model) | — | Windows | — | — | **NOT VERIFIED** (no Windows desktop with a client here; the scripted checks above ran on Windows Server 2025) |
 
-The release workflow's own checks of the packages, once it runs, are listed in each release's notes.
+## Measured with 0.25.0
+
+**Where the numbers come from:**
+- **release:** the [release run](https://github.com/vansyson1308/vansoncraft/actions/runs/43371867221), on the published files, on GitHub-hosted runners (Windows Server 2025, Ubuntu 24.04, no GPU).
+- **range:** the same measurement across that run and the two dry runs before it.
+- **here:** a Linux container (no GPU) that downloaded the public files.
+
+These are first baselines, not targets; a desktop with a GPU will differ.
+
+| What | Windows | Linux |
+|---|---|---|
+| Download size | MSI 74.2 MB, portable ZIP 98.9 MB | tar.gz 93.6 MB, AppImage 86.7 MB |
+| Download time (here, about 90 MB/s) | about 1 s each | about 1 s each |
+| Unpack | ZIP 1.1 s (dry run) | tar.gz 1.7 s (release; range 1.5–1.7 s), 1.8 s (here) |
+| MSI install / install again / uninstall | 5.3 s / 0.44 s / 1.3 s (release; install range 3.4–5.3 s) | — |
+| MCP `initialize` answered | 0.016–0.031 s | 0.004 s (release), 0.007 s (here) |
+| Tool list ready, from the server's start | 0.016–0.031 s | 0.005 s (release), 0.01 s (here) |
+| First preview, from the server's start | 0.06 s | 0.04 s (release), 0.06 s (here) |
+| Desktop app listening on its port, cold / warm | portable 1.0 s / 0.5 s, installed 2.0 s / 0.5 s (release; cold range 1.0–2.0 s) | 0.7 s / 0.1 s (release; cold range 0.7–4.3 s), 2.0 s / 0.1 s (here) |
+| Desktop bridge `initialize`, identity check included | 0.06–0.48 s | 0.21 s (release), 0.23 s (here) |
+
+**Manual steps** for Windows, Claude Desktop and desktop mode:
+1. download the MSI;
+2. run it;
+3. run `setup claude-desktop --apply`;
+4. start the app with `--control 7979`;
+5. restart Claude Desktop.
+
+Claude Code and Codex take the same five steps; their step 3 is running the command `setup` prints. Headless mode has no step 4.
 
 ## Prompts to try (Vietnamese)
 
@@ -190,5 +224,6 @@ Read on 2026-11-12 and 2026-11-13:
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-13 | minor | The first release, 0.25.0: its link; the matrix with the release workflow's checks on Windows Server 2025 and Ubuntu 24.04, the public download and the updater; first measurements. |
 | 2026-11-13 | major | For installed packages: install once, `setup`, `doctor`, what an agent checks before downloading; desktop-mode guards; the matrix with the desktop Claude Code run. |
 | 2026-11-12 | major | First version. |

@@ -2,7 +2,7 @@
 
 **Stage: alpha** · next: beta, ~13 points (ready for real work ~62% → ~75%, and reliable `.ai` exchange) and ~170–270 h away
 
-> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-12 · **Change:** minor (VansonCraft becomes its own project and the drawing studies land, see the progress log; scores unchanged; previously minor: docs tidy-up, no content change: stray notes at the top moved into the revision table; scores and estimates unchanged; previously minor: Raster effects 85% → 88%, gallery thumbnails and in-dialog preview in; headline numbers unchanged; Symbols area ~87% → ~88%: dynamic instance parts take opacity, blend, gradient and pattern on the canvas; G5 docs sync for Overlap and Pattern auto corners; previously minor: Tools stays beside the canvas with left-side panels; Hindi catalog draft complete under the translation tests; contributor loanword terminology reviewed; wider proofreading welcome; Compound Shapes add-on, beyond Illustrator; scores and estimates unchanged; Contour add-on, beyond Illustrator; scores and estimates unchanged; new gradients follow document color mode; scores and estimates unchanged) · **Target:** Adobe Illustrator 2026 (30.x)
+> **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-13 · **Change:** minor (the first release, 0.25.0, a pre-release for Windows x64 and Linux x86_64, and agents set up from an installed copy, see the progress log; scores unchanged; previously minor: VansonCraft becomes its own project and the drawing studies land; scores unchanged; previously minor: docs tidy-up, no content change: stray notes at the top moved into the revision table; scores and estimates unchanged; previously minor: Raster effects 85% → 88%, gallery thumbnails and in-dialog preview in; headline numbers unchanged; Symbols area ~87% → ~88%: dynamic instance parts take opacity, blend, gradient and pattern on the canvas; G5 docs sync for Overlap and Pattern auto corners; previously minor: Tools stays beside the canvas with left-side panels; Hindi catalog draft complete under the translation tests; contributor loanword terminology reviewed; wider proofreading welcome; Compound Shapes add-on, beyond Illustrator; scores and estimates unchanged; Contour add-on, beyond Illustrator; scores and estimates unchanged; new gradients follow document color mode; scores and estimates unchanged) · **Target:** Adobe Illustrator 2026 (30.x)
 
 VansonCraft is a clean-room, open-source, pure-Rust reimplementation of the Adobe Illustrator workflow. It runs
 on macOS, Windows, Linux, FreeBSD and the web (WASM), and agents can drive all of it over MCP, the CLI and a JSON
@@ -121,6 +121,13 @@ Ranked; detail in [docs/roadmap.md](docs/roadmap.md) and [docs/gaps.md](docs/gap
 
 ## Progress log
 
+- 2026-11-13: The first release, [0.25.0](https://github.com/vansyson1308/vansoncraft/releases/tag/v0.25.0), a pre-release for Windows x64 (MSI, portable ZIP) and Linux x86_64 (tar.gz, AppImage), unsigned.
+  - It is built by `.github/workflows/release.yml` from one commit of `main` and checked as a draft on fresh runners: MCP, `setup`/`doctor`, the desktop app and bridge, and the MSI beside VectorCraft 0.24.1.
+  - It was published only when every check passed, then downloaded again from the public URLs.
+  - `vansoncraft-cli setup` writes or prints a Claude Desktop, Claude Code or Codex entry for the installed copy, and `doctor` checks it.
+  - In desktop mode the agent acts only on VansonCraft (`app.identity`) and on the document it named (`expectDocument`, checked in the app's frame).
+
+  Headline numbers unchanged.
 - 2026-11-12: VansonCraft becomes its own project (formerly a fork of VectorCraft by the ArtCraft team, at 0.24.1): new name, icon, app id (`io.github.vansyson1308.vansoncraft`), `.vansoncraft` extension and Windows installer identity; `.vectorcraft`/`.drawcraft` files, their SVG/EPS/PDF editing data, preference exports and the old settings folder still open; the updater looks only at this repository's releases; the upstream project's links, brand marks and shared CI removed (self-contained CI); `cargo xtask brands` keeps the old names out of user-visible text. Headline numbers unchanged.
 - 2026-11-12: Drawing with agents after Harold Speed (docs/speed/): study commands (`study.render`, `study.values`, `study.balance`, `study.lines`, `study.proportions`, `study.compare`, `study.blockIn`, `study.hatch`) shared by the app, the CLI and MCP; MCP previews zoom into regions and show value groups, small artboards preview large enough to judge, `doc_inspect` reports the backend, a headless fallback is announced, failed atomic batches roll back, and `expect_document` refuses a call meant for another document; new objects no longer take an id an undo removed; drawing-method resources and four prompts. Headline numbers unchanged.
 - 2026-11-05: Window › Toolbars › Keep Tools Beside the Canvas, off by default, docks the Tools panel between left-side panels and the canvas instead of at the window's left edge, and the canvas's left edge then also docks a floating Tools panel (`window.toolsBesideCanvas`, #5395). Workspaces keep the setting; workspaces saved without it keep Tools at the window's edge. An optional VansonCraft layout choice; headline numbers unchanged.
@@ -218,6 +225,7 @@ The full earlier record of what landed is kept in [docs/roadmap.md](docs/roadmap
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-13 | minor | The first release, 0.25.0, and agent setup from an installed copy (progress-log row); headline numbers unchanged. |
 | 2026-11-12 | minor | VansonCraft becomes an independent project (progress-log row); headline numbers unchanged. |
 | 2026-11-10 | minor | Tidy-up, no content change: the unheaded change bullets at the top of the file and a revision row inside the headline-numbers table move to this table under their commit dates. Scores and estimates unchanged. |
 | 2026-11-10 | minor | Raster effects: Effect Gallery thumbnails and an in-dialog preview (an original drawing through each filter). Features-table Raster effects 85% → 88%, hours 1–2 → none. Headline numbers unchanged, so the progress log is unchanged. |

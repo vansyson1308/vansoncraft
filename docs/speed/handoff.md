@@ -1,7 +1,7 @@
 # Handoff: status, limits, backlog, checkpoint and rollback
 
-> **Status:** 2026-11-12, branch `claude/clever-dijkstra-2o2vgb`. Updated with the final results of
-> `acceptance-matrix.md`.
+> **Status:** 2026-11-13. Updated with the final results of `acceptance-matrix.md` and the first
+> release, [0.25.0](https://github.com/vansyson1308/vansoncraft/releases/tag/v0.25.0) (a pre-release).
 
 ## Status by item
 
@@ -29,7 +29,8 @@ doing, not done in this release.
 | Engine: no id reuse after undo (`unique_ids`, on in MCP headless and in the desktop app with `--control`) | IMPLEMENTED, TESTED |
 | Method resources and four prompts | IMPLEMENTED, TESTED (protocol), CLIENT VERIFIED (Claude Code 2.1.322 read and used them, `mcp-clients.md`) |
 | Desktop live mode (H) | TESTED on Linux under Xvfb with a software GPU (`mcp-clients.md`) |
-| Claude Desktop, Codex, Windows | BLOCKED here (no such client, credentials or machine); configuration written from the official docs |
+| Release 0.25.0 packages (Windows x64 MSI and portable ZIP, Linux x86_64 tar.gz and AppImage) | TESTED: the scripted MCP client, `setup`/`doctor` and the desktop bridge on fresh Windows Server 2025 and Ubuntu 24.04 runners, before publishing and again from the public URLs (`mcp-clients.md`) |
+| Claude Desktop, Codex, clients on Windows | BLOCKED here (no such client, credentials or Windows desktop); configuration written from the official docs |
 | Lost-and-found (soft) edges as a vector primitive | DEFERRED: no honest vector primitive; guidance offers an intermediate value shape, a gradient across the edge, or a declared feather effect |
 | F4 (undo group left open on disconnect), F5, F8, F9, F12, F14, F16–F18 | DEFERRED (see `audit.md`) |
 | Menu placement of the study commands in the desktop app | DEFERRED: they run from the command palette, the control channel, the CLI and MCP; menus need translations for every language |
@@ -100,5 +101,6 @@ Or revert the whole branch: the pull request is a set of commits on top of `main
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-11-13 | minor | The first release, 0.25.0, and what its packages were tested with. |
 | 2026-11-13 | minor | Desktop mode: `expect_document` checked by the app, `unique_ids` with `--control`, app identity and restart detection; `setup` and `doctor`; a desktop Claude Code run. |
 | 2026-11-12 | major | First version. |

@@ -40,8 +40,9 @@
   <a href="#a-look-around">A look around</a> ·
   <a href="#made-in-vansoncraft">Made in VansonCraft</a> ·
   <a href="#drawing-with-agents-after-harold-speed">Drawing with agents</a> ·
+  <a href="#tải-và-dùng-ngay">Download and use</a> ·
   <a href="#why-vansoncraft">Why VansonCraft</a> ·
-  <a href="#quick-start">Quick start</a> ·
+  <a href="#build-from-source">Build from source</a> ·
   <a href="#status">Status</a> ·
   <a href="#downloads">Downloads</a> ·
   <a href="#license-and-credits">License</a>
@@ -161,6 +162,63 @@ principle to the app, the acceptance results and the client set-up are in
 </tr>
 </table>
 
+## Tải và dùng ngay
+
+Tải gói đã build sẵn, cài, kết nối Claude hoặc Codex rồi vẽ: không cần Rust, không clone, không biên dịch.
+Download VansonCraft and draw with Claude or Codex, with no Rust, no clone and no build.
+
+**VansonCraft 0.25.0** is a **pre-release**: alpha quality, for Windows x64 and Linux x86_64. The
+files are not code-signed. They are listed on the
+[release page](https://github.com/vansyson1308/vansoncraft/releases/tag/v0.25.0).
+
+| File | For | Size |
+|---|---|---|
+| [`vansoncraft-0.25.0-windows-x64.msi`](https://github.com/vansyson1308/vansoncraft/releases/download/v0.25.0/vansoncraft-0.25.0-windows-x64.msi) | Windows x64. Installs for the current user; app and CLI. | 74.2 MB |
+| [`vansoncraft-0.25.0-windows-x64-portable.zip`](https://github.com/vansyson1308/vansoncraft/releases/download/v0.25.0/vansoncraft-0.25.0-windows-x64-portable.zip) | Windows x64, without installing. Unpack it into a folder you keep. | 98.9 MB |
+| [`vansoncraft-0.25.0-linux-x86_64.tar.gz`](https://github.com/vansyson1308/vansoncraft/releases/download/v0.25.0/vansoncraft-0.25.0-linux-x86_64.tar.gz) | Linux x86_64, glibc 2.35+. App and CLI, the copy to give an agent. | 93.6 MB |
+| [`vansoncraft-0.25.0-linux-x86_64.AppImage`](https://github.com/vansyson1308/vansoncraft/releases/download/v0.25.0/vansoncraft-0.25.0-linux-x86_64.AppImage) | Linux x86_64, the desktop app in one file. | 86.7 MB |
+| [`SHA256SUMS.txt`](https://github.com/vansyson1308/vansoncraft/releases/download/v0.25.0/SHA256SUMS.txt) | checksums of every file | |
+
+These exact files were checked before they were published:
+- on fresh Windows Server 2025 and Ubuntu 24.04 runners;
+- then again after a download from the links above.
+
+Nobody has tried them on a Windows 10 or 11 desktop, or on another Linux distribution, yet.
+
+1. **Check the download** against `SHA256SUMS.txt`:
+   - Windows PowerShell: `Get-FileHash <file>`;
+   - Linux: `sha256sum -c SHA256SUMS.txt --ignore-missing`.
+
+   Windows SmartScreen may say that the publisher is unknown, because the files are unsigned.
+2. **Install:**
+   - **MSI:** run it. It installs into `%LOCALAPPDATA%\Programs\VansonCraft`.
+   - **ZIP or tar.gz:** unpack it.
+3. **Connect your agent** from the installed copy. On Windows:
+
+   ```powershell
+   $cli = "$env:LOCALAPPDATA\Programs\VansonCraft\vansoncraft-cli.exe"
+   & $cli setup claude-desktop --apply   # Claude Desktop: written for you, with a backup
+   & $cli setup claude-code              # Claude Code: prints the `claude mcp add` command to run
+   & $cli setup codex                    # Codex: prints the `codex mcp add` command and the TOML
+   & $cli doctor                         # checks the install, the engine and each client's entry
+   ```
+
+   On Linux, the same commands run `bin/vansoncraft-cli` from the unpacked folder.
+4. **Draw** in the window: start the app with its control port,
+   `vansoncraft --control 7979`. Restart the client, then ask it to draw.
+
+   To work without a window, use `setup <client> --headless --folder <folder>`: the agent reads and
+   writes only in that folder.
+
+The full guide is [`docs/speed/mcp-clients.md`](docs/speed/mcp-clients.md). It covers what an agent
+should check before downloading anything, and which clients were tried.
+- Claude Code was tried with a real model on Linux.
+- Claude Desktop, Codex and the Windows clients have not been tried with a real client yet. The
+  release workflow checks the MCP server, `setup` and `doctor` with a scripted client on both
+  systems.
+- The connection is local (stdio, and 127.0.0.1 for the window). A web chat in the browser
+  cannot reach it.
+
 ## Why VansonCraft
 
 - **Familiar.** A familiar layout, tools, menus, panels and shortcuts: the Pen, Direct Selection,
@@ -177,7 +235,9 @@ principle to the app, the acceptance results and the client set-up are in
   way a person does.
 - **Everywhere.** One codebase for the desktop apps and the same UI in the browser.
 
-## Quick start
+## Build from source
+
+For developers. To use VansonCraft, download a release instead (above).
 
 For posters and sewing patterns, see [Print a large poster across multiple pages](docs/print-tiling.md).
 
@@ -222,7 +282,9 @@ Wayland). For a pen attached later, set the same preference to **X11 (XWayland)*
 
 ### Use it from Claude Code and other agents
 
-Register the MCP server with Claude Code:
+With an installed release, `vansoncraft-cli setup` prints or writes the client entry for you (above).
+For a build of your own, register the server by hand. Point it at a copy outside `target/`, since a
+rebuild replaces that one:
 
 ```sh
 claude mcp add vansoncraft -- /path/to/vansoncraft-cli mcp
@@ -242,6 +304,8 @@ Claude Desktop and Codex configuration and prompts in Vietnamese are in [`docs/s
 VansonCraft is under active development. [**ROADMAP.md**](ROADMAP.md) has the stage, the numbers by dimension
 and what's next; [`docs/target-app-parity.md`](docs/target-app-parity.md) the full parity assessment and
 [`docs/gaps.md`](docs/gaps.md) the ranked list of what's missing.
+
+**Releases:** the first prebuilt release, [0.25.0](https://github.com/vansyson1308/vansoncraft/releases/tag/v0.25.0) (2026-11-13), is a pre-release for Windows x64 and Linux x86_64 ([Tải và dùng ngay](#tải-và-dùng-ngay)).
 
 **Where we are (2026-10-10, unchanged at the fork): alpha.** About 88% of core menu items, tools, effects and formats exist
 (92.5% of menu items do something), feature depth is ~75%, and we estimate ~65% ready for real work for a mainstream illustrator (~62% across all tracked features): everyday
@@ -286,12 +350,20 @@ and what the first one needs. Every bundled asset is listed with its licence in 
 
 ## Downloads
 
-There are no prebuilt releases of VansonCraft yet: build it from source (above). The packaging
-scripts in [`packaging/`](packaging) build an MSI installer and a portable zip for Windows, a DMG for
-macOS, AppImage, Flatpak, deb, rpm and a tarball for Linux, a FreeBSD tarball and the web build;
-[`docs/releasing.md`](docs/releasing.md) describes them and what the first release needs. Releases,
-once published, will be on [GitHub Releases](https://github.com/vansyson1308/vansoncraft/releases),
-the only place the in-app updater looks.
+Releases are on [GitHub Releases](https://github.com/vansyson1308/vansoncraft/releases), the only
+place the in-app updater looks. The first one is
+[0.25.0](https://github.com/vansyson1308/vansoncraft/releases/tag/v0.25.0): a pre-release for
+Windows x64 (MSI, portable ZIP) and Linux x86_64 (tar.gz, AppImage), unsigned.
+- Its notes list each file's SHA-256 and what was checked before it was published.
+- A pre-release is not the repository's "latest", so link to it by its version.
+- The in-app updater does not offer it.
+
+The release workflow, `.github/workflows/release.yml`, builds every package from one commit of
+`main`. It checks them on fresh runners and publishes them only when every check passed;
+[`docs/releasing.md`](docs/releasing.md) describes it.
+
+The packaging scripts in [`packaging/`](packaging) also build a DMG for macOS, Flatpak, deb and rpm
+packages for Linux, a FreeBSD tarball and the web build. These have no release job yet.
 
 ## License and credits
 
